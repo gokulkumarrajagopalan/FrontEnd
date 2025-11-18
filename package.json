@@ -1,0 +1,49 @@
+{
+  "name": "tally-prime",
+  "version": "1.0.0",
+  "description": "Professional Accounting & ERP System - Desktop Application",
+  "author": "Tally Prime Team",
+  "license": "MIT",
+  "main": "main.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "redux": "^4.2.1",
+    "redux-thunk": "^2.4.2"
+  },
+  "devDependencies": {
+    "electron": "^39.2.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.tallyapp.desktop",
+    "productName": "Tally Prime",
+    "files": [
+      "main.js",
+      "index.html",
+      "*.js",
+      "pages/**/*",
+      "*.css",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

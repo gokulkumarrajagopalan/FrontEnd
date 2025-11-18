@@ -1,0 +1,223 @@
+<div class="dashboard-page">
+    <div class="page-header">
+        <h1>Dashboard</h1>
+        <p class="page-subtitle">Financial Overview & Summary</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="stat-card">
+            <div class="stat-icon income">💰</div>
+            <div class="stat-content">
+                <p class="stat-label">Total Income</p>
+                <h3 class="stat-value" id="totalIncome">₹0.00</h3>
+                <p class="stat-change positive">↑ +12.5%</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon expense">📉</div>
+            <div class="stat-content">
+                <p class="stat-label">Total Expenses</p>
+                <h3 class="stat-value" id="totalExpense">₹0.00</h3>
+                <p class="stat-change negative">↓ -5.2%</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon balance">📊</div>
+            <div class="stat-content">
+                <p class="stat-label">Net Balance</p>
+                <h3 class="stat-value" id="netBalance">₹0.00</h3>
+                <p class="stat-change positive">↑ +18.3%</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon items">📦</div>
+            <div class="stat-content">
+                <p class="stat-label">Total Items</p>
+                <h3 class="stat-value" id="totalItems">0</h3>
+                <p class="stat-change">Last 30 days</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Recent Vouchers</h2>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Voucher #</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="recentVouchersTable">
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #999;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Top Ledgers</h2>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Ledger Name</th>
+                        <th>Group</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody id="topLedgersTable">
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: #999;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <style>
+        .dashboard-page {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            font-size: 2.5em;
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+
+        .page-subtitle {
+            margin: 0;
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 20px;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #d4a574;
+        }
+
+        .stat-icon {
+            font-size: 2em;
+            text-align: center;
+        }
+
+        .stat-label {
+            margin: 0;
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            margin: 5px 0;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #1a3a52;
+        }
+
+        .stat-change {
+            margin: 0;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .stat-change.positive {
+            color: #28a745;
+        }
+
+        .stat-change.negative {
+            color: #dc3545;
+        }
+
+        .dashboard-section {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .dashboard-section h2 {
+            margin: 0 0 20px 0;
+            font-size: 1.4em;
+            color: #333;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+
+        .data-table thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .data-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</div>

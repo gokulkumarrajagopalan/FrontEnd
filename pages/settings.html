@@ -1,0 +1,281 @@
+<div class="settings-page">
+    <div class="page-header">
+        <h1>Settings</h1>
+        <p class="page-subtitle">Application settings and preferences</p>
+    </div>
+
+    <div class="settings-container">
+        <!-- Application Settings -->
+        <div class="settings-section">
+            <h2>Application Settings</h2>
+            <form class="settings-form">
+                <div class="form-group">
+                    <label>Application Name</label>
+                    <input type="text" id="appName" value="Tally Prime">
+                </div>
+                <div class="form-group">
+                    <label>Organization Name</label>
+                    <input type="text" id="orgName" placeholder="Your organization name">
+                </div>
+                <div class="form-group">
+                    <label>Financial Year Start</label>
+                    <input type="date" id="fyStart">
+                </div>
+                <div class="form-group">
+                    <label>Financial Year End</label>
+                    <input type="date" id="fyEnd">
+                </div>
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+            </form>
+        </div>
+
+        <!-- Backend Connection -->
+        <div class="settings-section">
+            <h2>Backend Connection</h2>
+            <form class="settings-form">
+                <div class="form-group">
+                    <label>API Base URL</label>
+                    <input type="text" id="apiUrl" value="http://localhost:8080/api">
+                    <small>API endpoint for backend services</small>
+                </div>
+                <button type="button" class="btn btn-secondary" id="testConnectionBtn">Test Connection</button>
+                <div id="connectionStatus" style="margin-top: 10px;"></div>
+            </form>
+        </div>
+
+        <!-- Display Settings -->
+        <div class="settings-section">
+            <h2>Display Settings</h2>
+            <form class="settings-form">
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="darkMode">
+                    <label>Dark Mode</label>
+                </div>
+                <div class="form-group">
+                    <label>Currency Symbol</label>
+                    <select id="currency">
+                        <option value="₹">Indian Rupee (₹)</option>
+                        <option value="$">US Dollar ($)</option>
+                        <option value="€">Euro (€)</option>
+                        <option value="£">British Pound (£)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Decimal Places</label>
+                    <select id="decimalPlaces">
+                        <option value="2">2 Decimal Places</option>
+                        <option value="3">3 Decimal Places</option>
+                        <option value="4">4 Decimal Places</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Display Settings</button>
+            </form>
+        </div>
+
+        <!-- Data Management -->
+        <div class="settings-section danger">
+            <h2>Data Management</h2>
+            <form class="settings-form">
+                <p class="warning">⚠️ Be careful with these operations. They may result in data loss.</p>
+                <button type="button" class="btn btn-danger" id="exportBtn">Export Data</button>
+                <button type="button" class="btn btn-danger" id="backupBtn">Create Backup</button>
+                <button type="button" class="btn btn-danger" id="resetBtn">Reset Application</button>
+            </form>
+        </div>
+
+        <!-- About -->
+        <div class="settings-section">
+            <h2>About</h2>
+            <div class="about-content">
+                <p><strong>Tally Prime</strong></p>
+                <p>Professional Accounting & ERP System</p>
+                <p><strong>Version:</strong> 1.0.0</p>
+                <p><strong>Built with:</strong> Electron + Spring Boot</p>
+                <p><strong>License:</strong> MIT</p>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .settings-page {
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            font-size: 2em;
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+
+        .page-subtitle {
+            margin: 0;
+            color: #666;
+        }
+
+        .settings-container {
+            display: grid;
+            gap: 30px;
+        }
+
+        .settings-section {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 25px;
+        }
+
+        .settings-section.danger {
+            border-left: 4px solid #dc3545;
+            background: #fff5f5;
+        }
+
+        .settings-section h2 {
+            margin: 0 0 20px 0;
+            font-size: 1.3em;
+            color: #333;
+        }
+
+        .settings-form {
+            display: grid;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .form-group small {
+            grid-column: 2;
+            font-size: 0.85em;
+            color: #666;
+            margin-top: -10px;
+        }
+
+        .form-group.checkbox {
+            grid-template-columns: auto 1fr;
+            width: fit-content;
+        }
+
+        .form-group.checkbox input {
+            width: auto;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            width: fit-content;
+        }
+
+        .btn-primary {
+            background: #1a3a52;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2c5282;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .warning {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+            margin: 0 0 15px 0;
+        }
+
+        #connectionStatus {
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        #connectionStatus.success {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        #connectionStatus.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .about-content {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .about-content p {
+            margin: 8px 0;
+            color: #333;
+        }
+
+        .about-content strong {
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .form-group {
+                grid-template-columns: 1fr;
+            }
+
+            .form-group small {
+                grid-column: 1;
+                margin-top: 0;
+            }
+
+            .page-header h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</div>

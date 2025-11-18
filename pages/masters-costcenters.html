@@ -1,0 +1,70 @@
+<!-- Cost Centers Master Screen -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cost Centers</title>
+</head>
+<body>
+<div id="costCentersContainer" class="page-container">
+    <div class="page-header">
+        <h2>Cost Centers</h2>
+        <button id="addCostCenterBtn" class="btn btn-primary">+ New Cost Center</button>
+    </div>
+
+    <div class="filters-section">
+        <input type="text" id="costCenterSearch" placeholder="Search by code, name...">
+    </div>
+
+    <div id="costCentersTableContainer" class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Budget</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="costCentersTableBody">
+                <!-- Populated by JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="costCenterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="costCenterModalTitle">Add Cost Center</h3>
+                <span class="close-btn" id="closeCostCenterModal">&times;</span>
+            </div>
+            <form id="costCenterForm">
+                <div class="form-group">
+                    <label>Code *</label>
+                    <input type="text" id="costCenterCode" required placeholder="e.g., CC001">
+                </div>
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="costCenterName" required placeholder="e.g., Production">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="costCenterDescription" placeholder="Enter description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Budget Amount</label>
+                    <input type="number" id="costCenterBudget" step="0.01" value="0">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelCostCenterBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Cost Center</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>
