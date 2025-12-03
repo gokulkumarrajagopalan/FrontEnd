@@ -1,0 +1,105 @@
+/**
+ * Preload Script for Electron
+ * Provides secure bridge between renderer and main process
+ */
+
+console.log('🔥 Preload script starting...');
+
+let contextBridgeReady = false;
+let ipcRendererReady = false;
+
+try {
+    console.log('🔥 Attempting to require Electron modules...');
+    const { contextBridge, ipcRenderer } = require('electron');
+    console.log('🔥 Successfully required contextBridge and ipcRenderer');
+    contextBridgeReady = true;
+    ipcRendererReady = true;
+
+    console.log('🔥 About to expose API to renderer...');
+    contextBridge.exposeInMainWorld('electronAPI', {
+        // Send message to main process
+        send: (channel, data) => {
+            ipcRenderer.send(channel, data);
+        },
+
+        // Listen for messages from main process
+        on: (channel, func) => {
+            ipcRenderer.on(channel, (event, ...args) => func(...args));
+        },
+
+        // Send message and get response
+        invoke: (channel, data) => {
+            return ipcRenderer.invoke(channel, data);
+        },
+
+        // Remove listener
+        removeListener: (channel) => {
+            ipcRenderer.removeAllListeners(channel);
+        },
+
+        // Platform info
+        platform: process.platform,
+        nodeVersion: process.versions.node,
+        chromeVersion: process.versions.chrome,
+        electronVersion: process.versions.electron,
+
+        // Sync API
+        startSync: (config) => {
+            ipcRenderer.send('start-sync', config);
+        },
+
+        stopSync: () => {
+            ipcRenderer.send('stop-sync');
+        },
+
+        checkSyncStatus: () => {
+            ipcRenderer.send('check-sync-status');
+        },
+
+        getSyncStatus: () => {
+            return ipcRenderer.invoke('get-sync-status');
+        },
+
+        triggerSync: (config) => {
+            ipcRenderer.send('trigger-sync', config);
+        },
+
+        onSyncUpdate: (callback) => {
+            ipcRenderer.on('sync-update', (event, data) => callback(data));
+        },
+
+        onSyncError: (callback) => {
+            ipcRenderer.on('sync-error', (event, error) => callback(error));
+        },
+
+        onSyncStarted: (callback) => {
+            ipcRenderer.on('sync-started', (event, data) => callback(data));
+        },
+
+        onSyncStopped: (callback) => {
+            ipcRenderer.on('sync-stopped', (event, data) => callback(data));
+        },
+
+        onSyncStatus: (callback) => {
+            ipcRenderer.on('sync-status', (event, data) => callback(data));
+        },
+
+        fetchLicense: () => {
+            return ipcRenderer.invoke('fetch-license');
+        },
+
+        checkTallyConnection: () => {
+            return ipcRenderer.invoke('check-tally-connection');
+        },
+
+        fetchCompanies: () => {
+            return ipcRenderer.invoke('fetch-companies');
+        }
+    });
+    console.log('✅ Preload: electronAPI exposed successfully');
+} catch (error) {
+    console.error('❌ Preload error during expose:', error);
+    console.error('   contextBridgeReady:', contextBridgeReady);
+    console.error('   ipcRendererReady:', ipcRendererReady);
+    console.error('   Stack:', error.stack);
+}

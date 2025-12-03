@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tally Prime - Enterprise ERP</title>
+    <!-- Tailwind CSS (compiled output) -->
+    <link rel="stylesheet" href="../renderer/styles/output.css">
+    <!-- Application Styles -->
+    <link rel="stylesheet" href="../renderer/styles/styles.css">
+    <link rel="stylesheet" href="../renderer/styles/styles-app.css">
+    <link rel="stylesheet" href="../renderer/styles/styles-tailwind.css">
+    <style>
+        :root {
+            --primary-600: #2563eb;
+            --primary-700: #1d4ed8;
+            --primary-500: #3b82f6;
+            --primary-900: #1e3a8a;
+            --primary-400: #60a5fa;
+            --sidebar-bg: #1f2937;
+            --background-color: #f9fafb;
+        }
+
+        body {
+            background-color: var(--background-color);
+        }
+
+        .bg-sidebar {
+            background-color: var(--sidebar-bg);
+        }
+
+        .bg-primary-600 {
+            background-color: var(--primary-600);
+        }
+
+        .bg-primary-700 {
+            background-color: var(--primary-700);
+        }
+
+        .bg-background {
+            background-color: var(--background-color);
+        }
+
+        .text-primary-600 {
+            color: var(--primary-600);
+        }
+
+        .border-primary-500 {
+            border-color: var(--primary-500);
+        }
+
+        .focus\:ring-primary-500\/20:focus {
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 9999px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        /* Component Classes */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .btn:focus {
+            outline: none;
+            ring: 2px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-600);
+            color: white;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-700);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+            background-color: #f9fafb;
+            color: #111827;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-logout {
+            width: 100%;
+            margin-top: 1rem;
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fee2e2;
+            padding: 0.625rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-logout:hover {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: #374151;
+            transition: all 0.2s;
+        }
+
+        input::placeholder,
+        select::placeholder,
+        textarea::placeholder {
+            color: #9ca3af;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .card,
+        .modal-content {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(243, 244, 246, 0.5);
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            background-color: white;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .table {
+            width: 100%;
+            text-align: left;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background-color: rgba(243, 244, 246, 0.8);
+            padding: 0.75rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .table td {
+            padding: 0.875rem 1.5rem;
+            font-size: 0.875rem;
+            color: #4b5563;
+            border-bottom: 1px solid #f9fafb;
+            white-space: nowrap;
+        }
+
+        .table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .table tr:hover td {
+            background-color: rgba(243, 244, 246, 0.5);
+            color: #111827;
+        }
+
+        .page-header {
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .page-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .page-header p {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .page-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            background-color: white;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            border: 1px solid #f3f4f6;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #d1d5db;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .nav-link.active {
+            background-color: var(--primary-600);
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
+        }
+
+        .nav-link-icon {
+            font-size: 1.125rem;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .nav-link:hover .nav-link-icon {
+            opacity: 1;
+        }
+
+        .nav-section-title {
+            padding: 0 1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .alert {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert-success {
+            background-color: #f0fdf4;
+            color: #166534;
+            border-left-color: #22c55e;
+        }
+
+        .alert-error {
+            background-color: #fef2f2;
+            color: #991b1b;
+            border-left-color: #ef4444;
+        }
+
+        .alert-warning {
+            background-color: #fffbeb;
+            color: #92400e;
+            border-left-color: #eab308;
+        }
+
+        .alert-info {
+            background-color: #eff6ff;
+            color: #1e40af;
+            border-left-color: #3b82f6;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Splash/Loading Screen -->
+    <div id="splash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+        <div style="text-align: center; color: white;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">T</div>
+            <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">Tally Prime</div>
+            <div style="font-size: 0.875rem; opacity: 0.8; margin-bottom: 2rem;">Loading...</div>
+            <div style="width: 200px; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden;">
+                <div style="width: 30%; height: 100%; background: white; animation: loading 1.5s ease-in-out infinite;"></div>
+            </div>
+        </div>
+        <style>
+            @keyframes loading {
+                0% { width: 30%; margin-left: 0; }
+                50% { width: 70%; margin-left: 15%; }
+                100% { width: 30%; margin-left: 70%; }
+            }
+        </style>
+    </div>
+
+    <!-- Error display (hidden by default) -->
+    <div id="errorDisplay" style="display: none; position: fixed; top: 10px; left: 10px; right: 10px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 16px; color: #991b1b; z-index: 10000; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+
+    <!-- Service Scripts -->
+    <script src="../renderer/services/config.js"></script>
+    <script src="../renderer/services/utils.js"></script>
+    <script src="../renderer/services/auth.js"></script>
+    <script src="../renderer/services/api.js"></script>
+    <script src="../renderer/services/router.js"></script>
+
+    <!-- Redux -->
+    <script src="../renderer/redux/store.js"></script>
+
+    <!-- Pages Loader -->
+    <script src="../renderer/pages-loader.js"></script>
+
+    <!-- Page Modules (All pages) -->
+    <script src="../renderer/pages/home.js"></script>
+    <script src="../renderer/pages/dashboard.js"></script>
+    <script src="../renderer/pages/auth.js"></script>
+    <script src="../renderer/pages/vouchers.js"></script>
+    <script src="../renderer/pages/invoices.js"></script>
+    <script src="../renderer/pages/inventory.js"></script>
+    <script src="../renderer/pages/payments.js"></script>
+    <script src="../renderer/pages/ledgers.js"></script>
+    <script src="../renderer/pages/groups.js"></script>
+    <script src="../renderer/pages/bank-reconciliation.js"></script>
+    <script src="../renderer/pages/tax.js"></script>
+    <script src="../renderer/pages/budget.js"></script>
+    <script src="../renderer/pages/reports.js"></script>
+    <script src="../renderer/pages/items.js"></script>
+    <script src="../renderer/pages/masters-accounts.js"></script>
+    <script src="../renderer/pages/masters-costcenters.js"></script>
+    <script src="../renderer/pages/masters-categories.js"></script>
+    <script src="../renderer/pages/masters-units.js"></script>
+    <script src="../renderer/pages/users.js"></script>
+    <script src="../renderer/pages/audit-trail.js"></script>
+    <script src="../renderer/pages/sync-settings.js"></script>
+    <script src="../renderer/pages/settings.js"></script>
+    <script src="../renderer/pages/advanced-search.js"></script>
+    <script src="../renderer/pages/batch-operations.js"></script>
+    <script src="../renderer/pages/dashboard-metrics.js"></script>
+    <script src="../renderer/pages/my-company.js"></script>
+    <script src="../renderer/pages/add-company.js"></script>
+    <script src="../renderer/pages/import-company.js"></script>
+    <script src="../renderer/pages/company-sync.js"></script>
+
+    <!-- Components -->
+    <script src="../renderer/components/sync-controller.js"></script>
+    <script src="../renderer/components/notifications.js"></script>
+
+    <!-- Main App Entry Point -->
+    <script src="../renderer/app.js"></script>
+
+    <!-- Test log -->
+    <script>console.log('✅ All scripts loaded successfully');</script>
+    
+    <!-- Initialization -->
+    <script>
+        console.log('🔄 Scripts loaded, waiting for DOM ready...');
+        console.log('📍 document.readyState:', document.readyState);
+        
+        // Global error handler
+        window.addEventListener('error', (e) => {
+            console.error('❌ Global error:', e.error);
+            const errorDiv = document.getElementById('errorDisplay');
+            if (errorDiv) {
+                errorDiv.style.display = 'block';
+                errorDiv.innerHTML += `<div>⚠️ ${e.message}</div>`;
+            }
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('❌ Unhandled promise rejection:', e.reason);
+            const errorDiv = document.getElementById('errorDisplay');
+            if (errorDiv) {
+                errorDiv.style.display = 'block';
+                errorDiv.innerHTML += `<div>⚠️ Promise: ${e.reason}</div>`;
+            }
+        });
+        
+        function hideSplash() {
+            console.log('🎬 Hiding splash screen');
+            const splash = document.getElementById('splash');
+            if (splash) {
+                splash.style.opacity = '0';
+                splash.style.transition = 'opacity 0.3s ease-out';
+                setTimeout(() => {
+                    if (splash.parentNode) splash.remove();
+                }, 300);
+            }
+        }
+
+        function initializeApp() {
+            console.log('📍 Attempting to initialize app...');
+            console.log('   window.app exists?', typeof window.app !== 'undefined');
+            
+            if (window.app && typeof window.app.init === 'function') {
+                console.log('✅ App object exists and init is callable, calling init()');
+                try {
+                    window.app.init();
+                    console.log('✅ App.init() called successfully');
+                    setTimeout(hideSplash, 500);
+                } catch (e) {
+                    console.error('❌ Error calling app.init():', e);
+                    const errorDiv = document.getElementById('errorDisplay');
+                    if (errorDiv) {
+                        errorDiv.style.display = 'block';
+                        errorDiv.innerHTML = `<div><strong>Init Error:</strong></div><div>${e.message}</div><div style="white-space: pre-wrap; font-size: 10px;">${e.stack}</div>`;
+                    }
+                }
+            } else {
+                console.error('❌ window.app does not exist or init is not callable!');
+                console.log('   typeof window.app:', typeof window.app);
+                console.log('   window.app:', window.app);
+                const errorDiv = document.getElementById('errorDisplay');
+                if (errorDiv) {
+                    errorDiv.style.display = 'block';
+                    errorDiv.innerHTML = '<div><strong>Error:</strong> window.app not found or init not callable! Check script loading order.</div>';
+                }
+            }
+        }
+
+        // Method 1: DOMContentLoaded (most reliable)
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('✅ DOMContentLoaded fired');
+            initializeApp();
+        });
+
+        // Method 2: Immediate check for already-loaded DOM
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            console.log('✅ DOM already ready (readyState=' + document.readyState + '), scheduling init...');
+            setTimeout(initializeApp, 50);
+        }
+
+        // Method 3: Final fallback after a delay
+        setTimeout(() => {
+            if (!window.appInitialized) {
+                console.warn('⚠️ App not initialized after 2 seconds, forcing init...');
+                initializeApp();
+            }
+        }, 2000);
+    </script>
+        }
+
+        // Method 3: Timeout fallback
+        setTimeout(() => {
+            console.log('⏱️ 2 second timeout check');
+            if (document.body.children.length === 1 && document.getElementById('splash')) {
+                console.warn('⚠️ Still showing splash screen, forcing init');
+                initializeApp();
+            }
+        }, 2000);
+
+        setTimeout(() => {
+            console.log('⏱️ 5 second final check');
+            const splash = document.getElementById('splash');
+            if (splash) {
+                console.warn('⚠️ Splash still present after 5s');
+                hideSplash();
+            }
+        }, 5000);
+    </script>
+</body>
+
+</html>

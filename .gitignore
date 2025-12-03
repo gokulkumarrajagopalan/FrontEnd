@@ -1,0 +1,54 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+out/
+build/
+
+# Electron
+*.asar
+*.exe
+*.dll
+*.so
+*.dylib
+*.app
+*.pkg
+*.deb
+*.rpm
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+build/
+dist/
+
+# Logs
+*.log
+logs/
+log/
+
+# Java / Spring Boot
+target/
+*.jar
+*.war
+*.class
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Environment Files
+.env
+*.local
