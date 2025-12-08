@@ -31,6 +31,10 @@ class App {
             } else {
                 console.log('✅ Auth token found - rendering app layout');
                 this.renderAppLayout();
+                
+                // Initialize Tally connection on app startup
+                console.log('🔄 Initializing Tally data on startup...');
+                this.initializeTallyData();
             }
 
             this.initialized = true;
@@ -43,40 +47,172 @@ class App {
         }
     }
 
+    async initializeTallyData() {
+        console.log('\n' + '='.repeat(80));
+        console.log('🚀 TALLY DATA INITIALIZATION');
+        console.log('='.repeat(80));
+        
+        try {
+            // STEP 1: Check Tally Connection
+            await this.checkTallyConnection();
+            
+            // STEP 2: Fetch License Info
+            await this.fetchTallyLicense();
+            
+            // STEP 3: Fetch Companies
+            await this.fetchTallyCompanies();
+            
+            console.log('✅ Tally initialization complete');
+            console.log('='.repeat(80) + '\n');
+        } catch (error) {
+            console.error('❌ Error during Tally initialization:', error);
+        }
+    }
+
+    async checkTallyConnection() {
+        try {
+            console.log('\n[1] CHECKING TALLY CONNECTION (localhost:9000)');
+            console.log('-'.repeat(80));
+            
+            if (window.electronAPI && window.electronAPI.invoke) {
+                const isConnected = await window.electronAPI.invoke('check-tally-connection');
+                
+                if (isConnected) {
+                    console.log('✅ TALLY CONNECTION: SUCCESS');
+                    console.log('   Server: http://localhost:9000');
+                    console.log('   Status: ONLINE');
+                    
+                    // Store connection status
+                    localStorage.setItem('tallyConnectionStatus', JSON.stringify({
+                        connected: true,
+                        timestamp: new Date().toISOString(),
+                        server: 'localhost:9000'
+                    }));
+                    window.tallyConnectionStatus = { connected: true };
+                } else {
+                    console.warn('⚠️ TALLY CONNECTION: OFFLINE');
+                    console.log('   Server: http://localhost:9000');
+                    console.log('   Status: UNREACHABLE');
+                    window.tallyConnectionStatus = { connected: false };
+                }
+            } else {
+                console.warn('⚠️ electronAPI not available');
+            }
+        } catch (error) {
+            console.error('❌ Error checking Tally connection:', error);
+        }
+    }
+
+    async fetchTallyLicense() {
+        try {
+            console.log('\n[2] FETCHING TALLY LICENSE INFO');
+            console.log('-'.repeat(80));
+            
+            if (window.electronAPI && window.electronAPI.invoke) {
+                const response = await window.electronAPI.invoke('fetch-license');
+                
+                if (response.success && response.data) {
+                    console.log('✅ LICENSE INFO: RETRIEVED');
+                    console.log(`   License Number: ${response.data.license_number}`);
+                    console.log(`   Product Version: ${response.data.product_version}`);
+                    console.log(`   Status: ${response.data.status}`);
+                    console.log(`   Companies Count: ${response.data.company_count}`);
+                    console.log(`   Ledgers Count: ${response.data.ledger_count}`);
+                    console.log(`   Vouchers Count: ${response.data.voucher_count}`);
+                    
+                    // Store license info
+                    localStorage.setItem('tallyLicense', JSON.stringify(response.data));
+                    window.tallyLicense = response.data;
+                } else {
+                    console.warn('⚠️ LICENSE INFO: NOT AVAILABLE');
+                    console.log('   Error:', response.error);
+                }
+            } else {
+                console.warn('⚠️ electronAPI not available for license fetch');
+            }
+        } catch (error) {
+            console.error('❌ Error fetching license:', error);
+        }
+    }
+
+    async fetchTallyCompanies() {
+        try {
+            console.log('\n[3] FETCHING TALLY COMPANIES');
+            console.log('-'.repeat(80));
+            
+            if (window.electronAPI && window.electronAPI.invoke) {
+                const response = await window.electronAPI.invoke('fetch-companies');
+                
+                if (response.success && response.data) {
+                    console.log(`✅ COMPANIES: RETRIEVED (${response.data.length} companies)`);
+                    console.log('');
+                    
+                    // Store companies in localStorage for later use
+                    localStorage.setItem('tallyCompanies', JSON.stringify(response.data));
+                    window.tallyCompanies = response.data;
+                    
+                    // Display each company
+                    response.data.forEach((company, idx) => {
+                        console.log(`   Company ${idx + 1}: ${company.name}`);
+                        console.log(`   ├─ GUID: ${company.companyGuid}`);
+                        console.log(`   ├─ Code: ${company.code}`);
+                        console.log(`   ├─ Country: ${company.country}`);
+                        console.log(`   ├─ State: ${company.state || 'N/A'}`);
+                        console.log(`   ├─ Currency: ${company.currencyFormalName} (${company.currencySymbol})`);
+                        console.log(`   ├─ Financial Year Start: ${company.financialYearStart}`);
+                        console.log(`   ├─ Features: Billwise=${company.billwiseEnabled}, Discount=${company.useDiscountColumn}, Payroll=${company.payrollEnabled}`);
+                        console.log(`   ├─ Fields: ${Object.keys(company).length}/56`);
+                        console.log(`   └─ Status: ${company.status} (Sync: ${company.syncStatus})`);
+                        console.log('');
+                    });
+                    
+                    console.log('✅ Companies available in window.tallyCompanies');
+                    console.log('⚠️ NOTE: Companies will be sent to backend when user clicks "Import Selected Companies"');
+                    
+                } else {
+                    console.warn('⚠️ COMPANIES: NOT AVAILABLE');
+                    console.log('   Error:', response.error);
+                }
+            } else {
+                console.warn('⚠️ electronAPI not available for companies fetch');
+            }
+        } catch (error) {
+            console.error('❌ Error fetching companies:', error);
+        }
+    }
+
     renderLogin() {
         try {
-            document.body.innerHTML = '';
-            document.body.className = 'bg-gray-100 h-screen flex items-center justify-center';
-            document.body.innerHTML = `
-                <div class="w-full max-w-md">
-                    <div class="bg-white rounded-lg shadow-lg p-8">
-                        <h1 class="text-2xl font-bold text-center text-gray-800 mb-2">Tally Prime</h1>
-                        <p class="text-center text-gray-500 mb-8">Enterprise ERP System</p>
-                        <form id="loginForm" class="space-y-4">
-                            <input type="text" id="username" placeholder="Username" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
-                            <input type="password" id="password" placeholder="Password" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
-                            <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium">Login</button>
-                        </form>
-                    </div>
-                </div>
-            `;
-
-            const form = document.getElementById('loginForm');
-            if (form) {
-                form.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const username = document.getElementById('username').value;
-                    localStorage.setItem('authToken', 'demo-token-' + Date.now());
-                    localStorage.setItem('currentUser', JSON.stringify({
-                        username: username || 'Demo User',
-                        fullName: username || 'Demo User',
-                        role: 'Admin'
-                    }));
-                    console.log('✅ Login successful, reloading...');
-                    window.location.reload();
-                });
+            console.log('🚀 Rendering login page using auth.js...');
+            
+            // Stop session monitoring on login page
+            if (window.sessionManager) {
+                window.sessionManager.stop();
+                console.log('✅ Session monitoring stopped (login page)');
             }
-            console.log('✅ Login page rendered successfully');
+            
+            // Clear body and use auth.js login template
+            document.body.innerHTML = '';
+            document.body.className = '';
+            
+            // Call the auth.js initializeAuth function
+            if (typeof window.initializeAuth === 'function') {
+                window.initializeAuth();
+                console.log('✅ Login page rendered using auth.js template');
+            } else {
+                console.error('❌ initializeAuth function not found!');
+                // Fallback to basic login
+                document.body.className = 'bg-gray-100 h-screen flex items-center justify-center';
+                document.body.innerHTML = `
+                    <div class="w-full max-w-md">
+                        <div class="bg-white rounded-lg shadow-lg p-8">
+                            <h1 class="text-2xl font-bold text-center text-gray-800 mb-2">Tally Prime</h1>
+                            <p class="text-center text-gray-500 mb-8">Enterprise ERP System</p>
+                            <p class="text-red-500 mb-4">Error: Auth module not loaded. Please refresh.</p>
+                        </div>
+                    </div>
+                `;
+            }
         } catch (e) {
             console.error('❌ Error in renderLogin:', e);
             document.body.innerHTML = `<div style="color: red; padding: 20px;"><h1>Error Rendering Login</h1><p>${e.message}</p></div>`;
@@ -85,6 +221,12 @@ class App {
 
     renderAppLayout() {
         try {
+            // Start session monitoring for single-device login
+            if (window.sessionManager) {
+                window.sessionManager.start();
+                console.log('✅ Session monitoring started');
+            }
+            
             document.body.className = 'h-screen overflow-hidden flex bg-gray-50';
             document.body.innerHTML = `
                 <aside class="w-64 bg-gray-900 flex flex-col shadow-xl z-20" id="mainSidebar">
@@ -177,12 +319,23 @@ class App {
                             <span style="font-size: 18px;">⚙️</span> <span>Settings</span>
                         </a> -->
                     </nav>
+                    
+                    <!-- Logout Button at bottom of sidebar -->
+                    <div class="mt-auto p-4 border-t border-gray-700">
+                        <button id="logoutBtn" class="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all duration-200 shadow-lg">
+                            <span style="font-size: 18px;">🚪</span>
+                            <span>Logout</span>
+                        </button>
+                    </div>
                 </aside>
                 <main class="flex-1 flex flex-col min-w-0">
                     <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
                         <h2 class="text-lg font-semibold text-gray-800" id="page-title">Home</h2>
                         <div class="flex items-center gap-4">
-                            <input type="text" placeholder="Search..." style="padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; width: 200px;">
+                            <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
+                                <span style="font-size: 16px;">👤</span>
+                                <span class="text-sm font-medium text-gray-700" id="headerUsername">User</span>
+                            </div>
                             <span style="font-size: 18px; cursor: pointer;">🔔</span>
                         </div>
                     </header>
@@ -209,9 +362,13 @@ class App {
             // Update user info
             this.updateUserInfo();
             
-            // Setup router after layout is rendered
-            this.setupRouter();
             console.log('✅ App layout rendered successfully');
+            console.log('📍 page-content element exists:', !!document.getElementById('page-content'));
+            
+            // Setup router after layout is rendered
+            setTimeout(() => {
+                this.setupRouter();
+            }, 100);
         } catch (e) {
             console.error('❌ Error in renderAppLayout:', e);
             document.body.innerHTML = `<div style="color: red; padding: 20px;"><h1>Error Rendering App</h1><p>${e.message}</p></div>`;
@@ -222,9 +379,66 @@ class App {
         try {
             const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
             console.log('✅ User info updated:', user.fullName || user.username);
+            
+            // Update header username display
+            const headerUsername = document.getElementById('headerUsername');
+            if (headerUsername) {
+                headerUsername.textContent = user.fullName || user.username || 'User';
+            }
+            
+            // Setup logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    if (confirm('Are you sure you want to logout?')) {
+                        await this.handleLogout();
+                    }
+                });
+            }
         } catch (e) {
             console.error('❌ Error updating user info:', e);
         }
+    }
+    
+    async handleLogout() {
+        console.log('🔐 App.handleLogout() - Starting logout sequence');
+        try {
+            // Stop session monitoring FIRST
+            if (window.sessionManager) {
+                console.log('   → Stopping WebSocket session manager');
+                window.sessionManager.stop();
+            }
+            
+            // Call logout on auth service (will call backend and clear storage)
+            if (window.authService) {
+                console.log('   → Calling authService.logout()');
+                await window.authService.logout();
+                console.log('   ✅ Logout successful, redirect will happen via authService');
+            } else {
+                // Fallback: just clear storage and reload
+                console.log('   ❌ authService not available, clearing storage and reloading');
+                localStorage.clear();
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+            }
+        } catch (error) {
+            console.error('🔴 Logout error:', error);
+            // Force clear and reload on error
+            console.log('   → Forcing page reload due to error');
+            localStorage.clear();
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        }
+    }
+
+    /**
+     * Logout method (called by SessionManager when session is invalidated)
+     */
+    async logout() {
+        console.log('🔐 App.logout() called by SessionManager');
+        await this.handleLogout();
     }
 
     async setupRouter() {

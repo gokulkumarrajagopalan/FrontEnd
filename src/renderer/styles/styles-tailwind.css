@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global Text Color Override */
+@layer base {
+    * {
+        @apply text-gray-800;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        @apply text-gray-900;
+    }
+    
+    p, span, div, li {
+        @apply text-gray-800;
+    }
+    
+    /* Ensure input/select text is visible */
+    input, select, textarea {
+        @apply text-gray-900 bg-white;
+    }
+    
+    input::placeholder, select::placeholder, textarea::placeholder {
+        @apply text-gray-400;
+    }
+    
+    /* Links are blue */
+    a {
+        @apply text-blue-600 hover:text-blue-700;
+    }
+}
+
 /* Custom styles to complement Tailwind */
 
 /* Modern Scrollbar */

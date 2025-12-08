@@ -47,7 +47,8 @@ class PageLoader {
                 if (typeof initFn === 'function') {
                     pagesMap[route] = {
                         init: async () => {
-                            initFn();
+                            console.log(`Calling ${initName} for route ${route}`);
+                            await initFn();
                         }
                     };
                 } else {

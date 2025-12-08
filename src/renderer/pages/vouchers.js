@@ -105,7 +105,7 @@
     `;
 
     if (!window.API_BASE_URL) {
-        window.API_BASE_URL = window.AppConfig ? window.AppConfig.API_BASE_URL : 'http://localhost:8080/api';
+        window.API_BASE_URL = window.AppConfig ? window.AppConfig.API_BASE_URL : 'http://localhost:8080';
     }
 
     let allVouchers = [];
@@ -121,7 +121,7 @@
     async function loadVouchers() {
         try {
             console.log('Loading vouchers...');
-            const response = await fetch(`${window.API_BASE_URL}/vouchers`, {
+            const response = await fetch(window.apiConfig.getUrl('/vouchers'), {
                 method: 'GET',
                 headers: getAuthHeaders()
             });
@@ -211,14 +211,14 @@
                     let response;
                     if (modal.dataset.editId) {
                         // Edit
-                        response = await fetch(`${window.API_BASE_URL}/vouchers/${modal.dataset.editId}`, {
+                        response = await fetch(window.apiConfig.getUrlWithId('/vouchers', modal.dataset.editId), {
                             method: 'PUT',
                             headers: getAuthHeaders(),
                             body: JSON.stringify(voucherData)
                         });
                     } else {
                         // Add
-                        response = await fetch(`${window.API_BASE_URL}/vouchers`, {
+                        response = await fetch(window.apiConfig.getUrl('/vouchers'), {
                             method: 'POST',
                             headers: getAuthHeaders(),
                             body: JSON.stringify(voucherData)
@@ -261,7 +261,7 @@
                 const id = e.target.dataset.id;
                 if (confirm('Delete this voucher?')) {
                     try {
-                        const response = await fetch(`${window.API_BASE_URL}/vouchers/${id}`, {
+                        const response = await fetch(window.apiConfig.getUrlWithId('/vouchers', id), {
                             method: 'DELETE',
                             headers: getAuthHeaders()
                         });

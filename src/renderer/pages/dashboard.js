@@ -147,7 +147,7 @@
     async function loadDashboardData() {
         try {
             if (!window.API_BASE_URL) {
-                window.API_BASE_URL = 'http://localhost:8080/api';
+                window.API_BASE_URL = window.AppConfig ? window.AppConfig.API_BASE_URL : 'http://localhost:8080';
             }
 
             // Fetch data from backend

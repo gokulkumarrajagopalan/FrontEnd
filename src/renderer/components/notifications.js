@@ -213,7 +213,17 @@ class NotificationService {
         closeBtn.addEventListener('click', () => this.remove(notification));
 
         const container = document.getElementById('notification-container');
-        container.appendChild(notification);
+        if (!container) {
+            console.warn('⚠️ NotificationService: notification-container not found in DOM');
+            // Create container if it doesn't exist
+            const newContainer = document.createElement('div');
+            newContainer.id = 'notification-container';
+            newContainer.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+            document.body.appendChild(newContainer);
+            newContainer.appendChild(notification);
+        } else {
+            container.appendChild(notification);
+        }
 
         this.notifications.push(notification);
 

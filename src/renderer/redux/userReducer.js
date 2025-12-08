@@ -19,7 +19,7 @@ const userActions = {
     login: (credentials) => async (dispatch, getState) => {
         dispatch({ type: USER_ACTIONS.LOGIN_REQUEST });
         try {
-            const response = await fetch('http://localhost:8080/api/auth/login', {
+            const response = await fetch(window.apiConfig.getNestedUrl('auth', 'login'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(credentials)
@@ -59,7 +59,7 @@ const userActions = {
     fetchUser: (userId) => async (dispatch, getState) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
+            const response = await fetch(`http://localhost:8080/users/${userId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const user = await response.json();
@@ -86,7 +86,7 @@ const userActions = {
     updateProfile: (userData) => async (dispatch, getState) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/users/profile', {
+            const response = await fetch('http://localhost:8080/users/profile', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

@@ -1,9 +1,11 @@
 (function () {
     const getSyncSettingsTemplate = () => `
     <div id="syncSettingsPageContainer" class="space-y-6">
-        <div class="page-header">
-            <h2>Tally Sync Dashboard</h2>
-            <p>Monitor Tally connection and synchronization status in real-time.</p>
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+            <div class="page-header">
+                <h2>Tally Sync Dashboard</h2>
+                <p>Monitor Tally connection and synchronization status in real-time.</p>
+            </div>
         </div>
 
         <!-- Status Cards -->
@@ -128,20 +130,20 @@
                     </label>
                 </div>
 
-                <div class="flex gap-3">
-                    <button id="testTallyBtn" class="btn btn-primary flex-1">
+                <div class="flex gap-3 flex-wrap">
+                    <button id="testTallyBtn" class="flex-1 min-w-[200px] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2">
                         <span>🔗</span>
                         <span>Test Tally Connection</span>
                     </button>
-                    <button id="testInternetBtn" class="btn btn-primary flex-1">
+                    <button id="testInternetBtn" class="flex-1 min-w-[200px] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2">
                         <span>🌐</span>
                         <span>Test Internet</span>
                     </button>
-                    <button id="fetchLicenseBtn" class="btn btn-primary flex-1">
+                    <button id="fetchLicenseBtn" class="flex-1 min-w-[200px] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2">
                         <span>📜</span>
                         <span>Fetch License</span>
                     </button>
-                    <button id="clearHistoryBtn" class="btn btn-secondary flex-1">
+                    <button id="clearHistoryBtn" class="flex-1 min-w-[200px] px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2">
                         <span>🗑️</span>
                         <span>Clear History</span>
                     </button>

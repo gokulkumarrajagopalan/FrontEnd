@@ -318,12 +318,12 @@ class TallyAPIClient:
         Returns:
             XML string for company fetch request
         """
-        xml = """<ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>Collection of Companies</ID></HEADER><BODY><DESC><STATICVARIABLES><SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE><SVTODATE TYPE="Date">01-Jan-1970</SVTODATE><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES><TDL><TDLMESSAGE><COLLECTION NAME="Collection of Companies" ISMODIFY="No"><TYPE>Company</TYPE><FETCH>GUID,ALTERID,MASTERID,NAME,STATE,STARTINGFROM,BOOKSFROM,ENDINGAT,LASTVOUCHERDATE,BASICCOMPANYFORMALNAME,EMAIL,WEBSITE,PHONENUMBER,_ADDRESS1,_ADDRESS2,_ADDRESS3,_ADDRESS4,_ADDRESS5,STATENAME,PINCODE,COUNTRYNAME,GSTREGISTRATIONTYPE,DESTINATION</FETCH><FILTERS>GroupFilter</FILTERS></COLLECTION><SYSTEM TYPE="FORMULAE" NAME="GroupFilter">$isaggregate = "No"</SYSTEM></TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>"""
+        xml = """<ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>Collection of Companies</ID></HEADER><BODY><DESC><STATICVARIABLES><SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE><SVTODATE TYPE="Date">01-Jan-1970</SVTODATE><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES><TDL><TDLMESSAGE><COLLECTION NAME="Collection of Companies" ISMODIFY="No"><TYPE>Company</TYPE><FETCH>GUID,ALTERID,MASTERID,NAME,STATE,STARTINGFROM,BOOKSFROM,ENDINGAT,LASTVOUCHERDATE,BASICCOMPANYFORMALNAME,EMAIL,WEBSITE,TELEPHONE,FAX,PHONENUMBER,_ADDRESS1,_ADDRESS2,_ADDRESS3,_ADDRESS4,_ADDRESS5,STATENAME,PINCODE,COUNTRYNAME,PANID,GSTREGISTRATIONTYPE,GSTAPPLICABLEDATE,GSTSTATE,GSTIN,GSTFREEZONE,GSTEINVOICEAPPLICABLE,GSTEWAYBILLAPPLICABLE,VATEMIRAATE,VATAPPLICABLEDATE,VATREGISTRATIONNUMBER,VATACCOUNTID,VATFREEZONE,BILLWISEENABLED,COSTCENTREENABLED,BATCHENABLED,USEDISCOUNTCOLUMN,USEACTUALCOLUMN,PAYROLLENABLED,DESTINATION</FETCH><FILTERS>GroupFilter</FILTERS></COLLECTION><SYSTEM TYPE="FORMULAE" NAME="GroupFilter">$isaggregate = "No"</SYSTEM></TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>"""
         return xml
     
     def _extract_companies(self, parsed_response: Dict[str, Any]) -> list:
         """
-        Extract company list from Tally XML response.
+        Extract company list from Tally XML response with complete 56-field structure.
         
         Expected response structure from Tally (using COLLECTION format):
         <ENVELOPE>
@@ -334,10 +334,7 @@ class TallyAPIClient:
                             <NAME>Company Name</NAME>
                             <GUID>...</GUID>
                             <EMAIL>...</EMAIL>
-                            <PHONENUMBER>...</PHONENUMBER>
-                            <_ADDRESS1>...</_ADDRESS1>
-                            <STATENAME>...</STATENAME>
-                            ...
+                            ... (56 fields total)
                         </COMPANY>
                         <COMPANY>...</COMPANY>
                     </COLLECTION>
@@ -349,7 +346,7 @@ class TallyAPIClient:
             parsed_response: Dictionary from parse_response()
         
         Returns:
-            List of company dictionaries with code, name, businessType, etc.
+            List of company dictionaries with all 56 fields
         """
         try:
             companies = []
@@ -379,33 +376,12 @@ class TallyAPIClient:
             
             logger.info(f"Found {len(company_data)} company elements")
             
-            # Extract company information
+            # Extract company information with complete 56-field structure
             for company in company_data:
-                if isinstance(company, dict):
-                    # Extract company NAME (from NAME tag or NAME attribute)
-                    company_name = get_text(company.get("NAME", ""))
-                    company_guid = get_text(company.get("GUID", ""))
-                    company_email = get_text(company.get("EMAIL", ""))
-                    company_phone = get_text(company.get("PHONENUMBER", ""))
-                    company_address = get_text(company.get("_ADDRESS1", ""))
-                    company_state = get_text(company.get("STATENAME", ""))
-                    
-                    # Create company code from first 3 letters of name (uppercase)
-                    company_code = company_name[:3].upper() if company_name else "UNK"
-                    
-                    if company_name:  # Only add if we have a name
-                        company_info = {
-                            "code": company_code,
-                            "name": company_name,
-                            "guid": company_guid,
-                            "email": company_email,
-                            "phone": company_phone,
-                            "address": company_address,
-                            "state": company_state,
-                            "businessType": "Tally Company"
-                        }
-                        companies.append(company_info)
-                        logger.info(f"Extracted company: {company_name} (Code: {company_code})")
+                company_info = self._parse_company_element(company)
+                if company_info:
+                    companies.append(company_info)
+                    logger.info(f"Extracted company: {company_info.get('name')} (GUID: {company_info.get('companyGuid')})")
             
             logger.info(f"Total extracted companies: {len(companies)}")
             return companies if companies else self._get_mock_companies()
@@ -416,36 +392,383 @@ class TallyAPIClient:
             traceback.print_exc()
             # Return mock data if parsing fails
             return self._get_mock_companies()
+
+    def _parse_company_element(self, company: dict) -> Optional[dict]:
+        """
+        Parse a single company element and extract all 56 fields.
+        Structured according to consolidated company field structure.
+        
+        Comprehensive field mapping:
+        IDENTIFICATION (1): companyGuid
+        CORE_INFO (20): alterId, code, name, mailingName, addressLine1-4, pincode, state, country, 
+                        telephone, mobile, fax, email, website, panNumber, 
+                        financialYearStart, booksStart, currency info
+        GST_DETAILS (7): gstApplicableDate, gstState, gstType, gstin, gstFreezone, 
+                         gstEInvoiceApplicable, gstEWayBillApplicable (India only)
+        VAT_DETAILS (5): vatEmirate, vatApplicableDate, vatRegistrationNumber, 
+                         vatAccountId, vatFreezone (GCC only)
+        FEATURES (6): billwiseEnabled, costcentreEnabled, batchEnabled, 
+                      useDiscountColumn, useActualColumn, payrollEnabled
+        AUDIT (2): createdAt, updatedAt
+        BACKWARD_COMPAT (7+): guid, businessType, status, importedFrom, importedDate, 
+                              syncStatus, lastSyncDate
+        """
+        try:
+            # ============ HELPER FUNCTIONS ============
+            
+            # Helper to extract text values from nested dict structure
+            def get_text(obj):
+                """Extract text value from Tally's nested dict format"""
+                if isinstance(obj, dict):
+                    return obj.get("_text", "").strip()
+                return str(obj).strip() if obj else ""
+            
+            # Extract basic values from company element
+            name = get_text(company.get("NAME", ""))
+            guid = get_text(company.get("GUID", ""))
+            country = get_text(company.get("COUNTRYNAME", "India"))
+            
+            # DEBUG: Log what we're getting from Tally for contact fields
+            logger.debug(f"Company '{name}' - Raw Tally data:")
+            logger.debug(f"  ALTERID: {company.get('ALTERID', 'NOT FOUND')}")
+            logger.debug(f"  TELEPHONE: {company.get('TELEPHONE', 'NOT FOUND')}")
+            logger.debug(f"  FAX: {company.get('FAX', 'NOT FOUND')}")
+            logger.debug(f"  PINCODE: {company.get('PINCODE', 'NOT FOUND')}")
+            logger.debug(f"  PHONENUMBER: {company.get('PHONENUMBER', 'NOT FOUND')}")
+            logger.debug(f"  PANID: {company.get('PANID', 'NOT FOUND')}")
+            logger.debug(f"  GST Fields - GSTIN: {company.get('GSTIN', 'NOT FOUND')}, GSTSTATE: {company.get('GSTSTATE', 'NOT FOUND')}")
+            logger.debug(f"  VAT Fields - VATEMIRAATE: {company.get('VATEMIRAATE', 'NOT FOUND')}, VATREGISTRATIONNUMBER: {company.get('VATREGISTRATIONNUMBER', 'NOT FOUND')}")
+            
+            # Safely convert string to int
+            def safe_int(value, default=0):
+                try:
+                    text = get_text(value) if value else ""
+                    return int(text) if text else default
+                except (ValueError, TypeError):
+                    return default
+            
+            # Safely convert string to bool
+            def safe_bool(value):
+                """Convert various representations to boolean"""
+                val = get_text(value).lower()
+                return val in ['true', '1', 'yes', 'on']
+            
+            # Determine country category for conditional fields
+            gcc_countries = {"UAE", "Saudi Arabia", "Bahrain", "Kuwait", "Oman", "Qatar", "EMIRATES"}
+            is_gcc = country in gcc_countries
+            is_india = country == "India"
+            
+            # Validate company name
+            if not name:
+                logger.warning("Skipping company: no name found")
+                return None
+            
+            # ============ BUILD 56-FIELD COMPANY OBJECT ============
+            
+            company_info = {
+                # ========== SECTION 0: IDENTIFICATION (1 field) ==========
+                # Auto-generated on import, set to empty here
+                "id": "",  # Will be auto-generated on database insert
+                "companyGuid": guid,
+                
+                # ========== SECTION 1-19: CORE INFORMATION (20 fields) ==========
+                
+                # Basic Information (3 fields)
+                "alterId": get_text(company.get("ALTERID", "")),  # Tally's ALTER ID
+                "code": get_text(company.get("ALTERID", "")).upper() or name[:3].upper(),
+                "name": name,
+                "mailingName": get_text(company.get("BASICCOMPANYFORMALNAME", "")),
+                
+                # Address Information (4 fields)
+                "addressLine1": get_text(company.get("_ADDRESS1", "")),
+                "addressLine2": get_text(company.get("_ADDRESS2", "")),
+                "addressLine3": get_text(company.get("_ADDRESS3", "")),
+                "addressLine4": get_text(company.get("_ADDRESS4", "")),
+                "pincode": get_text(company.get("PINCODE", "")) or get_text(company.get("PIN", "")) or get_text(company.get("ZIPCODE", "")),
+                
+                # Location Information (2 fields)
+                "state": get_text(company.get("STATENAME", "")),
+                "country": country,
+                
+                # Contact Information (5 fields)
+                "telephone": get_text(company.get("TELEPHONE", "")) or get_text(company.get("PHONE", "")) or get_text(company.get("TEL", "")),
+                "mobile": get_text(company.get("PHONENUMBER", "")) or get_text(company.get("MOBILE", "")),
+                "fax": get_text(company.get("FAX", "")) or get_text(company.get("FAXNUMBER", "")),
+                "email": get_text(company.get("EMAIL", "")) or get_text(company.get("EMAILID", "")),
+                "website": get_text(company.get("WEBSITE", "")) or get_text(company.get("URL", "")),
+                
+                # Tax Information (1 field)
+                "panNumber": get_text(company.get("PANID", "")),
+                
+                # Financial Configuration (2 fields)
+                "financialYearStart": get_text(company.get("STARTINGFROM", "")),
+                "booksStart": get_text(company.get("BOOKSFROM", "")),
+                
+                # Currency Configuration (3 fields)
+                "currencySymbol": self._get_currency_symbol(country),
+                "currencyFormalName": self._get_currency_code(country),
+                "currencyDecimalPlaces": 2,  # Standard for most currencies
+                
+                # ========== SECTION 20: GST DETAILS (7 fields - India Only) ==========
+                "gstApplicableDate": get_text(company.get("GSTAPPLICABLEDATE", "")) if is_india else None,
+                "gstState": get_text(company.get("GSTSTATE", "")) or get_text(company.get("STATENAME", "")) if is_india else None,
+                "gstType": get_text(company.get("GSTREGISTRATIONTYPE", "")) or "Regular" if is_india else None,
+                "gstin": get_text(company.get("GSTIN", "")) if is_india else None,
+                "gstFreezone": safe_bool(company.get("GSTFREEZONE", "false")) if is_india else False,
+                "gstEInvoiceApplicable": safe_bool(company.get("GSTEINVOICEAPPLICABLE", "false")) if is_india else False,
+                "gstEWayBillApplicable": safe_bool(company.get("GSTEWAYBILLAPPLICABLE", "false")) if is_india else False,
+                
+                # ========== SECTION 30: VAT DETAILS (5 fields - GCC Only) ==========
+                "vatEmirate": get_text(company.get("VATEMIRAATE", "")) if is_gcc else None,
+                "vatApplicableDate": get_text(company.get("VATAPPLICABLEDATE", "")) if is_gcc else None,
+                "vatRegistrationNumber": get_text(company.get("VATREGISTRATIONNUMBER", "")) if is_gcc else None,
+                "vatAccountId": get_text(company.get("VATACCOUNTID", "")) if is_gcc else None,
+                "vatFreezone": safe_bool(company.get("VATFREEZONE", "false")) if is_gcc else False,
+                
+                # ========== SECTION 40: COMPANY FEATURES (6 fields) ==========
+                "billwiseEnabled": safe_bool(company.get("BILLWISEENABLED", "true")),
+                "costcentreEnabled": safe_bool(company.get("COSTCENTREENABLED", "false")),
+                "batchEnabled": safe_bool(company.get("BATCHENABLED", "false")),
+                "useDiscountColumn": safe_bool(company.get("USEDISCOUNTCOLUMN", "true")),
+                "useActualColumn": safe_bool(company.get("USEACTUALCOLUMN", "false")),
+                "payrollEnabled": safe_bool(company.get("PAYROLLENABLED", "false")),
+                
+                # ========== SECTION 50: AUDIT TIMESTAMPS (2 fields) ==========
+                "createdAt": datetime.now().isoformat(),
+                "updatedAt": datetime.now().isoformat(),
+                
+                # ========== SECTION 60: BACKWARD COMPATIBILITY (7+ fields) ==========
+                # Legacy fields maintained for compatibility with existing code
+                "guid": guid,
+                "businessType": "Tally Company",
+                "status": "imported",  # Will be updated on import
+                "importedFrom": "tally",  # Source system
+                "importedDate": datetime.now().isoformat(),  # When imported to app
+                "syncStatus": "pending",  # Initial sync status
+                "lastSyncDate": None,  # No sync yet
+            }
+            
+            return company_info
+
+        except Exception as e:
+            logger.error(f"Error parsing company element: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    def _get_currency_symbol(self, country: str) -> str:
+        """Get currency symbol based on country."""
+        currency_symbols = {
+            "India": "₹",
+            "USA": "$",
+            "UK": "£",
+            "UAE": "د.إ",
+            "Saudi Arabia": "﷼",
+            "Euro Zone": "€",
+            "Japan": "¥",
+        }
+        return currency_symbols.get(country, "₹")
+    
+    def _get_currency_code(self, country: str) -> str:
+        """Get currency code (ISO 4217) based on country."""
+        currency_codes = {
+            "India": "INR",
+            "USA": "USD",
+            "UK": "GBP",
+            "UAE": "AED",
+            "Saudi Arabia": "SAR",
+            "Euro Zone": "EUR",
+            "Japan": "JPY",
+            "Bahrain": "BHD",
+            "Kuwait": "KWD",
+            "Oman": "OMR",
+            "Qatar": "QAR",
+        }
+        return currency_codes.get(country, "INR")
     
     def _get_mock_companies(self) -> list:
-        """Return mock company data for demo when Tally is unavailable."""
+        """Return mock company data for demo when Tally is unavailable, with complete 56-field structure."""
+        from datetime import datetime
+        
+        now = datetime.now().isoformat()
+        
         mock_data = [
             {
+                # SECTION 0: IDENTIFICATION
+                "companyGuid": "00000000-0000-0000-0000-000000000001",
+                
+                # SECTION 1-19: CORE INFORMATION
+                "alterId": "1",
                 "code": "DEF",
                 "name": "Default Company",
-                "guid": "00000000-0000-0000-0000-000000000001",
-                "businessType": "General Business"
+                "mailingName": "Default Company Ltd",
+                "addressLine1": "123 Main Street",
+                "addressLine2": "Business District",
+                "addressLine3": "Mumbai",
+                "addressLine4": "",
+                "pincode": "400001",
+                "state": "Maharashtra",
+                "country": "India",
+                "telephone": "022-1234-5678",
+                "mobile": "9876543210",
+                "fax": "",
+                "email": "info@defaultco.com",
+                "website": "www.defaultco.com",
+                "panNumber": "AAAA0A0A0A",
+                "financialYearStart": "01-Apr-2023",
+                "booksStart": "01-Apr-2023",
+                "currencySymbol": "₹",
+                "currencyFormalName": "INR",
+                "currencyDecimalPlaces": 2,
+                
+                # SECTION 20: GST DETAILS (India)
+                "gstApplicableDate": "01-Jul-2017",
+                "gstState": "Maharashtra",
+                "gstType": "Regular",
+                "gstin": "27AABCT1234C1Z5",
+                "gstFreezone": False,
+                "gstEInvoiceApplicable": True,
+                "gstEWayBillApplicable": True,
+                
+                # SECTION 30: VAT DETAILS (GCC - None for India)
+                "vatEmirate": None,
+                "vatApplicableDate": None,
+                "vatRegistrationNumber": None,
+                "vatAccountId": None,
+                "vatFreezone": False,
+                
+                # SECTION 40: FEATURES
+                "billwiseEnabled": True,
+                "costcentreEnabled": True,
+                "batchEnabled": False,
+                "useDiscountColumn": True,
+                "useActualColumn": False,
+                "payrollEnabled": False,
+                
+                # AUDIT
+                "createdAt": now,
+                "updatedAt": now,
+                "businessType": "General Business",
+                "guid": "00000000-0000-0000-0000-000000000001"
             },
             {
+                # SECTION 0: IDENTIFICATION
+                "companyGuid": "00000000-0000-0000-0000-000000000002",
+                
+                # SECTION 1-19: CORE INFORMATION
+                "alterId": "2",
                 "code": "MFG",
                 "name": "Manufacturing Co Ltd",
-                "guid": "00000000-0000-0000-0000-000000000002",
-                "businessType": "Manufacturing"
+                "mailingName": "Mfg Company",
+                "addressLine1": "456 Industrial Road",
+                "addressLine2": "Industrial Zone",
+                "addressLine3": "Bangalore",
+                "addressLine4": "",
+                "pincode": "560001",
+                "state": "Karnataka",
+                "country": "India",
+                "telephone": "080-2123-4567",
+                "mobile": "9876543211",
+                "fax": "",
+                "email": "mfg@company.com",
+                "website": "www.mfgcompany.com",
+                "panNumber": "BBBB0B0B0B",
+                "financialYearStart": "01-Jan-2023",
+                "booksStart": "01-Jan-2023",
+                "currencySymbol": "₹",
+                "currencyFormalName": "INR",
+                "currencyDecimalPlaces": 2,
+                
+                # SECTION 20: GST DETAILS (India)
+                "gstApplicableDate": "01-Jul-2017",
+                "gstState": "Karnataka",
+                "gstType": "Regular",
+                "gstin": "29AABCT5678C1Z5",
+                "gstFreezone": False,
+                "gstEInvoiceApplicable": True,
+                "gstEWayBillApplicable": True,
+                
+                # SECTION 30: VAT DETAILS (GCC - None for India)
+                "vatEmirate": None,
+                "vatApplicableDate": None,
+                "vatRegistrationNumber": None,
+                "vatAccountId": None,
+                "vatFreezone": False,
+                
+                # SECTION 40: FEATURES
+                "billwiseEnabled": True,
+                "costcentreEnabled": True,
+                "batchEnabled": True,
+                "useDiscountColumn": False,
+                "useActualColumn": True,
+                "payrollEnabled": True,
+                
+                # AUDIT
+                "createdAt": now,
+                "updatedAt": now,
+                "businessType": "Manufacturing",
+                "guid": "00000000-0000-0000-0000-000000000002"
             },
             {
-                "code": "TRD",
-                "name": "Trading Enterprise",
-                "guid": "00000000-0000-0000-0000-000000000003",
-                "businessType": "Trading"
-            },
-            {
-                "code": "SVC",
-                "name": "Service Solutions Ltd",
-                "guid": "00000000-0000-0000-0000-000000000004",
-                "businessType": "Service"
+                # SECTION 0: IDENTIFICATION
+                "companyGuid": "00000000-0000-0000-0000-000000000003",
+                
+                # SECTION 1-19: CORE INFORMATION
+                "alterId": "3",
+                "code": "UAE",
+                "name": "UAE Trading LLC",
+                "mailingName": "UAE Trading",
+                "addressLine1": "Dubai Business Hub",
+                "addressLine2": "Downtown Dubai",
+                "addressLine3": "Dubai",
+                "addressLine4": "PO Box 123456",
+                "pincode": "",
+                "state": "Dubai",
+                "country": "UAE",
+                "telephone": "+971-4-123-4567",
+                "mobile": "+971-50-123-4567",
+                "fax": "",
+                "email": "info@uaetrading.com",
+                "website": "www.uaetrading.com",
+                "panNumber": "",
+                "financialYearStart": "01-Jan-2023",
+                "booksStart": "01-Jan-2023",
+                "currencySymbol": "د.إ",
+                "currencyFormalName": "AED",
+                "currencyDecimalPlaces": 2,
+                
+                # SECTION 20: GST DETAILS (None for UAE)
+                "gstApplicableDate": None,
+                "gstState": None,
+                "gstType": None,
+                "gstin": None,
+                "gstFreezone": False,
+                "gstEInvoiceApplicable": False,
+                "gstEWayBillApplicable": False,
+                
+                # SECTION 30: VAT DETAILS (UAE - GCC Country)
+                "vatEmirate": "Dubai",
+                "vatApplicableDate": "01-Jan-2018",
+                "vatRegistrationNumber": "123456789012345",
+                "vatAccountId": "VAT-UAE-2023",
+                "vatFreezone": True,
+                
+                # SECTION 40: FEATURES
+                "billwiseEnabled": True,
+                "costcentreEnabled": False,
+                "batchEnabled": False,
+                "useDiscountColumn": True,
+                "useActualColumn": False,
+                "payrollEnabled": False,
+                
+                # AUDIT
+                "createdAt": now,
+                "updatedAt": now,
+                "businessType": "Trading",
+                "guid": "00000000-0000-0000-0000-000000000003"
             }
         ]
-        logger.info(f"Returning {len(mock_data)} mock companies for demo")
+        logger.info(f"Returning {len(mock_data)} mock companies with complete 56-field structure")
         return mock_data
     
     def _get_text_value(self, obj: Any) -> str:
@@ -483,18 +806,101 @@ class TallyAPIClient:
         return self.send_request(xml)
 
     def get_groups(self, company: Optional[str] = None) -> Tuple[bool, Dict[str, Any]]:
-        """Get ledger groups."""
+        """Get ledger groups from Tally using TDL Collection."""
         logger.info(f"Getting groups for company: {company}")
-        params = {}
-        if company:
-            params["Company"] = company
         
-        xml = self.build_envelope(
-            request_type="Export",
-            function_id="$$Masters.Group",
-            params=params
-        )
-        return self.send_request(xml)
+        # Build TDL request for groups collection
+        xml = """<ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>Collection of Groups</ID></HEADER><BODY><DESC><STATICVARIABLES><SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE><SVTODATE TYPE="Date">01-Jan-1970</SVTODATE><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES><TDL><TDLMESSAGE><COLLECTION NAME="Collection of Groups" ISMODIFY="No"><TYPE>Group</TYPE><FETCH>GUID,MASTERID,ALTERID,Name,OnlyAlias,Parent,IsRevenue</FETCH></COLLECTION></TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>"""
+        
+        success, result = self.send_request(xml)
+        
+        if not success:
+            logger.error(f"Groups request failed: {result}")
+            return False, result
+        
+        # Extract groups from response
+        try:
+            groups = self._extract_groups(result)
+            if groups:
+                logger.info(f"Successfully extracted {len(groups)} groups")
+                return True, groups
+            else:
+                logger.warning("Could not extract groups from response")
+                return True, []
+        except Exception as e:
+            logger.error(f"Error extracting groups: {e}")
+            return False, {"error": str(e)}
+    
+    def _extract_groups(self, parsed_response: Dict[str, Any]) -> list:
+        """
+        Extract groups list from Tally XML response.
+        
+        Expected structure:
+        <ENVELOPE>
+            <BODY>
+                <DATA>
+                    <COLLECTION>
+                        <GROUP NAME="Group Name">
+                            <GUID>...</GUID>
+                            <MASTERID>...</MASTERID>
+                            <ALTERID>...</ALTERID>
+                            <NAME>Group Name</NAME>
+                            <ONLYALIAS>...</ONLYALIAS>
+                            <PARENT>...</PARENT>
+                            <ISREVENUE>...</ISREVENUE>
+                        </GROUP>
+                    </COLLECTION>
+                </DATA>
+            </BODY>
+        </ENVELOPE>
+        """
+        try:
+            groups = []
+            
+            def get_text(obj):
+                if isinstance(obj, dict):
+                    return obj.get("_text", "")
+                return str(obj) if obj else ""
+            
+            # Navigate to DATA -> COLLECTION
+            data = parsed_response.get("DATA", {})
+            collection = data.get("COLLECTION", {})
+            
+            # Extract GROUP elements
+            group_data = collection.get("GROUP", [])
+            
+            # Handle single group (dict) vs multiple groups (list)
+            if isinstance(group_data, dict):
+                group_data = [group_data]
+            elif not isinstance(group_data, list):
+                group_data = []
+            
+            logger.info(f"Found {len(group_data)} group elements")
+            
+            # Parse each group
+            for group in group_data:
+                group_info = {
+                    "guid": get_text(group.get("GUID", "")),
+                    "masterId": get_text(group.get("MASTERID", "")),
+                    "alterId": get_text(group.get("ALTERID", "")),
+                    "name": get_text(group.get("NAME", "")),
+                    "alias": get_text(group.get("ONLYALIAS", "")),
+                    "parent": get_text(group.get("PARENT", "")),
+                    "isRevenue": get_text(group.get("ISREVENUE", "")).lower() in ["yes", "true", "1"]
+                }
+                
+                if group_info["name"]:
+                    groups.append(group_info)
+                    logger.debug(f"Extracted group: {group_info['name']} (Parent: {group_info['parent']})")
+            
+            logger.info(f"Total extracted groups: {len(groups)}")
+            return groups
+            
+        except Exception as e:
+            logger.error(f"Error in _extract_groups: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
 
     def get_cost_centers(self, company: Optional[str] = None) -> Tuple[bool, Dict[str, Any]]:
         """Get cost centers."""

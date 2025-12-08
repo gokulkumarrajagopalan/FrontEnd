@@ -6,65 +6,70 @@
 (function () {
     // Templates
     const getLoginTemplate = () => `
-    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 to-sidebar p-4">
+    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-500 via-cyan-600 to-blue-700 p-4">
         <div class="w-full max-w-md">
             <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
                 <div class="p-8">
-                    <div class="text-center mb-8">
-                        <div class="w-16 h-16 bg-primary-600 rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-primary-500/30">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mx-auto flex items-center justify-center mb-3 shadow-lg">
                             <span class="text-3xl">📊</span>
                         </div>
-                        <h2 class="text-2xl font-bold text-gray-800">Welcome Back</h2>
-                        <p class="text-gray-500 mt-2">Sign in to Tally Prime ERP</p>
+                        <h2 class="text-2xl font-bold text-gray-900">Welcome Back</h2>
+                        <p class="text-gray-600 mt-1 text-sm">Sign in to your Talliffy account</p>
                     </div>
 
-                    <div id="errorMessage" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm hidden"></div>
-                    <div id="successMessage" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm hidden"></div>
+                    <div id="errorMessage" class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg text-red-700 text-sm hidden"></div>
+                    <div id="successMessage" class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg text-green-700 text-sm hidden"></div>
 
-                    <form id="loginForm" class="space-y-6">
+                    <form id="loginForm" class="space-y-5">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Username</label>
-                            <input type="text" id="username" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" placeholder="Enter your username" required>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Password</label>
-                            <input type="password" id="password" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" placeholder="••••••••" required>
-                        </div>
-
-                        <div class="flex items-center justify-between text-sm">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" id="rememberMe" class="rounded text-primary-600 focus:ring-primary-500">
-                                <span class="text-gray-600">Remember me</span>
-                            </label>
-                            <a href="#" class="text-primary-600 hover:text-primary-700 font-medium">Forgot password?</a>
-                        </div>
-
-                        <div id="loadingSpinner" class="hidden text-center">
-                            <div class="inline-block">
-                                <div class="animate-spin">
-                                    <svg class="w-6 h-6 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-400">👤</span>
                                 </div>
+                                <input type="text" id="username" class="w-full pl-10 pr-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900" placeholder="Enter your username" required>
                             </div>
                         </div>
 
-                        <button type="submit" id="loginBtn" class="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold shadow-lg shadow-primary-500/30 hover:bg-primary-700 hover:shadow-primary-500/40 active:scale-[0.98] transition-all">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-400">🔒</span>
+                                </div>
+                                <input type="password" id="password" class="w-full pl-10 pr-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900" placeholder="••••••••" required>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-sm">
+                            <label class="flex items-center gap-2 cursor-pointer group">
+                                <input type="checkbox" id="rememberMe" class="w-4 h-4 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                <span class="text-gray-700 group-hover:text-gray-900">Remember me</span>
+                            </label>
+                            <a href="#" class="text-blue-600 hover:text-blue-700 font-semibold hover:underline">Forgot password?</a>
+                        </div>
+
+                        <div id="loadingSpinner" class="hidden text-center py-2">
+                            <div class="inline-block">
+                                <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600"></div>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all">
                             Sign In
                         </button>
                     </form>
 
-                    <div class="mt-8 text-center">
-                        <p class="text-gray-500 text-sm">
+                    <div class="mt-6 pt-6 border-t border-gray-200 text-center">
+                        <p class="text-gray-600 text-sm">
                             Don't have an account?
-                            <a href="#" id="showSignup" class="text-primary-600 font-semibold hover:text-primary-700" data-route="signup">Create Account</a>
+                            <a href="#" id="showSignup" class="text-blue-600 font-semibold hover:text-blue-700 hover:underline ml-1" data-route="signup">Sign Up</a>
                         </p>
                     </div>
                 </div>
-                <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
-                    <p class="text-xs text-gray-400">© 2024 Tally Prime. Secure Enterprise System.</p>
+                <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 text-center">
+                    <p class="text-xs text-gray-500">© 2024 Talliffy. All rights reserved.</p>
                 </div>
             </div>
         </div>
@@ -72,78 +77,113 @@
     `;
 
     const getSignupTemplate = () => `
-    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 to-sidebar p-4">
-        <div class="w-full max-w-md">
+    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-500 via-cyan-600 to-blue-700 p-4 py-8">
+        <div class="w-full max-w-2xl">
             <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
                 <div class="p-8">
-                    <div class="text-center mb-8">
-                        <div class="w-16 h-16 bg-primary-600 rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-primary-500/30">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mx-auto flex items-center justify-center mb-3 shadow-lg">
                             <span class="text-3xl">📊</span>
                         </div>
-                        <h2 class="text-2xl font-bold text-gray-800">Create Account</h2>
-                        <p class="text-gray-500 mt-2">Join Tally Prime ERP</p>
+                        <h2 class="text-2xl font-bold text-gray-900">Create Account</h2>
+                        <p class="text-gray-600 mt-1 text-sm">Join Talliffy ERP Platform</p>
                     </div>
 
-                    <div id="errorMessage" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm hidden"></div>
-                    <div id="successMessage" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm hidden"></div>
+                    <div id="errorMessage" class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg text-red-700 text-sm hidden"></div>
+                    <div id="successMessage" class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg text-green-700 text-sm hidden"></div>
 
-                    <form id="signupForm" class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
+                    <form id="signupForm" class="space-y-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">First Name</label>
-                                <input type="text" id="firstName" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" placeholder="John" required>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-400">👤</span>
+                                    </div>
+                                    <input type="text" id="fullName" class="w-full pl-10 pr-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900" placeholder="John Doe" required>
+                                </div>
                             </div>
+
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Last Name</label>
-                                <input type="text" id="lastName" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" placeholder="Doe" required>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Username <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-400">@</span>
+                                    </div>
+                                    <input type="text" id="username" class="w-full pl-10 pr-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900" placeholder="johndoe" required>
+                                </div>
                             </div>
-                        </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Username</label>
-                            <input type="text" id="username" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" placeholder="Choose your username" required>
-                        </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-400">📧</span>
+                                    </div>
+                                    <input type="email" id="email" class="w-full pl-10 pr-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900" placeholder="john@example.com" required>
+                                </div>
+                            </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Email</label>
-                            <input type="email" id="email" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" placeholder="Enter your email" required>
-                        </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">License Number <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-400">🔑</span>
+                                    </div>
+                                    <input type="number" id="licenceNo" class="w-full pl-10 pr-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900" placeholder="1001" required min="1">
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Enter your Tally license number</p>
+                            </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Password</label>
-                            <input type="password" id="password" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" placeholder="••••••••" required>
-                        </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Password <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-400">🔒</span>
+                                    </div>
+                                    <input type="password" id="password" class="w-full pl-10 pr-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900" placeholder="••••••••" required minlength="6">
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+                            </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Confirm Password</label>
-                            <input type="password" id="confirmPassword" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" placeholder="••••••••" required>
-                        </div>
-
-                        <div id="loadingSpinner" class="hidden text-center">
-                            <div class="inline-block">
-                                <div class="animate-spin">
-                                    <svg class="w-6 h-6 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Confirm Password <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-400">🔒</span>
+                                    </div>
+                                    <input type="password" id="confirmPassword" class="w-full pl-10 pr-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900" placeholder="••••••••" required minlength="6">
                                 </div>
                             </div>
                         </div>
 
-                        <button type="submit" id="signupBtn" class="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold shadow-lg shadow-primary-500/30 hover:bg-primary-700 hover:shadow-primary-500/40 active:scale-[0.98] transition-all">
+                        <div class="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                            <input type="checkbox" id="agreeTerms" class="w-5 h-5 mt-0.5 rounded border-2 border-blue-300 text-blue-600 focus:ring-2 focus:ring-blue-500" required>
+                            <label for="agreeTerms" class="text-sm text-gray-700">
+                                I agree to the <a href="#" class="text-blue-600 font-semibold hover:underline">Terms of Service</a> and <a href="#" class="text-blue-600 font-semibold hover:underline">Privacy Policy</a>
+                            </label>
+                        </div>
+
+                        <div id="loadingSpinner" class="hidden text-center py-2">
+                            <div class="inline-block">
+                                <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600"></div>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="signupBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all">
                             Create Account
                         </button>
                     </form>
 
-                    <div class="mt-6 text-center">
-                        <p class="text-gray-500 text-sm">
+                    <div class="mt-6 pt-6 border-t border-gray-200 text-center">
+                        <p class="text-gray-600 text-sm">
                             Already have an account?
-                            <a href="#" id="showLogin" class="text-primary-600 font-semibold hover:text-primary-700" data-route="login">Sign In</a>
+                            <a href="#" id="showLogin" class="text-blue-600 font-semibold hover:text-blue-700 hover:underline ml-1" data-route="login">Sign In</a>
                         </p>
                     </div>
                 </div>
-                <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
-                    <p class="text-xs text-gray-400">© 2024 Tally Prime. Secure Enterprise System.</p>
+                <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 text-center">
+                    <p class="text-xs text-gray-500">© 2024 Talliffy. All rights reserved.</p>
                 </div>
             </div>
         </div>
@@ -152,7 +192,7 @@
 
     // Shared State & Helpers
     if (typeof window.API_BASE_URL === 'undefined') {
-        window.API_BASE_URL = 'http://localhost:8080/api';
+        window.API_BASE_URL = window.AppConfig ? window.AppConfig.API_BASE_URL : 'http://localhost:8080';
     }
 
     function getStore() {
@@ -160,9 +200,22 @@
     }
 
     // Initialization Functions
+    window.initializeAuth = function () {
+        console.log('Initializing Auth Page...');
+        const currentHash = window.location.hash.replace('#', '') || 'login';
+        
+        if (currentHash === 'signup') {
+            window.initializeSignup();
+        } else {
+            window.initializeLogin();
+        }
+    };
+
     window.initializeLogin = function () {
         console.log('Initializing Login Page...');
-        document.body.innerHTML = getLoginTemplate();
+        const pageContent = document.getElementById('page-content');
+        const target = pageContent || document.body;
+        target.innerHTML = getLoginTemplate();
         setupLoginForm();
 
         // Handle link to signup
@@ -170,14 +223,21 @@
         if (showSignup) {
             showSignup.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (window.router) window.router.navigate('signup');
+                if (window.router) {
+                    window.router.navigate('signup');
+                } else {
+                    window.location.hash = '#signup';
+                    window.initializeSignup();
+                }
             });
         }
     };
 
     window.initializeSignup = function () {
         console.log('Initializing Signup Page...');
-        document.body.innerHTML = getSignupTemplate();
+        const pageContent = document.getElementById('page-content');
+        const target = pageContent || document.body;
+        target.innerHTML = getSignupTemplate();
         setupSignupForm();
 
         // Handle link to login
@@ -185,7 +245,12 @@
         if (showLogin) {
             showLogin.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (window.router) window.router.navigate('login');
+                if (window.router) {
+                    window.router.navigate('login');
+                } else {
+                    window.location.hash = '#login';
+                    window.initializeLogin();
+                }
             });
         }
     };
@@ -241,18 +306,22 @@
                     body: JSON.stringify({ username, password })
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.message || data.error || 'Login failed');
+                    throw new Error(result.message || result.error || 'Login failed');
                 }
+
+                // Extract data from response (backend returns { success, message, data: {...} })
+                const data = result.data || result;
 
                 if (!data.token) {
                     throw new Error('No authentication token received');
                 }
 
-                // Success
+                // Success - Store token and deviceToken
                 localStorage.setItem('authToken', data.token);
+                localStorage.setItem('deviceToken', data.deviceToken);
                 localStorage.setItem('currentUser', JSON.stringify({
                     username: data.username,
                     userId: data.userId,
@@ -260,6 +329,12 @@
                     role: data.role
                 }));
                 localStorage.setItem('isAuthenticated', 'true');
+                
+                console.log('✅ Login successful - Token and device token stored:', {
+                    hasToken: !!data.token,
+                    hasDeviceToken: !!data.deviceToken,
+                    userId: data.userId
+                });
 
                 if (rememberMe) {
                     localStorage.setItem('rememberMe', 'true');
@@ -313,25 +388,45 @@
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const firstName = document.getElementById('firstName')?.value.trim() || '';
-            const lastName = document.getElementById('lastName')?.value.trim() || '';
+            const fullName = document.getElementById('fullName')?.value.trim();
             const username = document.getElementById('username')?.value.trim();
             const email = document.getElementById('email')?.value.trim();
-            const fullName = (firstName + ' ' + lastName).trim();
+            const licenceNo = document.getElementById('licenceNo')?.value.trim();
             const password = document.getElementById('password')?.value.trim();
             const confirmPassword = document.getElementById('confirmPassword')?.value.trim();
+            const agreeTerms = document.getElementById('agreeTerms')?.checked;
 
             errorMessage.classList.add('hidden');
             successMessage.classList.add('hidden');
 
-            if (!username || !email || !password || !confirmPassword) {
+            // Validation
+            if (!fullName || !username || !email || !licenceNo || !password || !confirmPassword) {
                 errorMessage.textContent = 'Please fill in all required fields';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            if (!agreeTerms) {
+                errorMessage.textContent = 'Please agree to the Terms of Service and Privacy Policy';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            if (password.length < 6) {
+                errorMessage.textContent = 'Password must be at least 6 characters long';
                 errorMessage.classList.remove('hidden');
                 return;
             }
 
             if (password !== confirmPassword) {
                 errorMessage.textContent = 'Passwords do not match';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            const licenceNumber = parseInt(licenceNo);
+            if (isNaN(licenceNumber) || licenceNumber < 1) {
+                errorMessage.textContent = 'Please enter a valid license number';
                 errorMessage.classList.remove('hidden');
                 return;
             }
@@ -346,6 +441,7 @@
                     body: JSON.stringify({
                         username,
                         email,
+                        licenceNo: licenceNumber,
                         password,
                         fullName
                     })
@@ -357,7 +453,7 @@
                     throw new Error(data.message || 'Registration failed');
                 }
 
-                successMessage.textContent = 'Account created successfully! Redirecting to login...';
+                successMessage.textContent = '✅ Account created successfully! Redirecting to login...';
                 successMessage.classList.remove('hidden');
 
                 setTimeout(() => {

@@ -29,15 +29,27 @@ class ApiService {
         try {
             const response = await fetch(`${API_BASE_URL}${url}`, mergedOptions);
 
-            // Handle 401 Unauthorized
+            // Handle 401 Unauthorized (Device token invalid - logged in from another device)
             if (response.status === 401) {
-                const refreshed = await authService.refreshToken();
-                if (!refreshed) {
-                    window.location.href = '#login';
-                    throw new Error('Unauthorized');
+                console.warn('⚠️ 401 Unauthorized - Device token may be invalid');
+                
+                // Show notification
+                if (window.notificationService) {
+                    window.notificationService.warning(
+                        'Your session has ended. You may have logged in from another device.',
+                        'Session Expired',
+                        5000
+                    );
                 }
-                // Retry request with new token
-                return this.request(url, options);
+                
+                // Clear tokens and redirect to login
+                localStorage.clear();
+                setTimeout(() => {
+                    window.location.hash = '#login';
+                    window.location.reload();
+                }, 2000);
+                
+                throw new Error('Unauthorized - Logged in from another device');
             }
 
             const data = await response.json();

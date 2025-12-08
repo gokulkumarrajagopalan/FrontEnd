@@ -1,52 +1,72 @@
 (function () {
     const getTemplate = () => `
     <div id="importCompanyPageContainer" class="space-y-6">
-        <div class="page-header">
-            <h2>Import Company from Tally</h2>
-            <p>Select and import companies from your Tally database</p>
-        </div>
-
-        <!-- Status Messages -->
-        <div id="statusMessage" style="display: none;" class="p-4 rounded-lg border-l-4"></div>
-
-        <!-- Fetch Button -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between">
+        <!-- Import Header -->
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-gray-900">
+            <div class="flex items-center justify-between gap-6 flex-wrap">
                 <div>
-                    <h3 class="text-lg font-bold text-gray-800">Available Companies</h3>
-                    <p class="text-sm text-gray-500 mt-1">Click to fetch list of companies from Tally</p>
+                    <h2 class="text-3xl font-bold mb-2">🏢 Import Companies from Tally</h2>
+                    <p class="text-gray-600">Connect to Tally and import your company data seamlessly</p>
                 </div>
-                <button id="fetchCompaniesBtn" class="btn btn-primary">
-                    <span>🔗</span>
-                    <span>Fetch from Tally</span>
-                </button>
+                <div class="flex flex-col items-center gap-4">
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
+                        <p class="text-4xl font-bold text-blue-600" id="tallyCompanyCount">0</p>
+                        <p class="text-sm text-blue-500">Available</p>
+                    </div>
+                    <button id="fetchCompaniesBtn" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl border-2 border-blue-700 transition-all duration-200 font-bold flex items-center gap-2">
+                        <span>🔗</span>
+                        <span>Fetch from Tally</span>
+                    </button>
+                </div>
             </div>
         </div>
 
+        <!-- Status Messages -->
+        <div id="statusMessage" style="display: none;" class="p-4 rounded-xl border border-gray-200 bg-gray-50 shadow-sm text-gray-900"></div>
+
         <!-- Companies List -->
-        <div id="companiesList" style="display: none;" class="space-y-3">
-            <h3 class="text-lg font-bold text-gray-800">Select Companies to Import</h3>
-            <div id="companiesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Company cards will be rendered here -->
+        <div id="companiesList" style="display: none;" class="space-y-4">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1">📋 Select Companies to Import</h3>
+                        <p class="text-sm text-gray-600">Choose the companies you want to import from Tally</p>
+                    </div>
+                    <button id="importMoreBtn" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl border-2 border-blue-700 transition-all duration-200 font-bold flex items-center gap-2">
+                        <span>🔗</span>
+                        <span>Fetch More</span>
+                    </button>
+                </div>
+                <div id="companiesContainer" class="space-y-3">
+                    <!-- Company list items will be rendered here -->
+                </div>
             </div>
         </div>
 
         <!-- Import Selected Button -->
         <div id="importButtonContainer" style="display: none;" class="flex gap-4">
-            <button id="importSelectedBtn" class="btn btn-primary flex-1">
-                <span>📥</span>
+            <button id="importSelectedBtn" class="flex-1 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg hover:shadow-xl border-2 border-green-700 transition-all duration-200 font-semibold text-base flex items-center justify-center gap-2">
+                <span class="text-lg">📥</span>
                 <span>Import Selected Companies</span>
             </button>
-            <button id="clearSelectionBtn" class="btn btn-secondary flex-1">
-                <span>🔄</span>
+            <button id="clearSelectionBtn" class="px-6 py-2.5 bg-gray-300 hover:bg-gray-400 text-gray-900 rounded-xl shadow-lg hover:shadow-xl border-2 border-gray-400 transition-all duration-200 font-semibold text-base flex items-center justify-center gap-2">
+                <span class="text-lg">🔄</span>
                 <span>Clear Selection</span>
             </button>
         </div>
 
         <!-- Import Progress -->
-        <div id="importProgress" style="display: none;" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Importing Companies...</h3>
-            <div id="importLog" class="space-y-2 max-h-96 overflow-y-auto bg-gray-50 p-4 rounded-lg">
+        <div id="importProgress" style="display: none;" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center animate-pulse">
+                    <span class="text-2xl">⚙️</span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900">Importing Companies...</h3>
+                    <p class="text-sm text-gray-700">Please wait while we import your data</p>
+                </div>
+            </div>
+            <div id="importLog" class="space-y-2 max-h-96 overflow-y-auto bg-gray-50 p-4 rounded-xl border border-gray-200">
                 <!-- Import progress will be logged here -->
             </div>
         </div>
@@ -55,6 +75,82 @@
 
     let tallyCompanies = [];
     let selectedCompanies = [];
+    let connectionHistory = [];
+
+    function loadConnectionHistory() {
+        const stored = localStorage.getItem('tallyConnectionHistory');
+        if (stored) {
+            connectionHistory = JSON.parse(stored);
+        } else {
+            connectionHistory = [];
+        }
+    }
+
+    function saveConnectionHistory(status, companyCount, message) {
+        const connection = {
+            timestamp: new Date().toISOString(),
+            status: status,
+            companyCount: companyCount,
+            message: message
+        };
+        connectionHistory.unshift(connection);
+        connectionHistory = connectionHistory.slice(0, 3); // Keep only last 3
+        localStorage.setItem('tallyConnectionHistory', JSON.stringify(connectionHistory));
+        renderConnectionHistory();
+    }
+
+    function renderConnectionHistory() {
+        const container = document.getElementById('connectionHistory');
+        if (!container) return;
+
+        if (connectionHistory.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4 text-gray-400">
+                    <p class="text-sm">No connection history yet</p>
+                    <p class="text-xs mt-1">Click "Fetch from Tally" to connect</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = connectionHistory.map(conn => {
+            const date = new Date(conn.timestamp);
+            const timeAgo = getTimeAgo(date);
+            const isSuccess = conn.status === 'success';
+            const statusIcon = isSuccess ? '✓' : '✗';
+            const bgClass = isSuccess ? 'bg-green-100' : 'bg-red-100';
+            const textClass = isSuccess ? 'text-green-600' : 'text-red-600';
+            
+            return `
+                <div class="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 ${bgClass} rounded-lg flex items-center justify-center">
+                            <span class="${textClass} font-bold text-lg">${statusIcon}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-800">${conn.message}</p>
+                            <p class="text-xs text-gray-500">${timeAgo}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg font-bold ${textClass}">${conn.companyCount}</p>
+                        <p class="text-xs text-gray-500">companies</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function getTimeAgo(date) {
+        const seconds = Math.floor((new Date() - date) / 1000);
+        if (seconds < 60) return 'Just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+    }
 
     function showStatus(message, type = 'info') {
         const statusDiv = document.getElementById('statusMessage');
@@ -96,8 +192,10 @@
 
                 if (result.success && result.data && Array.isArray(result.data)) {
                     tallyCompanies = result.data;
-                    displayCompanies(tallyCompanies);
+                    document.getElementById('tallyCompanyCount').textContent = tallyCompanies.length;
+                    await displayCompanies(tallyCompanies);
                     showStatus(`✅ Found ${tallyCompanies.length} companies in Tally`, 'success');
+                    saveConnectionHistory('success', tallyCompanies.length, 'Connected successfully');
                 } else {
                     throw new Error(result.error || 'Failed to fetch companies');
                 }
@@ -107,20 +205,56 @@
         } catch (error) {
             showStatus(`❌ Error: ${error.message}`, 'error');
             console.error('Fetch error:', error);
+            saveConnectionHistory('error', 0, error.message);
         } finally {
             fetchBtn.disabled = false;
             fetchBtn.innerHTML = '<span>🔗</span><span>Fetch from Tally</span>';
         }
     }
 
-    function displayCompanies(companies) {
+    async function displayCompanies(companies) {
         const container = document.getElementById('companiesContainer');
         const list = document.getElementById('companiesList');
         const importContainer = document.getElementById('importButtonContainer');
 
-        // Get already imported companies
-        const savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]');
-        const importedGuids = new Set(savedCompanies.map(c => c.guid));
+        console.log('📊 Displaying companies:', companies.length);
+        console.log('Sample company structure:', companies[0]);
+
+        // Fetch already imported companies from database
+        let importedGuids = new Set();
+        try {
+            // Check authentication - but don't block display if not authenticated
+            if (window.authService && window.authService.isAuthenticated()) {
+                const headers = window.authService.getHeaders();
+                const response = await fetch(window.apiConfig.getUrl('/companies'), {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    console.warn('⚠️ Session expired (HTTP ' + response.status + ')');
+                    // Clear authService in-memory tokens immediately
+                    if (window.authService) {
+                        window.authService.token = null;
+                        window.authService.deviceToken = null;
+                        window.authService.user = null;
+                    }
+                    // Don't return - continue to display companies
+                    console.warn('   Session manager will log you out in ~1 minute');
+                } else if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && Array.isArray(result.data)) {
+                        importedGuids = new Set(result.data.map(c => c.companyGuid || c.guid));
+                        console.log(`✅ Loaded ${importedGuids.size} companies from database`);
+                    }
+                }
+            } else {
+                console.log('⚠️ Not authenticated, showing all companies as available');
+            }
+        } catch (error) {
+            console.error('Error fetching companies from database:', error);
+            // Don't block display - just log the error
+        }
 
         if (companies.length === 0) {
             container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-400">No companies found</div>';
@@ -130,29 +264,38 @@
         }
 
         container.innerHTML = companies.map((company, index) => {
-            const isImported = importedGuids.has(company.guid);
-            const cardClass = isImported 
-                ? 'bg-gray-50 border-gray-200 opacity-60' 
-                : 'bg-white border-gray-100 hover:shadow-md';
+            // Check both guid and companyGuid properties
+            const companyGuid = company.guid || company.companyGuid || '';
+            const isImported = importedGuids.has(companyGuid);
             
             return `
-            <div class="rounded-xl shadow-sm border p-4 transition-shadow company-card ${cardClass}" data-index="${index}" style="${isImported ? 'cursor-not-allowed;' : 'cursor-pointer;'}">
-                <div class="flex items-start gap-3">
-                    <input type="checkbox" class="company-checkbox mt-1" data-index="${index}" ${isImported ? 'disabled' : ''}>
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2">
-                            <h4 class="font-bold ${isImported ? 'text-gray-500' : 'text-gray-800'}">${company.name}</h4>
-                            ${isImported ? '<span class="inline-block bg-gray-300 text-gray-700 text-xs font-semibold px-2 py-1 rounded">Already Imported</span>' : '<span class="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 rounded">Available</span>'}
-                        </div>
-                        <p class="text-xs ${isImported ? 'text-gray-400' : 'text-gray-500'} mt-1">Code: <span class="font-mono">${company.code}</span></p>
-                        <p class="text-xs ${isImported ? 'text-gray-400' : 'text-gray-500'}">GUID: <span class="font-mono text-xs">${company.guid.substring(0, 8)}...</span></p>
-                        ${company.state ? `<p class="text-xs ${isImported ? 'text-gray-400' : 'text-gray-500'} mt-1">State: ${company.state}</p>` : ''}
-                        ${company.email ? `<p class="text-xs ${isImported ? 'text-gray-400' : 'text-gray-500'}">Email: ${company.email}</p>` : ''}
+            <div class="company-card flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
+                isImported 
+                ? 'bg-gray-100 border-gray-200 opacity-70 cursor-not-allowed' 
+                : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md cursor-pointer'
+            }" data-index="${index}">
+                <input type="checkbox" class="company-checkbox w-6 h-6 rounded border-2 border-blue-500" data-index="${index}" ${isImported ? 'disabled' : ''}>
+                
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-1">
+                        <h4 class="text-base text-gray-900">${company.name}</h4>
+                        ${isImported 
+                            ? '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">✓ Imported</span>' 
+                            : '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-50 text-green-700 border border-green-200">● Available</span>'
+                        }
                     </div>
+                    <div class="flex gap-6 text-sm text-gray-600">
+                        <span>Code: <span class="font-mono bg-gray-100 px-2 py-1 rounded text-gray-900">${company.code || 'N/A'}</span></span>
+                        ${company.state ? `<span>📍 State: ${company.state}</span>` : ''}
+                        ${company.email ? `<span>📧 Email: ${company.email}</span>` : ''}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">GUID: <span class="font-mono">${companyGuid ? companyGuid.substring(0, 12) + '...' : 'N/A'}</span></p>
                 </div>
             </div>
         `;
         }).join('');
+
+        console.log('✅ Rendered', companies.length, 'company cards');
 
         // Add event listeners
         document.querySelectorAll('.company-card').forEach(card => {
@@ -183,6 +326,89 @@
         });
     }
 
+    // Helper function to convert Tally date format (YYYYMMDD) to ISO date (YYYY-MM-DD)
+    function formatTallyDate(dateStr) {
+        if (!dateStr || dateStr.length !== 8) return '';
+        // Convert "20250401" to "2025-04-01"
+        const year = dateStr.substring(0, 4);
+        const month = dateStr.substring(4, 6);
+        const day = dateStr.substring(6, 8);
+        return `${year}-${month}-${day}`;
+    }
+
+    async function sendCompanyToBackend(company) {
+        const backendUrl = window.apiConfig.getUrl('/companies');
+        
+        try {
+            // Check authentication
+            if (!window.authService || !window.authService.isAuthenticated()) {
+                return { success: false, error: 'Authentication required' };
+            }
+
+            const currentUser = window.authService.getCurrentUser();
+            if (!currentUser || !currentUser.userId) {
+                return { success: false, error: 'User information not found' };
+            }
+
+            // Add userId to company data
+            company.userId = currentUser.userId;
+
+            // Log the exact payload being sent
+            console.log('📤 Sending 56-field company structure to backend:');
+            console.log('Company Name:', company.name);
+            console.log('User ID:', company.userId);
+            console.log('Total Fields:', Object.keys(company).length);
+            console.log('Full Payload:', JSON.stringify(company, null, 2));
+            
+            const headers = window.authService.getHeaders();
+            
+            const response = await fetch(backendUrl, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(company)
+            });
+
+            const responseText = await response.text();
+            let result;
+            
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                result = { message: responseText };
+            }
+
+            if (response.ok) {
+                addImportLog(`   📤 Sent to Backend API (ID: ${result.data?.id || result.id || 'N/A'})`, 'success');
+                addImportLog(`   ✅ Response: ${result.message || 'Company created'}`, 'success');
+                return { success: true, backendId: result.data?.id || result.id };
+            } else {
+                // Extract detailed error information
+                let errorMsg = result.message || result.error || `HTTP ${response.status}`;
+                let errorDetails = result.details || result.fieldErrors || '';
+                
+                addImportLog(`   ⚠️ Backend Error (${response.status}): ${errorMsg}`, 'error');
+                if (errorDetails) {
+                    addImportLog(`   📋 Details: ${JSON.stringify(errorDetails)}`, 'error');
+                }
+                
+                // Log FULL response for debugging
+                console.error('❌ BACKEND ERROR RESPONSE:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    fullBody: result,
+                    errorMessage: errorMsg,
+                    errorDetails: errorDetails
+                });
+                
+                return { success: false, error: errorMsg };
+            }
+        } catch (err) {
+            addImportLog(`   ❌ API Error: ${err.message}`, 'error');
+            console.error('API Call Error:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
     async function importSelectedCompanies() {
         if (selectedCompanies.length === 0) {
             showStatus('❌ Please select at least one company', 'error');
@@ -198,45 +424,176 @@
         addImportLog(`Starting import of ${selectedCompanies.length} company/companies...`, 'info');
 
         try {
-            // Get existing companies from localStorage
-            let savedCompanies = JSON.parse(localStorage.getItem('companies') || '[]');
+            // Get auth token and user directly from localStorage (more reliable)
+            const authToken = localStorage.getItem('authToken');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            
+            console.log('🔐 Import - Auth check:', {
+                hasToken: !!authToken,
+                hasUser: !!currentUser,
+                userId: currentUser?.userId,
+                username: currentUser?.username
+            });
+            
+            if (!authToken) {
+                addImportLog('❌ Authentication token not found. Please login.', 'error');
+                console.error('No authToken in localStorage');
+                showStatus('⚠️ Please login to import companies', 'error');
+                importBtn.disabled = false;
+                return;
+            }
+            
+            if (!currentUser || !currentUser.userId) {
+                addImportLog('❌ User information not found. Please login again.', 'error');
+                console.error('No currentUser in localStorage or missing userId');
+                showStatus('⚠️ User session invalid. Please login again.', 'error');
+                importBtn.disabled = false;
+                return;
+            }
+
+            // Generate device token if missing
+            let deviceToken = localStorage.getItem('deviceToken');
+            if (!deviceToken) {
+                deviceToken = 'device-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
+                localStorage.setItem('deviceToken', deviceToken);
+                addImportLog('🔑 Generated new device token', 'info');
+            }
+
+            // Build headers manually
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`,
+                'X-Device-Token': deviceToken
+            };
+
+            addImportLog(`✅ Authenticated as: ${currentUser.username} (ID: ${currentUser.userId})`, 'success');
+
+            // Fetch existing companies from database to check for duplicates
+            let existingCompanyGuids = new Set();
+            try {
+                const response = await fetch(window.apiConfig.getUrl('/companies'), {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                if (response.status === 401) {
+                    addImportLog('⚠️ Your session has expired. Please login again to import companies.', 'error');
+                    addImportLog('💡 Click the user icon or refresh the page to login again.', 'info');
+                    importBtn.disabled = false;
+                    showStatus('⚠️ Session expired. Please login again to continue.', 'error');
+                    return;
+                }
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && Array.isArray(result.data)) {
+                        existingCompanyGuids = new Set(result.data.map(c => c.companyGuid || c.guid));
+                        addImportLog(`📊 Found ${existingCompanyGuids.size} existing companies in database`, 'info');
+                    }
+                }
+            } catch (error) {
+                addImportLog(`⚠️ Could not check existing companies: ${error.message}`, 'info');
+            }
+
             let importedCount = 0;
             let skippedCount = 0;
 
             for (const company of selectedCompanies) {
-                // Check if company already exists
-                const exists = savedCompanies.some(c => c.guid === company.guid);
+                // Check if company already exists in database
+                const companyGuid = company.companyGuid || company.guid;
+                const exists = existingCompanyGuids.has(companyGuid);
 
                 if (exists) {
-                    addImportLog(`⏭️ Skipped: ${company.name} (already imported)`, 'info');
+                    addImportLog(`⏭️ Skipped: ${company.name} (already exists in database)`, 'info');
                     skippedCount++;
                 } else {
                     // Create company object for our database
+                    // Using exact field names and types expected by backend
                     const newCompany = {
-                        id: 'comp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                        code: company.code,
-                        name: company.name,
-                        guid: company.guid,
-                        email: company.email || '',
-                        phone: company.phone || '',
-                        address: company.address || '',
+                        // ========== USER ASSOCIATION (REQUIRED) ==========
+                        // Send both camelCase and lowercase to ensure backend compatibility
+                        userId: currentUser.userId,
+                        userid: currentUser.userId,
+                        user_id: currentUser.userId,
+                        
+                        // ========== IDENTIFICATION (1 field) ==========
+                        companyGuid: company.companyGuid || company.guid || '',
+                        
+                        // ========== CORE INFORMATION (20 fields) ==========
+                        alterId: company.alterId || '',
+                        code: company.code || '',
+                        name: company.name || '',
+                        mailingName: company.mailingName || '',
+                        addressLine1: company.addressLine1 || '',
+                        addressLine2: company.addressLine2 || '',
+                        addressLine3: company.addressLine3 || '',
+                        addressLine4: company.addressLine4 || '',
+                        pincode: company.pincode || company.zipcode || '',
                         state: company.state || '',
+                        country: company.country || 'India',
+                        telephone: company.telephone || company.phone || '',
+                        mobile: company.mobile || company.phonenumber || '',
+                        fax: company.fax || company.faxnumber || '',
+                        email: company.email || '',
+                        website: company.website || '',
+                        panNumber: company.panNumber || '',
+                        financialYearStart: formatTallyDate(company.financialYearStart) || '',
+                        booksStart: formatTallyDate(company.booksStart) || '',
+                        currencySymbol: company.currencySymbol || '₹',
+                        currencyFormalName: company.currencyFormalName || 'INR',
+                        currencyDecimalPlaces: company.currencyDecimalPlaces || 2,
+                        
+                        // ========== GST DETAILS (7 fields - India) ==========
+                        gstApplicableDate: formatTallyDate(company.gstApplicableDate) || '',
+                        gstState: company.gstState || '',
+                        gstType: company.gstType || '',
+                        gstin: company.gstin || '',
+                        gstFreezone: company.gstFreezone === true || company.gstFreezone === 'true',
+                        gstEInvoiceApplicable: company.gstEInvoiceApplicable === true || company.gstEInvoiceApplicable === 'true',
+                        gstEWayBillApplicable: company.gstEWayBillApplicable === true || company.gstEWayBillApplicable === 'true',
+                        
+                        // ========== VAT DETAILS (5 fields - GCC) ==========
+                        vatEmirate: company.vatEmirate || '',
+                        vatApplicableDate: formatTallyDate(company.vatApplicableDate) || '',
+                        vatRegistrationNumber: company.vatRegistrationNumber || '',
+                        vatAccountId: company.vatAccountId || '',
+                        vatFreezone: company.vatFreezone === true || company.vatFreezone === 'true',
+                        
+                        // ========== COMPANY FEATURES (6 fields) ==========
+                        billwiseEnabled: company.billwiseEnabled === true || company.billwiseEnabled === 'true',
+                        costcentreEnabled: company.costcentreEnabled === true || company.costcentreEnabled === 'true',
+                        batchEnabled: company.batchEnabled === true || company.batchEnabled === 'true',
+                        useDiscountColumn: company.useDiscountColumn === true || company.useDiscountColumn === 'true',
+                        useActualColumn: company.useActualColumn === true || company.useActualColumn === 'true',
+                        payrollEnabled: company.payrollEnabled === true || company.payrollEnabled === 'true',
+                        
+                        // ========== AUDIT TIMESTAMPS (2 fields) ==========
+                        createdAt: company.createdAt || new Date().toISOString(),
+                        updatedAt: company.updatedAt || new Date().toISOString(),
+                        
+                        // ========== BACKWARD COMPATIBILITY (7+ fields) ==========
+                        guid: company.companyGuid || company.guid || '',
                         businessType: company.businessType || 'Tally Company',
-                        status: 'active',
-                        importedFrom: 'Tally',
-                        importedDate: new Date().toISOString(),
-                        syncStatus: 'synced',
-                        lastSyncDate: new Date().toISOString()
+                        status: company.status || 'imported',
+                        importedFrom: company.importedFrom || 'tally',
+                        importedDate: company.importedDate || new Date().toISOString(),
+                        syncStatus: company.syncStatus || 'pending',
+                        lastSyncDate: company.lastSyncDate || null
                     };
 
-                    savedCompanies.push(newCompany);
-                    addImportLog(`✅ Imported: ${company.name} (${company.code})`, 'success');
-                    importedCount++;
+                    // SEND TO BACKEND API
+                    addImportLog(`Importing: ${company.name}...`, 'info');
+                    const backendResponse = await sendCompanyToBackend(newCompany);
+                    
+                    if (backendResponse.success) {
+                        addImportLog(`✅ Imported: ${company.name} (ID: ${backendResponse.backendId})`, 'success');
+                        importedCount++;
+                    } else {
+                        addImportLog(`❌ Failed: ${company.name} - ${backendResponse.error}`, 'error');
+                        skippedCount++;
+                    }
                 }
             }
-
-            // Save to localStorage
-            localStorage.setItem('companies', JSON.stringify(savedCompanies));
 
             addImportLog(`\n✅ Import Complete!`, 'success');
             addImportLog(`Imported: ${importedCount} | Skipped: ${skippedCount}`, 'success');
@@ -267,6 +624,11 @@
             fetchBtn.addEventListener('click', fetchTallyCompanies);
         }
 
+        const importMoreBtn = document.getElementById('importMoreBtn');
+        if (importMoreBtn) {
+            importMoreBtn.addEventListener('click', fetchTallyCompanies);
+        }
+
         const importBtn = document.getElementById('importSelectedBtn');
         if (importBtn) {
             importBtn.addEventListener('click', importSelectedCompanies);
@@ -277,17 +639,25 @@
             clearBtn.addEventListener('click', () => {
                 selectedCompanies = [];
                 document.querySelectorAll('.company-checkbox').forEach(cb => cb.checked = false);
+                updateSelection();
+                showStatus('Selection cleared', 'info');
             });
         }
     }
 
-    window.initializeImportCompany = function () {
+    window.initializeImportCompany = async function () {
         console.log('Initializing Import Company Page...');
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getTemplate();
+            loadConnectionHistory();
+            renderConnectionHistory();
             setupEventListeners();
             console.log('✅ Import Company Page initialized');
+            // Auto-fetch from Tally on page load
+            setTimeout(async () => {
+                await fetchTallyCompanies();
+            }, 500);
         }
     };
 })();

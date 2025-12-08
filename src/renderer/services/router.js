@@ -78,8 +78,17 @@ class Router {
 
         // Call the page's init function
         if (typeof pageModule.init === 'function') {
-            console.log(`Initializing page: ${route}`);
+            console.log(`📄 Initializing page: ${route}`);
+            const pageContent = document.getElementById('page-content');
+            console.log(`   page-content exists: ${!!pageContent}`);
+            if (pageContent) {
+                console.log(`   Current content length: ${pageContent.innerHTML.length} chars`);
+            }
             await pageModule.init();
+            if (pageContent) {
+                console.log(`   Updated content length: ${pageContent.innerHTML.length} chars`);
+            }
+            console.log(`✅ Page ${route} initialized`);
         } else {
             console.warn(`No init function found for page: ${route}`);
         }

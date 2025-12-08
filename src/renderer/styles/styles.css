@@ -4,10 +4,37 @@
     box-sizing: border-box;
 }
 
+html, body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f9fafb;
+    color: #1f2937;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* Global Text Colors */
+h1, h2, h3, h4, h5, h6 {
+    color: #111827;
+}
+
+p, span, div, li, a {
+    color: #374151;
+}
+
+a {
+    text-decoration: none;
+}
+
+/* Ensure all elements have proper text color */
+button, input, select, textarea {
+    color: #1f2937;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: white;
-    color: #333;
+    color: #1f2937;
     min-height: 100vh;
     margin: 0;
     padding: 0;

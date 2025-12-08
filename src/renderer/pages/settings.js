@@ -37,7 +37,7 @@
                 <form class="settings-form space-y-4" id="connectionForm">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">API Base URL</label>
-                        <input type="text" id="apiUrl" class="w-full px-3 py-2 border border-gray-200 rounded-lg" value="http://localhost:8080/api">
+                        <input type="text" id="apiUrl" class="w-full px-3 py-2 border border-gray-200 rounded-lg" value="http://localhost:8080">
                         <small class="text-gray-500">API endpoint for backend services</small>
                     </div>
                     <button type="button" class="btn btn-secondary w-full" id="testConnectionBtn">Test Connection</button>
@@ -103,7 +103,7 @@
     `;
 
     if (!window.API_BASE_URL) {
-        window.API_BASE_URL = window.AppConfig ? window.AppConfig.API_BASE_URL : 'http://localhost:8080/api';
+        window.API_BASE_URL = window.AppConfig ? window.AppConfig.API_BASE_URL : 'http://localhost:8080';
     }
 
     function loadSettings() {

@@ -3,30 +3,36 @@
  * Handles user login, logout, token management, and session
  */
 
-// Define API_BASE_URL from config
-const API_BASE_URL = window.AppConfig.API_BASE_URL;
-
 class AuthService {
     constructor() {
         this.token = localStorage.getItem('authToken');
+        this.deviceToken = localStorage.getItem('deviceToken');
         this.user = JSON.parse(localStorage.getItem('currentUser') || 'null');
         this.refreshInterval = null;
+        
+        // Log initialization for debugging
+        console.log('🔐 AuthService initialized:', {
+            hasToken: !!this.token,
+            hasDeviceToken: !!this.deviceToken,
+            hasUser: !!this.user,
+            userId: this.user?.userId
+        });
     }
 
     /**
      * Login user
-     * @param {string} email 
+     * @param {string} username 
      * @param {string} password 
-     * @returns {Promise<{success: boolean, message: string, token?: string, user?: object}>}
+     * @returns {Promise<{success: boolean, message: string, token?: string, deviceToken?: string, user?: object}>}
      */
-    async login(email, password) {
+    async login(username, password) {
         try {
-            const response = await fetch(`http://localhost:8080/api/auth/login`, {
+            const response = await fetch(window.apiConfig.getNestedUrl('auth', 'login'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username: email, email, password })
+                body: JSON.stringify({ username, password })
             });
 
             const data = await response.json();
@@ -38,12 +44,19 @@ class AuthService {
                 };
             }
 
-            // Store token and user
+            // Store token, device token and user
             this.token = data.token;
-            this.user = data.user;
+            this.deviceToken = data.deviceToken;
+            this.user = {
+                userId: data.userId,
+                username: data.username,
+                fullName: data.fullName,
+                role: data.role
+            };
 
             localStorage.setItem('authToken', data.token);
-            localStorage.setItem('currentUser', JSON.stringify(data.user));
+            localStorage.setItem('deviceToken', data.deviceToken);
+            localStorage.setItem('currentUser', JSON.stringify(this.user));
             localStorage.setItem('loginTime', new Date().toISOString());
 
             // Set token in all future requests
@@ -53,7 +66,8 @@ class AuthService {
                 success: true,
                 message: 'Login successful',
                 token: data.token,
-                user: data.user
+                deviceToken: data.deviceToken,
+                user: this.user
             };
         } catch (error) {
             console.error('Login error:', error);
@@ -71,7 +85,7 @@ class AuthService {
      */
     async register(userData) {
         try {
-            const response = await fetch(`http://localhost:8080/api/auth/register`, {
+            const response = await fetch(window.apiConfig.getNestedUrl('auth', 'register'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -105,11 +119,32 @@ class AuthService {
     /**
      * Logout user
      */
-    logout() {
+    async logout() {
+        try {
+            // Call logout API to clear device token
+            if (this.token) {
+                const response = await fetch(window.apiConfig.getNestedUrl('auth', 'logout'), {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`,
+                        'X-Device-Token': this.deviceToken || '',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.status === 401 || response.status === 403) {
+                    console.warn('Logout API returned ' + response.status + ', continuing with local logout');
+                }
+            }
+        } catch (error) {
+            console.error('Logout API error:', error);
+        }
+
         this.token = null;
+        this.deviceToken = null;
         this.user = null;
 
         localStorage.removeItem('authToken');
+        localStorage.removeItem('deviceToken');
         localStorage.removeItem('currentUser');
         localStorage.removeItem('loginTime');
 
@@ -139,7 +174,7 @@ class AuthService {
         if (!this.token) return false;
 
         try {
-            const response = await fetch(`http://localhost:8080/api/auth/refresh`, {
+            const response = await fetch(window.apiConfig.getNestedUrl('auth', 'refresh'), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${this.token}`,
@@ -185,10 +220,19 @@ class AuthService {
      * @returns {object}
      */
     getHeaders() {
-        return {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.token}`
+        const headers = {
+            'Content-Type': 'application/json'
         };
+        
+        if (this.token) {
+            headers['Authorization'] = `Bearer ${this.token}`;
+        }
+        
+        if (this.deviceToken) {
+            headers['X-Device-Token'] = this.deviceToken;
+        }
+        
+        return headers;
     }
 
     /**
@@ -214,7 +258,49 @@ class AuthService {
     getToken() {
         return this.token;
     }
+
+    /**
+     * Get device token
+     * @returns {string|null}
+     */
+    getDeviceToken() {
+        return this.deviceToken;
+    }
+
+    /**
+     * Validate token
+     * @returns {Promise<boolean>}
+     */
+    async validateToken() {
+        if (!this.token) return false;
+
+        try {
+            const response = await fetch(window.apiConfig.getNestedUrl('auth', 'validate'), {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return data.success;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Token validation error:', error);
+            return false;
+        }
+    }
 }
 
 // Create singleton instance
 const authService = new AuthService();
+
+// Export to window for global access
+window.authService = authService;
+
+// Also make AuthService class available globally
+window.AuthService = AuthService;

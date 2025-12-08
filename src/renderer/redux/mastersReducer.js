@@ -45,7 +45,7 @@ const mastersActions = {
         dispatch({ type: MASTERS_ACTIONS.FETCH_ACCOUNTS_REQUEST });
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/masters/accounts', {
+            const response = await fetch('http://localhost:8080/masters/accounts', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -64,7 +64,7 @@ const mastersActions = {
     addAccount: (account) => async (dispatch, getState) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/masters/accounts', {
+            const response = await fetch('http://localhost:8080/masters/accounts', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ const mastersActions = {
     updateAccount: (id, account) => async (dispatch, getState) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8080/api/masters/accounts/${id}`, {
+            const response = await fetch(`http://localhost:8080/masters/accounts/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ const mastersActions = {
     deleteAccount: (id) => async (dispatch, getState) => {
         try {
             const token = localStorage.getItem('token');
-            await fetch(`http://localhost:8080/api/masters/accounts/${id}`, {
+            await fetch(`http://localhost:8080/masters/accounts/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -127,7 +127,7 @@ const mastersActions = {
         dispatch({ type: MASTERS_ACTIONS.FETCH_COST_CENTERS_REQUEST });
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/masters/cost-centers', {
+            const response = await fetch('http://localhost:8080/masters/cost-centers', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -148,7 +148,7 @@ const mastersActions = {
         dispatch({ type: MASTERS_ACTIONS.FETCH_CATEGORIES_REQUEST });
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/masters/categories', {
+            const response = await fetch('http://localhost:8080/masters/categories', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -169,7 +169,7 @@ const mastersActions = {
         dispatch({ type: MASTERS_ACTIONS.FETCH_UNITS_REQUEST });
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/masters/units', {
+            const response = await fetch('http://localhost:8080/masters/units', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
