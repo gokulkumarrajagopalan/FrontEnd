@@ -140,22 +140,9 @@
                         <span class="text-3xl">📊</span>
                         Company Records
                     </h3>
-                    <p class="text-sm text-gray-700 mt-1 font-medium">Detailed status for every imported company</p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
-                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-                        <span class="text-sm font-semibold text-gray-700">Synced</span>
+                        <hr class="my-4">
                     </div>
-                    <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
-                        <span class="w-3 h-3 rounded-full bg-amber-500"></span>
-                        <span class="text-sm font-semibold text-gray-700">Pending</span>
-                    </div>
-                    <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
-                        <span class="w-3 h-3 rounded-full bg-rose-500"></span>
-                        <span class="text-sm font-semibold text-gray-700">Error</span>
-                    </div>
-                </div>
+                
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -265,6 +252,88 @@
         document.getElementById('errorCount').textContent = error;
     }
 
+    async function syncCompanyGroups(company, button) {
+        const originalContent = button.innerHTML;
+        
+        try {
+            button.disabled = true;
+            button.innerHTML = '<span class="animate-pulse">🔄 Syncing...</span>';
+            
+            console.log(`🔄 Starting Tally sync for company: ${company.name} (ID: ${company.id})`);
+            
+            // Get auth tokens
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const authToken = localStorage.getItem('authToken');
+            const deviceToken = localStorage.getItem('deviceToken');
+
+            if (!authToken || !deviceToken) {
+                throw new Error('Authentication required. Please log in again.');
+            }
+
+            // Check if Electron API is available
+            if (!window.electronAPI || !window.electronAPI.syncGroups) {
+                throw new Error('Electron API not available. Please restart the application.');
+            }
+
+            // Call Python sync via Electron IPC
+            const result = await window.electronAPI.syncGroups({
+                companyId: company.id,
+                userId: currentUser?.userId || 1,
+                authToken: authToken,
+                deviceToken: deviceToken
+            });
+
+            console.log('✅ Sync result:', JSON.stringify(result, null, 2));
+
+            if (result.success) {
+                window.notificationService.success(`✅ Successfully synced ${result.count} groups for ${company.name}!`);
+                
+                // Update company sync status
+                company.syncStatus = 'synced';
+                company.lastSyncDate = new Date().toISOString();
+                
+                // Reload companies to refresh the table
+                await loadCompanies();
+            } else {
+                console.error('❌ Sync failed with result:', result);
+                
+                // Build detailed error message
+                let errorMessage = `Failed to sync groups for ${company.name}: ` + (result.message || 'Sync failed');
+                
+                // Add Python error details if available
+                if (result.stderr) {
+                    errorMessage += '\n\n❌ Error details:\n' + result.stderr;
+                }
+                if (result.stdout && !result.stderr) {
+                    errorMessage += '\n\n📄 Output:\n' + result.stdout;
+                }
+                if (result.exitCode) {
+                    errorMessage += '\n\nExit code: ' + result.exitCode;
+                }
+                
+                window.notificationService.error(errorMessage);
+                return; // Exit early, no need to throw
+            }
+
+        } catch (error) {
+            console.error('❌ Sync error:', error);
+            
+            let errorMessage = `Failed to sync groups for ${company.name}: `;
+            if (error.message && error.message.includes('Authentication required')) {
+                errorMessage += 'Please log in again.';
+            } else if (error.message && error.message.includes('Electron API not available')) {
+                errorMessage += error.message;
+            } else {
+                errorMessage += (error.message || 'Unknown error');
+            }
+            
+            window.notificationService.error(errorMessage);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalContent;
+        }
+    }
+
     function renderTable() {
         const tableBody = document.getElementById('companiesTableBody');
         const searchTerm = document.getElementById('companySearch')?.value.toLowerCase() || '';
@@ -327,19 +396,19 @@
                     </span>
                 </td>
                 <td class="px-6 py-5">
-                    <button class="view-details-btn px-4 py-2 bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 rounded-xl shadow-md hover:shadow-lg transition-all font-semibold text-sm" data-id="${company.id}">👁️ View</button>
+                    <button class="sync-company-btn px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 rounded-xl shadow-md hover:shadow-lg transition-all font-semibold text-sm" data-id="${company.id}">🔄 Sync</button>
                 </td>
             </tr>
         `;
         }).join('');
 
-        document.querySelectorAll('.view-details-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.sync-company-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
                 const button = e.currentTarget;
                 const id = button.getAttribute('data-id');
                 const company = companies.find(c => c.id === id);
                 if (company) {
-                    showSyncDetails(company);
+                    await syncCompanyGroups(company, button);
                 }
             });
         });

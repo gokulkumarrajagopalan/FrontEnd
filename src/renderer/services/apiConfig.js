@@ -1,15 +1,7 @@
-/**
- * API Configuration Module
- * Centralized API endpoint management
- * This is the ONLY place where API URLs should be defined
- */
-
 const apiConfig = {
     BASE_URL: 'http://localhost:8080',
-    
-    // API Endpoints
+
     endpoints: {
-        // Authentication
         auth: {
             login: '/auth/login',
             register: '/auth/register',
@@ -17,11 +9,8 @@ const apiConfig = {
             refresh: '/auth/refresh',
             validate: '/auth/validate'
         },
-        
-        // Companies
         companies: '/companies',
         
-        // Masters
         masters: {
             accounts: '/masters/accounts',
             costcenters: '/masters/cost-centers',

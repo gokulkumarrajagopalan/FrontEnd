@@ -3,40 +3,50 @@
 (function () {
     // State
     let groups = [];
+    let selectedCompanyId = null;
 
     // HTML Template
     const getTemplate = () => `
     <div id="groupsPageContainer" class="space-y-6">
-        <div class="page-header">
-            <h2>Account Groups</h2>
-            <p>Manage ledger groups</p>
+        <div class="page-header flex justify-between items-center">
+            <div>
+                <h2>Account Groups</h2>
+                <p>Manage ledger groups and chart of accounts</p>
+            </div>
+            <div class="flex gap-3">
+                <button class="btn btn-secondary" id="syncGroupsBtn">
+                    <span>🔄</span>
+                    <span>Sync from Tally</span>
+                </button>
+                <button class="btn btn-primary" id="addGroupBtn">+ Add Group</button>
+            </div>
         </div>
 
         <div class="flex gap-4 mb-6">
             <input type="text" id="groupSearch" placeholder="Search groups..." class="flex-1 px-4 py-2 border border-gray-200 rounded-lg">
             <select id="groupTypeFilter" class="px-4 py-2 border border-gray-200 rounded-lg">
                 <option value="">All Types</option>
-                <option value="ASSETS">Assets</option>
-                <option value="LIABILITIES">Liabilities</option>
-                <option value="EQUITY">Equity</option>
-                <option value="INCOME">Income</option>
-                <option value="EXPENSE">Expense</option>
+                <option value="revenue">Revenue (P&L)</option>
+                <option value="balancesheet">Balance Sheet</option>
+                <option value="primary">Primary Groups</option>
             </select>
-            <button class="btn btn-primary" id="addGroupBtn">+ Add Group</button>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive bg-white rounded-xl shadow-sm border border-gray-100">
             <table class="table">
                 <thead>
                     <tr>
                         <th>Group Name</th>
-                        <th>Type</th>
-                        <th>Description</th>
-                        <th>Action</th>
+                        <th>Parent Group</th>
+                        <th>Nature</th>
+                        <th>Is Revenue</th>
+                        <th>Status</th>
+                        <th>Tally GUID</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="groupsTable">
-                    <tr><td colspan="4" style="text-align: center; color: #999;">Loading...</td></tr>
+                    <tr><td colspan="7" class="text-center py-8 text-gray-400">Select a company to view groups...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -96,10 +106,17 @@
 
     // API Helpers
     const getAuthHeaders = () => {
+        // Use global auth service for proper headers (includes device token)
+        if (window.authService) {
+            return window.authService.getHeaders();
+        }
+        // Fallback to manual token
         const token = localStorage.getItem('authToken');
+        const deviceToken = localStorage.getItem('deviceToken');
         return {
             'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...(deviceToken && { 'X-Device-Token': deviceToken })
         };
     };
 
@@ -118,6 +135,31 @@
         }
 
         try {
+            // Check authentication
+            const isAuthenticated = window.authService?.isAuthenticated();
+            console.log('🔐 User authenticated:', isAuthenticated);
+            
+            if (!isAuthenticated) {
+                console.warn('⚠️ User not authenticated, redirecting to login...');
+                window.router?.navigate('login');
+                return;
+            }
+            
+            // Use global company selector
+            const savedCompanyId = localStorage.getItem('selectedCompanyId');
+            selectedCompanyId = window.selectedCompanyId || (savedCompanyId ? parseInt(savedCompanyId) : null);
+            
+            console.log('📋 Groups page - Selected Company ID:', selectedCompanyId);
+            console.log('📋 window.selectedCompanyId:', window.selectedCompanyId);
+            console.log('📋 localStorage.selectedCompanyId:', savedCompanyId);
+            
+            // Listen for global company changes
+            window.addEventListener('companyChanged', async (e) => {
+                console.log('📋 Company changed event received:', e.detail);
+                selectedCompanyId = e.detail.companyId;
+                await loadGroups();
+            });
+            
             await loadGroups();
             setupEventListeners();
             console.log('Groups page initialized successfully');
@@ -128,22 +170,59 @@
     };
 
     async function loadGroups() {
+        console.log('📊 loadGroups called with selectedCompanyId:', selectedCompanyId);
+        
+        if (!selectedCompanyId) {
+            const table = document.getElementById('groupsTable');
+            if (table) table.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">📋 Please select a company from the dropdown above to view groups</td></tr>';
+            console.log('⚠️ No company selected, skipping fetch');
+            return;
+        }
+
         try {
-            const response = await fetch(`${window.AppConfig.API_BASE_URL}/groups`, {
+            showLoading();
+            const url = window.apiConfig.getUrl(`/groups/company/${selectedCompanyId}`);
+            const headers = getAuthHeaders();
+            
+            console.log(`🔍 Fetching groups from URL: ${url}`);
+            console.log(`🔍 Company ID type: ${typeof selectedCompanyId}, value: ${selectedCompanyId}`);
+            console.log(`🔐 Auth headers:`, {
+                hasAuth: !!headers.Authorization,
+                hasDevice: !!headers['X-Device-Token'],
+                authToken: localStorage.getItem('authToken')?.substring(0, 20) + '...',
+                deviceToken: localStorage.getItem('deviceToken')?.substring(0, 20) + '...'
+            });
+            
+            const response = await fetch(url, {
                 method: 'GET',
-                headers: getAuthHeaders()
+                headers: headers
             });
 
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
 
-            const data = await response.json();
-            groups = Array.isArray(data) ? data : (data.data || []);
-            renderGroupsTable(groups);
+            const result = await response.json();
+            console.log('✅ Groups response:', result);
+            
+            if (result.success) {
+                groups = result.data || [];
+                console.log(`📊 Loaded ${groups.length} groups`);
+                renderGroupsTable(groups);
+            } else {
+                throw new Error(result.message || 'Failed to load groups');
+            }
         } catch (error) {
-            console.error('Error loading groups:', error);
+            console.error('❌ Error loading groups:', error);
             const table = document.getElementById('groupsTable');
-            if (table) table.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">Error loading groups. Please refresh.</td></tr>';
+            if (table) table.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500">Error loading groups: ' + error.message + '</td></tr>';
+            showError('Failed to load groups: ' + error.message);
         }
+    }
+
+    function showLoading() {
+        const table = document.getElementById('groupsTable');
+        if (table) table.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400"><span class="animate-pulse">Loading groups...</span></td></tr>';
     }
 
     function renderGroupsTable(data) {
@@ -151,18 +230,42 @@
         if (!table) return;
 
         if (!Array.isArray(data) || data.length === 0) {
-            table.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No groups found</td></tr>';
+            table.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">No groups found for this company</td></tr>';
             return;
         }
 
         table.innerHTML = data.map(group => `
-            <tr>
-                <td>${group.name || 'N/A'}</td>
-                <td><span class="type-badge">${group.type || 'N/A'}</span></td>
-                <td>${group.description || '-'}</td>
+            <tr class="hover:bg-gray-50">
                 <td>
-                    <button class="btn btn-small edit-btn" data-id="${group.id || group._id}">Edit</button>
-                    <button class="btn btn-small delete-btn" data-id="${group.id || group._id}">Delete</button>
+                    <div class="font-medium text-gray-900">${group.grpName || 'N/A'}</div>
+                    ${group.grpAlias ? `<div class="text-xs text-gray-500">Alias: ${group.grpAlias}</div>` : ''}
+                </td>
+                <td class="text-gray-700">${group.grpParent || '-'}</td>
+                <td>
+                    <span class="px-2 py-1 text-xs rounded-full ${
+                        group.grpNature === 'Assets' ? 'bg-blue-100 text-blue-700' :
+                        group.grpNature === 'Liabilities' ? 'bg-red-100 text-red-700' :
+                        group.grpNature === 'Income' ? 'bg-green-100 text-green-700' :
+                        group.grpNature === 'Expense' ? 'bg-orange-100 text-orange-700' :
+                        'bg-gray-100 text-gray-700'
+                    }">${group.grpNature || 'N/A'}</span>
+                </td>
+                <td>
+                    ${group.isRevenue ? 
+                        '<span class="text-green-600 font-medium">✓ Yes</span>' : 
+                        '<span class="text-gray-400">✗ No</span>'}
+                </td>
+                <td>
+                    ${group.isActive !== false ? 
+                        '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>' : 
+                        '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">Inactive</span>'}
+                </td>
+                <td class="font-mono text-xs text-gray-500">${group.guid ? group.guid.substring(0, 20) + '...' : 'N/A'}</td>
+                <td>
+                    <div class="flex gap-2">
+                        <button class="btn btn-small edit-btn" data-id="${group.grpId}">✏️</button>
+                        <button class="btn btn-small delete-btn" data-id="${group.grpId}">🗑️</button>
+                    </div>
                 </td>
             </tr>
         `).join('');
@@ -170,16 +273,106 @@
         attachRowHandlers();
     }
 
+    async function syncGroupsFromTally() {
+        if (!selectedCompanyId) {
+            showError('Please select a company first');
+            return;
+        }
+
+        const syncBtn = document.getElementById('syncGroupsBtn');
+        const originalContent = syncBtn.innerHTML;
+        
+        try {
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<span class="animate-pulse">🔄 Syncing...</span>';
+            
+            console.log('🔄 Starting Tally sync via Python...');
+            showInfo('🔄 Connecting to Tally Prime...');
+
+            // Get auth tokens
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const authToken = localStorage.getItem('authToken');
+            const deviceToken = localStorage.getItem('deviceToken');
+
+            if (!authToken || !deviceToken) {
+                throw new Error('Authentication required. Please log in again.');
+            }
+
+            // Check if Electron API is available
+            if (!window.electronAPI || !window.electronAPI.syncGroups) {
+                throw new Error('Electron API not available. Please restart the application (stop and run "npm start" again).');
+            }
+
+            // Call Python sync via Electron IPC
+            const result = await window.electronAPI.syncGroups({
+                companyId: selectedCompanyId,
+                userId: currentUser?.userId || 1,
+                authToken: authToken,
+                deviceToken: deviceToken
+            });
+
+            console.log('✅ Sync result:', JSON.stringify(result, null, 2));
+
+            if (result.success) {
+                showSuccess(`✅ Successfully synced ${result.count} groups from Tally to database!`);
+                await loadGroups(); // Reload the table
+            } else {
+                console.error('❌ Sync failed with result:', result);
+                
+                // Build detailed error message
+                let errorMessage = 'Failed to sync groups: ' + (result.message || 'Sync failed');
+                
+                // Add Python error details if available
+                if (result.stderr) {
+                    errorMessage += '\n\n❌ Error details:\n' + result.stderr;
+                }
+                if (result.stdout && !result.stderr) {
+                    errorMessage += '\n\n📄 Output:\n' + result.stdout;
+                }
+                if (result.exitCode) {
+                    errorMessage += '\n\nExit code: ' + result.exitCode;
+                }
+                
+                showError(errorMessage);
+                return; // Exit early, no need to throw
+            }
+
+        } catch (error) {
+            console.error('❌ Sync error:', error);
+            
+            let errorMessage = 'Failed to sync groups: ';
+            if (error.message && error.message.includes('Authentication required')) {
+                errorMessage += 'Please log in again.';
+            } else if (error.message && error.message.includes('Electron API not available')) {
+                errorMessage += error.message;
+            } else {
+                errorMessage += (error.message || 'Unknown error');
+            }
+            
+            showError(errorMessage);
+        } finally {
+            syncBtn.disabled = false;
+            syncBtn.innerHTML = originalContent;
+        }
+    }
+
     function setupEventListeners() {
         const modal = document.getElementById('groupModal');
         const addBtn = document.getElementById('addGroupBtn');
+        const syncBtn = document.getElementById('syncGroupsBtn');
         const cancelBtn = document.getElementById('cancelBtn');
         const closeBtn = document.querySelector('.close-btn');
         const form = document.getElementById('groupForm');
         const searchInput = document.getElementById('groupSearch');
         const typeFilter = document.getElementById('groupTypeFilter');
 
+        if (syncBtn) syncBtn.addEventListener('click', syncGroupsFromTally);
+
         if (addBtn) addBtn.addEventListener('click', () => {
+            if (!selectedCompanyId) {
+                showError('Please select a company first');
+                return;
+            }
             document.getElementById('modalTitle').textContent = 'Add Group';
             form.reset();
             modal.classList.remove('hidden');
@@ -196,25 +389,30 @@
 
         if (form) form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             const groupData = {
-                name: document.getElementById('groupName').value,
-                type: document.getElementById('groupType').value,
-                description: document.getElementById('groupDescription').value
+                cmpId: selectedCompanyId,
+                userId: currentUser.userId,
+                grpName: document.getElementById('groupName').value,
+                grpNature: document.getElementById('groupType').value,
+                grpParent: 'Primary',
+                isActive: true
             };
 
             try {
-                const response = await fetch(`${window.AppConfig.API_BASE_URL}/groups`, {
+                const response = await fetch(window.apiConfig.getUrl('/groups'), {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify(groupData)
                 });
 
-                if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
                     closeModal();
-                    showSuccess('Group saved successfully');
+                    showSuccess('Group created successfully');
                     await loadGroups();
                 } else {
-                    throw new Error(`HTTP ${response.status}`);
+                    throw new Error(result.message || 'Failed to create group');
                 }
             } catch (error) {
                 console.error('Error saving group:', error);
@@ -233,24 +431,33 @@
     function attachRowHandlers() {
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const id = e.target.getAttribute('data-id');
+                const id = e.target.closest('button').getAttribute('data-id');
                 if (confirm('Are you sure you want to delete this group?')) {
                     try {
-                        const response = await fetch(`${window.AppConfig.API_BASE_URL}/groups/${id}`, {
+                        const response = await fetch(window.apiConfig.getUrl(`/groups/${id}`), {
                             method: 'DELETE',
                             headers: getAuthHeaders()
                         });
-                        if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
                             showSuccess('Group deleted successfully');
                             await loadGroups();
                         } else {
-                            throw new Error(`HTTP ${response.status}`);
+                            throw new Error(result.message || 'Delete failed');
                         }
                     } catch (error) {
                         console.error('Error deleting group:', error);
                         showError('Failed to delete group');
                     }
                 }
+            });
+        });
+
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.closest('button').getAttribute('data-id');
+                // TODO: Implement edit functionality
+                showInfo('Edit functionality coming soon');
             });
         });
     }
@@ -260,28 +467,61 @@
         const type = document.getElementById('groupTypeFilter').value;
 
         const filtered = groups.filter(group => {
-            const matchesSearch = (group.name || '').toLowerCase().includes(search);
-            const matchesType = !type || group.type === type;
+            const matchesSearch = (group.grpName || '').toLowerCase().includes(search) ||
+                                (group.grpAlias || '').toLowerCase().includes(search);
+            
+            let matchesType = true;
+            if (type === 'revenue') matchesType = group.isRevenue === true;
+            else if (type === 'balancesheet') matchesType = group.isRevenue === false;
+            else if (type === 'primary') matchesType = group.grpParent === 'Primary';
+
             return matchesSearch && matchesType;
         });
 
         renderGroupsTable(filtered);
+        updateStats(filtered);
     }
 
     function showError(message) {
+        console.error(message);
         if (window.notificationService) {
             window.notificationService.error(message);
         } else {
-            alert(message);
+            alert('❌ ' + message);
         }
     }
 
     function showSuccess(message) {
+        console.log('✅', message);
         if (window.notificationService) {
             window.notificationService.success(message);
         } else {
-            alert(message);
+            // Show temporary success message
+            const msg = document.createElement('div');
+            msg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            msg.textContent = message;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 3000);
         }
     }
+
+    function showInfo(message) {
+        console.log('ℹ️', message);
+        if (window.notificationService) {
+            window.notificationService.info(message);
+        } else {
+            const msg = document.createElement('div');
+            msg.className = 'fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            msg.textContent = message;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 3000);
+        }
+    }
+
+    // Export sync function for use by other pages
+    window.syncGroupsForCompany = async function(companyId) {
+        selectedCompanyId = companyId;
+        await syncGroupsFromTally();
+    };
 
 })();

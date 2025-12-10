@@ -336,6 +336,72 @@
         return `${year}-${month}-${day}`;
     }
 
+    async function syncGroupsForCompany(companyId, companyData) {
+        // Fetch groups from Tally and sync to backend
+        try {
+            const response = await fetch('http://localhost:9000', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/xml' },
+                body: `<ENVELOPE>
+                    <HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>AllGroups</ID></HEADER>
+                    <BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES><TDL>
+                    <TDLMESSAGE><COLLECTION NAME="AllGroups" ISMODIFY="No" ISFIXED="No" ISINITIALIZE="No" ISOPTION="No" ISINTERNAL="No"><TYPE>Group</TYPE><FETCH>GUID, MASTERID, ALTERID, NAME, PARENT, ISREVENUE</FETCH></COLLECTION></TDLMESSAGE>
+                    </TDL></DESC></BODY>
+                </ENVELOPE>`
+            });
+
+            if (!response.ok) throw new Error('Failed to connect to Tally');
+
+            const xmlText = await response.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+            const groupElements = xmlDoc.querySelectorAll('GROUP');
+            
+            if (groupElements.length === 0) return;
+
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const tallyGroups = Array.from(groupElements).map(elem => {
+                const getTextContent = (tag) => {
+                    const node = elem.querySelector(tag);
+                    return node ? node.textContent.trim() : '';
+                };
+
+                return {
+                    cmpId: companyId,
+                    userId: currentUser.userId,
+                    grpName: elem.getAttribute('NAME') || '',
+                    guid: getTextContent('GUID'),
+                    masterId: parseInt(getTextContent('MASTERID')) || 0,
+                    alterId: parseInt(getTextContent('ALTERID')) || 0,
+                    grpParent: getTextContent('PARENT') || 'Primary',
+                    isRevenue: getTextContent('ISREVENUE') === 'Yes',
+                    isActive: true
+                };
+            });
+
+            // Sync to backend
+            const authToken = localStorage.getItem('authToken');
+            const deviceToken = localStorage.getItem('deviceToken');
+            const syncResponse = await fetch(window.apiConfig.getUrl('/groups/sync'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`,
+                    'X-Device-Token': deviceToken
+                },
+                body: JSON.stringify(tallyGroups)
+            });
+
+            const result = await syncResponse.json();
+            if (!result.success) {
+                throw new Error(result.message || 'Sync failed');
+            }
+        } catch (error) {
+            console.error('Group sync error:', error);
+            throw error;
+        }
+    }
+
     async function sendCompanyToBackend(company) {
         const backendUrl = window.apiConfig.getUrl('/companies');
         
@@ -588,6 +654,15 @@
                     if (backendResponse.success) {
                         addImportLog(`✅ Imported: ${company.name} (ID: ${backendResponse.backendId})`, 'success');
                         importedCount++;
+
+                        // AUTO-SYNC GROUPS from Tally for this company
+                        try {
+                            addImportLog(`   🔄 Syncing groups from Tally for ${company.name}...`, 'info');
+                            await syncGroupsForCompany(backendResponse.backendId, company);
+                            addImportLog(`   ✅ Groups synced successfully`, 'success');
+                        } catch (syncError) {
+                            addImportLog(`   ⚠️ Group sync failed: ${syncError.message}`, 'info');
+                        }
                     } else {
                         addImportLog(`❌ Failed: ${company.name} - ${backendResponse.error}`, 'error');
                         skippedCount++;
@@ -598,7 +673,7 @@
             addImportLog(`\n✅ Import Complete!`, 'success');
             addImportLog(`Imported: ${importedCount} | Skipped: ${skippedCount}`, 'success');
 
-            showStatus(`✅ Successfully imported ${importedCount} company/companies!`, 'success');
+            showStatus(`✅ Successfully imported ${importedCount} company/companies with groups!`, 'success');
 
             // Reset selection
             selectedCompanies = [];
@@ -607,7 +682,7 @@
             // Show success message and clear after 2 seconds
             setTimeout(() => {
                 document.getElementById('importProgress').style.display = 'none';
-                window.router.navigate('company-sync');
+                window.router.navigate('groups');
             }, 2000);
 
         } catch (error) {

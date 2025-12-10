@@ -385,6 +385,214 @@ except Exception as e:
   }
 });
 
+// Sync groups from Tally to Backend
+console.log("📝 Registering 'sync-groups' IPC handler...");
+ipcMain.handle("sync-groups", async (event, { companyId, userId, authToken, deviceToken }) => {
+  try {
+    console.log(`🔄 Syncing groups for company ${companyId}...`);
+    
+    return new Promise((resolve, reject) => {
+      const pythonPath = process.platform === "win32" ? "python" : "python3";
+      const scriptPath = path.join(__dirname, "../..", "python", "sync_groups.py");
+      
+      console.log(`📍 Python script path: ${scriptPath}`);
+      console.log(`📍 Company ID: ${companyId}, User ID: ${userId}`);
+      
+      const python = spawn(pythonPath, [
+        scriptPath,
+        companyId.toString(),
+        userId.toString(),
+        authToken,
+        deviceToken
+      ], {
+        cwd: path.join(__dirname, "../..", "python")
+      });
+      
+      let output = '';
+      let errorOutput = '';
+      let lastJsonOutput = '';
+      
+      python.stdout.on('data', (data) => {
+        const text = data.toString();
+        output += text;
+        console.log(`[Python] ${text.trim()}`);
+        
+        // Try to capture JSON output (last line)
+        const lines = text.trim().split('\n');
+        for (const line of lines) {
+          if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
+            lastJsonOutput = line.trim();
+          }
+        }
+      });
+      
+      python.stderr.on('data', (data) => {
+        const text = data.toString();
+        errorOutput += text;
+        console.error(`[Python Error] ${text.trim()}`);
+      });
+      
+      python.on('close', (code) => {
+        console.log(`🔄 Python sync exit code: ${code}`);
+        console.log(`📄 Full stdout: ${output}`);
+        console.log(`📄 Full stderr: ${errorOutput}`);
+        
+        if (code === 0 && lastJsonOutput) {
+          try {
+            const result = JSON.parse(lastJsonOutput);
+            console.log("✅ Sync result:", result);
+            resolve(result);
+          } catch (e) {
+            console.error('Failed to parse Python JSON output:', lastJsonOutput);
+            resolve({
+              success: false,
+              message: 'Failed to parse sync result',
+              error: lastJsonOutput
+            });
+          }
+        } else if (code === 0) {
+          // Success but no JSON output
+          resolve({
+            success: true,
+            message: 'Sync completed',
+            output: output
+          });
+        } else {
+          console.error('Python sync failed with exit code:', code);
+          console.error('Error output:', errorOutput);
+          console.error('Standard output:', output);
+          resolve({
+            success: false,
+            message: errorOutput || output || 'Sync failed',
+            exitCode: code,
+            stderr: errorOutput,
+            stdout: output
+          });
+        }
+      });
+      
+      python.on('error', (err) => {
+        console.error('Python spawn error:', err);
+        resolve({
+          success: false,
+          message: `Failed to start Python: ${err.message}`
+        });
+      });
+    });
+  } catch (error) {
+    console.error("Sync groups error:", error);
+    return { 
+      success: false, 
+      message: error.message 
+    };
+  }
+});
+console.log("✅ 'sync-groups' IPC handler registered successfully");
+
+// Ledgers sync handler
+console.log("📝 Registering 'sync-ledgers' IPC handler...");
+ipcMain.handle("sync-ledgers", async (event, { companyId, userId, authToken, deviceToken }) => {
+  try {
+    console.log(`🔄 Syncing ledgers for company ${companyId}...`);
+    
+    return new Promise((resolve, reject) => {
+      const pythonPath = process.platform === "win32" ? "python" : "python3";
+      const scriptPath = path.join(__dirname, "../..", "python", "sync_ledgers.py");
+      
+      console.log(`📍 Python script path: ${scriptPath}`);
+      console.log(`📍 Company ID: ${companyId}, User ID: ${userId}`);
+      
+      const python = spawn(pythonPath, [
+        scriptPath,
+        companyId.toString(),
+        userId.toString(),
+        authToken,
+        deviceToken
+      ], {
+        cwd: path.join(__dirname, "../..", "python")
+      });
+      
+      let output = '';
+      let errorOutput = '';
+      let lastJsonOutput = '';
+      
+      python.stdout.on('data', (data) => {
+        const text = data.toString();
+        output += text;
+        console.log(`[Python Ledgers] ${text.trim()}`);
+        
+        // Try to capture JSON output (last line)
+        const lines = text.trim().split('\n');
+        for (const line of lines) {
+          if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
+            lastJsonOutput = line.trim();
+          }
+        }
+      });
+      
+      python.stderr.on('data', (data) => {
+        const text = data.toString();
+        errorOutput += text;
+        console.error(`[Python Ledgers Error] ${text.trim()}`);
+      });
+      
+      python.on('close', (code) => {
+        console.log(`🔄 Python ledgers sync exit code: ${code}`);
+        console.log(`📄 Full stdout: ${output}`);
+        console.log(`📄 Full stderr: ${errorOutput}`);
+        
+        if (code === 0 && lastJsonOutput) {
+          try {
+            const result = JSON.parse(lastJsonOutput);
+            console.log("✅ Ledgers sync result:", result);
+            resolve(result);
+          } catch (e) {
+            console.error('Failed to parse Python JSON output:', lastJsonOutput);
+            resolve({
+              success: false,
+              message: 'Failed to parse sync result',
+              error: lastJsonOutput
+            });
+          }
+        } else if (code === 0) {
+          // Success but no JSON output
+          resolve({
+            success: true,
+            message: 'Sync completed',
+            output: output
+          });
+        } else {
+          console.error('Python ledgers sync failed with exit code:', code);
+          console.error('Error output:', errorOutput);
+          console.error('Standard output:', output);
+          resolve({
+            success: false,
+            message: errorOutput || output || 'Sync failed',
+            exitCode: code,
+            stderr: errorOutput,
+            stdout: output
+          });
+        }
+      });
+      
+      python.on('error', (err) => {
+        console.error('Python spawn error:', err);
+        resolve({
+          success: false,
+          message: `Failed to start Python: ${err.message}`
+        });
+      });
+    });
+  } catch (error) {
+    console.error("Sync ledgers error:", error);
+    return { 
+      success: false, 
+      message: error.message 
+    };
+  }
+});
+console.log("✅ 'sync-ledgers' IPC handler registered successfully");
+
 app.whenReady().then(() => {
   console.log("🔥 app.whenReady() triggered");
   createWindow();

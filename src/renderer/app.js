@@ -229,23 +229,31 @@ class App {
             
             document.body.className = 'h-screen overflow-hidden flex bg-gray-50';
             document.body.innerHTML = `
-                <aside class="w-64 bg-gray-900 flex flex-col shadow-xl z-20" id="mainSidebar">
-                    <div class="p-6 border-b border-gray-700">
+                <aside class="w-64 bg-white flex flex-col shadow-xl z-20 border-r border-gray-200" id="mainSidebar">
+                    <div class="p-6 border-b border-gray-200">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-lg">T</div>
-                            <div><h1 class="text-xl font-bold text-white">Tally Prime</h1><p class="text-xs text-gray-400">ERP System</p></div>
+                            <div><h1 class="text-2xl font-bold text-gray-900">Talliffy</h1></div>
                         </div>
                     </div>
                     <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Masters</div>
-                        <a class="nav-link active" data-route="import-company" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Masters</div>
+                        <a class="nav-link active" data-route="import-company" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
                             <span style="font-size: 18px;">📥</span> <span>Import Company</span>
                         </a>
-                        <a class="nav-link" data-route="company-sync" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
+                        <a class="nav-link" data-route="company-sync" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
                             <span style="font-size: 18px;">🏢</span> <span>Company Sync</span>
                         </a>
-                        <a class="nav-link" data-route="sync-settings" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
+                        <a class="nav-link" data-route="sync-settings" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
                             <span style="font-size: 18px;">📡</span> <span>Tally Sync</span>
+                        </a>
+
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Finance</div>
+                        <a class="nav-link" data-route="groups" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
+                            <span style="font-size: 18px;">📁</span> <span>Groups</span>
+                        </a>
+                        <a class="nav-link" data-route="ledgers" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
+                            <span style="font-size: 18px;">📒</span> <span>Ledgers</span>
                         </a>
 
                         <!-- COMMENTED - Uncomment later as needed -->
@@ -321,7 +329,7 @@ class App {
                     </nav>
                     
                     <!-- Logout Button at bottom of sidebar -->
-                    <div class="mt-auto p-4 border-t border-gray-700">
+                    <div class="mt-auto p-4 border-t border-gray-200">
                         <button id="logoutBtn" class="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all duration-200 shadow-lg">
                             <span style="font-size: 18px;">🚪</span>
                             <span>Logout</span>
@@ -332,6 +340,12 @@ class App {
                     <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
                         <h2 class="text-lg font-semibold text-gray-800" id="page-title">Home</h2>
                         <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <span style="font-size: 16px;">🏢</span>
+                                <select id="globalCompanySelector" class="px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 cursor-pointer hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                    <option value="">All Companies</option>
+                                </select>
+                            </div>
                             <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
                                 <span style="font-size: 16px;">👤</span>
                                 <span class="text-sm font-medium text-gray-700" id="headerUsername">User</span>
@@ -347,20 +361,26 @@ class App {
             document.querySelectorAll('[data-route]').forEach(link => {
                 link.addEventListener('mouseenter', function() {
                     if (!this.classList.contains('active')) {
-                        this.style.backgroundColor = 'rgba(255,255,255,0.05)';
-                        this.style.color = 'white';
+                        this.style.backgroundColor = '#f3f4f6';
+                        this.style.color = '#1e48a2ff';
                     }
                 });
                 link.addEventListener('mouseleave', function() {
                     if (!this.classList.contains('active')) {
                         this.style.backgroundColor = 'transparent';
-                        this.style.color = '#d1d5db';
+                        this.style.color = '#374151';
                     }
                 });
             });
             
             // Update user info
             this.updateUserInfo();
+            
+            // Load companies for global selector
+            this.loadGlobalCompanies();
+            
+            // Setup global company selector change handler
+            this.setupGlobalCompanySelector();
             
             console.log('✅ App layout rendered successfully');
             console.log('📍 page-content element exists:', !!document.getElementById('page-content'));
@@ -397,6 +417,92 @@ class App {
             }
         } catch (e) {
             console.error('❌ Error updating user info:', e);
+        }
+    }
+
+    async loadGlobalCompanies() {
+        try {
+            console.log('🏢 Fetching companies from:', window.apiConfig.getUrl('/companies'));
+            const response = await fetch(window.apiConfig.getUrl('/companies'), {
+                method: 'GET',
+                headers: window.authService.getHeaders()
+            });
+
+            if (!response.ok) {
+                console.error('❌ Failed to load companies, status:', response.status);
+                return;
+            }
+
+            const result = await response.json();
+            console.log('📦 Companies response:', result);
+            const companies = result.success ? result.data : [];
+            console.log('📋 Companies data:', companies);
+            
+            const selector = document.getElementById('globalCompanySelector');
+            if (selector && companies.length > 0) {
+                // Log first company to see structure
+                console.log('🔍 First company structure:', companies[0]);
+                
+                selector.innerHTML = '<option value="">All Companies</option>' + 
+                    companies.map(c => {
+                        const id = c.cmpId || c.id || c.companyId;
+                        const name = c.name || c.companyName || c.cmpName;
+                        console.log(`  - Company: ${name} (ID: ${id})`);
+                        return `<option value="${id}">${name}</option>`;
+                    }).join('');
+                
+                // Restore previously selected company
+                const savedCompanyId = localStorage.getItem('selectedCompanyId');
+                if (savedCompanyId) {
+                    selector.value = savedCompanyId;
+                    window.selectedCompanyId = parseInt(savedCompanyId);
+                    console.log('✅ Restored saved company ID:', window.selectedCompanyId);
+                }
+                
+                console.log('✅ Loaded', companies.length, 'companies for global selector');
+            }
+        } catch (error) {
+            console.error('Error loading companies:', error);
+        }
+    }
+
+    setupGlobalCompanySelector() {
+        const selector = document.getElementById('globalCompanySelector');
+        if (selector) {
+            selector.addEventListener('change', (e) => {
+                const companyId = e.target.value ? parseInt(e.target.value) : null;
+                window.selectedCompanyId = companyId;
+                
+                // Save selection to localStorage
+                if (companyId) {
+                    localStorage.setItem('selectedCompanyId', companyId.toString());
+                } else {
+                    localStorage.removeItem('selectedCompanyId');
+                }
+                
+                console.log('🏢 Global company selected:', companyId);
+                
+                // Show notification
+                const companyName = e.target.options[e.target.selectedIndex].text;
+                if (window.notificationService) {
+                    window.notificationService.info(
+                        companyId ? `Switched to ${companyName}` : 'Viewing all companies',
+                        'Company Selection',
+                        2000
+                    );
+                }
+                
+                // Trigger event for pages to reload data
+                window.dispatchEvent(new CustomEvent('companyChanged', { 
+                    detail: { companyId } 
+                }));
+                
+                // Reload current page if it's groups or ledgers
+                const currentRoute = window.router?.currentRoute;
+                if (currentRoute === 'groups' || currentRoute === 'ledgers') {
+                    window.router.navigate(currentRoute);
+                }
+            });
         }
     }
     

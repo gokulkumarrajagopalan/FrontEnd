@@ -6,7 +6,12 @@
                 <h2>Ledgers</h2>
                 <p>Manage chart of accounts and ledger details.</p>
             </div>
-            <button id="addLedgerBtn" class="btn btn-primary">+ Create Ledger</button>
+            <div class="flex gap-3">
+                <button id="syncLedgersBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold flex items-center gap-2">
+                    🔄 Sync from Tally
+                </button>
+                <button id="addLedgerBtn" class="btn btn-primary">+ Create Ledger</button>
+            </div>
         </div>
 
         <div class="flex gap-4 mb-6">
@@ -81,25 +86,50 @@
     let allGroups = [];
 
     function getAuthHeaders() {
-        const token = localStorage.getItem('authToken');
-        return {
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
+        const authToken = localStorage.getItem('authToken');
+        const deviceToken = localStorage.getItem('deviceToken');
+        
+        const headers = {
+            'Content-Type': 'application/json'
         };
+        
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        }
+        
+        if (deviceToken) {
+            headers['X-Device-Token'] = deviceToken;
+        }
+        
+        return headers;
     }
 
-    async function loadGroups() {
+    async function loadGroups(companyId) {
+        if (!companyId) {
+            allGroups = [];
+            const groupFilter = document.getElementById('groupFilter');
+            if (groupFilter) {
+                groupFilter.innerHTML = '<option value="">All Groups</option>';
+            }
+            const ledgerGroup = document.getElementById('ledgerGroup');
+            if (ledgerGroup) {
+                ledgerGroup.innerHTML = '<option value="">Select Company First</option>';
+            }
+            return;
+        }
+        
         try {
-            console.log('Loading groups...');
-            const response = await fetch(`${window.API_BASE_URL}/groups`, {
+            console.log('🔄 Loading groups for company:', companyId);
+            const response = await fetch(`${window.API_BASE_URL}/groups/company/${companyId}`, {
                 method: 'GET',
                 headers: getAuthHeaders()
             });
 
+            console.log('📥 Groups response status:', response.status);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-            const data = await response.json();
-            allGroups = Array.isArray(data) ? data : (data.data || []);
+            const result = await response.json();
+            allGroups = result.success ? result.data : [];
 
             // Populate group filter
             const groupFilter = document.getElementById('groupFilter');
@@ -107,8 +137,8 @@
                 groupFilter.innerHTML = '<option value="">All Groups</option>';
                 allGroups.forEach(group => {
                     const option = document.createElement('option');
-                    option.value = group.id || group._id;
-                    option.textContent = group.name || 'Unnamed Group';
+                    option.value = group.grpId;
+                    option.textContent = group.grpName || 'Unnamed Group';
                     groupFilter.appendChild(option);
                 });
             }
@@ -119,8 +149,8 @@
                 ledgerGroup.innerHTML = '<option value="">Select Group</option>';
                 allGroups.forEach(group => {
                     const option = document.createElement('option');
-                    option.value = group.id || group._id;
-                    option.textContent = group.name || 'Unnamed Group';
+                    option.value = group.grpId;
+                    option.textContent = group.grpName || 'Unnamed Group';
                     ledgerGroup.appendChild(option);
                 });
             }
@@ -130,25 +160,50 @@
         }
     }
 
-    async function loadLedgers() {
+    async function loadLedgers(companyId) {
+        const tbody = document.getElementById('ledgersTableBody');
+        
+        if (!companyId) {
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">📋 Please select a company from the dropdown above to view ledgers</td></tr>';
+            }
+            allLedgers = [];
+            return;
+        }
+        
         try {
-            console.log('Loading ledgers...');
-            const response = await fetch(`${window.API_BASE_URL}/ledgers`, {
+            console.log('🔄 Loading ledgers for company:', companyId);
+            
+            // Show loading state
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8"><div class="flex items-center justify-center gap-2"><span class="animate-spin">⏳</span> Loading ledgers...</div></td></tr>';
+            }
+            
+            const response = await fetch(`${window.API_BASE_URL}/ledgers/company/${companyId}`, {
                 method: 'GET',
                 headers: getAuthHeaders()
             });
 
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            console.log('📥 Ledgers response status:', response.status);
 
-            const data = await response.json();
-            allLedgers = Array.isArray(data) ? data : (data.data || []);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
 
+            const ledgers = await response.json();
+            console.log(`✅ Loaded ${ledgers.length} ledgers`);
+            
+            allLedgers = Array.isArray(ledgers) ? ledgers : [];
             renderLedgersTable(allLedgers);
+            
         } catch (error) {
-            console.error('Error loading ledgers:', error);
-            const tbody = document.getElementById('ledgersTableBody');
+            console.error('❌ Error loading ledgers:', error);
+            allLedgers = [];
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Error loading ledgers. Please refresh.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-500">
+                    ❌ Error loading ledgers: ${error.message}<br>
+                    <small class="text-gray-500">Please check if backend is running on port 8080</small>
+                </td></tr>`;
             }
         }
     }
@@ -158,22 +213,82 @@
         if (!tbody) return;
 
         if (!Array.isArray(ledgers) || ledgers.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No ledgers found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">📋 No ledgers found. Click "Sync from Tally" to import ledgers.</td></tr>';
             return;
         }
 
         tbody.innerHTML = ledgers.map(ledger => {
-            const groupName = allGroups.find(g => (g.id || g._id) === ledger.groupId)?.name || 'Unassigned';
+            // Find parent group name
+            const parentGroupName = ledger.ledParent || ledger.ledPrimaryGroup || 'N/A';
+            
+            // Format opening balance
+            const openingBalance = ledger.ledOpeningBalance || 0;
+            const formattedBalance = new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                minimumFractionDigits: 2
+            }).format(openingBalance);
+            
+            // Current balance (same as opening for now, until we implement transactions)
+            const currentBalance = openingBalance;
+            const formattedCurrentBalance = new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                minimumFractionDigits: 2
+            }).format(currentBalance);
+            
+            // Status badge
+            const statusBadge = ledger.isActive 
+                ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>'
+                : '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">Inactive</span>';
+            
+            // GST/VAT indicator
+            let taxBadge = '';
+            if (ledger.gstApplicable && ledger.gstGstin) {
+                taxBadge = `<span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700" title="GST: ${ledger.gstGstin}">GST</span>`;
+            } else if (ledger.vatApplicable && ledger.vatTinNumber) {
+                taxBadge = `<span class="px-2 py-1 text-xs rounded bg-purple-100 text-purple-700" title="VAT: ${ledger.vatTinNumber}">VAT</span>`;
+            }
+            
             return `
-                <tr class="border-b border-gray-50 hover:bg-gray-50">
-                    <td class="p-3">${ledger.name || 'N/A'}</td>
-                    <td class="p-3">${groupName}</td>
-                    <td class="p-3">₹${(ledger.openingBalance || 0).toFixed(2)}</td>
-                    <td class="p-3">₹${(ledger.balance || 0).toFixed(2)}</td>
+                <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                     <td class="p-3">
-                        <div class="flex gap-2">
-                            <button class="text-blue-600 hover:text-blue-800 edit-btn" data-id="${ledger.id || ledger._id}">Edit</button>
-                            <button class="text-red-600 hover:text-red-800 delete-btn" data-id="${ledger.id || ledger._id}">Delete</button>
+                        <div class="flex flex-col">
+                            <span class="font-medium text-gray-900">${ledger.ledName || 'N/A'}</span>
+                            ${ledger.ledEmail ? `<span class="text-xs text-gray-500">${ledger.ledEmail}</span>` : ''}
+                            ${taxBadge ? `<div class="mt-1">${taxBadge}</div>` : ''}
+                        </div>
+                    </td>
+                    <td class="p-3">
+                        <div class="flex flex-col">
+                            <span class="text-gray-700">${parentGroupName}</span>
+                            ${ledger.ledPrimaryGroup && ledger.ledPrimaryGroup !== parentGroupName 
+                                ? `<span class="text-xs text-gray-400">${ledger.ledPrimaryGroup}</span>` 
+                                : ''}
+                        </div>
+                    </td>
+                    <td class="p-3 text-right">
+                        <span class="font-mono ${openingBalance >= 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${formattedBalance}
+                        </span>
+                    </td>
+                    <td class="p-3 text-right">
+                        <span class="font-mono ${currentBalance >= 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${formattedCurrentBalance}
+                        </span>
+                    </td>
+                    <td class="p-3">
+                        <div class="flex gap-2 items-center">
+                            <button class="text-blue-600 hover:text-blue-800 transition-colors edit-btn" data-id="${ledger.ledId}" title="Edit ledger">
+                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800 transition-colors delete-btn" data-id="${ledger.ledId}" title="Delete ledger">
+                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -183,9 +298,95 @@
         attachRowHandlers();
     }
 
+    async function syncLedgersFromTally() {
+        const selectedCompanyId = window.selectedCompanyId;
+        
+        if (!selectedCompanyId) {
+            window.notificationService.error('Please select a company first');
+            return;
+        }
+
+        const syncBtn = document.getElementById('syncLedgersBtn');
+        const originalContent = syncBtn.innerHTML;
+        
+        try {
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<span class="animate-pulse">🔄 Syncing...</span>';
+            
+            console.log('🔄 Starting Tally ledgers sync via Python...');
+            window.notificationService.info('🔄 Connecting to Tally Prime...');
+
+            // Get auth tokens
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const authToken = localStorage.getItem('authToken');
+            const deviceToken = localStorage.getItem('deviceToken');
+
+            if (!authToken || !deviceToken) {
+                throw new Error('Authentication required. Please log in again.');
+            }
+
+            // Check if Electron API is available
+            if (!window.electronAPI || !window.electronAPI.syncLedgers) {
+                throw new Error('Electron API not available. Please restart the application.');
+            }
+
+            // Call Python sync via Electron IPC
+            const result = await window.electronAPI.syncLedgers({
+                companyId: selectedCompanyId,
+                userId: currentUser?.userId || 1,
+                authToken: authToken,
+                deviceToken: deviceToken
+            });
+
+            console.log('✅ Ledgers sync result:', JSON.stringify(result, null, 2));
+
+            if (result.success) {
+                window.notificationService.success(`✅ Successfully synced ${result.count} ledgers from Tally to database!`);
+                await loadLedgers(selectedCompanyId); // Reload the table
+            } else {
+                console.error('❌ Ledgers sync failed with result:', result);
+                
+                // Build detailed error message
+                let errorMessage = 'Failed to sync ledgers: ' + (result.message || 'Sync failed');
+                
+                // Add Python error details if available
+                if (result.stderr) {
+                    errorMessage += '\n\n❌ Error details:\n' + result.stderr;
+                }
+                if (result.stdout && !result.stderr) {
+                    errorMessage += '\n\n📄 Output:\n' + result.stdout;
+                }
+                if (result.exitCode) {
+                    errorMessage += '\n\nExit code: ' + result.exitCode;
+                }
+                
+                window.notificationService.error(errorMessage);
+                return; // Exit early, no need to throw
+            }
+
+        } catch (error) {
+            console.error('❌ Ledgers sync error:', error);
+            
+            let errorMessage = 'Failed to sync ledgers: ';
+            if (error.message && error.message.includes('Authentication required')) {
+                errorMessage += 'Please log in again.';
+            } else if (error.message && error.message.includes('Electron API not available')) {
+                errorMessage += error.message;
+            } else {
+                errorMessage += (error.message || 'Unknown error');
+            }
+            
+            window.notificationService.error(errorMessage);
+        } finally {
+            syncBtn.disabled = false;
+            syncBtn.innerHTML = originalContent;
+        }
+    }
+
     function setupEventListeners() {
         const modal = document.getElementById('ledgerModal');
         const addBtn = document.getElementById('addLedgerBtn');
+        const syncBtn = document.getElementById('syncLedgersBtn');
         const cancelBtn = document.getElementById('cancelBtn');
         const closeBtn = document.querySelector('.close-btn');
         const form = document.getElementById('ledgerForm');
@@ -199,6 +400,10 @@
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
             });
+        }
+
+        if (syncBtn) {
+            syncBtn.addEventListener('click', syncLedgersFromTally);
         }
 
         if (cancelBtn) {
@@ -324,12 +529,38 @@
     }
 
     window.initializeLedgers = async function () {
-        console.log('Initializing Ledgers Page...');
+        console.log('🔧 Initializing Ledgers Page...');
+        
+        // Check authentication before loading
+        const authToken = localStorage.getItem('authToken');
+        const deviceToken = localStorage.getItem('deviceToken');
+        
+        if (!authToken || !deviceToken) {
+            console.error('❌ Authentication required');
+            window.notificationService?.error('Please log in to access ledgers');
+            window.router?.navigate('auth');
+            return;
+        }
+        
+        console.log('✅ Authentication verified');
+        
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getLedgersTemplate();
-            await loadGroups();
-            await loadLedgers();
+            
+            // Use global company selector
+            const selectedCompanyId = window.selectedCompanyId || null;
+            console.log('📌 Selected company ID:', selectedCompanyId);
+            
+            // Listen for global company changes
+            window.addEventListener('companyChanged', async (e) => {
+                console.log('🔄 Company changed to:', e.detail.companyId);
+                await loadGroups(e.detail.companyId);
+                await loadLedgers(e.detail.companyId);
+            });
+            
+            await loadGroups(selectedCompanyId);
+            await loadLedgers(selectedCompanyId);
             setupEventListeners();
         }
     };

@@ -94,6 +94,14 @@ try {
 
         fetchCompanies: () => {
             return ipcRenderer.invoke('fetch-companies');
+        },
+
+        syncGroups: (config) => {
+            return ipcRenderer.invoke('sync-groups', config);
+        },
+
+        syncLedgers: (config) => {
+            return ipcRenderer.invoke('sync-ledgers', config);
         }
     });
     console.log('✅ Preload: electronAPI exposed successfully');
