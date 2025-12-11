@@ -17,9 +17,9 @@ if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-# Configuration
-TALLY_URL = "http://localhost:9000"
-BACKEND_URL = "http://localhost:8080/"
+# Configuration (defaults, can be overridden by command-line args)
+TALLY_PORT = 9000
+BACKEND_URL = "http://localhost:8080"  # Default, will be overridden by command line arg
 
 # Tally XML request template for ledgers
 LEDGER_REQUEST = """
@@ -93,22 +93,23 @@ def generate_company_specific_guid(tally_guid: str, company_id: int) -> str:
         # Fallback for ledgers without GUID
         return f"MANUAL-{datetime.now().timestamp()}"
 
-def fetch_ledgers_from_tally(company_id: int) -> Optional[List[Dict]]:
+def fetch_ledgers_from_tally(company_id: int, tally_url: str) -> Optional[List[Dict]]:
     """
     Fetch ledgers from Tally Prime via XML API
     
     Args:
         company_id: Company ID for GUID generation
+        tally_url: Tally Prime URL with port
         
     Returns:
         List of ledger dictionaries or None if error
     """
     
     try:
-        print(f"🔗 Connecting to Tally Prime at {TALLY_URL}...")
+        print(f"🔗 Connecting to Tally Prime at {tally_url}...")
         
         response = requests.post(
-            TALLY_URL,
+            tally_url,
             data=LEDGER_REQUEST,
             headers={'Content-Type': 'application/xml'},
             timeout=30
@@ -294,10 +295,10 @@ def fetch_ledgers_from_tally(company_id: int) -> Optional[List[Dict]]:
         return ledgers
         
     except requests.exceptions.ConnectionError:
-        print("❌ Cannot connect to Tally Prime on port 9000")
+        print(f"❌ Cannot connect to Tally Prime on port {tally_port}")
         print("   Please ensure:")
         print("   • Tally Prime is running")
-        print("   • ODBC/HTTP Server is enabled in Tally")
+        print(f"   • ODBC/HTTP Server is enabled on port {tally_port}")
         print("   • The correct company is opened in Tally")
         return None
     except requests.exceptions.Timeout:
@@ -312,7 +313,7 @@ def fetch_ledgers_from_tally(company_id: int) -> Optional[List[Dict]]:
         traceback.print_exc()
         return None
 
-def sync_ledgers_to_backend(ledgers: List[Dict], company_id: int, user_id: int, auth_token: str, device_token: str) -> bool:
+def sync_ledgers_to_backend(ledgers: List[Dict], company_id: int, user_id: int, auth_token: str, device_token: str, backend_url: str = BACKEND_URL) -> bool:
     """
     Send ledgers to backend for database storage
     
@@ -344,7 +345,7 @@ def sync_ledgers_to_backend(ledgers: List[Dict], company_id: int, user_id: int, 
         }
         
         response = requests.post(
-            f"{BACKEND_URL}/ledgers/sync",
+            f"{backend_url}/ledgers/sync",
             json=ledgers,
             headers=headers,
             timeout=30
@@ -378,7 +379,7 @@ def main():
     
     # Parse command line arguments
     if len(sys.argv) < 5:
-        print("Usage: python sync_ledgers.py <company_id> <user_id> <auth_token> <device_token>")
+        print("Usage: python sync_ledgers.py <company_id> <user_id> <auth_token> <device_token> [tally_port] [backend_url]")
         sys.exit(1)
     
     company_id = int(sys.argv[1])
@@ -386,17 +387,26 @@ def main():
     auth_token = sys.argv[3]
     device_token = sys.argv[4]
     
+    # Optional: Tally port (default 9000)
+    tally_port = int(sys.argv[5]) if len(sys.argv) > 5 else TALLY_PORT
+    tally_url = f"http://localhost:{tally_port}"
+    
+    # Optional: Backend URL (default http://localhost:8080)
+    backend_url = sys.argv[6] if len(sys.argv) > 6 else BACKEND_URL
+    
     print("=" * 70)
     print("🔄 TALLY LEDGERS SYNC SERVICE (Multi-Company Support)")
     print("=" * 70)
     print(f"📌 Company ID: {company_id}")
     print(f"👤 User ID: {user_id}")
     print(f"🔑 Auth Token: {'*' * 20}...{auth_token[-10:]}")
+    print(f"🔌 Tally Port: {tally_port}")
+    print(f"🌐 Backend URL: {backend_url}")
     print("=" * 70)
     print()
     
     # Step 1: Fetch from Tally (company-specific)
-    ledgers = fetch_ledgers_from_tally(company_id)
+    ledgers = fetch_ledgers_from_tally(company_id, tally_url)
     
     if not ledgers:
         print("\n❌ Failed to fetch ledgers from Tally")
@@ -419,7 +429,7 @@ def main():
     print()
     
     # Step 2: Sync to backend
-    success = sync_ledgers_to_backend(ledgers, company_id, user_id, auth_token, device_token)
+    success = sync_ledgers_to_backend(ledgers, company_id, user_id, auth_token, device_token, backend_url)
     
     if success:
         print()

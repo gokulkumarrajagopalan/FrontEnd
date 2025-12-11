@@ -62,6 +62,14 @@
                         </div>
                         <span class="text-xs text-gray-400">15ms</span>
                     </div>
+                    <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg" id="autoSyncStatusHome">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full" id="syncIndicatorDot"></div>
+                        <div class="flex-1">
+                            <h4 class="text-sm font-medium">Auto-Sync Service</h4>
+                            <p class="text-xs text-gray-500" id="syncStatusTextHome">Checking...</p>
+                        </div>
+                        <span class="text-xs text-gray-400" id="syncIntervalDisplay">-</span>
+                    </div>
                     <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
                         <div class="w-2 h-2 bg-green-500 rounded-full"></div>
                         <div class="flex-1">
@@ -97,11 +105,48 @@
     </div>
     `;
 
+    function updateHomeSyncStatus() {
+        if (!window.syncScheduler) return;
+        
+        const status = window.syncScheduler.getStatus();
+        const indicatorDot = document.getElementById('syncIndicatorDot');
+        const statusText = document.getElementById('syncStatusTextHome');
+        const intervalDisplay = document.getElementById('syncIntervalDisplay');
+        
+        if (!indicatorDot || !statusText || !intervalDisplay) return;
+        
+        if (status.isRunning) {
+            indicatorDot.className = 'w-2 h-2 bg-green-500 rounded-full';
+            if (status.isSyncing) {
+                statusText.textContent = 'Syncing companies now...';
+                intervalDisplay.textContent = '🔄';
+            } else {
+                statusText.textContent = `Active - Every ${status.syncInterval} min`;
+                if (status.lastSyncTime) {
+                    const mins = Math.floor((Date.now() - status.lastSyncTime.getTime()) / 60000);
+                    intervalDisplay.textContent = mins === 0 ? 'Just now' : `${mins}m ago`;
+                } else {
+                    intervalDisplay.textContent = 'Ready';
+                }
+            }
+        } else {
+            indicatorDot.className = 'w-2 h-2 bg-gray-400 rounded-full';
+            statusText.textContent = 'Disabled';
+            intervalDisplay.textContent = 'Idle';
+        }
+    }
+
     window.initializeHome = function () {
         console.log('Initializing Home Page...');
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getHomeTemplate();
+            
+            // Update sync status
+            updateHomeSyncStatus();
+            
+            // Update every 10 seconds
+            setInterval(updateHomeSyncStatus, 10000);
         }
     };
 })();

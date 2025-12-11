@@ -271,54 +271,110 @@
             }
 
             // Check if Electron API is available
-            if (!window.electronAPI || !window.electronAPI.syncGroups) {
+            if (!window.electronAPI || !window.electronAPI.syncGroups || !window.electronAPI.syncLedgers) {
                 throw new Error('Electron API not available. Please restart the application.');
             }
 
-            // Call Python sync via Electron IPC
-            const result = await window.electronAPI.syncGroups({
+            // Get settings for Tally port and backend URL
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
+
+            let groupsSuccess = false;
+            let ledgersSuccess = false;
+            let groupsCount = 0;
+            let ledgersCount = 0;
+
+            // Sync Groups
+            button.innerHTML = '<span class="animate-pulse">🔄 Syncing Groups...</span>';
+            console.log('   📊 Syncing groups...');
+            
+            const groupsResult = await window.electronAPI.syncGroups({
                 companyId: company.id,
                 userId: currentUser?.userId || 1,
                 authToken: authToken,
-                deviceToken: deviceToken
+                deviceToken: deviceToken,
+                tallyPort: tallyPort,
+                backendUrl: backendUrl
             });
 
-            console.log('✅ Sync result:', JSON.stringify(result, null, 2));
+            if (groupsResult.success) {
+                groupsSuccess = true;
+                groupsCount = groupsResult.count || 0;
+                console.log(`   ✅ Synced ${groupsCount} groups`);
+            } else {
+                console.error('   ❌ Groups sync failed:', groupsResult.message);
+            }
 
-            if (result.success) {
-                window.notificationService.success(`✅ Successfully synced ${result.count} groups for ${company.name}!`);
+            // Sync Ledgers
+            button.innerHTML = '<span class="animate-pulse">🔄 Syncing Ledgers...</span>';
+            console.log('   📒 Syncing ledgers...');
+            
+            const ledgersResult = await window.electronAPI.syncLedgers({
+                companyId: company.id,
+                userId: currentUser?.userId || 1,
+                authToken: authToken,
+                deviceToken: deviceToken,
+                tallyPort: tallyPort,
+                backendUrl: backendUrl
+            });
+
+            if (ledgersResult.success) {
+                ledgersSuccess = true;
+                ledgersCount = ledgersResult.count || 0;
+                console.log(`   ✅ Synced ${ledgersCount} ledgers`);
+            } else {
+                console.error('   ❌ Ledgers sync failed:', ledgersResult.message);
+            }
+
+            // Check overall sync result
+            if (groupsSuccess && ledgersSuccess) {
+                window.notificationService.success(
+                    `✅ Successfully synced ${company.name}!\n` +
+                    `📊 Groups: ${groupsCount} | 📒 Ledgers: ${ledgersCount}`
+                );
                 
                 // Update company sync status
                 company.syncStatus = 'synced';
+                company.status = 'active';
                 company.lastSyncDate = new Date().toISOString();
+                
+                // Update in backend
+                await updateCompanyStatus(company.id, 'synced', 'active');
                 
                 // Reload companies to refresh the table
                 await loadCompanies();
+            } else if (groupsSuccess || ledgersSuccess) {
+                // Partial success
+                let message = `⚠️ Partial sync for ${company.name}:\n`;
+                if (groupsSuccess) message += `✅ Groups: ${groupsCount}\n`;
+                else message += `❌ Groups: Failed\n`;
+                if (ledgersSuccess) message += `✅ Ledgers: ${ledgersCount}`;
+                else message += `❌ Ledgers: Failed`;
+                
+                window.notificationService.warning(message);
+                
+                // Update to pending status
+                company.syncStatus = 'pending';
+                await updateCompanyStatus(company.id, 'pending', 'active');
+                await loadCompanies();
             } else {
-                console.error('❌ Sync failed with result:', result);
-                
-                // Build detailed error message
-                let errorMessage = `Failed to sync groups for ${company.name}: ` + (result.message || 'Sync failed');
-                
-                // Add Python error details if available
-                if (result.stderr) {
-                    errorMessage += '\n\n❌ Error details:\n' + result.stderr;
-                }
-                if (result.stdout && !result.stderr) {
-                    errorMessage += '\n\n📄 Output:\n' + result.stdout;
-                }
-                if (result.exitCode) {
-                    errorMessage += '\n\nExit code: ' + result.exitCode;
-                }
+                // Both failed
+                let errorMessage = `❌ Failed to sync ${company.name}:\n`;
+                if (groupsResult.message) errorMessage += `Groups: ${groupsResult.message}\n`;
+                if (ledgersResult.message) errorMessage += `Ledgers: ${ledgersResult.message}`;
                 
                 window.notificationService.error(errorMessage);
-                return; // Exit early, no need to throw
+                
+                company.syncStatus = 'error';
+                await updateCompanyStatus(company.id, 'error', 'active');
+                await loadCompanies();
             }
 
         } catch (error) {
             console.error('❌ Sync error:', error);
             
-            let errorMessage = `Failed to sync groups for ${company.name}: `;
+            let errorMessage = `Failed to sync ${company.name}: `;
             if (error.message && error.message.includes('Authentication required')) {
                 errorMessage += 'Please log in again.';
             } else if (error.message && error.message.includes('Electron API not available')) {
@@ -331,6 +387,29 @@
         } finally {
             button.disabled = false;
             button.innerHTML = originalContent;
+        }
+    }
+
+    async function updateCompanyStatus(companyId, syncStatus, status) {
+        try {
+            const headers = window.authService.getHeaders();
+            headers['Content-Type'] = 'application/json';
+            
+            const response = await fetch(window.apiConfig.getUrl(`/companies/${companyId}/status`), {
+                method: 'PUT',
+                headers: headers,
+                body: JSON.stringify({
+                    syncStatus: syncStatus,
+                    status: status,
+                    lastSyncDate: new Date().toISOString()
+                })
+            });
+
+            if (!response.ok) {
+                console.warn('Failed to update company status in backend:', response.status);
+            }
+        } catch (error) {
+            console.error('Error updating company status:', error);
         }
     }
 
@@ -357,9 +436,15 @@
         }
 
         tableBody.innerHTML = filtered.map(company => {
-            const isSynced = company.syncStatus === 'synced';
-            const isPending = company.syncStatus === 'pending';
-            const isActive = company.status === 'active';
+            // Determine sync status - check if company has been synced
+            const syncStatus = company.syncStatus || 'pending';
+            const isSynced = syncStatus === 'synced';
+            const isPending = syncStatus === 'pending';
+            const isFailed = syncStatus === 'error' || syncStatus === 'failed';
+            
+            // Determine active status - default to active if not specified
+            const status = company.status || 'active';
+            const isActive = status === 'active';
             
             return `
             <tr class="border-b border-gray-100 hover:bg-blue-50 transition-all">

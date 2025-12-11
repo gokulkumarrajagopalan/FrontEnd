@@ -212,9 +212,13 @@ ipcMain.on("trigger-sync", (event, config) => {
 });
 
 // Handle fetch license request
-ipcMain.handle("fetch-license", async () => {
+ipcMain.handle("fetch-license", async (event, { tallyPort } = {}) => {
   try {
-    console.log("Fetching Tally license info...");
+    const port = tallyPort || 9000;
+    console.log(`📥 fetch-license IPC called`);
+    console.log(`   - Received tallyPort parameter:`, tallyPort);
+    console.log(`   - Using port:`, port);
+    console.log(`Fetching Tally license info from port ${port}...`);
     
     return new Promise((resolve, reject) => {
       const pythonPath = process.platform === "win32" ? "python.exe" : "python";
@@ -227,7 +231,7 @@ sys.path.insert(0, r'${pythonDir}')
 from tally_api import TallyAPIClient
 
 try:
-    client = TallyAPIClient(host='localhost', port=9000, timeout=10)
+    client = TallyAPIClient(host='localhost', port=${port}, timeout=10)
     success, result = client.get_license_info()
     print(json.dumps({
         'success': success,
@@ -286,12 +290,15 @@ except Exception as e:
 });
 
 // Check Tally connection via HTTP (bypasses CORS)
-ipcMain.handle("check-tally-connection", async () => {
+ipcMain.handle("check-tally-connection", async (event, { tallyPort } = {}) => {
   try {
     const http = require('http');
+    const port = tallyPort || 9000;
+    const url = `http://localhost:${port}/`;
+    console.log(`Checking Tally connection at ${url}...`);
     
     return new Promise((resolve) => {
-      const request = http.get('http://localhost:9000/', { timeout: 3000 }, (response) => {
+      const request = http.get(url, { timeout: 3000 }, (response) => {
         // If we get any response (even an error response), server is up
         resolve(true);
       });
@@ -312,9 +319,10 @@ ipcMain.handle("check-tally-connection", async () => {
 });
 
 // Fetch companies from Tally
-ipcMain.handle("fetch-companies", async () => {
+ipcMain.handle("fetch-companies", async (event, { tallyPort } = {}) => {
   try {
-    console.log("Fetching companies from Tally...");
+    const port = tallyPort || 9000;
+    console.log(`Fetching companies from Tally on port ${port}...`);
     
     return new Promise((resolve, reject) => {
       const pythonPath = process.platform === "win32" ? "python.exe" : "python";
@@ -327,7 +335,7 @@ sys.path.insert(0, r'${pythonDir}')
 from tally_api import TallyAPIClient
 
 try:
-    client = TallyAPIClient(host='localhost', port=9000, timeout=10)
+    client = TallyAPIClient(host='localhost', port=${port}, timeout=10)
     success, result = client.get_companies()
     print(json.dumps({
         'success': success,
@@ -387,7 +395,7 @@ except Exception as e:
 
 // Sync groups from Tally to Backend
 console.log("📝 Registering 'sync-groups' IPC handler...");
-ipcMain.handle("sync-groups", async (event, { companyId, userId, authToken, deviceToken }) => {
+ipcMain.handle("sync-groups", async (event, { companyId, userId, authToken, deviceToken, tallyPort, backendUrl }) => {
   try {
     console.log(`🔄 Syncing groups for company ${companyId}...`);
     
@@ -397,14 +405,27 @@ ipcMain.handle("sync-groups", async (event, { companyId, userId, authToken, devi
       
       console.log(`📍 Python script path: ${scriptPath}`);
       console.log(`📍 Company ID: ${companyId}, User ID: ${userId}`);
+      console.log(`📍 Tally Port: ${tallyPort || 9000}`);
       
-      const python = spawn(pythonPath, [
+      const args = [
         scriptPath,
         companyId.toString(),
         userId.toString(),
         authToken,
         deviceToken
-      ], {
+      ];
+      
+      // Add tallyPort as 5th argument if provided
+      if (tallyPort) {
+        args.push(tallyPort.toString());
+      }
+      
+      // Add backendUrl as 6th argument if provided
+      if (backendUrl) {
+        args.push(backendUrl);
+      }
+      
+      const python = spawn(pythonPath, args, {
         cwd: path.join(__dirname, "../..", "python")
       });
       
@@ -491,9 +512,10 @@ console.log("✅ 'sync-groups' IPC handler registered successfully");
 
 // Ledgers sync handler
 console.log("📝 Registering 'sync-ledgers' IPC handler...");
-ipcMain.handle("sync-ledgers", async (event, { companyId, userId, authToken, deviceToken }) => {
+ipcMain.handle("sync-ledgers", async (event, { companyId, userId, authToken, deviceToken, tallyPort, backendUrl }) => {
   try {
     console.log(`🔄 Syncing ledgers for company ${companyId}...`);
+    console.log(`🔌 Using Tally Port: ${tallyPort || 9000}`);
     
     return new Promise((resolve, reject) => {
       const pythonPath = process.platform === "win32" ? "python" : "python3";
@@ -502,13 +524,25 @@ ipcMain.handle("sync-ledgers", async (event, { companyId, userId, authToken, dev
       console.log(`📍 Python script path: ${scriptPath}`);
       console.log(`📍 Company ID: ${companyId}, User ID: ${userId}`);
       
-      const python = spawn(pythonPath, [
+      const args = [
         scriptPath,
         companyId.toString(),
         userId.toString(),
         authToken,
         deviceToken
-      ], {
+      ];
+      
+      // Add tally port if provided
+      if (tallyPort) {
+        args.push(tallyPort.toString());
+      }
+      
+      // Add backend URL if provided
+      if (backendUrl) {
+        args.push(backendUrl);
+      }
+      
+      const python = spawn(pythonPath, args, {
         cwd: path.join(__dirname, "../..", "python")
       });
       

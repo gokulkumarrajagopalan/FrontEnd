@@ -1,12 +1,3 @@
-/**
- * Main Application Entry Point
- * Handles layout, sidebar, header, and initialization
- */
-
-console.log('✅ app.js loading...');
-console.log('✅ Checking for required global objects...');
-console.log('   - window.electronAPI:', typeof window.electronAPI);
-
 class App {
     constructor() {
         this.initialized = false;
@@ -71,27 +62,35 @@ class App {
 
     async checkTallyConnection() {
         try {
-            console.log('\n[1] CHECKING TALLY CONNECTION (localhost:9000)');
+            // Get Tally port from settings
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            
+            console.log('📦 Raw appSettings:', localStorage.getItem('appSettings'));
+            console.log('📊 Parsed appSettings:', appSettings);
+            console.log('🔌 Tally Port to use:', tallyPort, '(type:', typeof tallyPort, ')');
+            
+            console.log(`\n[1] CHECKING TALLY CONNECTION (localhost:${tallyPort})`);
             console.log('-'.repeat(80));
             
             if (window.electronAPI && window.electronAPI.invoke) {
-                const isConnected = await window.electronAPI.invoke('check-tally-connection');
+                const isConnected = await window.electronAPI.invoke('check-tally-connection', { tallyPort });
                 
                 if (isConnected) {
                     console.log('✅ TALLY CONNECTION: SUCCESS');
-                    console.log('   Server: http://localhost:9000');
+                    console.log(`   Server: http://localhost:${tallyPort}`);
                     console.log('   Status: ONLINE');
                     
                     // Store connection status
                     localStorage.setItem('tallyConnectionStatus', JSON.stringify({
                         connected: true,
                         timestamp: new Date().toISOString(),
-                        server: 'localhost:9000'
+                        server: `localhost:${tallyPort}`
                     }));
                     window.tallyConnectionStatus = { connected: true };
                 } else {
                     console.warn('⚠️ TALLY CONNECTION: OFFLINE');
-                    console.log('   Server: http://localhost:9000');
+                    console.log(`   Server: http://localhost:${tallyPort}`);
                     console.log('   Status: UNREACHABLE');
                     window.tallyConnectionStatus = { connected: false };
                 }
@@ -105,11 +104,16 @@ class App {
 
     async fetchTallyLicense() {
         try {
+            // Get Tally port from settings
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            
             console.log('\n[2] FETCHING TALLY LICENSE INFO');
             console.log('-'.repeat(80));
+            console.log('🔌 Using Tally Port:', tallyPort);
             
             if (window.electronAPI && window.electronAPI.invoke) {
-                const response = await window.electronAPI.invoke('fetch-license');
+                const response = await window.electronAPI.invoke('fetch-license', { tallyPort });
                 
                 if (response.success && response.data) {
                     console.log('✅ LICENSE INFO: RETRIEVED');
@@ -137,11 +141,16 @@ class App {
 
     async fetchTallyCompanies() {
         try {
+            // Get Tally port from settings
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            
             console.log('\n[3] FETCHING TALLY COMPANIES');
             console.log('-'.repeat(80));
+            console.log('🔌 Using Tally Port:', tallyPort);
             
             if (window.electronAPI && window.electronAPI.invoke) {
-                const response = await window.electronAPI.invoke('fetch-companies');
+                const response = await window.electronAPI.invoke('fetch-companies', { tallyPort });
                 
                 if (response.success && response.data) {
                     console.log(`✅ COMPANIES: RETRIEVED (${response.data.length} companies)`);
@@ -232,8 +241,7 @@ class App {
                 <aside class="w-64 bg-white flex flex-col shadow-xl z-20 border-r border-gray-200" id="mainSidebar">
                     <div class="p-6 border-b border-gray-200">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-lg">T</div>
-                            <div><h1 class="text-2xl font-bold text-gray-900">Talliffy</h1></div>
+                            <div><h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Talliffy</h1></div>
                         </div>
                     </div>
                     <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
@@ -246,6 +254,9 @@ class App {
                         </a>
                         <a class="nav-link" data-route="sync-settings" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
                             <span style="font-size: 18px;">📡</span> <span>Tally Sync</span>
+                        </a>
+                        <a class="nav-link" data-route="settings" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
+                            <span style="font-size: 18px;">⚙️</span> <span>Settings</span>
                         </a>
 
                         <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Finance</div>
@@ -325,7 +336,7 @@ class App {
                         </a>
                         <a class="nav-link" data-route="settings" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
                             <span style="font-size: 18px;">⚙️</span> <span>Settings</span>
-                        </a> -->
+                        </a>
                     </nav>
                     
                     <!-- Logout Button at bottom of sidebar -->
@@ -343,7 +354,7 @@ class App {
                             <div class="flex items-center gap-2">
                                 <span style="font-size: 16px;">🏢</span>
                                 <select id="globalCompanySelector" class="px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 cursor-pointer hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
-                                    <option value="">All Companies</option>
+                                    <option value="">Select Companies</option>
                                 </select>
                             </div>
                             <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
@@ -443,7 +454,7 @@ class App {
                 // Log first company to see structure
                 console.log('🔍 First company structure:', companies[0]);
                 
-                selector.innerHTML = '<option value="">All Companies</option>' + 
+                selector.innerHTML = '<option value="">Select Companies</option>' + 
                     companies.map(c => {
                         const id = c.cmpId || c.id || c.companyId;
                         const name = c.name || c.companyName || c.cmpName;

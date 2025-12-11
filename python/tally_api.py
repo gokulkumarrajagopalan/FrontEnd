@@ -207,22 +207,30 @@ class TallyAPIClient:
         logger.info("Getting license info")
         # Use XML with Serial Number parameter as shown in Postman
         xml = "<ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Function</TYPE><ID>$$LicenseInfo</ID></HEADER><BODY><DESC><FUNCPARAMLIST><PARAM>Serial Number</PARAM></FUNCPARAMLIST></DESC></BODY></ENVELOPE>"
-        success, result = self.send_request(xml)
         
-        if not success:
-            logger.error(f"License info request failed: {result}")
-            return False, result
-        
-        # Parse the license info from the response
         try:
-            license_info = self._extract_license_info(result)
+            # Send request and get raw XML
+            response = self.session.post(self.base_url, data=xml, headers={"Content-Type": "application/xml"}, timeout=self.timeout)
+            raw_xml = response.text
+            
+            # Save raw XML for debugging
+            logger.info(f"Raw License XML Response (first 2000 chars):\n{raw_xml[:2000]}")
+            
+            # Parse response
+            parsed = self.parse_response(raw_xml)
+            
+            # Extract license info
+            license_info = self._extract_license_info(parsed)
             if license_info:
                 return True, license_info
             else:
                 logger.warning("Could not extract license info from response")
-                return False, {"error": "Invalid response format"}
+                return False, {"error": "Invalid response format", "raw_response": raw_xml[:500]}
+                
         except Exception as e:
-            logger.error(f"Error extracting license info: {e}")
+            logger.error(f"License info request failed: {e}")
+            import traceback
+            traceback.print_exc()
             return False, {"error": str(e)}
     
     def _extract_license_info(self, parsed_response: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -241,35 +249,100 @@ class TallyAPIClient:
         """
         try:
             # Helper function to extract text from dict or string
-            def get_value(obj):
+            def get_value(obj, default=""):
+                if obj is None:
+                    return default
                 if isinstance(obj, dict):
-                    return obj.get("_text", "")
-                return str(obj) if obj else ""
+                    text = obj.get("_text", "")
+                    return text if text else default
+                return str(obj) if obj else default
+            
+            logger.info(f"Full parsed response structure: {json.dumps(parsed_response, indent=2, default=str)}")
             
             # Navigate to DESC for CMPINFO
             desc = parsed_response.get("DESC", {})
             cmpinfo = desc.get("CMPINFO", {})
             
-            company_count = int(get_value(cmpinfo.get("COMPANY", 0)) or 0)
-            ledger_count = int(get_value(cmpinfo.get("LEDGER", 0)) or 0)
-            voucher_count = int(get_value(cmpinfo.get("VOUCHER", 0)) or 0)
+            logger.info(f"CMPINFO found: {json.dumps(cmpinfo, indent=2, default=str)[:500]}")
             
-            # Navigate to DATA for RESULT (license number) - it's at the root level
+            company_count = int(get_value(cmpinfo.get("COMPANY", 0), "0") or 0)
+            ledger_count = int(get_value(cmpinfo.get("LEDGER", 0), "0") or 0)
+            voucher_count = int(get_value(cmpinfo.get("VOUCHER", 0), "0") or 0)
+            
+            # Try multiple paths to find license number
+            license_number = None
+            
+            # Path 1: DATA -> RESULT
             data = parsed_response.get("DATA", {})
-            result_obj = data.get("RESULT", {})
-            license_number = get_value(result_obj)
+            if data and not license_number:
+                result_obj = data.get("RESULT", {})
+                test_val = get_value(result_obj)
+                if test_val and test_val != "Unknown":
+                    license_number = test_val
+                    logger.info(f"✓ Path 1 (DATA->RESULT): {license_number}")
+            
+            # Path 2: Try direct RESULT at root
+            if not license_number:
+                result_obj = parsed_response.get("RESULT", {})
+                test_val = get_value(result_obj)
+                if test_val and test_val != "Unknown":
+                    license_number = test_val
+                    logger.info(f"✓ Path 2 (RESULT): {license_number}")
+            
+            # Path 3: Try CMPINFO -> various license fields
+            if not license_number and cmpinfo:
+                # Try multiple field names
+                for field in ["SERIALNUMBER", "SERIAL", "LICENSENO", "LICENSE", "SERIALNO"]:
+                    test_val = get_value(cmpinfo.get(field))
+                    if test_val and test_val != "Unknown":
+                        license_number = test_val
+                        logger.info(f"✓ Path 3 (CMPINFO->{field}): {license_number}")
+                        break
+            
+            # Path 4: Try LICENSEINFO nested object
+            if not license_number and cmpinfo:
+                licenseinfo = cmpinfo.get("LICENSEINFO", {})
+                if licenseinfo:
+                    for field in ["SERIALNUMBER", "SERIAL", "NUMBER", "LICENSENO"]:
+                        test_val = get_value(licenseinfo.get(field))
+                        if test_val and test_val != "Unknown":
+                            license_number = test_val
+                            logger.info(f"✓ Path 4 (CMPINFO->LICENSEINFO->{field}): {license_number}")
+                            break
+            
+            # If still not found, log all keys for debugging
+            if not license_number:
+                logger.warning(f"License number not found. Available keys in parsed_response: {list(parsed_response.keys())}")
+                if desc:
+                    logger.warning(f"Available keys in DESC: {list(desc.keys())}")
+                if cmpinfo:
+                    logger.warning(f"Available keys in CMPINFO: {list(cmpinfo.keys())}")
+                if data:
+                    logger.warning(f"Available keys in DATA: {list(data.keys())}")
+            
+            # Extract product version from CMPINFO
+            product_version = "1.1.6.2"  # default
+            try:
+                major = get_value(cmpinfo.get("PRODMAJORVER"), "1")
+                minor = get_value(cmpinfo.get("PRODMINORVER"), "1")
+                rel = get_value(cmpinfo.get("PRODMAJORREL"), "6")
+                patch = get_value(cmpinfo.get("PRODMINORREL"), "2")
+                if major and minor and rel:
+                    product_version = f"{major}.{minor}.{rel}.{patch}" if patch else f"{major}.{minor}.{rel}"
+            except:
+                pass
             
             # Build license info dictionary
             license_info = {
                 "license_number": license_number or "Unknown",
-                "product_version": "1.1.6.2",  # From PRODMAJORVER.PRODMINORVER.PRODMAJORREL
-                "status": "active",
+                "product_version": product_version,
+                "status": "active" if company_count > 0 or license_number else "inactive",
                 "company_count": company_count,
                 "ledger_count": ledger_count,
                 "voucher_count": voucher_count
             }
             
-            logger.info(f"Extracted license info: {license_info}")
+            logger.info(f"Final extracted license info: {license_info}")
             return license_info
             
         except Exception as e:

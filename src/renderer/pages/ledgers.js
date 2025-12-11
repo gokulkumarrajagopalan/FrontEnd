@@ -320,6 +320,13 @@
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             const authToken = localStorage.getItem('authToken');
             const deviceToken = localStorage.getItem('deviceToken');
+            
+            // Get Tally port from settings
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            
+            // Get backend URL from config
+            const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
 
             if (!authToken || !deviceToken) {
                 throw new Error('Authentication required. Please log in again.');
@@ -330,12 +337,17 @@
                 throw new Error('Electron API not available. Please restart the application.');
             }
 
+            console.log(`🔌 Using Tally Port: ${tallyPort}`);
+            console.log(`🌐 Using Backend URL: ${backendUrl}`);
+
             // Call Python sync via Electron IPC
             const result = await window.electronAPI.syncLedgers({
                 companyId: selectedCompanyId,
                 userId: currentUser?.userId || 1,
                 authToken: authToken,
-                deviceToken: deviceToken
+                deviceToken: deviceToken,
+                tallyPort: tallyPort,
+                backendUrl: backendUrl
             });
 
             console.log('✅ Ledgers sync result:', JSON.stringify(result, null, 2));

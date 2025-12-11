@@ -187,8 +187,14 @@
         showStatus('Connecting to Tally server...', 'info');
 
         try {
-            if (window.electronAPI && window.electronAPI.fetchCompanies) {
-                const result = await window.electronAPI.fetchCompanies();
+            // Get Tally port from settings
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            
+            console.log('📍 Fetching companies with Tally Port:', tallyPort);
+            
+            if (window.electronAPI && window.electronAPI.invoke) {
+                const result = await window.electronAPI.invoke('fetch-companies', { tallyPort });
 
                 if (result.success && result.data && Array.isArray(result.data)) {
                     tallyCompanies = result.data;
@@ -339,7 +345,14 @@
     async function syncGroupsForCompany(companyId, companyData) {
         // Fetch groups from Tally and sync to backend
         try {
-            const response = await fetch('http://localhost:9000', {
+            // Get Tally port from settings
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            const tallyUrl = `http://localhost:${tallyPort}`;
+            
+            console.log(`Syncing groups from Tally at ${tallyUrl}...`);
+            
+            const response = await fetch(tallyUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/xml' },
                 body: `<ENVELOPE>
@@ -350,7 +363,7 @@
                 </ENVELOPE>`
             });
 
-            if (!response.ok) throw new Error('Failed to connect to Tally');
+            if (!response.ok) throw new Error(`Failed to connect to Tally at ${tallyUrl}`);
 
             const xmlText = await response.text();
             const parser = new DOMParser();

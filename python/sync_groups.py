@@ -17,10 +17,11 @@ import io
 if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-wd3
+
 # Configuration
-TALLY_URL = "http://localhost:9000"
-BACKEND_URL = "http://localhost:8080"
+TALLY_PORT = 9000  # Default port, can be overridden
+TALLY_URL = f"http://localhost:{TALLY_PORT}"
+BACKEND_URL = "http://localhost:8080"  # Default, will be overridden by command line arg
 
 def clean_xml_content(xml_text: str) -> str:
     """Remove invalid XML characters from Tally response"""
@@ -51,12 +52,13 @@ def generate_company_specific_guid(tally_guid: str, company_id: int) -> str:
     # Return original Tally GUID without CMP prefix
     return tally_guid
 
-def fetch_groups_from_tally(company_id: int) -> Optional[List[Dict]]:
+def fetch_groups_from_tally(company_id: int, tally_port: int = 9000) -> Optional[List[Dict]]:
     """
     Fetch all groups from Tally Prime for a specific company
     
     Args:
         company_id: Company ID to associate groups with
+        tally_port: Tally Prime port (default: 9000)
         
     Returns:
         List of group dictionaries or None if failed
@@ -89,9 +91,10 @@ def fetch_groups_from_tally(company_id: int) -> Optional[List[Dict]]:
     """
     
     try:
-        print("🔗 Connecting to Tally Prime...")
+        tally_url = f"http://localhost:{tally_port}"
+        print(f"🔗 Connecting to Tally Prime at {tally_url}...")
         headers = {'Content-Type': 'application/xml'}
-        response = requests.post(TALLY_URL, data=xml_request.strip(), headers=headers, timeout=10)
+        response = requests.post(tally_url, data=xml_request.strip(), headers=headers, timeout=10)
         
         if response.status_code != 200:
             print(f"❌ Error: HTTP {response.status_code}")
@@ -150,10 +153,10 @@ def fetch_groups_from_tally(company_id: int) -> Optional[List[Dict]]:
         return groups
         
     except requests.exceptions.ConnectionError:
-        print("❌ Cannot connect to Tally Prime on port 9000")
+        print(f"❌ Cannot connect to Tally Prime on port {tally_port}")
         print("   Please ensure:")
         print("   • Tally Prime is running")
-        print("   • ODBC/HTTP Server is enabled in Tally")
+        print(f"   • ODBC/HTTP Server is enabled on port {tally_port}")
         print("   • The correct company is opened in Tally")
         return None
     except requests.exceptions.Timeout:
@@ -168,7 +171,7 @@ def fetch_groups_from_tally(company_id: int) -> Optional[List[Dict]]:
         traceback.print_exc()
         return None
 
-def sync_groups_to_backend(groups: List[Dict], company_id: int, user_id: int, auth_token: str, device_token: str) -> bool:
+def sync_groups_to_backend(groups: List[Dict], company_id: int, user_id: int, auth_token: str, device_token: str, backend_url: str = BACKEND_URL) -> bool:
     """
     Send groups to backend for database storage
     
@@ -200,7 +203,7 @@ def sync_groups_to_backend(groups: List[Dict], company_id: int, user_id: int, au
         }
         
         response = requests.post(
-            f"{BACKEND_URL}/groups/sync",
+            f"{backend_url}/groups/sync",
             json=groups,
             headers=headers,
             timeout=30
@@ -233,7 +236,7 @@ def main():
     
     # Parse command line arguments
     if len(sys.argv) < 5:
-        print("Usage: python sync_groups.py <company_id> <user_id> <auth_token> <device_token>")
+        print("Usage: python sync_groups.py <company_id> <user_id> <auth_token> <device_token> [tally_port]")
         sys.exit(1)
     
     company_id = int(sys.argv[1])
@@ -241,17 +244,34 @@ def main():
     auth_token = sys.argv[3]
     device_token = sys.argv[4]
     
+    # Optional 5th parameter: tally_port
+    tally_port = 9000  # default
+    if len(sys.argv) > 5:
+        try:
+            tally_port = int(sys.argv[5])
+            print(f"Using custom Tally port: {tally_port}")
+        except ValueError:
+            print(f"Invalid port argument, using default: 9000")
+    
+    # Optional 6th parameter: backend_url
+    backend_url = BACKEND_URL  # default
+    if len(sys.argv) > 6:
+        backend_url = sys.argv[6]
+        print(f"Using custom Backend URL: {backend_url}")
+    
     print("=" * 70)
     print("🔄 TALLY GROUPS SYNC SERVICE (Multi-Company Support)")
     print("=" * 70)
     print(f"📌 Company ID: {company_id}")
     print(f"👤 User ID: {user_id}")
     print(f"🔑 Auth Token: {'*' * 20}...{auth_token[-10:]}")
+    print(f"🔌 Tally Port: {tally_port}")
+    print(f"🌐 Backend URL: {backend_url}")
     print("=" * 70)
     print()
     
-    # Step 1: Fetch from Tally (company-specific)
-    groups = fetch_groups_from_tally(company_id)
+    # Step 1: Fetch from Tally (company-specific with dynamic port)
+    groups = fetch_groups_from_tally(company_id, tally_port)
     
     if not groups:
         print("\n❌ Failed to fetch groups from Tally")
@@ -274,7 +294,7 @@ def main():
     print()
     
     # Step 2: Sync to backend
-    success = sync_groups_to_backend(groups, company_id, user_id, auth_token, device_token)
+    success = sync_groups_to_backend(groups, company_id, user_id, auth_token, device_token, backend_url)
     
     if success:
         print()

@@ -5,16 +5,23 @@ import requests
 import xml.etree.ElementTree as ET
 from typing import List, Dict, Optional
 
-# Tally connection settings
-TALLY_URL = "http://localhost:9000"
+# Tally connection settings (default port, can be overridden)
+TALLY_PORT = 9000
+TALLY_URL = f"http://localhost:{TALLY_PORT}"
 
-def fetch_groups_from_tally() -> Optional[List[Dict]]:
+def fetch_groups_from_tally(tally_port: int = 9000) -> Optional[List[Dict]]:
     """
     Fetch all groups from Tally
+    
+    Args:
+        tally_port: Tally Prime port (default: 9000)
     
     Returns:
         List of group dictionaries or None if failed
     """
+    
+    tally_url = f"http://localhost:{tally_port}"
+    print(f"🔌 Connecting to Tally at {tally_url}")
     
     # XML request to fetch groups
     xml_request = """
@@ -48,7 +55,7 @@ def fetch_groups_from_tally() -> Optional[List[Dict]]:
     try:
         # Send POST request to Tally
         headers = {'Content-Type': 'application/xml'}
-        response = requests.post(TALLY_URL, data=xml_request.strip(), headers=headers, timeout=10)
+        response = requests.post(tally_url, data=xml_request.strip(), headers=headers, timeout=10)
         
         if response.status_code != 200:
             print(f"Error: HTTP {response.status_code}")
@@ -117,7 +124,7 @@ def fetch_groups_from_tally() -> Optional[List[Dict]]:
         return groups
         
     except requests.exceptions.ConnectionError:
-        print("Error: Could not connect to Tally. Make sure Tally is running on port 9000.")
+        print(f"Error: Could not connect to Tally. Make sure Tally is running on port {tally_port}.")
         return None
     except requests.exceptions.Timeout:
         print("Error: Request to Tally timed out.")
@@ -160,11 +167,20 @@ def main():
     """
     Main function to fetch and display groups
     """
+    # Parse command line arguments for port
+    tally_port = 9000
+    if len(sys.argv) > 1:
+        try:
+            tally_port = int(sys.argv[1])
+            print(f"Using custom Tally port: {tally_port}")
+        except ValueError:
+            print(f"Invalid port argument, using default: 9000")
+    
     print("Fetching groups from Tally...")
-    print(f"Tally URL: {TALLY_URL}")
+    print(f"Tally URL: http://localhost:{tally_port}")
     print()
     
-    groups = fetch_groups_from_tally()
+    groups = fetch_groups_from_tally(tally_port)
     
     if groups is not None:
         print_groups(groups)

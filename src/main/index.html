@@ -388,8 +388,8 @@
         </style>
     </div>
 
-    <!-- Error display (hidden by default) -->
-    <div id="errorDisplay" style="display: none; position: fixed; top: 10px; left: 10px; right: 10px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 16px; color: #991b1b; z-index: 10000; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+    <!-- Error display (hidden by default - only logs to console) -->
+    <div id="errorDisplay" style="display: none;"></div>
 
     <!-- Notification Container -->
     <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;"></div>
@@ -402,6 +402,8 @@
     <script src="../renderer/services/session-manager.js"></script>
     <script src="../renderer/services/api.js"></script>
     <script src="../renderer/services/groups-service.js"></script>
+    <script src="../renderer/services/sync-scheduler.js"></script>
+    <script src="../renderer/services/router.js"></script>
     <script src="../renderer/services/router.js"></script>
 
     <!-- Redux -->
@@ -456,23 +458,15 @@
         console.log('🔄 Scripts loaded, waiting for DOM ready...');
         console.log('📍 document.readyState:', document.readyState);
         
-        // Global error handler
+        // Global error handler - log to console only
         window.addEventListener('error', (e) => {
             console.error('❌ Global error:', e.error);
-            const errorDiv = document.getElementById('errorDisplay');
-            if (errorDiv) {
-                errorDiv.style.display = 'block';
-                errorDiv.innerHTML += `<div>⚠️ ${e.message}</div>`;
-            }
+            // Error display removed - errors only logged to console
         });
 
         window.addEventListener('unhandledrejection', (e) => {
             console.error('❌ Unhandled promise rejection:', e.reason);
-            const errorDiv = document.getElementById('errorDisplay');
-            if (errorDiv) {
-                errorDiv.style.display = 'block';
-                errorDiv.innerHTML += `<div>⚠️ Promise: ${e.reason}</div>`;
-            }
+            // Error display removed - errors only logged to console
         });
         
         function hideSplash() {
@@ -497,23 +491,23 @@
                     window.app.init();
                     console.log('✅ App.init() called successfully');
                     setTimeout(hideSplash, 500);
+                    
+                    // Start auto-sync scheduler if user is authenticated
+                    setTimeout(() => {
+                        if (window.authService && window.authService.isAuthenticated() && window.syncScheduler) {
+                            console.log('🔄 Starting auto-sync scheduler...');
+                            window.syncScheduler.start();
+                        }
+                    }, 2000); // Wait 2 seconds after app init
                 } catch (e) {
                     console.error('❌ Error calling app.init():', e);
-                    const errorDiv = document.getElementById('errorDisplay');
-                    if (errorDiv) {
-                        errorDiv.style.display = 'block';
-                        errorDiv.innerHTML = `<div><strong>Init Error:</strong></div><div>${e.message}</div><div style="white-space: pre-wrap; font-size: 10px;">${e.stack}</div>`;
-                    }
+                    // Error display removed - errors only logged to console
                 }
             } else {
                 console.error('❌ window.app does not exist or init is not callable!');
                 console.log('   typeof window.app:', typeof window.app);
                 console.log('   window.app:', window.app);
-                const errorDiv = document.getElementById('errorDisplay');
-                if (errorDiv) {
-                    errorDiv.style.display = 'block';
-                    errorDiv.innerHTML = '<div><strong>Error:</strong> window.app not found or init not callable! Check script loading order.</div>';
-                }
+                // Error display removed - errors only logged to console
             }
         }
 

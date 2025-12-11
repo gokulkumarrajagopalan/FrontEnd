@@ -201,7 +201,14 @@ class GroupsService {
      * Fetch groups from Tally Prime via XML API
      */
     async fetchGroupsFromTally() {
-        const response = await fetch('http://localhost:9000', {
+        // Get Tally port from settings
+        const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        const tallyPort = appSettings.tallyPort || 9000;
+        const tallyUrl = `http://localhost:${tallyPort}`;
+        
+        console.log(`Fetching groups from Tally at ${tallyUrl}...`);
+        
+        const response = await fetch(tallyUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/xml' },
             body: `<ENVELOPE>
@@ -230,7 +237,7 @@ class GroupsService {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to connect to Tally Prime at http://localhost:9000');
+            throw new Error(`Failed to connect to Tally Prime at ${tallyUrl}`);
         }
 
         const xmlText = await response.text();

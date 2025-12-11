@@ -287,28 +287,65 @@
             syncBtn.innerHTML = '<span class="animate-pulse">🔄 Syncing...</span>';
             
             console.log('🔄 Starting Tally sync via Python...');
-            showInfo('🔄 Connecting to Tally Prime...');
+            showInfo('🔄 Verifying company exists...');
 
             // Get auth tokens
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             const authToken = localStorage.getItem('authToken');
             const deviceToken = localStorage.getItem('deviceToken');
 
+            // Get Tally port from settings
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            
+            // Get backend URL from config
+            const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
+            
+            console.log(`📍 Using Tally Port: ${tallyPort}`);
+
             if (!authToken || !deviceToken) {
                 throw new Error('Authentication required. Please log in again.');
             }
+
+            // ✅ VERIFY COMPANY EXISTS IN BACKEND FIRST
+            showInfo('🔍 Checking if company exists in database...');
+            const companyCheckResponse = await fetch(window.apiConfig.getUrl(`/companies/${selectedCompanyId}`), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'X-Device-Token': deviceToken
+                }
+            });
+
+            if (!companyCheckResponse.ok) {
+                if (companyCheckResponse.status === 404) {
+                    throw new Error(`❌ Company ID ${selectedCompanyId} does not exist in the database.\n\n💡 Please import this company first from the "Import Company" page before syncing groups.`);
+                } else {
+                    throw new Error(`Failed to verify company: HTTP ${companyCheckResponse.status}`);
+                }
+            }
+
+            const companyData = await companyCheckResponse.json();
+            console.log('✅ Company verified:', companyData.data?.name || 'Unknown');
+            showInfo(`✅ Company verified: ${companyData.data?.name || 'Company ID ' + selectedCompanyId}`);
 
             // Check if Electron API is available
             if (!window.electronAPI || !window.electronAPI.syncGroups) {
                 throw new Error('Electron API not available. Please restart the application (stop and run "npm start" again).');
             }
 
+            showInfo('🔄 Connecting to Tally Prime...');
+            
+            console.log(`🌐 Using Backend URL: ${backendUrl}`);
+
             // Call Python sync via Electron IPC
             const result = await window.electronAPI.syncGroups({
                 companyId: selectedCompanyId,
                 userId: currentUser?.userId || 1,
                 authToken: authToken,
-                deviceToken: deviceToken
+                deviceToken: deviceToken,
+                tallyPort: tallyPort,
+                backendUrl: backendUrl
             });
 
             console.log('✅ Sync result:', JSON.stringify(result, null, 2));

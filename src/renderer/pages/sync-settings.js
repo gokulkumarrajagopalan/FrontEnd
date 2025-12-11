@@ -14,8 +14,8 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
                 <div class="flex items-start justify-between mb-4">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Tally Status</p>
-                        <h3 class="text-lg font-bold text-gray-800 mt-2">Server 9000</h3>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Tally Connection</p>
+                        <h3 class="text-lg font-bold text-gray-800 mt-2">Server Status</h3>
                     </div>
                     <div class="p-3 rounded-lg" id="tallyStatusIcon">
                         <span class="text-2xl">⏳</span>
@@ -27,7 +27,7 @@
                 </div>
                 <div class="text-xs text-gray-400">
                     <p>Last Check: <span id="tallyLastCheck">--:--:--</span></p>
-                    <p>Host: localhost:9000</p>
+                    <p>Host: localhost:<span id="tallyPortDisplay">9000</span></p>
                 </div>
             </div>
 
@@ -217,12 +217,16 @@
         }
     };
 
-    // Check Tally connection (localhost:9000) via IPC to avoid CORS issues
+    // Check Tally connection with dynamic port via IPC to avoid CORS issues
     async function checkTallyConnection() {
         try {
+            // Get Tally port from settings
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            
             // Use IPC to check connection from main process (avoids CORS)
-            if (window.electronAPI && window.electronAPI.checkTallyConnection) {
-                const result = await window.electronAPI.checkTallyConnection();
+            if (window.electronAPI && window.electronAPI.invoke) {
+                const result = await window.electronAPI.invoke('check-tally-connection', { tallyPort });
                 return result === true;
             }
             
@@ -230,7 +234,7 @@
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
             
-            const response = await fetch('http://localhost:9000/', {
+            const response = await fetch(`http://localhost:${tallyPort}/`, {
                 method: 'GET',
                 signal: controller.signal
             });
@@ -463,19 +467,23 @@
     // Fetch license info automatically
     async function autoFetchLicense() {
         try {
-            console.log('Auto-fetching license info...');
-            if (window.electronAPI && window.electronAPI.fetchLicense) {
-                const result = await window.electronAPI.fetchLicense();
+            // Get Tally port from settings
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            
+            console.log(`Auto-fetching license info from port ${tallyPort}...`);
+            if (window.electronAPI && window.electronAPI.invoke) {
+                const result = await window.electronAPI.invoke('fetch-license', { tallyPort });
                 
                 if (result.success && result.data) {
                     console.log('License fetched successfully:', result.data);
                     updateLicenseInfo(result.data);
                 } else {
-                    console.warn('License fetch failed:', result.error);
-                    addTimelineEntry('⚠️ License fetch - ' + (result.error || 'Unknown error'));
+                    console.warn('License fetch failed:', result);
+                    addTimelineEntry('⚠️ License fetch - ' + JSON.stringify(result.error || result));
                 }
             } else {
-                console.warn('electronAPI.fetchLicense not available');
+                console.warn('electronAPI.invoke not available');
             }
         } catch (error) {
             console.error('Auto-fetch license error:', error);
@@ -496,6 +504,14 @@
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getSyncSettingsTemplate();
+
+            // Display current Tally port from settings
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            const tallyPortDisplay = document.getElementById('tallyPortDisplay');
+            if (tallyPortDisplay) {
+                tallyPortDisplay.textContent = tallyPort;
+            }
 
             // Setup event listeners
             const autoSyncToggle = document.getElementById('autoSyncToggle');
@@ -562,14 +578,21 @@
                     fetchLicenseBtn.innerHTML = '<span>⏳</span><span>Fetching License...</span>';
                     
                     try {
+                        // Get Tally port from settings
+                        const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+                        const tallyPort = appSettings.tallyPort || 9000;
+                        
+                        console.log(`Fetching license from port ${tallyPort}...`);
+                        
                         // Call Python via IPC to fetch license
-                        if (window.electronAPI && window.electronAPI.fetchLicense) {
-                            const result = await window.electronAPI.fetchLicense();
+                        if (window.electronAPI && window.electronAPI.invoke) {
+                            const result = await window.electronAPI.invoke('fetch-license', { tallyPort });
                             
                             if (result.success && result.data) {
                                 updateLicenseInfo(result.data);
+                                addTimelineEntry('✅ License fetched successfully');
                             } else {
-                                addTimelineEntry('❌ License fetch failed - ' + (result.error || 'Unknown error'));
+                                addTimelineEntry('❌ License fetch failed - ' + JSON.stringify(result.error || result));
                             }
                         } else {
                             addTimelineEntry('❌ Electron API not available');
