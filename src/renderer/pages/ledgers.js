@@ -7,22 +7,22 @@
                 <p>Manage chart of accounts and ledger details.</p>
             </div>
             <div class="flex gap-3">
-                <button id="syncLedgersBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold flex items-center gap-2">
-                    🔄 Sync from Tally
+                <button id="syncLedgersBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold flex items-center gap-2 uppercase">
+                    🔄 Sync From Tally
                 </button>
-                <button id="addLedgerBtn" class="btn btn-primary">+ Create Ledger</button>
+                <button id="addLedgerBtn" class="btn btn-primary" style="background-color: #000000 !important; color: #ffffff !important;">+ Create Ledger</button>
             </div>
         </div>
 
-        <div class="flex gap-4 mb-6">
-            <div class="relative flex-1">
-                <input id="ledgerSearch" placeholder="Search ledgers..." class="w-full px-4 py-2 pl-10 border border-gray-200 rounded-lg">
-                <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+        <div class="flex gap-4 mb-6 items-center">
+            <div class="relative flex-grow" style="min-width: 400px;">
+                <input id="ledgerSearch" placeholder="Search ledgers..." class="w-full px-4 py-2.5 pl-10 border border-gray-200 rounded-lg">
+                <span class="absolute left-3 top-3 text-gray-400">🔍</span>
             </div>
-            <select id="groupFilter" class="px-4 py-2 border border-gray-200 rounded-lg">
+            <select id="groupFilter" class="px-3 py-2.5 border border-gray-200 rounded-lg text-sm w-48">
                 <option value="">All Groups</option>
             </select>
-            <button class="btn btn-secondary">Import</button>
+            <button class="px-4 py-2.5 bg-black hover:bg-gray-800 text-white rounded-lg font-semibold text-sm">Import</button>
         </div>
 
         <div class="table-responsive">
@@ -88,19 +88,19 @@
     function getAuthHeaders() {
         const authToken = localStorage.getItem('authToken');
         const deviceToken = localStorage.getItem('deviceToken');
-        
+
         const headers = {
             'Content-Type': 'application/json'
         };
-        
+
         if (authToken) {
             headers['Authorization'] = `Bearer ${authToken}`;
         }
-        
+
         if (deviceToken) {
             headers['X-Device-Token'] = deviceToken;
         }
-        
+
         return headers;
     }
 
@@ -117,7 +117,7 @@
             }
             return;
         }
-        
+
         try {
             console.log('🔄 Loading groups for company:', companyId);
             const response = await fetch(`${window.API_BASE_URL}/groups/company/${companyId}`, {
@@ -162,7 +162,7 @@
 
     async function loadLedgers(companyId) {
         const tbody = document.getElementById('ledgersTableBody');
-        
+
         if (!companyId) {
             if (tbody) {
                 tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">📋 Please select a company from the dropdown above to view ledgers</td></tr>';
@@ -170,15 +170,15 @@
             allLedgers = [];
             return;
         }
-        
+
         try {
             console.log('🔄 Loading ledgers for company:', companyId);
-            
+
             // Show loading state
             if (tbody) {
                 tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8"><div class="flex items-center justify-center gap-2"><span class="animate-spin">⏳</span> Loading ledgers...</div></td></tr>';
             }
-            
+
             const response = await fetch(`${window.API_BASE_URL}/ledgers/company/${companyId}`, {
                 method: 'GET',
                 headers: getAuthHeaders()
@@ -192,10 +192,10 @@
 
             const ledgers = await response.json();
             console.log(`✅ Loaded ${ledgers.length} ledgers`);
-            
+
             allLedgers = Array.isArray(ledgers) ? ledgers : [];
             renderLedgersTable(allLedgers);
-            
+
         } catch (error) {
             console.error('❌ Error loading ledgers:', error);
             allLedgers = [];
@@ -220,7 +220,7 @@
         tbody.innerHTML = ledgers.map(ledger => {
             // Find parent group name
             const parentGroupName = ledger.ledParent || ledger.ledPrimaryGroup || 'N/A';
-            
+
             // Format opening balance
             const openingBalance = ledger.ledOpeningBalance || 0;
             const formattedBalance = new Intl.NumberFormat('en-IN', {
@@ -228,7 +228,7 @@
                 currency: 'INR',
                 minimumFractionDigits: 2
             }).format(openingBalance);
-            
+
             // Current balance (same as opening for now, until we implement transactions)
             const currentBalance = openingBalance;
             const formattedCurrentBalance = new Intl.NumberFormat('en-IN', {
@@ -236,12 +236,12 @@
                 currency: 'INR',
                 minimumFractionDigits: 2
             }).format(currentBalance);
-            
+
             // Status badge
-            const statusBadge = ledger.isActive 
+            const statusBadge = ledger.isActive
                 ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>'
                 : '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">Inactive</span>';
-            
+
             // GST/VAT indicator
             let taxBadge = '';
             if (ledger.gstApplicable && ledger.gstGstin) {
@@ -249,7 +249,7 @@
             } else if (ledger.vatApplicable && ledger.vatTinNumber) {
                 taxBadge = `<span class="px-2 py-1 text-xs rounded bg-purple-100 text-purple-700" title="VAT: ${ledger.vatTinNumber}">VAT</span>`;
             }
-            
+
             return `
                 <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                     <td class="p-3">
@@ -262,9 +262,9 @@
                     <td class="p-3">
                         <div class="flex flex-col">
                             <span class="text-gray-700">${parentGroupName}</span>
-                            ${ledger.ledPrimaryGroup && ledger.ledPrimaryGroup !== parentGroupName 
-                                ? `<span class="text-xs text-gray-400">${ledger.ledPrimaryGroup}</span>` 
-                                : ''}
+                            ${ledger.ledPrimaryGroup && ledger.ledPrimaryGroup !== parentGroupName
+                    ? `<span class="text-xs text-gray-400">${ledger.ledPrimaryGroup}</span>`
+                    : ''}
                         </div>
                     </td>
                     <td class="p-3 text-right">
@@ -278,17 +278,9 @@
                         </span>
                     </td>
                     <td class="p-3">
-                        <div class="flex gap-2 items-center">
-                            <button class="text-blue-600 hover:text-blue-800 transition-colors edit-btn" data-id="${ledger.ledId}" title="Edit ledger">
-                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                </svg>
-                            </button>
-                            <button class="text-red-600 hover:text-red-800 transition-colors delete-btn" data-id="${ledger.ledId}" title="Delete ledger">
-                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
+                        <div class="flex gap-2">
+                            <button class="btn btn-small edit-btn" data-id="${ledger.ledId}">✏️</button>
+                            <button class="btn btn-small delete-btn" data-id="${ledger.ledId}">🗑️</button>
                         </div>
                     </td>
                 </tr>
@@ -300,7 +292,7 @@
 
     async function syncLedgersFromTally() {
         const selectedCompanyId = window.selectedCompanyId;
-        
+
         if (!selectedCompanyId) {
             window.notificationService.error('Please select a company first');
             return;
@@ -308,11 +300,11 @@
 
         const syncBtn = document.getElementById('syncLedgersBtn');
         const originalContent = syncBtn.innerHTML;
-        
+
         try {
             syncBtn.disabled = true;
             syncBtn.innerHTML = '<span class="animate-pulse">🔄 Syncing...</span>';
-            
+
             console.log('🔄 Starting Tally ledgers sync via Python...');
             window.notificationService.info('🔄 Connecting to Tally Prime...');
 
@@ -320,11 +312,11 @@
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             const authToken = localStorage.getItem('authToken');
             const deviceToken = localStorage.getItem('deviceToken');
-            
+
             // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            
+
             // Get backend URL from config
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
 
@@ -357,10 +349,10 @@
                 await loadLedgers(selectedCompanyId); // Reload the table
             } else {
                 console.error('❌ Ledgers sync failed with result:', result);
-                
+
                 // Build detailed error message
                 let errorMessage = 'Failed to sync ledgers: ' + (result.message || 'Sync failed');
-                
+
                 // Add Python error details if available
                 if (result.stderr) {
                     errorMessage += '\n\n❌ Error details:\n' + result.stderr;
@@ -371,14 +363,14 @@
                 if (result.exitCode) {
                     errorMessage += '\n\nExit code: ' + result.exitCode;
                 }
-                
+
                 window.notificationService.error(errorMessage);
                 return; // Exit early, no need to throw
             }
 
         } catch (error) {
             console.error('❌ Ledgers sync error:', error);
-            
+
             let errorMessage = 'Failed to sync ledgers: ';
             if (error.message && error.message.includes('Authentication required')) {
                 errorMessage += 'Please log in again.';
@@ -387,7 +379,7 @@
             } else {
                 errorMessage += (error.message || 'Unknown error');
             }
-            
+
             window.notificationService.error(errorMessage);
         } finally {
             syncBtn.disabled = false;
@@ -542,35 +534,35 @@
 
     window.initializeLedgers = async function () {
         console.log('🔧 Initializing Ledgers Page...');
-        
+
         // Check authentication before loading
         const authToken = localStorage.getItem('authToken');
         const deviceToken = localStorage.getItem('deviceToken');
-        
+
         if (!authToken || !deviceToken) {
             console.error('❌ Authentication required');
             window.notificationService?.error('Please log in to access ledgers');
             window.router?.navigate('auth');
             return;
         }
-        
+
         console.log('✅ Authentication verified');
-        
+
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getLedgersTemplate();
-            
+
             // Use global company selector
             const selectedCompanyId = window.selectedCompanyId || null;
             console.log('📌 Selected company ID:', selectedCompanyId);
-            
+
             // Listen for global company changes
             window.addEventListener('companyChanged', async (e) => {
                 console.log('🔄 Company changed to:', e.detail.companyId);
                 await loadGroups(e.detail.companyId);
                 await loadLedgers(e.detail.companyId);
             });
-            
+
             await loadGroups(selectedCompanyId);
             await loadLedgers(selectedCompanyId);
             setupEventListeners();

@@ -1,37 +1,49 @@
 (function () {
-    const getSettingsTemplate = () => `
-    <div id="settingsPageContainer" class="space-y-6">
-        <div class="page-header">
-            <h2>Settings</h2>
-            <p>Configure Tally connection and application preferences</p>
-        </div>
+    const getSettingsTemplate = () => {
+        // Use the new UI components
+        const tallyPortInput = window.UIComponents.input({
+            id: 'tallyPort',
+            type: 'number',
+            label: '🔌 Tally Prime Port',
+            placeholder: '9000',
+            value: '9000',
+            required: true
+        });
 
-        <style>
-            /* Remove spinner arrows from number inputs */
-            input[type=number]::-webkit-inner-spin-button,
-            input[type=number]::-webkit-outer-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-            }
-            input[type=number] {
-                -moz-appearance: textfield;
-            }
-        </style>
+        const syncIntervalInput = window.UIComponents.input({
+            id: 'syncInterval',
+            type: 'number',
+            label: '🔄 Auto Sync Interval (minutes)',
+            placeholder: '30',
+            value: '30',
+            required: false
+        });
 
-        <div class="grid grid-cols-1 gap-6">
-            <!-- Tally Connection -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 class="font-bold text-gray-800 mb-4">🔌 Tally Prime Connection</h3>
-                <form class="settings-form space-y-4" id="connectionForm">
+        const saveButton = window.UIComponents.button({
+            id: 'saveConnectionBtn',
+            text: 'Save Settings',
+            icon: '💾',
+            variant: 'primary',
+            fullWidth: true
+        });
+
+        const tallyConnectionCard = window.UIComponents.card({
+            title: '🔌 Tally Prime Connection',
+            content: `
+                <style>
+                    input[type=number]::-webkit-inner-spin-button,
+                    input[type=number]::-webkit-outer-spin-button {
+                        -webkit-appearance: none;
+                        margin: 0;
+                    }
+                    input[type=number] {
+                        -moz-appearance: textfield;
+                    }
+                </style>
+                <form id="connectionForm" class="space-y-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            <span class="inline-flex items-center gap-1">
-                                🔌 Tally Prime Port
-                                <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Dynamic</span>
-                            </span>
-                        </label>
-                        <input type="number" id="tallyPort" class="w-full px-3 py-2 border border-gray-200 rounded-lg" value="9000" min="1" max="65535">
-                        <small class="text-gray-500">
+                        ${tallyPortInput}
+                        <small class="text-xs text-gray-600 mt-2 block">
                             Port number for Tally Prime ODBC/HTTP Server (default: 9000)
                             <br>
                             <span class="text-amber-600">⚠️ Changes apply immediately to all sync operations</span>
@@ -39,49 +51,94 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            <span class="inline-flex items-center gap-1">
-                                🔄 Auto Sync Interval (minutes)
-                                <span class="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">Optional</span>
-                            </span>
-                        </label>
-                        <input type="number" id="syncInterval" class="w-full px-3 py-2 border border-gray-200 rounded-lg" value="30" min="0" max="1440" placeholder="30">
-                        <small class="text-gray-500">
+                        ${syncIntervalInput}
+                        <small class="text-xs text-gray-600 mt-2 block">
                             Automatically sync data from Tally at specified intervals (0 to disable)
                             <br>
                             <span class="text-blue-600">💡 Recommended: 15-30 minutes for active businesses</span>
                         </small>
                         
-                        <!-- Auto-Sync Status Display -->
-                        <div id="autoSyncStatus" class="mt-2 p-2 rounded-lg text-xs" style="display: none;">
+                        <div id="autoSyncStatus" class="mt-3 p-3 rounded-xl text-xs" style="display: none;">
                             <div class="flex items-center gap-2">
                                 <span id="syncStatusIndicator">⏸️</span>
-                                <span id="syncStatusText">Auto-sync disabled</span>
+                                <span id="syncStatusText" class="font-semibold">Auto-sync disabled</span>
                             </div>
                             <div id="syncLastTime" class="text-gray-600 mt-1" style="display: none;"></div>
                             <div id="syncNextTime" class="text-gray-600" style="display: none;"></div>
                         </div>
                     </div>
                     
-                    <button type="button" class="btn btn-primary w-full" id="saveConnectionBtn">💾 Save Settings</button>
-                    <div id="connectionStatus" class="hidden p-3 rounded-lg text-sm"></div>
+                    ${saveButton}
+                    <div id="connectionStatus" class="hidden"></div>
                 </form>
-            </div>
+            `
+        });
 
-            <!-- About -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 class="font-bold text-gray-800 mb-4">About</h3>
-                <div class="bg-gray-50 p-4 rounded-lg space-y-2 text-sm text-gray-700">
-                    <p><strong>Talliffy</strong></p>
-                    <p>Professional Tally Sync Application</p>
-                    <p><strong>Version:</strong> 1.0.0</p>
-                    <p><strong>Built with:</strong> Electron + Spring Boot</p>
-                    <p><strong>License:</strong> MIT</p>
+        const aboutCard = window.UIComponents.card({
+            title: 'ℹ️ About',
+            content: `
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="text-3xl">🚀</div>
+                        <div>
+                            <h4 class="font-bold" style="color: var(--text-primary);">Talliffy</h4>
+                            <p class="text-sm" style="color: var(--text-tertiary);">Professional Tally Sync Application</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 pt-4" style="border-top: 1px solid var(--border-primary);">
+                        <div>
+                            <p class="text-xs" style="color: var(--text-tertiary);">Version</p>
+                            <p class="font-semibold" style="color: var(--text-primary);">1.0.0</p>
+                        </div>
+                        <div>
+                            <p class="text-xs" style="color: var(--text-tertiary);">License</p>
+                            <p class="font-semibold" style="color: var(--text-primary);">MIT</p>
+                        </div>
+                        <div class="col-span-2">
+                            <p class="text-xs" style="color: var(--text-tertiary);">Built with</p>
+                            <p class="font-semibold" style="color: var(--text-primary);">Electron + Spring Boot</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    `;
+            `
+        });
+
+        const themeCard = window.UIComponents.card({
+            title: '🎨 Appearance',
+            content: `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold mb-3" style="color: var(--text-primary);">Theme Mode</label>
+                        <div class="flex gap-3">
+                            <button type="button" id="lightThemeBtn" class="flex-1 px-4 py-3 rounded-xl border-2 transition-all theme-btn" style="border-color: var(--border-primary); background: var(--card-bg);">
+                                <div class="text-2xl mb-1">☀️</div>
+                                <div class="text-sm font-semibold" style="color: var(--text-primary);">Light</div>
+                            </button>
+                            <button type="button" id="darkThemeBtn" class="flex-1 px-4 py-3 rounded-xl border-2 transition-all theme-btn" style="border-color: var(--border-primary); background: var(--card-bg);">
+                                <div class="text-2xl mb-1">🌙</div>
+                                <div class="text-sm font-semibold" style="color: var(--text-primary);">Dark</div>
+                            </button>
+                        </div>
+                        <p class="text-xs mt-2" style="color: var(--text-tertiary);">Choose your preferred theme. Changes apply instantly across the entire app.</p>
+                    </div>
+                </div>
+            `
+        });
+
+        return window.Layout.page({
+            title: 'Settings',
+            subtitle: 'Configure Tally connection and application preferences',
+            content: `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    ${tallyConnectionCard}
+                    ${themeCard}
+                </div>
+                <div class="mt-6">
+                    ${aboutCard}
+                </div>
+            `
+        });
+    };
 
     if (!window.API_BASE_URL) {
         window.API_BASE_URL = window.AppConfig ? window.AppConfig.API_BASE_URL : 'http://localhost:8080';
@@ -99,6 +156,58 @@
     }
 
     function setupEventListeners() {
+        // Theme Buttons
+        const lightThemeBtn = document.getElementById('lightThemeBtn');
+        const darkThemeBtn = document.getElementById('darkThemeBtn');
+        
+        function updateThemeButtons() {
+            const currentTheme = window.themeManager ? window.themeManager.getTheme() : 'light';
+            
+            if (lightThemeBtn && darkThemeBtn) {
+                if (currentTheme === 'light') {
+                    lightThemeBtn.style.borderColor = 'var(--primary-600)';
+                    lightThemeBtn.style.background = 'rgba(168, 85, 247, 0.1)';
+                    darkThemeBtn.style.borderColor = 'var(--border-primary)';
+                    darkThemeBtn.style.background = 'var(--card-bg)';
+                } else {
+                    darkThemeBtn.style.borderColor = 'var(--primary-600)';
+                    darkThemeBtn.style.background = 'rgba(168, 85, 247, 0.1)';
+                    lightThemeBtn.style.borderColor = 'var(--border-primary)';
+                    lightThemeBtn.style.background = 'var(--card-bg)';
+                }
+            }
+        }
+        
+        if (lightThemeBtn) {
+            lightThemeBtn.addEventListener('click', () => {
+                if (window.themeManager) {
+                    window.themeManager.setTheme('light');
+                    updateThemeButtons();
+                    if (window.notificationService) {
+                        window.notificationService.success('Light theme activated ☀️');
+                    }
+                }
+            });
+        }
+        
+        if (darkThemeBtn) {
+            darkThemeBtn.addEventListener('click', () => {
+                if (window.themeManager) {
+                    window.themeManager.setTheme('dark');
+                    updateThemeButtons();
+                    if (window.notificationService) {
+                        window.notificationService.success('Dark theme activated 🌙');
+                    }
+                }
+            });
+        }
+        
+        // Initial button state
+        updateThemeButtons();
+        
+        // Listen for theme changes from other sources
+        window.addEventListener('theme-applied', updateThemeButtons);
+        
         // Tally Connection
         const saveConnectionBtn = document.getElementById('saveConnectionBtn');
         if (saveConnectionBtn) {

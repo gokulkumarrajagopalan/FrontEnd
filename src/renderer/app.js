@@ -22,7 +22,7 @@ class App {
             } else {
                 console.log('✅ Auth token found - rendering app layout');
                 this.renderAppLayout();
-                
+
                 // Initialize Tally connection on app startup
                 console.log('🔄 Initializing Tally data on startup...');
                 this.initializeTallyData();
@@ -42,17 +42,17 @@ class App {
         console.log('\n' + '='.repeat(80));
         console.log('🚀 TALLY DATA INITIALIZATION');
         console.log('='.repeat(80));
-        
+
         try {
             // STEP 1: Check Tally Connection
             await this.checkTallyConnection();
-            
+
             // STEP 2: Fetch License Info
             await this.fetchTallyLicense();
-            
+
             // STEP 3: Fetch Companies
             await this.fetchTallyCompanies();
-            
+
             console.log('✅ Tally initialization complete');
             console.log('='.repeat(80) + '\n');
         } catch (error) {
@@ -65,22 +65,22 @@ class App {
             // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            
+
             console.log('📦 Raw appSettings:', localStorage.getItem('appSettings'));
             console.log('📊 Parsed appSettings:', appSettings);
             console.log('🔌 Tally Port to use:', tallyPort, '(type:', typeof tallyPort, ')');
-            
+
             console.log(`\n[1] CHECKING TALLY CONNECTION (localhost:${tallyPort})`);
             console.log('-'.repeat(80));
-            
+
             if (window.electronAPI && window.electronAPI.invoke) {
                 const isConnected = await window.electronAPI.invoke('check-tally-connection', { tallyPort });
-                
+
                 if (isConnected) {
                     console.log('✅ TALLY CONNECTION: SUCCESS');
                     console.log(`   Server: http://localhost:${tallyPort}`);
                     console.log('   Status: ONLINE');
-                    
+
                     // Store connection status
                     localStorage.setItem('tallyConnectionStatus', JSON.stringify({
                         connected: true,
@@ -107,14 +107,14 @@ class App {
             // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            
+
             console.log('\n[2] FETCHING TALLY LICENSE INFO');
             console.log('-'.repeat(80));
             console.log('🔌 Using Tally Port:', tallyPort);
-            
+
             if (window.electronAPI && window.electronAPI.invoke) {
                 const response = await window.electronAPI.invoke('fetch-license', { tallyPort });
-                
+
                 if (response.success && response.data) {
                     console.log('✅ LICENSE INFO: RETRIEVED');
                     console.log(`   License Number: ${response.data.license_number}`);
@@ -123,7 +123,7 @@ class App {
                     console.log(`   Companies Count: ${response.data.company_count}`);
                     console.log(`   Ledgers Count: ${response.data.ledger_count}`);
                     console.log(`   Vouchers Count: ${response.data.voucher_count}`);
-                    
+
                     // Store license info
                     localStorage.setItem('tallyLicense', JSON.stringify(response.data));
                     window.tallyLicense = response.data;
@@ -144,22 +144,22 @@ class App {
             // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            
+
             console.log('\n[3] FETCHING TALLY COMPANIES');
             console.log('-'.repeat(80));
             console.log('🔌 Using Tally Port:', tallyPort);
-            
+
             if (window.electronAPI && window.electronAPI.invoke) {
                 const response = await window.electronAPI.invoke('fetch-companies', { tallyPort });
-                
+
                 if (response.success && response.data) {
                     console.log(`✅ COMPANIES: RETRIEVED (${response.data.length} companies)`);
                     console.log('');
-                    
+
                     // Store companies in localStorage for later use
                     localStorage.setItem('tallyCompanies', JSON.stringify(response.data));
                     window.tallyCompanies = response.data;
-                    
+
                     // Display each company
                     response.data.forEach((company, idx) => {
                         console.log(`   Company ${idx + 1}: ${company.name}`);
@@ -174,10 +174,10 @@ class App {
                         console.log(`   └─ Status: ${company.status} (Sync: ${company.syncStatus})`);
                         console.log('');
                     });
-                    
+
                     console.log('✅ Companies available in window.tallyCompanies');
                     console.log('⚠️ NOTE: Companies will be sent to backend when user clicks "Import Selected Companies"');
-                    
+
                 } else {
                     console.warn('⚠️ COMPANIES: NOT AVAILABLE');
                     console.log('   Error:', response.error);
@@ -193,17 +193,17 @@ class App {
     renderLogin() {
         try {
             console.log('🚀 Rendering login page using auth.js...');
-            
+
             // Stop session monitoring on login page
             if (window.sessionManager) {
                 window.sessionManager.stop();
                 console.log('✅ Session monitoring stopped (login page)');
             }
-            
+
             // Clear body and use auth.js login template
             document.body.innerHTML = '';
             document.body.className = '';
-            
+
             // Call the auth.js initializeAuth function
             if (typeof window.initializeAuth === 'function') {
                 window.initializeAuth();
@@ -235,120 +235,50 @@ class App {
                 window.sessionManager.start();
                 console.log('✅ Session monitoring started');
             }
-            
+
             document.body.className = 'h-screen overflow-hidden flex bg-gray-50';
             document.body.innerHTML = `
-                <aside class="w-64 bg-white flex flex-col shadow-xl z-20 border-r border-gray-200" id="mainSidebar">
-                    <div class="p-6 border-b border-gray-200">
+                <aside class="w-64 flex flex-col h-screen" id="mainSidebar">
+                    <div class="p-6 border-b border-gray-200 flex-shrink-0">
                         <div class="flex items-center gap-3">
-                            <div><h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Talliffy</h1></div>
+                            <div><h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Talliffy</h1></div>
                         </div>
+                        <p class="text-xs text-gray-400 mt-1">Enterprise Sync Platform</p>
                     </div>
                     <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
                         <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Masters</div>
-                        <a class="nav-link active" data-route="import-company" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📥</span> <span>Import Company</span>
+                        <a class="nav-link active" data-route="import-company">
+                            <span class="nav-icon">📥</span> <span>Import Company</span>
                         </a>
-                        <a class="nav-link" data-route="company-sync" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">🏢</span> <span>Company Sync</span>
+                        <a class="nav-link" data-route="company-sync">
+                            <span class="nav-icon">🏢</span> <span>Company Sync</span>
                         </a>
-                        <a class="nav-link" data-route="sync-settings" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📡</span> <span>Tally Sync</span>
+                        <a class="nav-link" data-route="sync-settings">
+                            <span class="nav-icon">📡</span> <span>Tally Sync</span>
                         </a>
-                        <a class="nav-link" data-route="settings" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">⚙️</span> <span>Settings</span>
+                        <a class="nav-link" data-route="settings">
+                            <span class="nav-icon">⚙️</span> <span>Settings</span>
                         </a>
 
                         <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Finance</div>
-                        <a class="nav-link" data-route="groups" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📁</span> <span>Groups</span>
+                        <a class="nav-link" data-route="groups">
+                            <span class="nav-icon">📁</span> <span>Groups</span>
                         </a>
-                        <a class="nav-link" data-route="ledgers" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #374151; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📒</span> <span>Ledgers</span>
-                        </a>
-
-                        <!-- COMMENTED - Uncomment later as needed -->
-                        <!-- <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Operations</div>
-                        <a class="nav-link" data-route="home" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">🏠</span> <span>Home</span>
-                        </a>
-                        <a class="nav-link" data-route="dashboard" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📊</span> <span>Dashboard</span>
-                        </a>
-                        <a class="nav-link" data-route="vouchers" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📝</span> <span>Vouchers</span>
-                        </a>
-                        <a class="nav-link" data-route="invoices" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">🧾</span> <span>Invoices</span>
-                        </a>
-                        <a class="nav-link" data-route="inventory" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📦</span> <span>Inventory</span>
-                        </a>
-                        <a class="nav-link" data-route="payments" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">💸</span> <span>Payments</span>
-                        </a>
-
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide mt-4">Finance</div>
-                        <a class="nav-link" data-route="ledgers" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📒</span> <span>Ledgers</span>
-                        </a>
-                        <a class="nav-link" data-route="groups" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📁</span> <span>Groups</span>
-                        </a>
-                        <a class="nav-link" data-route="bank-reconciliation" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">🏦</span> <span>Banking</span>
-                        </a>
-                        <a class="nav-link" data-route="tax" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">⚖️</span> <span>Taxation</span>
-                        </a>
-                        <a class="nav-link" data-route="budget" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📉</span> <span>Budgets</span>
-                        </a>
-                        <a class="nav-link" data-route="reports" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📈</span> <span>Reports</span>
-                        </a>
-
-                        <a class="nav-link" data-route="items" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">🏷️</span> <span>Items</span>
-                        </a>
-                        <a class="nav-link" data-route="masters-accounts" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📋</span> <span>Accounts</span>
-                        </a>
-                        <a class="nav-link" data-route="masters-costcenters" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">🎯</span> <span>Cost Centers</span>
-                        </a>
-                        <a class="nav-link" data-route="masters-categories" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">🏷️</span> <span>Categories</span>
-                        </a>
-                        <a class="nav-link" data-route="masters-units" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📐</span> <span>Units</span>
-                        </a>
-
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide mt-4">System</div>
-                        <a class="nav-link" data-route="users" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">👥</span> <span>Users</span>
-                        </a>
-                        <a class="nav-link" data-route="audit-trail" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">📜</span> <span>Audit Log</span>
-                        </a>
-                        <a class="nav-link" data-route="sync-settings" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s; background-color: #2563eb; color: white;">
-                            <span style="font-size: 18px;">📡</span> <span>Tally Sync</span>
-                        </a>
-                        <a class="nav-link" data-route="settings" style="display: flex; align-items: center; gap: 3px; padding: 10px 12px; color: #d1d5db; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                            <span style="font-size: 18px;">⚙️</span> <span>Settings</span>
+                        <a class="nav-link" data-route="ledgers">
+                            <span class="nav-icon">📒</span> <span>Ledgers</span>
                         </a>
                     </nav>
                     
                     <!-- Logout Button at bottom of sidebar -->
-                    <div class="mt-auto p-4 border-t border-gray-200">
-                        <button id="logoutBtn" class="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all duration-200 shadow-lg">
-                            <span style="font-size: 18px;">🚪</span>
+                    <div class="p-4 border-t border-gray-200 flex-shrink-0">
+                        <button id="logoutBtn" class="w-full py-2.5 px-4 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                            <span class="nav-icon">🚪</span>
                             <span>Logout</span>
                         </button>
                     </div>
                 </aside>
                 <main class="flex-1 flex flex-col min-w-0">
-                    <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
+                    <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm nav-link">
                         <h2 class="text-lg font-semibold text-gray-800" id="page-title">Home</h2>
                         <div class="flex items-center gap-4">
                             <div class="flex items-center gap-2">
@@ -367,35 +297,19 @@ class App {
                     <div id="page-content" class="flex-1 overflow-y-auto p-6 bg-gray-50">Loading...</div>
                 </main>
             `;
-            
-            // Add hover effects to nav links
-            document.querySelectorAll('[data-route]').forEach(link => {
-                link.addEventListener('mouseenter', function() {
-                    if (!this.classList.contains('active')) {
-                        this.style.backgroundColor = '#f3f4f6';
-                        this.style.color = '#1e48a2ff';
-                    }
-                });
-                link.addEventListener('mouseleave', function() {
-                    if (!this.classList.contains('active')) {
-                        this.style.backgroundColor = 'transparent';
-                        this.style.color = '#374151';
-                    }
-                });
-            });
-            
+
             // Update user info
             this.updateUserInfo();
-            
+
             // Load companies for global selector
             this.loadGlobalCompanies();
-            
+
             // Setup global company selector change handler
             this.setupGlobalCompanySelector();
-            
+
             console.log('✅ App layout rendered successfully');
             console.log('📍 page-content element exists:', !!document.getElementById('page-content'));
-            
+
             // Setup router after layout is rendered
             setTimeout(() => {
                 this.setupRouter();
@@ -410,13 +324,13 @@ class App {
         try {
             const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
             console.log('✅ User info updated:', user.fullName || user.username);
-            
+
             // Update header username display
             const headerUsername = document.getElementById('headerUsername');
             if (headerUsername) {
                 headerUsername.textContent = user.fullName || user.username || 'User';
             }
-            
+
             // Setup logout button
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
@@ -448,20 +362,20 @@ class App {
             console.log('📦 Companies response:', result);
             const companies = result.success ? result.data : [];
             console.log('📋 Companies data:', companies);
-            
+
             const selector = document.getElementById('globalCompanySelector');
             if (selector && companies.length > 0) {
                 // Log first company to see structure
                 console.log('🔍 First company structure:', companies[0]);
-                
-                selector.innerHTML = '<option value="">Select Companies</option>' + 
+
+                selector.innerHTML = '<option value="">Select Companies</option>' +
                     companies.map(c => {
                         const id = c.cmpId || c.id || c.companyId;
                         const name = c.name || c.companyName || c.cmpName;
                         console.log(`  - Company: ${name} (ID: ${id})`);
                         return `<option value="${id}">${name}</option>`;
                     }).join('');
-                
+
                 // Restore previously selected company
                 const savedCompanyId = localStorage.getItem('selectedCompanyId');
                 if (savedCompanyId) {
@@ -469,7 +383,7 @@ class App {
                     window.selectedCompanyId = parseInt(savedCompanyId);
                     console.log('✅ Restored saved company ID:', window.selectedCompanyId);
                 }
-                
+
                 console.log('✅ Loaded', companies.length, 'companies for global selector');
             }
         } catch (error) {
@@ -483,16 +397,16 @@ class App {
             selector.addEventListener('change', (e) => {
                 const companyId = e.target.value ? parseInt(e.target.value) : null;
                 window.selectedCompanyId = companyId;
-                
+
                 // Save selection to localStorage
                 if (companyId) {
                     localStorage.setItem('selectedCompanyId', companyId.toString());
                 } else {
                     localStorage.removeItem('selectedCompanyId');
                 }
-                
+
                 console.log('🏢 Global company selected:', companyId);
-                
+
                 // Show notification
                 const companyName = e.target.options[e.target.selectedIndex].text;
                 if (window.notificationService) {
@@ -502,12 +416,12 @@ class App {
                         2000
                     );
                 }
-                
+
                 // Trigger event for pages to reload data
-                window.dispatchEvent(new CustomEvent('companyChanged', { 
-                    detail: { companyId } 
+                window.dispatchEvent(new CustomEvent('companyChanged', {
+                    detail: { companyId }
                 }));
-                
+
                 // Reload current page if it's groups or ledgers
                 const currentRoute = window.router?.currentRoute;
                 if (currentRoute === 'groups' || currentRoute === 'ledgers') {
@@ -516,7 +430,7 @@ class App {
             });
         }
     }
-    
+
     async handleLogout() {
         console.log('🔐 App.handleLogout() - Starting logout sequence');
         try {
@@ -525,7 +439,7 @@ class App {
                 console.log('   → Stopping WebSocket session manager');
                 window.sessionManager.stop();
             }
-            
+
             // Call logout on auth service (will call backend and clear storage)
             if (window.authService) {
                 console.log('   → Calling authService.logout()');
@@ -561,7 +475,7 @@ class App {
     async setupRouter() {
         try {
             console.log('🔧 Setting up router...');
-            
+
             if (!window.router) {
                 window.router = new Router();
             }
@@ -569,7 +483,7 @@ class App {
             // Load all pages dynamically
             console.log('📦 Loading page modules...');
             const pagesMap = await PageLoader.loadAllPages();
-            
+
             // Register pages with router
             window.router.registerPages(pagesMap);
             console.log('✅ Pages registered with router');

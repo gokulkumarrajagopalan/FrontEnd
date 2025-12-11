@@ -4,7 +4,8 @@
 
 @layer base {
     body {
-        @apply font-sans text-[13px] text-gray-600 bg-background antialiased;
+        @apply font-sans text-[13px] text-gray-600 antialiased;
+        background: var(--bg-primary);
     }
 
     h1,
@@ -38,7 +39,8 @@
     }
 
     .btn-primary {
-        @apply bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 focus:ring-primary-500 shadow-primary-500/30 hover:shadow-primary-500/40;
+        background: #000000 !important;
+        color: #ffffff !important;
     }
 
     .btn-secondary {
@@ -97,11 +99,13 @@
     }
 
     .page-header h2 {
-        @apply text-2xl font-bold text-gray-800;
+        @apply text-2xl font-bold;
+        color: var(--text-primary);
     }
 
     .page-header p {
-        @apply text-gray-500 text-sm;
+        @apply text-sm;
+        color: var(--text-secondary);
     }
 
     .page-actions {
@@ -110,15 +114,21 @@
 
     /* Navigation */
     .nav-link {
-        @apply flex items-center gap-3 px-4 py-2.5 text-gray-300 rounded-lg transition-all duration-200 hover:bg-white/10 hover:text-white relative overflow-hidden text-sm;
+        @apply flex items-center gap-3 px-4 py-2.5 text-white rounded-lg transition-all duration-200 hover:bg-white/15 hover:text-white relative overflow-hidden text-sm;
     }
 
     .nav-link.active {
-        @apply bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-900/20 font-medium border-l-4 border-white;
+        @apply bg-white shadow-lg font-medium;
+        border-left: 3px solid #667eea;
+        color: #ffffff !important;
     }
 
     .nav-link-icon {
-        @apply text-lg opacity-70 transition-opacity;
+        @apply text-lg opacity-100 transition-opacity;
+    }
+
+    .nav-link.active .nav-link-icon {
+        color: #ffffff !important;
     }
 
     .nav-link:hover .nav-link-icon {

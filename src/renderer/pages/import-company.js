@@ -13,9 +13,9 @@
                         <p class="text-4xl font-bold text-blue-600" id="tallyCompanyCount">0</p>
                         <p class="text-sm text-blue-500">Available</p>
                     </div>
-                    <button id="fetchCompaniesBtn" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl border-2 border-blue-700 transition-all duration-200 font-bold flex items-center gap-2">
-                        <span>🔗</span>
-                        <span>Fetch from Tally</span>
+                    <button id="fetchCompaniesBtn" class="px-6 py-3 rounded-xl shadow-lg hover:shadow-xl border-2 transition-all duration-200 font-bold flex items-center gap-2" style="background: var(--text-primary); color: #ffffff !important; border-color: var(--text-primary);">
+                        <span style="color: #ffffff !important;">🔗</span>
+                        <span style="color: #ffffff !important;">Fetch from Tally</span>
                     </button>
                 </div>
             </div>

@@ -9,30 +9,33 @@
         <!-- Hero & Snapshot -->
         <div class="grid gap-4 xl:grid-cols-3">
             <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 xl:col-span-2">
-                <div class="flex flex-wrap items-start justify-between gap-6">
-                    <div>
-                        <p class="text-xs uppercase tracking-[0.3em] text-gray-400">Operations</p>
-                        <h2 class="text-3xl font-extrabold text-gray-900 mt-2">Company Sync Control Center</h2>
-                        <p class="text-gray-600 mt-3 max-w-2xl">Keep every imported company in perfect alignment with Tally. Track sync health, triage issues, and trigger new imports from a single cockpit.</p>
-                        <div class="flex flex-wrap gap-2 mt-4">
+                <div class="flex flex-col lg:flex-row items-start justify-between gap-6">
+                    <div class="flex-1">
+                        <p class="text-xs uppercase tracking-[0.3em] text-gray-400 mb-2">Operations</p>
+                        <h2 class="text-3xl font-extrabold text-gray-900 mb-3">Company Sync Control Center</h2>
+                        <p class="text-gray-600 text-sm leading-relaxed mb-4 max-w-xl">Keep every imported company in perfect alignment with Tally. Track sync health, triage issues, and trigger new imports from a single cockpit.</p>
+                        <div class="flex flex-wrap gap-2">
                             <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">Live Monitoring</span>
                             <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">Auto Refresh</span>
                             <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">Smart Alerts</span>
                         </div>
                     </div>
-                    <div class="flex flex-col items-end gap-4">
+                    <div class="flex flex-col items-end gap-4 lg:min-w-[240px]">
                         <div class="text-right">
-                            <p class="text-xs uppercase text-gray-400">Last Sync Pulse</p>
-                            <p class="text-lg font-semibold text-gray-900">Just now</p>
-                            <p class="text-sm text-emerald-600 flex items-center gap-1 justify-end"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Healthy</p>
+                            <p class="text-xs uppercase text-gray-400 mb-1">Last Sync Pulse</p>
+                            <p class="text-lg font-semibold text-gray-900 mb-1">Just now</p>
+                            <p class="text-sm text-emerald-600 flex items-center gap-1 justify-end">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span>Healthy</span>
+                            </p>
                         </div>
-                        <div class="flex flex-wrap gap-3 justify-end">
-                            <button id="importMoreBtn" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all duration-200 font-bold flex items-center gap-2">
-                                <span class="text-xl">➕</span>
+                        <div class="flex flex-col sm:flex-row gap-3 w-full">
+                            <button id="importMoreBtn" class="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all duration-200 font-semibold flex items-center justify-center gap-2 text-sm whitespace-nowrap min-w-[140px]">
+                                <span class="text-lg">➕</span>
                                 <span>Import More</span>
                             </button>
-                            <button class="px-6 py-3 border border-gray-300 hover:border-gray-400 rounded-xl text-gray-800 font-semibold flex items-center gap-2 transition-all">
-                                <span>📤</span>
+                            <button class="px-8 py-2.5 border border-gray-300 hover:border-gray-400 rounded-xl text-gray-800 font-semibold flex items-center justify-center gap-2 transition-all text-sm whitespace-nowrap min-w-[140px]">
+                                <span class="text-lg">📤</span>
                                 <span>Export Report</span>
                             </button>
                         </div>
@@ -65,64 +68,56 @@
         </div>
 
         <!-- Key Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="grid grid-cols-4 gap-4">
             <div class="bg-white border border-gray-200 rounded-2xl shadow-sm">
-                <div class="flex items-center justify-between metric-card-spacing">
-                    <div>
-                        <p class="text-xs uppercase font-semibold tracking-wide text-gray-500">Total Companies</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2" id="totalCompanies">0</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl">🏢</div>
+                <div class="flex flex-col items-center justify-center metric-card-spacing text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-2">🏢</div>
+                    <p class="text-3xl font-bold text-gray-900" id="totalCompanies">0</p>
+                    <p class="text-xs uppercase font-semibold tracking-wide text-gray-500 mt-1">Total Companies</p>
+                    <p class="text-xs text-gray-500 mt-1">All imported</p>
                 </div>
-                <p class="text-xs text-gray-500 mt-2 metric-card-spacing">All imported</p>
             </div>
             <div class="bg-white border border-gray-200 rounded-2xl shadow-sm">
-                <div class="flex items-center justify-between metric-card-spacing">
-                    <div>
-                        <p class="text-xs uppercase font-semibold tracking-wide text-gray-500">Synced</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2" id="syncedCount">0</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl">✓</div>
+                <div class="flex flex-col items-center justify-center metric-card-spacing text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl mb-2">✓</div>
+                    <p class="text-3xl font-bold text-gray-900" id="syncedCount">0</p>
+                    <p class="text-xs uppercase font-semibold tracking-wide text-gray-500 mt-1">Synced</p>
+                    <p class="text-xs text-gray-500 mt-1">Successfully synced</p>
                 </div>
-                <p class="text-xs text-gray-500 mt-2 metric-card-spacing">Successfully synced</p>
             </div>
             <div class="bg-white border border-gray-200 rounded-2xl shadow-sm">
-                <div class="flex items-center justify-between metric-card-spacing">
-                    <div>
-                        <p class="text-xs uppercase font-semibold tracking-wide text-gray-500">Pending</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2" id="pendingCount">0</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl">⏳</div>
+                <div class="flex flex-col items-center justify-center metric-card-spacing text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-2">⏳</div>
+                    <p class="text-3xl font-bold text-gray-900" id="pendingCount">0</p>
+                    <p class="text-xs uppercase font-semibold tracking-wide text-gray-500 mt-1">Pending</p>
+                    <p class="text-xs text-gray-500 mt-1">Awaiting sync</p>
                 </div>
-                <p class="text-xs text-gray-500 mt-2 metric-card-spacing">Awaiting sync</p>
             </div>
             <div class="bg-white border border-gray-200 rounded-2xl shadow-sm">
-                <div class="flex items-center justify-between metric-card-spacing">
-                    <div>
-                        <p class="text-xs uppercase font-semibold tracking-wide text-gray-500">Errors</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2" id="errorCount">0</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl">⚠</div>
+                <div class="flex flex-col items-center justify-center metric-card-spacing text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl mb-2">⚠</div>
+                    <p class="text-3xl font-bold text-gray-900" id="errorCount">0</p>
+                    <p class="text-xs uppercase font-semibold tracking-wide text-gray-500 mt-1">Errors</p>
+                    <p class="text-xs text-gray-500 mt-1">Failed syncs</p>
                 </div>
-                <p class="text-xs text-gray-500 mt-2 metric-card-spacing">Failed syncs</p>
             </div>
         </div>
 
         <!-- Search / Filters -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
-            <div class="flex flex-col lg:flex-row gap-4 items-center">
-                <div class="flex-1 w-full relative">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div class="relative flex-1 min-w-[250px] max-w-[400px]">
                     <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                    <input type="text" id="companySearch" placeholder="Search by name, code, GUID..." class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900 bg-white">
+                    <input type="text" id="companySearch" placeholder="Search by name, code, GUID..." class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900 bg-white" style="padding-left: 3.5rem;">
                 </div>
-                <div class="flex gap-3 w-full lg:w-auto">
-                    <select id="syncStatusFilter" class="flex-1 lg:flex-none px-6 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 font-semibold transition-all text-gray-900 bg-white">
+                <div class="flex gap-3 flex-wrap">
+                    <select id="syncStatusFilter" class="px-6 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 font-semibold transition-all text-gray-900 bg-white min-w-[150px]">
                         <option value="">All Status</option>
                         <option value="synced">✓ Synced</option>
                         <option value="pending">⏳ Pending</option>
                         <option value="error">⚠ Error</option>
                     </select>
-                    <select id="companyStatusFilter" class="flex-1 lg:flex-none px-6 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 font-semibold transition-all text-gray-900 bg-white">
+                    <select id="companyStatusFilter" class="px-6 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 font-semibold transition-all text-gray-900 bg-white min-w-[150px]">
                         <option value="">All Companies</option>
                         <option value="active">● Active</option>
                         <option value="inactive">○ Inactive</option>
@@ -254,13 +249,13 @@
 
     async function syncCompanyGroups(company, button) {
         const originalContent = button.innerHTML;
-        
+
         try {
             button.disabled = true;
             button.innerHTML = '<span class="animate-pulse">🔄 Syncing...</span>';
-            
+
             console.log(`🔄 Starting Tally sync for company: ${company.name} (ID: ${company.id})`);
-            
+
             // Get auth tokens
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             const authToken = localStorage.getItem('authToken');
@@ -288,7 +283,7 @@
             // Sync Groups
             button.innerHTML = '<span class="animate-pulse">🔄 Syncing Groups...</span>';
             console.log('   📊 Syncing groups...');
-            
+
             const groupsResult = await window.electronAPI.syncGroups({
                 companyId: company.id,
                 userId: currentUser?.userId || 1,
@@ -309,7 +304,7 @@
             // Sync Ledgers
             button.innerHTML = '<span class="animate-pulse">🔄 Syncing Ledgers...</span>';
             console.log('   📒 Syncing ledgers...');
-            
+
             const ledgersResult = await window.electronAPI.syncLedgers({
                 companyId: company.id,
                 userId: currentUser?.userId || 1,
@@ -333,15 +328,15 @@
                     `✅ Successfully synced ${company.name}!\n` +
                     `📊 Groups: ${groupsCount} | 📒 Ledgers: ${ledgersCount}`
                 );
-                
+
                 // Update company sync status
                 company.syncStatus = 'synced';
                 company.status = 'active';
                 company.lastSyncDate = new Date().toISOString();
-                
+
                 // Update in backend
                 await updateCompanyStatus(company.id, 'synced', 'active');
-                
+
                 // Reload companies to refresh the table
                 await loadCompanies();
             } else if (groupsSuccess || ledgersSuccess) {
@@ -351,9 +346,9 @@
                 else message += `❌ Groups: Failed\n`;
                 if (ledgersSuccess) message += `✅ Ledgers: ${ledgersCount}`;
                 else message += `❌ Ledgers: Failed`;
-                
+
                 window.notificationService.warning(message);
-                
+
                 // Update to pending status
                 company.syncStatus = 'pending';
                 await updateCompanyStatus(company.id, 'pending', 'active');
@@ -363,9 +358,9 @@
                 let errorMessage = `❌ Failed to sync ${company.name}:\n`;
                 if (groupsResult.message) errorMessage += `Groups: ${groupsResult.message}\n`;
                 if (ledgersResult.message) errorMessage += `Ledgers: ${ledgersResult.message}`;
-                
+
                 window.notificationService.error(errorMessage);
-                
+
                 company.syncStatus = 'error';
                 await updateCompanyStatus(company.id, 'error', 'active');
                 await loadCompanies();
@@ -373,7 +368,7 @@
 
         } catch (error) {
             console.error('❌ Sync error:', error);
-            
+
             let errorMessage = `Failed to sync ${company.name}: `;
             if (error.message && error.message.includes('Authentication required')) {
                 errorMessage += 'Please log in again.';
@@ -382,7 +377,7 @@
             } else {
                 errorMessage += (error.message || 'Unknown error');
             }
-            
+
             window.notificationService.error(errorMessage);
         } finally {
             button.disabled = false;
@@ -394,7 +389,7 @@
         try {
             const headers = window.authService.getHeaders();
             headers['Content-Type'] = 'application/json';
-            
+
             const response = await fetch(window.apiConfig.getUrl(`/companies/${companyId}/status`), {
                 method: 'PUT',
                 headers: headers,
@@ -420,7 +415,7 @@
         const statusFilter = document.getElementById('companyStatusFilter')?.value || '';
 
         let filtered = companies.filter(company => {
-            const matchesSearch = !searchTerm || 
+            const matchesSearch = !searchTerm ||
                 (company.name && company.name.toLowerCase().includes(searchTerm)) ||
                 (company.code && company.code.toLowerCase().includes(searchTerm)) ||
                 (company.guid && company.guid.toLowerCase().includes(searchTerm)) ||
@@ -441,11 +436,11 @@
             const isSynced = syncStatus === 'synced';
             const isPending = syncStatus === 'pending';
             const isFailed = syncStatus === 'error' || syncStatus === 'failed';
-            
+
             // Determine active status - default to active if not specified
             const status = company.status || 'active';
             const isActive = status === 'active';
-            
+
             return `
             <tr class="border-b border-gray-100 hover:bg-blue-50 transition-all">
                 <td class="px-6 py-5">
@@ -464,11 +459,10 @@
                     <span class="text-sm text-gray-900 font-semibold">${company.state || '--'}</span>
                 </td>
                 <td class="px-6 py-5">
-                    <span class="text-sm font-semibold ${
-                        isSynced ? 'text-emerald-700' :
-                        isPending ? 'text-amber-700' :
+                    <span class="text-sm font-semibold ${isSynced ? 'text-emerald-700' :
+                    isPending ? 'text-amber-700' :
                         'text-rose-700'
-                    }">
+                }">
                         ${isSynced ? '✓ Synced' : isPending ? '⏳ Pending' : '⚠ Failed'}
                     </span>
                 </td>
@@ -613,11 +607,10 @@
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <p class="text-sm text-gray-500 uppercase font-semibold">Sync Status</p>
-                        <p class="text-base font-medium ${
-                            company.syncStatus === 'synced' ? 'text-green-600' :
-                            company.syncStatus === 'pending' ? 'text-yellow-600' :
-                            'text-red-600'
-                        }">${company.syncStatus || 'unknown'}</p>
+                        <p class="text-base font-medium ${company.syncStatus === 'synced' ? 'text-green-600' :
+                company.syncStatus === 'pending' ? 'text-yellow-600' :
+                    'text-red-600'
+            }">${company.syncStatus || 'unknown'}</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 uppercase font-semibold">Company Status</p>

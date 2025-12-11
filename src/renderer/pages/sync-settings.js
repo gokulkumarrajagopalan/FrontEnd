@@ -9,7 +9,7 @@
         </div>
 
         <!-- Status Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-3 gap-6">
             <!-- Tally Connection Status -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
                 <div class="flex items-start justify-between mb-4">
@@ -77,7 +77,7 @@
         <!-- Tally License Information -->
         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100 p-6">
             <h3 class="text-lg font-bold text-gray-800 mb-4">📜 Tally License Information</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-4 gap-4">
                 <div class="bg-white rounded-lg p-4 border border-blue-100">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">License Number</p>
                     <p class="text-2xl font-bold text-blue-600" id="licenseNumber">--</p>
@@ -152,7 +152,7 @@
         </div>
 
         <!-- Statistics -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-2 gap-6">
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h3 class="text-lg font-bold text-gray-800 mb-4">Tally Statistics</h3>
                 <div class="space-y-3">
@@ -416,8 +416,8 @@
 
         timeline.insertBefore(entry, timeline.firstChild);
 
-        // Keep only last 20 entries
-        while (timeline.children.length > 20) {
+        // Keep only last 3 entries
+        while (timeline.children.length > 3) {
             timeline.removeChild(timeline.lastChild);
         }
     }

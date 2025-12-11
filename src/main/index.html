@@ -7,24 +7,29 @@
     <title>Tally Prime - Enterprise ERP</title>
     <!-- Tailwind CSS (compiled output) -->
     <link rel="stylesheet" href="../renderer/styles/output.css">
+    <!-- Global Theme System - CHANGE HERE TO AFFECT ALL SCREENS -->
+    <link rel="stylesheet" href="../renderer/styles/global-theme.css">
     <!-- Application Styles -->
     <link rel="stylesheet" href="../renderer/styles/styles.css">
     <link rel="stylesheet" href="../renderer/styles/styles-app.css">
     <link rel="stylesheet" href="../renderer/styles/styles-tailwind.css">
     <style>
         :root {
-            --primary-600: #2563eb;
-            --primary-700: #1d4ed8;
-            --primary-500: #3b82f6;
-            --primary-900: #1e3a8a;
-            --primary-400: #60a5fa;
+            --primary-600: #9333ea;
+            --primary-700: #7e22ce;
+            --primary-500: #a855f7;
+            --primary-900: #581c87;
+            --primary-400: #c084fc;
             --sidebar-bg: #1f2937;
-            --background-color: #f9fafb;
+            --background-color: #f3f4f6;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         body {
             background-color: var(--background-color);
             color: #1f2937;
+            margin: 0;
+            padding: 0;
         }
 
         * {
@@ -395,6 +400,7 @@
     <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;"></div>
 
     <!-- Service Scripts -->
+    <script src="../renderer/services/theme-manager.js"></script>
     <script src="../renderer/services/config.js"></script>
     <script src="../renderer/services/apiConfig.js"></script>
     <script src="../renderer/services/utils.js"></script>
@@ -404,7 +410,6 @@
     <script src="../renderer/services/groups-service.js"></script>
     <script src="../renderer/services/sync-scheduler.js"></script>
     <script src="../renderer/services/router.js"></script>
-    <script src="../renderer/services/router.js"></script>
 
     <!-- Redux -->
     <script src="../renderer/redux/store.js"></script>
@@ -412,34 +417,20 @@
     <!-- Pages Loader -->
     <script src="../renderer/pages-loader.js"></script>
 
+    <!-- UI Component Library -->
+    <script src="../renderer/components/ui-components.js"></script>
+    <script src="../renderer/components/layout.js"></script>
+
     <!-- Page Modules (All pages) -->
     <script src="../renderer/pages/home.js"></script>
     <script src="../renderer/pages/dashboard.js"></script>
     <script src="../renderer/pages/auth.js"></script>
-    <script src="../renderer/pages/vouchers.js"></script>
-    <script src="../renderer/pages/invoices.js"></script>
-    <script src="../renderer/pages/inventory.js"></script>
-    <script src="../renderer/pages/payments.js"></script>
     <script src="../renderer/pages/ledgers.js"></script>
     <script src="../renderer/pages/groups.js"></script>
-    <script src="../renderer/pages/bank-reconciliation.js"></script>
-    <script src="../renderer/pages/tax.js"></script>
-    <script src="../renderer/pages/budget.js"></script>
-    <script src="../renderer/pages/reports.js"></script>
     <script src="../renderer/pages/items.js"></script>
-    <script src="../renderer/pages/masters-accounts.js"></script>
-    <script src="../renderer/pages/masters-costcenters.js"></script>
-    <script src="../renderer/pages/masters-categories.js"></script>
-    <script src="../renderer/pages/masters-units.js"></script>
     <script src="../renderer/pages/users.js"></script>
-    <script src="../renderer/pages/audit-trail.js"></script>
     <script src="../renderer/pages/sync-settings.js"></script>
     <script src="../renderer/pages/settings.js"></script>
-    <script src="../renderer/pages/advanced-search.js"></script>
-    <script src="../renderer/pages/batch-operations.js"></script>
-    <script src="../renderer/pages/dashboard-metrics.js"></script>
-    <script src="../renderer/pages/my-company.js"></script>
-    <script src="../renderer/pages/add-company.js"></script>
     <script src="../renderer/pages/import-company.js"></script>
     <script src="../renderer/pages/company-sync.js"></script>
 

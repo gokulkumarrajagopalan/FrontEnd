@@ -14,22 +14,26 @@
                 <p>Manage ledger groups and chart of accounts</p>
             </div>
             <div class="flex gap-3">
-                <button class="btn btn-secondary" id="syncGroupsBtn">
+                <button id="syncGroupsBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold flex items-center gap-2 uppercase">
                     <span>🔄</span>
-                    <span>Sync from Tally</span>
+                    <span>Sync From Tally</span>
                 </button>
-                <button class="btn btn-primary" id="addGroupBtn">+ Add Group</button>
+                <button class="btn btn-primary" id="addGroupBtn" style="background-color: #000000 !important; color: #ffffff !important;">+ Add Group</button>
             </div>
         </div>
 
-        <div class="flex gap-4 mb-6">
-            <input type="text" id="groupSearch" placeholder="Search groups..." class="flex-1 px-4 py-2 border border-gray-200 rounded-lg">
-            <select id="groupTypeFilter" class="px-4 py-2 border border-gray-200 rounded-lg">
+        <div class="flex gap-4 mb-6 items-center">
+            <div class="relative flex-grow" style="min-width: 400px;">
+                <input type="text" id="groupSearch" placeholder="Search groups..." class="w-full px-4 py-2.5 pl-10 border border-gray-200 rounded-lg">
+                <span class="absolute left-3 top-3 text-gray-400">🔍</span>
+            </div>
+            <select id="groupTypeFilter" class="px-3 py-2.5 border border-gray-200 rounded-lg text-sm w-48">
                 <option value="">All Types</option>
                 <option value="revenue">Revenue (P&L)</option>
                 <option value="balancesheet">Balance Sheet</option>
                 <option value="primary">Primary Groups</option>
             </select>
+            <button class="px-4 py-2.5 bg-black hover:bg-gray-800 text-white rounded-lg font-semibold text-sm">Import</button>
         </div>
 
         <div class="table-responsive bg-white rounded-xl shadow-sm border border-gray-100">
@@ -138,28 +142,28 @@
             // Check authentication
             const isAuthenticated = window.authService?.isAuthenticated();
             console.log('🔐 User authenticated:', isAuthenticated);
-            
+
             if (!isAuthenticated) {
                 console.warn('⚠️ User not authenticated, redirecting to login...');
                 window.router?.navigate('login');
                 return;
             }
-            
+
             // Use global company selector
             const savedCompanyId = localStorage.getItem('selectedCompanyId');
             selectedCompanyId = window.selectedCompanyId || (savedCompanyId ? parseInt(savedCompanyId) : null);
-            
+
             console.log('📋 Groups page - Selected Company ID:', selectedCompanyId);
             console.log('📋 window.selectedCompanyId:', window.selectedCompanyId);
             console.log('📋 localStorage.selectedCompanyId:', savedCompanyId);
-            
+
             // Listen for global company changes
             window.addEventListener('companyChanged', async (e) => {
                 console.log('📋 Company changed event received:', e.detail);
                 selectedCompanyId = e.detail.companyId;
                 await loadGroups();
             });
-            
+
             await loadGroups();
             setupEventListeners();
             console.log('Groups page initialized successfully');
@@ -171,7 +175,7 @@
 
     async function loadGroups() {
         console.log('📊 loadGroups called with selectedCompanyId:', selectedCompanyId);
-        
+
         if (!selectedCompanyId) {
             const table = document.getElementById('groupsTable');
             if (table) table.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">📋 Please select a company from the dropdown above to view groups</td></tr>';
@@ -183,7 +187,7 @@
             showLoading();
             const url = window.apiConfig.getUrl(`/groups/company/${selectedCompanyId}`);
             const headers = getAuthHeaders();
-            
+
             console.log(`🔍 Fetching groups from URL: ${url}`);
             console.log(`🔍 Company ID type: ${typeof selectedCompanyId}, value: ${selectedCompanyId}`);
             console.log(`🔐 Auth headers:`, {
@@ -192,7 +196,7 @@
                 authToken: localStorage.getItem('authToken')?.substring(0, 20) + '...',
                 deviceToken: localStorage.getItem('deviceToken')?.substring(0, 20) + '...'
             });
-            
+
             const response = await fetch(url, {
                 method: 'GET',
                 headers: headers
@@ -204,7 +208,7 @@
 
             const result = await response.json();
             console.log('✅ Groups response:', result);
-            
+
             if (result.success) {
                 groups = result.data || [];
                 console.log(`📊 Loaded ${groups.length} groups`);
@@ -242,23 +246,22 @@
                 </td>
                 <td class="text-gray-700">${group.grpParent || '-'}</td>
                 <td>
-                    <span class="px-2 py-1 text-xs rounded-full ${
-                        group.grpNature === 'Assets' ? 'bg-blue-100 text-blue-700' :
-                        group.grpNature === 'Liabilities' ? 'bg-red-100 text-red-700' :
-                        group.grpNature === 'Income' ? 'bg-green-100 text-green-700' :
+                    <span class="px-2 py-1 text-xs rounded-full ${group.grpNature === 'Assets' ? 'bg-blue-100 text-blue-700' :
+                group.grpNature === 'Liabilities' ? 'bg-red-100 text-red-700' :
+                    group.grpNature === 'Income' ? 'bg-green-100 text-green-700' :
                         group.grpNature === 'Expense' ? 'bg-orange-100 text-orange-700' :
-                        'bg-gray-100 text-gray-700'
-                    }">${group.grpNature || 'N/A'}</span>
+                            'bg-gray-100 text-gray-700'
+            }">${group.grpNature || 'N/A'}</span>
                 </td>
                 <td>
-                    ${group.isRevenue ? 
-                        '<span class="text-green-600 font-medium">✓ Yes</span>' : 
-                        '<span class="text-gray-400">✗ No</span>'}
+                    ${group.isRevenue ?
+                '<span class="text-green-600 font-medium">✓ Yes</span>' :
+                '<span class="text-gray-400">✗ No</span>'}
                 </td>
                 <td>
-                    ${group.isActive !== false ? 
-                        '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>' : 
-                        '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">Inactive</span>'}
+                    ${group.isActive !== false ?
+                '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>' :
+                '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">Inactive</span>'}
                 </td>
                 <td class="font-mono text-xs text-gray-500">${group.guid ? group.guid.substring(0, 20) + '...' : 'N/A'}</td>
                 <td>
@@ -281,11 +284,11 @@
 
         const syncBtn = document.getElementById('syncGroupsBtn');
         const originalContent = syncBtn.innerHTML;
-        
+
         try {
             syncBtn.disabled = true;
             syncBtn.innerHTML = '<span class="animate-pulse">🔄 Syncing...</span>';
-            
+
             console.log('🔄 Starting Tally sync via Python...');
             showInfo('🔄 Verifying company exists...');
 
@@ -297,10 +300,10 @@
             // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            
+
             // Get backend URL from config
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
-            
+
             console.log(`📍 Using Tally Port: ${tallyPort}`);
 
             if (!authToken || !deviceToken) {
@@ -335,7 +338,7 @@
             }
 
             showInfo('🔄 Connecting to Tally Prime...');
-            
+
             console.log(`🌐 Using Backend URL: ${backendUrl}`);
 
             // Call Python sync via Electron IPC
@@ -355,10 +358,10 @@
                 await loadGroups(); // Reload the table
             } else {
                 console.error('❌ Sync failed with result:', result);
-                
+
                 // Build detailed error message
                 let errorMessage = 'Failed to sync groups: ' + (result.message || 'Sync failed');
-                
+
                 // Add Python error details if available
                 if (result.stderr) {
                     errorMessage += '\n\n❌ Error details:\n' + result.stderr;
@@ -369,14 +372,14 @@
                 if (result.exitCode) {
                     errorMessage += '\n\nExit code: ' + result.exitCode;
                 }
-                
+
                 showError(errorMessage);
                 return; // Exit early, no need to throw
             }
 
         } catch (error) {
             console.error('❌ Sync error:', error);
-            
+
             let errorMessage = 'Failed to sync groups: ';
             if (error.message && error.message.includes('Authentication required')) {
                 errorMessage += 'Please log in again.';
@@ -385,7 +388,7 @@
             } else {
                 errorMessage += (error.message || 'Unknown error');
             }
-            
+
             showError(errorMessage);
         } finally {
             syncBtn.disabled = false;
@@ -505,8 +508,8 @@
 
         const filtered = groups.filter(group => {
             const matchesSearch = (group.grpName || '').toLowerCase().includes(search) ||
-                                (group.grpAlias || '').toLowerCase().includes(search);
-            
+                (group.grpAlias || '').toLowerCase().includes(search);
+
             let matchesType = true;
             if (type === 'revenue') matchesType = group.isRevenue === true;
             else if (type === 'balancesheet') matchesType = group.isRevenue === false;
@@ -556,7 +559,7 @@
     }
 
     // Export sync function for use by other pages
-    window.syncGroupsForCompany = async function(companyId) {
+    window.syncGroupsForCompany = async function (companyId) {
         selectedCompanyId = companyId;
         await syncGroupsFromTally();
     };

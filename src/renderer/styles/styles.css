@@ -251,7 +251,7 @@ body {
 /* Buttons */
 .btn {
     padding: 12px 24px;
-    border: none;
+    border: none !important;
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
@@ -261,20 +261,14 @@ body {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    color: white;
-    box-shadow: 0 5px 15px rgba(30, 60, 114, 0.3);
-}
-
-.btn-primary:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(30, 60, 114, 0.4);
+    background: #000000 !important;
+    color: #ffffff !important;
 }
 
 .btn-secondary {
     background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
     color: #333;
-    border: 2px solid #ddd;
+    border: none !important;
 }
 
 .btn-secondary:hover {
@@ -539,13 +533,8 @@ tr:hover {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    background: #000000 !important;
+    color: #ffffff !important;
 }
 
 .btn-logout {

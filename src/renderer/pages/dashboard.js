@@ -1,145 +1,108 @@
 (function () {
-    const getDashboardTemplate = () => `
-    <div id="dashboardPageContainer" class="space-y-6">
-        <div class="page-header">
-            <h2>Dashboard Overview</h2>
-            <p>Real-time financial insights and performance metrics.</p>
-        </div>
+    const getDashboardTemplate = () => {
+        // Stats cards using Layout component
+        const revenueCard = window.Layout.statsCard({
+            icon: '💰',
+            title: 'Total Revenue',
+            value: '<span id="totalIncome">₹0</span>',
+            change: '↑ 12% vs last month',
+            changeType: 'positive'
+        });
 
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Revenue</p>
-                        <h3 class="text-2xl font-bold text-gray-800 mt-1" id="totalIncome">₹0</h3>
-                    </div>
-                    <span class="p-2 bg-green-50 text-green-600 rounded-lg text-xl">💰</span>
-                </div>
-                <div class="flex items-center text-xs text-green-600 font-medium">
-                    <span>↑ 12%</span>
-                    <span class="text-gray-400 ml-1">vs last month</span>
-                </div>
-            </div>
+        const expensesCard = window.Layout.statsCard({
+            icon: '💸',
+            title: 'Expenses',
+            value: '<span id="totalExpense">₹0</span>',
+            change: '↑ 5% vs last month',
+            changeType: 'negative'
+        });
 
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Expenses</p>
-                        <h3 class="text-2xl font-bold text-gray-800 mt-1" id="totalExpense">₹0</h3>
-                    </div>
-                    <span class="p-2 bg-red-50 text-red-600 rounded-lg text-xl">💸</span>
-                </div>
-                <div class="flex items-center text-xs text-red-600 font-medium">
-                    <span>↑ 5%</span>
-                    <span class="text-gray-400 ml-1">vs last month</span>
-                </div>
-            </div>
+        const profitCard = window.Layout.statsCard({
+            icon: '📈',
+            title: 'Net Profit',
+            value: '<span id="netBalance">₹0</span>',
+            change: '↑ 8% vs last month',
+            changeType: 'positive'
+        });
 
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Net Profit</p>
-                        <h3 class="text-2xl font-bold text-gray-800 mt-1" id="netBalance">₹0</h3>
-                    </div>
-                    <span class="p-2 bg-blue-50 text-blue-600 rounded-lg text-xl">📈</span>
-                </div>
-                <div class="flex items-center text-xs text-green-600 font-medium">
-                    <span>↑ 8%</span>
-                    <span class="text-gray-400 ml-1">vs last month</span>
-                </div>
-            </div>
+        const invoicesCard = window.Layout.statsCard({
+            icon: '⏳',
+            title: 'Pending Invoices',
+            value: '<span id="totalItems">0</span>',
+            change: 'Needs Attention',
+            changeType: 'neutral'
+        });
 
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Pending Invoices</p>
-                        <h3 class="text-2xl font-bold text-gray-800 mt-1" id="totalItems">0</h3>
-                    </div>
-                    <span class="p-2 bg-orange-50 text-orange-600 rounded-lg text-xl">⏳</span>
-                </div>
-                <div class="flex items-center text-xs text-orange-600 font-medium">
-                    <span>Needs Attention</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Activity Tables -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Recent Vouchers -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Vouchers</h3>
+        // Recent vouchers table
+        const vouchersTable = window.UIComponents.card({
+            title: '📝 Recent Vouchers',
+            content: `
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <thead class="bg-gray-50 border-b border-gray-100">
+                        <thead class="bg-gray-50 border-b border-gray-200">
                             <tr>
-                                <th class="px-4 py-2 text-left font-medium text-gray-600">Voucher #</th>
-                                <th class="px-4 py-2 text-left font-medium text-gray-600">Date</th>
-                                <th class="px-4 py-2 text-left font-medium text-gray-600">Type</th>
-                                <th class="px-4 py-2 text-left font-medium text-gray-600">Amount</th>
-                                <th class="px-4 py-2 text-left font-medium text-gray-600">Status</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Voucher #</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Amount</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
                             </tr>
                         </thead>
                         <tbody id="recentVouchersTable">
-                            <tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">Loading...</td></tr>
+                            <tr><td colspan="5" class="text-center py-8 text-gray-500">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
-            </div>
+            `
+        });
 
-            <!-- Top Ledgers -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Top Ledgers</h3>
+        // Top ledgers table
+        const ledgersTable = window.UIComponents.card({
+            title: '💼 Top Ledgers',
+            content: `
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <thead class="bg-gray-50 border-b border-gray-100">
+                        <thead class="bg-gray-50 border-b border-gray-200">
                             <tr>
-                                <th class="px-4 py-2 text-left font-medium text-gray-600">Ledger Name</th>
-                                <th class="px-4 py-2 text-left font-medium text-gray-600">Group</th>
-                                <th class="px-4 py-2 text-left font-medium text-gray-600">Balance</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Ledger Name</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Group</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Balance</th>
                             </tr>
                         </thead>
                         <tbody id="topLedgersTable">
-                            <tr><td colspan="3" style="text-align: center; padding: 20px; color: #999;">Loading...</td></tr>
+                            <tr><td colspan="3" class="text-center py-8 text-gray-500">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
-    </div>
-    `;
+            `
+        });
 
-    // Add styles
-    const addStyles = () => {
-        if (document.getElementById('dashboard-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'dashboard-styles';
-        style.textContent = `
-            .badge {
-                background: #667eea;
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 0.85em;
-            }
-
-            .status-badge {
-                background: #d4edda;
-                color: #155724;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 0.85em;
-            }
-        `;
-        document.head.appendChild(style);
+        return window.Layout.page({
+            title: 'Dashboard Overview',
+            subtitle: 'Real-time financial insights and performance metrics',
+            content: `
+                ${window.Layout.grid({
+                    columns: 4,
+                    gap: 6,
+                    items: [revenueCard, expensesCard, profitCard, invoicesCard],
+                    className: 'mb-6'
+                })}
+                
+                ${window.Layout.grid({
+                    columns: 2,
+                    gap: 6,
+                    items: [vouchersTable, ledgersTable]
+                })}
+            `
+        });
     };
+
 
     window.initializeDashboard = async function () {
         console.log('Initializing Dashboard...');
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getDashboardTemplate();
-            addStyles();
             await loadDashboardData();
         }
     };
@@ -193,16 +156,28 @@
             if (vouchersTable) {
                 if (Array.isArray(vouchers) && vouchers.length > 0) {
                     vouchersTable.innerHTML = vouchers.slice(0, 5).map(voucher => `
-                        <tr>
-                            <td class="px-4 py-2">#${voucher.id || 'N/A'}</td>
-                            <td class="px-4 py-2">${new Date(voucher.voucherDate).toLocaleDateString()}</td>
-                            <td class="px-4 py-2"><span class="badge">${voucher.voucherType || 'N/A'}</span></td>
-                            <td class="px-4 py-2">₹${(voucher.totalAmount || 0).toFixed(2)}</td>
-                            <td class="px-4 py-2"><span class="status-badge">${voucher.status || 'Active'}</span></td>
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-gray-900">#${voucher.id || 'N/A'}</td>
+                            <td class="px-4 py-3 text-gray-900">${new Date(voucher.voucherDate).toLocaleDateString()}</td>
+                            <td class="px-4 py-3">${window.UIComponents.badge({
+                                text: voucher.voucherType || 'N/A',
+                                variant: 'primary',
+                                size: 'sm'
+                            })}</td>
+                            <td class="px-4 py-3 text-gray-900 font-semibold">₹${(voucher.totalAmount || 0).toFixed(2)}</td>
+                            <td class="px-4 py-3">${window.UIComponents.badge({
+                                text: voucher.status || 'Active',
+                                variant: 'success',
+                                size: 'sm'
+                            })}</td>
                         </tr>
                     `).join('');
                 } else {
-                    vouchersTable.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999; padding: 20px;">No vouchers found</td></tr>';
+                    vouchersTable.innerHTML = `<tr><td colspan="5" class="text-center py-8">${window.UIComponents.emptyState({
+                        icon: '📭',
+                        title: 'No vouchers found',
+                        message: 'No voucher data available at this time.'
+                    })}</td></tr>`;
                 }
             }
 
@@ -211,14 +186,18 @@
             if (ledgersTable) {
                 if (Array.isArray(ledgers) && ledgers.length > 0) {
                     ledgersTable.innerHTML = ledgers.slice(0, 5).map(ledger => `
-                        <tr>
-                            <td class="px-4 py-2">${ledger.ledgerName || 'N/A'}</td>
-                            <td class="px-4 py-2">${ledger.groupName || 'N/A'}</td>
-                            <td class="px-4 py-2">₹${(ledger.closingBalance || 0).toFixed(2)}</td>
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-gray-900 font-medium">${ledger.ledgerName || 'N/A'}</td>
+                            <td class="px-4 py-3 text-gray-600">${ledger.groupName || 'N/A'}</td>
+                            <td class="px-4 py-3 text-gray-900 font-semibold">₹${(ledger.closingBalance || 0).toFixed(2)}</td>
                         </tr>
                     `).join('');
                 } else {
-                    ledgersTable.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #999; padding: 20px;">No ledgers found</td></tr>';
+                    ledgersTable.innerHTML = `<tr><td colspan="3" class="text-center py-8">${window.UIComponents.emptyState({
+                        icon: '💼',
+                        title: 'No ledgers found',
+                        message: 'No ledger data available at this time.'
+                    })}</td></tr>`;
                 }
             }
 
@@ -228,3 +207,4 @@
         }
     }
 })();
+
