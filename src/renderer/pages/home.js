@@ -15,7 +15,7 @@
         </div>
 
         <!-- Quick Actions Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-4 gap-4">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group" onclick="window.router.navigate('invoices')">
                 <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">🧾</div>
                 <h3 class="font-semibold text-gray-800">Invoices</h3>
