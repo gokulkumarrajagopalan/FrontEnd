@@ -1,8 +1,3 @@
-"""
-Tally API Client
-Handles XML requests to Tally server and parses responses
-"""
-
 import requests
 import xml.etree.ElementTree as ET
 import json
@@ -11,7 +6,6 @@ from typing import Dict, Optional, Tuple, Any
 from datetime import datetime
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -40,6 +34,14 @@ class TallyAPIClient:
     def close(self):
         """Close the session."""
         self.session.close()
+
+    def _get_t(self, obj, default=""):
+        """Helper to safely extract text from Tally XML dictionary objects."""
+        if obj is None:
+            return default
+        if isinstance(obj, dict):
+            return obj.get("_text", default).strip()
+        return str(obj).strip()
 
     def build_envelope(
         self,
@@ -96,21 +98,40 @@ class TallyAPIClient:
         logger.debug(f"Built envelope for {function_id}: {xml_str[:100]}...")
         return xml_str
 
+    @staticmethod
+    def clean_xml(xml_string: str) -> str:
+        """Remove invalid XML characters and entities."""
+        import re
+        # Remove invalid numeric character references (&#0; to &#31; except 9, 10, 13)
+        def replace_invalid_entity(match):
+            num = int(match.group(1))
+            if num in (9, 10, 13) or num >= 32:
+                return match.group(0)
+            return ''
+        
+        xml_string = re.sub(r'&#(\d+);', replace_invalid_entity, xml_string)
+        
+        def replace_invalid_hex_entity(match):
+            num = int(match.group(1), 16)
+            if num in (9, 10, 13) or num >= 32:
+                return match.group(0)
+            return ''
+        
+        xml_string = re.sub(r'&#x([0-9a-fA-F]+);', replace_invalid_hex_entity, xml_string)
+        xml_string = re.sub(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]', '', xml_string)
+        xml_string = ''.join(char for char in xml_string if ord(char) >= 0x20 or char in '\t\n\r')
+        
+        return xml_string
+
     def send_request(self, xml_data: str) -> Tuple[bool, Dict[str, Any]]:
         """
         Send XML request to Tally server.
-        
-        Args:
-            xml_data: XML string to send
-        
-        Returns:
-            Tuple of (success: bool, response: dict)
         """
         try:
             logger.info(f"Sending request to {self.base_url}")
             response = self.session.post(
                 self.base_url,
-                data=xml_data,
+                data=xml_data.encode('utf-8'),
                 headers={"Content-Type": "text/xml"},
                 timeout=self.timeout,
             )
@@ -118,8 +139,9 @@ class TallyAPIClient:
             response.raise_for_status()
             logger.info(f"Response status: {response.status_code}")
             
-            # Parse XML response
-            parsed = self.parse_response(response.text)
+            # Clean and parse XML response
+            cleaned_xml = self.clean_xml(response.text)
+            parsed = self.parse_response(cleaned_xml)
             return True, parsed
             
         except requests.exceptions.ConnectionError as e:
@@ -134,6 +156,317 @@ class TallyAPIClient:
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
             return False, {"error": "Unexpected error", "details": str(e)}
+
+    def get_vouchertypes(self, company: Optional[str] = None) -> Tuple[bool, Any]:
+        """Fetch voucher types from Tally."""
+        fetch_fields = "GUID, MASTERID, ALTERID, Name, PARENT, MAILINGNAME, ISACTIVE, VOUCHERNUMBERSERIES.*"
+        xml = self._build_collection_request("VoucherType", "Collection of VOUCHERTYPE", company, fetch_fields=fetch_fields)
+        success, result = self.send_request(xml)
+        if not success:
+            return False, result
+        
+        try:
+            vouchertypes = []
+            data = self._get_collection_data(result, "VOUCHERTYPE")
+            for vt in data:
+                vt_info = {
+                    'name': vt.get("@NAME"),
+                    'reservedName': vt.get("@RESERVEDNAME"),
+                    'guid': self._get_t(vt.get("GUID")),
+                    'parent': self._get_t(vt.get("PARENT")),
+                    'mailingName': self._get_t(vt.get("MAILINGNAME")),
+                    'isActive': self._get_t(vt.get("ISACTIVE"), "Yes").lower() == "yes",
+                    'masterId': int(self._get_t(vt.get("MASTERID"), "0") or "0"),
+                    'alterId': int(self._get_t(vt.get("ALTERID"), "0") or "0"),
+                    'voucherNumberSeries': []
+                }
+                vns_list = vt.get("VOUCHERNUMBERSERIES.LIST", [])
+                if isinstance(vns_list, dict):
+                    vns_list = [vns_list]
+                for vns in vns_list:
+                    vt_info['voucherNumberSeries'].append({k.lower(): self._get_t(v) for k, v in vns.items()})
+                vouchertypes.append(vt_info)
+            return True, vouchertypes
+        except Exception as e:
+            logger.error(f"Error parsing vouchertypes: {e}")
+            return False, {"error": str(e)}
+
+    def get_groups(self, company: Optional[str] = None) -> Tuple[bool, Any]:
+        """Fetch all groups from Tally."""
+        xml = self._build_collection_request("Group", "AllGroups", company)
+        success, result = self.send_request(xml)
+        if not success:
+            return False, result
+        
+        try:
+            groups = []
+            data = self._get_collection_data(result, "GROUP")
+            for group_elem in data:
+                group_data = {
+                    'grpName': group_elem.get("@NAME", ""),
+                    'guid': self._get_t(group_elem.get('GUID')),
+                    'masterId': int(self._get_t(group_elem.get('MASTERID'), '0') or '0'),
+                    'alterId': int(self._get_t(group_elem.get('ALTERID'), '0') or '0'),
+                    'grpParent': self._get_t(group_elem.get('PARENT')) or None,
+                    'grpPrimaryGroup': self._get_t(group_elem.get('PRIMARYGROUP')) or None,
+                    'grpNature': self._get_t(group_elem.get('NATURE')) or None,
+                    'isRevenue': self._get_t(group_elem.get('ISREVENUE'), 'No').lower() == 'yes',
+                    'isReserved': bool(group_elem.get("@RESERVEDNAME")),
+                    'reservedName': group_elem.get("@RESERVEDNAME"),
+                    'isActive': True
+                }
+                groups.append(group_data)
+            return True, groups
+        except Exception as e:
+            logger.error(f"Error parsing groups: {e}")
+            return False, {"error": str(e)}
+
+    def get_ledgers(self, company: Optional[str] = None) -> Tuple[bool, Any]:
+        """Fetch ledgers from Tally."""
+        xml = self._build_collection_request("Ledger", "Collection of Ledgers", company, fetch_fields="GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*")
+        success, result = self.send_request(xml)
+        if not success:
+            return False, result
+        
+        try:
+            ledgers = []
+            data = self._get_collection_data(result, "LEDGER")
+            for ledger_elem in data:
+                mailing_details = ledger_elem.get('LEDMAILINGDETAILS.LIST', {})
+                if isinstance(mailing_details, list): mailing_details = mailing_details[0] if mailing_details else {}
+                
+                gst_details = ledger_elem.get('LEDGSTREGDETAILS.LIST', {})
+                if isinstance(gst_details, list): gst_details = gst_details[0] if gst_details else {}
+
+                ledger_data = {
+                    'ledName': ledger_elem.get("@NAME", ""),
+                    'guid': self._get_t(ledger_elem.get('GUID')),
+                    'masterId': int(self._get_t(ledger_elem.get('MASTERID'), '0') or '0'),
+                    'alterId': int(self._get_t(ledger_elem.get('ALTERID'), '0') or '0'),
+                    'ledParent': self._get_t(ledger_elem.get('PARENT')) or None,
+                    'ledPrimaryGroup': self._get_t(ledger_elem.get('LASTPARENT')) or None,
+                    'ledDescription': self._get_t(ledger_elem.get('DESCRIPTION')) or None,
+                    'ledNote': self._get_t(ledger_elem.get('NARRATION')) or None,
+                    'ledBillWiseOn': self._get_t(ledger_elem.get('ISBILLWISEON'), 'No').lower() == 'yes',
+                    'ledIsCostCentreOn': self._get_t(ledger_elem.get('ISCOSTCENTRESON'), 'No').lower() == 'yes',
+                    'ledMailingName': self._get_t(mailing_details.get('MAILINGNAME')) or ledger_elem.get("@NAME", ""),
+                    'ledState': self._get_t(mailing_details.get('STATE')) or None,
+                    'ledCountry': self._get_t(mailing_details.get('COUNTRY')) or None,
+                    'ledPincode': self._get_t(mailing_details.get('PINCODE')) or None,
+                    'ledPhone': self._get_t(ledger_elem.get('LEDGERPHONE')) or None,
+                    'ledMobile': self._get_t(ledger_elem.get('LEDGERMOBILE')) or None,
+                    'ledEmail': self._get_t(ledger_elem.get('EMAIL')) or None,
+                    'ledWebsite': self._get_t(ledger_elem.get('WEBSITE')) or None,
+                    'ledOpeningBalance': float(self._get_t(ledger_elem.get('OPENINGBALANCE'), '0.0').replace(',', '') or '0.0'),
+                    'ledGstin': self._get_t(gst_details.get('GSTIN')) or None,
+                    'ledGstRegistrationType': self._get_t(gst_details.get('GSTREGISTRATIONTYPE')) or None,
+                    'isRevenue': self._get_t(ledger_elem.get('ISREVENUE'), 'No').lower() == 'yes',
+                    'isActive': True
+                }
+                ledgers.append(ledger_data)
+            return True, ledgers
+        except Exception as e:
+            logger.error(f"Error parsing ledgers: {e}")
+            return False, {"error": str(e)}
+
+    def get_items(self, company: Optional[str] = None) -> Tuple[bool, Any]:
+        """Fetch stock items from Tally."""
+        xml = self._build_collection_request("StockItem", "Collection of StockItems", company, fetch_fields="GUID, NAME, PARENT, BASEUNITS, OPENINGBALANCE, OPENINGVALUE, OPENINGRATE")
+        success, result = self.send_request(xml)
+        if not success:
+            return False, result
+        
+        try:
+            items = []
+            data = self._get_collection_data(result, "STOCKITEM")
+            for item_elem in data:
+                item_data = {
+                    'name': item_elem.get("@NAME", ""),
+                    'guid': self._get_t(item_elem.get('GUID')),
+                    'parent': self._get_t(item_elem.get('PARENT')) or None,
+                    'units': self._get_t(item_elem.get('BASEUNITS')) or None,
+                    'openingBalance': self._get_t(item_elem.get('OPENINGBALANCE')) or None,
+                    'openingValue': self._get_t(item_elem.get('OPENINGVALUE')) or None
+                }
+                items.append(item_data)
+            return True, items
+        except Exception as e:
+            logger.error(f"Error parsing items: {e}")
+            return False, {"error": str(e)}
+
+    def get_costcategories(self, company: Optional[str] = None) -> Tuple[bool, Any]:
+        """Fetch cost categories from Tally."""
+        xml = self._build_collection_request("CostCategory", "Collection of COSTCATEGORY", company, fetch_fields="GUID, MASTERID, ALTERID, Name, ALLOCATEREVENUE, ALLOCATENONREVENUE")
+        success, result = self.send_request(xml)
+        if not success:
+            return False, result
+        
+        try:
+            categories = []
+            data = self._get_collection_data(result, "COSTCATEGORY")
+            for cat_elem in data:
+                cat_data = {
+                    'name': cat_elem.get("@NAME", ""),
+                    'guid': self._get_t(cat_elem.get('GUID')),
+                    'masterId': int(self._get_t(cat_elem.get('MASTERID'), '0') or '0'),
+                    'alterId': int(self._get_t(cat_elem.get('ALTERID'), '0') or '0'),
+                    'reservedName': cat_elem.get("@RESERVEDNAME", ""),
+                    'allocateRevenue': self._get_t(cat_elem.get('ALLOCATEREVENUE'), 'No').lower() == 'yes',
+                    'allocateNonRevenue': self._get_t(cat_elem.get('ALLOCATENONREVENUE'), 'No').lower() == 'yes',
+                    'isActive': True
+                }
+                categories.append(cat_data)
+            return True, categories
+        except Exception as e:
+            logger.error(f"Error parsing cost categories: {e}")
+            return False, {"error": str(e)}
+
+    def get_costcentres(self, company: Optional[str] = None) -> Tuple[bool, Any]:
+        """Fetch cost centres from Tally."""
+        xml = self._build_collection_request("CostCentre", "Collection of COSTCENTRE", company, fetch_fields="GUID, MASTERID, ALTERID, Name, CATEGORY, PARENT")
+        success, result = self.send_request(xml)
+        if not success:
+            return False, result
+        
+        try:
+            centres = []
+            data = self._get_collection_data(result, "COSTCENTRE")
+            for centre_elem in data:
+                centre_data = {
+                    'name': centre_elem.get("@NAME", ""),
+                    'guid': self._get_t(centre_elem.get('GUID')),
+                    'masterId': int(self._get_t(centre_elem.get('MASTERID'), '0') or '0'),
+                    'alterId': int(self._get_t(centre_elem.get('ALTERID'), '0') or '0'),
+                    'category': self._get_t(centre_elem.get('CATEGORY')),
+                    'parent': self._get_t(centre_elem.get('PARENT')) or None,
+                    'reservedName': centre_elem.get("@RESERVEDNAME", ""),
+                    'isActive': True
+                }
+                centres.append(centre_data)
+            return True, centres
+        except Exception as e:
+            logger.error(f"Error parsing cost centres: {e}")
+            return False, {"error": str(e)}
+
+    def get_currencies(self, company: Optional[str] = None) -> Tuple[bool, Any]:
+        """Fetch currencies from Tally."""
+        fetch_fields = "GUID, MASTERID, ALTERID, Name, ORIGINALNAME, EXPANDEDSYMBOL, DECIMALSYMBOL, DECIMALPLACES, ISSUFFIX, FORTSPACE, SHOWAMOUNTINWORDS"
+        xml = self._build_collection_request("Currency", "Collection of Currency", company, fetch_fields=fetch_fields)
+        success, result = self.send_request(xml)
+        if not success:
+            return False, result
+        
+        try:
+            currencies = []
+            data = self._get_collection_data(result, "CURRENCY")
+            for curr_elem in data:
+                curr_data = {
+                    'name': curr_elem.get("@NAME", ""),
+                    'symbol': curr_elem.get("@NAME", ""),
+                    'guid': self._get_t(curr_elem.get('GUID')),
+                    'masterId': int(self._get_t(curr_elem.get('MASTERID'), '0') or '0'),
+                    'alterId': int(self._get_t(curr_elem.get('ALTERID'), '0') or '0'),
+                    'formalName': self._get_t(curr_elem.get('ORIGINALNAME')),
+                    'decimalSeparator': self._get_t(curr_elem.get('DECIMALSYMBOL')),
+                    'decimalPlaces': int(self._get_t(curr_elem.get('DECIMALPLACES'), '0') or '0'),
+                    'suffixSymbol': self._get_t(curr_elem.get('ISSUFFIX'), 'No').lower() == 'yes',
+                    'spaceBetweenAmountAndSymbol': self._get_t(curr_elem.get('FORTSPACE'), 'No').lower() == 'yes',
+                    'showAmountInWords': self._get_t(curr_elem.get('SHOWAMOUNTINWORDS'), 'No').lower() == 'yes',
+                }
+                currencies.append(curr_data)
+            return True, currencies
+        except Exception as e:
+            logger.error(f"Error parsing currencies: {e}")
+            return False, {"error": str(e)}
+
+    def get_taxunits(self, company: Optional[str] = None) -> Tuple[bool, Any]:
+        """Fetch tax units from Tally."""
+        xml = self._build_collection_request("TaxUnit", "Collection of TAXUNIT", company, fetch_fields="GUID, MASTERID, ALTERID, Name, ISGSTEINVINCLEWAYBILL, ISPRIMARYUNIT, USEDFOR, LUTDETAILS.*, GSTREGISTRATIONDETAILS.*, GSTEWAYBILLDETAILS.*, GSTEINVOICEDETAILS.*")
+        success, result = self.send_request(xml)
+        if not success:
+            return False, result
+        
+        try:
+            units = []
+            data = self._get_collection_data(result, "TAXUNIT")
+            for unit_elem in data:
+                gst_reg = unit_elem.get('GSTREGISTRATIONDETAILS.LIST', {})
+                if isinstance(gst_reg, list): gst_reg = gst_reg[0] if gst_reg else {}
+                
+                eway_details = unit_elem.get('GSTEWAYBILLDETAILS.LIST', {})
+                if isinstance(eway_details, list): eway_details = eway_details[0] if eway_details else {}
+                
+                einv_details = unit_elem.get('GSTEINVOICEDETAILS.LIST', {})
+                if isinstance(einv_details, list): einv_details = einv_details[0] if einv_details else {}
+ 
+                unit_data = {
+                    'name': unit_elem.get("@NAME", ""),
+                    'guid': self._get_t(unit_elem.get('GUID')),
+                    'masterId': int(self._get_t(unit_elem.get('MASTERID'), '0') or '0'),
+                    'alterId': int(self._get_t(unit_elem.get('ALTERID'), '0') or '0'),
+                    'usedFor': self._get_t(unit_elem.get('USEDFOR')),
+                    'gstRegNumber': self._get_t(unit_elem.get('GSTREGNUMBER')),
+                    'isGstEnvincEwaybill': self._get_t(unit_elem.get('ISGSTEINVINCLEWAYBILL'), 'No').lower() == 'yes',
+                    'isPrimaryUnit': self._get_t(unit_elem.get('ISPRIMARYUNIT'), 'No').lower() == 'yes',
+                    'gstRegistration': {
+                        'state': self._get_t(gst_reg.get('STATE')),
+                        'registrationType': self._get_t(gst_reg.get('REGISTRATIONTYPE')),
+                        'placeOfSupply': self._get_t(gst_reg.get('PLACEOFSUPPLY')),
+                    } if gst_reg else None,
+                    'ewaybillDetails': {
+                        'applicableFrom': self._get_t(eway_details.get('APPLICABLEFROM')),
+                        'isEwaybillApplicable': self._get_t(eway_details.get('EWAYBILLAPPLICABLE'), 'No').lower() == 'yes',
+                    } if eway_details else None,
+                    'einvoiceDetails': {
+                        'applicableFrom': self._get_t(einv_details.get('APPLICABLEFROM')),
+                        'isEinvApplicable': self._get_t(einv_details.get('EINVAPPLICABLE'), 'No').lower() == 'yes',
+                    } if einv_details else None
+                }
+                units.append(unit_data)
+            return True, units
+        except Exception as e:
+            logger.error(f"Error parsing tax units: {e}")
+            return False, {"error": str(e)}
+
+    def _build_collection_request(self, type_name: str, collection_id: str, company: Optional[str] = None, fetch_fields: str = "*") -> str:
+        """Helper to build Tally Collection request XML."""
+        static_vars = ""
+        if company:
+            static_vars += f"<SVCOMPANY>{company}</SVCOMPANY>"
+        
+        return f"""<ENVELOPE>
+        <HEADER>
+            <VERSION>1</VERSION>
+            <TALLYREQUEST>Export</TALLYREQUEST>
+            <TYPE>Collection</TYPE>
+            <ID>{collection_id}</ID>
+        </HEADER>
+        <BODY>
+            <DESC>
+                <STATICVARIABLES>
+                    {static_vars}
+                    <SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE>
+                    <SVTODATE TYPE="Date">01-Jan-1970</SVTODATE>
+                    <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+                </STATICVARIABLES>
+                <TDL>
+                    <TDLMESSAGE>
+                        <COLLECTION NAME="{collection_id}" ISMODIFY="No">
+                            <TYPE>{type_name}</TYPE>
+                            <FETCH>{fetch_fields}</FETCH>
+                        </COLLECTION>
+                    </TDLMESSAGE>
+                </TDL>
+            </DESC>
+        </BODY>
+    </ENVELOPE>"""
+
+    def _get_collection_data(self, result: Dict[str, Any], tag_name: str) -> list:
+        """Helper to safely extract collection data from result."""
+        data = result.get("DATA", {}).get("COLLECTION", {}).get(tag_name, [])
+        if isinstance(data, dict):
+            return [data]
+        return data if isinstance(data, list) else []
 
     def parse_response(self, xml_response: str) -> Dict[str, Any]:
         """
@@ -850,59 +1183,6 @@ class TallyAPIClient:
             return obj.get("_text", "")
         return str(obj) if obj else ""
 
-    def get_ledgers(self, company: Optional[str] = None) -> Tuple[bool, Dict[str, Any]]:
-        """Get ledgers for a company."""
-        logger.info(f"Getting ledgers for company: {company}")
-        params = {}
-        if company:
-            params["Company"] = company
-        
-        xml = self.build_envelope(
-            request_type="Export",
-            function_id="$$Masters.Ledger",
-            params=params
-        )
-        return self.send_request(xml)
-
-    def get_items(self, company: Optional[str] = None) -> Tuple[bool, Dict[str, Any]]:
-        """Get items/products."""
-        logger.info(f"Getting items for company: {company}")
-        params = {}
-        if company:
-            params["Company"] = company
-        
-        xml = self.build_envelope(
-            request_type="Export",
-            function_id="$$Masters.Item",
-            params=params
-        )
-        return self.send_request(xml)
-
-    def get_groups(self, company: Optional[str] = None) -> Tuple[bool, Dict[str, Any]]:
-        """Get ledger groups from Tally using TDL Collection."""
-        logger.info(f"Getting groups for company: {company}")
-        
-        # Build TDL request for groups collection
-        xml = """<ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>Collection of Groups</ID></HEADER><BODY><DESC><STATICVARIABLES><SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE><SVTODATE TYPE="Date">01-Jan-1970</SVTODATE><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES><TDL><TDLMESSAGE><COLLECTION NAME="Collection of Groups" ISMODIFY="No"><TYPE>Group</TYPE><FETCH>GUID,MASTERID,ALTERID,Name,OnlyAlias,Parent,IsRevenue</FETCH></COLLECTION></TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>"""
-        
-        success, result = self.send_request(xml)
-        
-        if not success:
-            logger.error(f"Groups request failed: {result}")
-            return False, result
-        
-        # Extract groups from response
-        try:
-            groups = self._extract_groups(result)
-            if groups:
-                logger.info(f"Successfully extracted {len(groups)} groups")
-                return True, groups
-            else:
-                logger.warning("Could not extract groups from response")
-                return True, []
-        except Exception as e:
-            logger.error(f"Error extracting groups: {e}")
-            return False, {"error": str(e)}
     
     def _extract_groups(self, parsed_response: Dict[str, Any]) -> list:
         """

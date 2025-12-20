@@ -85,14 +85,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔑</span>
                                 </div>
-                                <input type="number" id="loginLicenceNo" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px); -moz-appearance: textfield;" placeholder="1001" min="1">
-                                <style>
-                                    #loginLicenceNo::-webkit-outer-spin-button,
-                                    #loginLicenceNo::-webkit-inner-spin-button {
-                                        -webkit-appearance: none;
-                                        margin: 0;
-                                    }
-                                </style>
+                                <input type="number" id="loginLicenceNo" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="1001" min="1">
                             </div>
                         </div>
                     </div>
@@ -287,14 +280,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔑</span>
                                 </div>
-                                <input type="number" id="licenceNo" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px); -moz-appearance: textfield;" placeholder="1001" required min="1">
-                                <style>
-                                    #licenceNo::-webkit-outer-spin-button,
-                                    #licenceNo::-webkit-inner-spin-button {
-                                        -webkit-appearance: none;
-                                        margin: 0;
-                                    }
-                                </style>
+                                <input type="number" id="licenceNo" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="1001" required min="1">
                             </div>
                             <p class="text-xs mt-1" style="color: var(--text-tertiary);">Your company's licence number</p>
                         </div>
@@ -358,7 +344,7 @@
     window.initializeAuth = function () {
         console.log('Initializing Auth Page...');
         const currentHash = window.location.hash.replace('#', '') || 'login';
-
+        
         if (currentHash === 'signup') {
             window.initializeSignup();
         } else if (currentHash === 'verify-otp') {
@@ -412,64 +398,9 @@
             if (emailMode.checked) {
                 usernameFields.classList.add('hidden');
                 emailFields.classList.remove('hidden');
-
-                // Auto-fetch and populate license number when switching to Email + Licence mode
-                fetchAndPopulateLicenseNumberForLogin();
             }
         });
     };
-
-    // Function to fetch and populate license number in login page
-    async function fetchAndPopulateLicenseNumberForLogin() {
-        try {
-            const licenceNoInput = document.getElementById('loginLicenceNo');
-            if (!licenceNoInput) return;
-
-            // Don't override if user already entered a value
-            if (licenceNoInput.value && licenceNoInput.value.trim() !== '') {
-                return;
-            }
-
-            // Get Tally port from settings
-            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-            const tallyPort = appSettings.tallyPort || 9000;
-
-            console.log('🔑 Fetching Tally license number for login...');
-
-            if (window.electronAPI && window.electronAPI.invoke) {
-                const response = await window.electronAPI.invoke('fetch-license', { tallyPort });
-
-                if (response.success && response.data && response.data.license_number) {
-                    const licenseNumber = response.data.license_number;
-                    licenceNoInput.value = licenseNumber;
-                    licenceNoInput.style.borderColor = '#10b981'; // Green border
-                    licenceNoInput.style.background = '#f0fdf4'; // Light green background
-
-                    console.log('✅ License number auto-populated in login:', licenseNumber);
-
-                    // Show a subtle notification
-                    if (window.notificationService) {
-                        window.notificationService.success(
-                            `License number ${licenseNumber} from Tally has been auto-filled`,
-                            'License Auto-Populated',
-                            2500
-                        );
-                    }
-                } else {
-                    console.warn('⚠️ License number not available from Tally');
-                    licenceNoInput.placeholder = '1001';
-                }
-            } else {
-                console.warn('⚠️ electronAPI not available');
-            }
-        } catch (error) {
-            console.error('❌ Error fetching license number for login:', error);
-            const licenceNoInput = document.getElementById('loginLicenceNo');
-            if (licenceNoInput) {
-                licenceNoInput.placeholder = '1001';
-            }
-        }
-    }
 
     window.initializeSignup = function () {
         console.log('Initializing Signup Page...');
@@ -477,9 +408,6 @@
         const target = pageContent || document.body;
         target.innerHTML = getSignupTemplate();
         setupSignupForm();
-
-        // Auto-fetch and populate Tally license number
-        fetchAndPopulateLicenseNumber();
 
         // Handle link to login
         const showLogin = document.getElementById('showLogin');
@@ -495,53 +423,6 @@
             });
         }
     };
-
-    // Function to fetch and populate license number from Tally
-    async function fetchAndPopulateLicenseNumber() {
-        try {
-            const licenceNoInput = document.getElementById('licenceNo');
-            if (!licenceNoInput) return;
-
-            // Get Tally port from settings
-            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-            const tallyPort = appSettings.tallyPort || 9000;
-
-            console.log('🔑 Fetching Tally license number...');
-
-            if (window.electronAPI && window.electronAPI.invoke) {
-                const response = await window.electronAPI.invoke('fetch-license', { tallyPort });
-
-                if (response.success && response.data && response.data.license_number) {
-                    const licenseNumber = response.data.license_number;
-                    licenceNoInput.value = licenseNumber;
-                    licenceNoInput.style.borderColor = '#10b981'; // Green border
-                    licenceNoInput.style.background = '#f0fdf4'; // Light green background
-
-                    console.log('✅ License number auto-populated:', licenseNumber);
-
-                    // Show a subtle notification
-                    if (window.notificationService) {
-                        window.notificationService.success(
-                            `License number ${licenseNumber} from Tally has been auto-filled`,
-                            'License Auto-Populated',
-                            3000
-                        );
-                    }
-                } else {
-                    console.warn('⚠️ License number not available from Tally');
-                    licenceNoInput.placeholder = 'Enter license number manually';
-                }
-            } else {
-                console.warn('⚠️ electronAPI not available');
-            }
-        } catch (error) {
-            console.error('❌ Error fetching license number:', error);
-            const licenceNoInput = document.getElementById('licenceNo');
-            if (licenceNoInput) {
-                licenceNoInput.placeholder = 'Enter license number manually';
-            }
-        }
-    }
 
     window.initializeOtpVerification = function (email, licenceNo) {
         console.log('Initializing OTP Verification...');
@@ -591,7 +472,7 @@
             successMessage.querySelector('span:last-child').textContent = '';
 
             let payload = {};
-
+            
             if (loginMode === 'username') {
                 const username = document.getElementById('username')?.value.trim();
                 if (!username || !password) {
@@ -627,11 +508,11 @@
                 if (response.status === 403) {
                     errorMessage.querySelector('span:last-child').textContent = result.message || 'Email not verified. Redirecting to OTP verification...';
                     errorMessage.classList.remove('hidden');
-
+                    
                     // Store credentials and redirect to OTP verification
                     localStorage.setItem('pendingVerificationEmail', result.email);
                     localStorage.setItem('pendingVerificationLicence', result.licenceNo);
-
+                    
                     setTimeout(() => {
                         window.initializeOtpVerification(result.email, result.licenceNo);
                     }, 2000);
@@ -661,7 +542,7 @@
                     role: data.role
                 }));
                 localStorage.setItem('isAuthenticated', 'true');
-
+                
                 console.log('✅ Login successful:', {
                     hasToken: !!data.token,
                     hasDeviceToken: !!data.deviceToken,
@@ -816,7 +697,7 @@
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
         const loadingSpinner = document.getElementById('loadingSpinner');
-
+        
         let timeLeft = 300; // 5 minutes
         let resendAttempts = 3;
         let canResend = true;
@@ -896,7 +777,7 @@
             e.preventDefault();
 
             const otp = Array.from(otpInputs).map(input => input.value).join('');
-
+            
             if (otp.length !== 6) {
                 errorMessage.querySelector('span:last-child').textContent = 'Please enter all 6 digits';
                 errorMessage.classList.remove('hidden');
@@ -972,16 +853,16 @@
 
                 resendAttempts--;
                 document.getElementById('remainingAttempts').textContent = resendAttempts;
-
+                
                 // Reset timer
                 timeLeft = 300;
-
+                
                 // Start cooldown
                 startResendCooldown();
 
                 successMessage.querySelector('span:last-child').textContent = '✅ OTP has been resent to your email';
                 successMessage.classList.remove('hidden');
-
+                
                 setTimeout(() => successMessage.classList.add('hidden'), 3000);
 
             } catch (error) {

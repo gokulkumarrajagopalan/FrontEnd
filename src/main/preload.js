@@ -102,6 +102,21 @@ try {
 
         syncLedgers: (config) => {
             return ipcRenderer.invoke('sync-ledgers', config);
+        },
+        syncCurrencies: (config) => {
+            return ipcRenderer.invoke('sync-currencies', config);
+        },
+        syncCostCategories: (config) => {
+            return ipcRenderer.invoke('sync-cost-categories', config);
+        },
+        syncCostCenters: (config) => {
+            return ipcRenderer.invoke('sync-cost-centers', config);
+        },
+        syncVoucherTypes: (config) => {
+            return ipcRenderer.invoke('sync-voucher-types', config);
+        },
+        syncTaxUnits: (config) => {
+            return ipcRenderer.invoke('sync-tax-units', config);
         }
     });
     console.log('✅ Preload: electronAPI exposed successfully');

@@ -45,12 +45,11 @@
                         <th>Nature</th>
                         <th>Is Revenue</th>
                         <th>Status</th>
-                        <th>Tally GUID</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="groupsTable">
-                    <tr><td colspan="7" class="text-center py-8 text-gray-400">Select a company to view groups...</td></tr>
+                    <tr><td colspan="6" class="text-center py-8 text-gray-400">Select a company to view groups...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -178,7 +177,7 @@
 
         if (!selectedCompanyId) {
             const table = document.getElementById('groupsTable');
-            if (table) table.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">📋 Please select a company from the dropdown above to view groups</td></tr>';
+            if (table) table.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">📋 Please select a company from the dropdown above to view groups</td></tr>';
             console.log('⚠️ No company selected, skipping fetch');
             return;
         }
@@ -219,14 +218,14 @@
         } catch (error) {
             console.error('❌ Error loading groups:', error);
             const table = document.getElementById('groupsTable');
-            if (table) table.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500">Error loading groups: ' + error.message + '</td></tr>';
+            if (table) table.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-500">Error loading groups: ' + error.message + '</td></tr>';
             showError('Failed to load groups: ' + error.message);
         }
     }
 
     function showLoading() {
         const table = document.getElementById('groupsTable');
-        if (table) table.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400"><span class="animate-pulse">Loading groups...</span></td></tr>';
+        if (table) table.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400"><span class="animate-pulse">Loading groups...</span></td></tr>';
     }
 
     function renderGroupsTable(data) {
@@ -234,7 +233,7 @@
         if (!table) return;
 
         if (!Array.isArray(data) || data.length === 0) {
-            table.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">No groups found for this company</td></tr>';
+            table.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">No groups found for this company</td></tr>';
             return;
         }
 
@@ -263,7 +262,6 @@
                 '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>' :
                 '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">Inactive</span>'}
                 </td>
-                <td class="font-mono text-xs text-gray-500">${group.guid ? group.guid.substring(0, 20) + '...' : 'N/A'}</td>
                 <td>
                     <div class="flex gap-2">
                         <button class="btn btn-small edit-btn" data-id="${group.grpId}">✏️</button>

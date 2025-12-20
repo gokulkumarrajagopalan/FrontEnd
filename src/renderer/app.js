@@ -267,6 +267,9 @@ class App {
                         <a class="nav-link" data-route="ledgers">
                             <span class="nav-icon">📒</span> <span>Ledgers</span>
                         </a>
+                                    <!-- <a class="nav-link" data-route="voucher-type">
+                                        <span class="nav-icon">📑</span> <span>Voucher Type</span>
+                                    </a> -->
                     </nav>
                     
                     <!-- Logout Button at bottom of sidebar -->

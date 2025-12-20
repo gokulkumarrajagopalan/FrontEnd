@@ -2,14 +2,17 @@
     const getHomeTemplate = () => `
     <div id="homePageContainer" class="space-y-6">
         <!-- Hero Section -->
-        <div class="bg-gradient-to-r from-primary-600 to-primary-800 rounded-2xl p-8 text-white shadow-xl shadow-primary-900/20 relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+        <div class="rounded-2xl p-8 text-white shadow-2xl relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: 1px solid rgba(255, 255, 255, 0.1);">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
             <div class="relative z-10">
-                <h1 class="text-3xl font-bold mb-2">Welcome to Tally Prime</h1>
-                <p class="text-primary-100 text-lg max-w-xl">Your complete enterprise resource planning solution. Manage finances, inventory, and operations seamlessly.</p>
+                <h1 class="text-3xl font-bold mb-2" style="color: #ffffff !important;">Welcome to Tally Prime</h1>
+                <p class="text-lg max-w-xl" style="color: #ffffff !important; opacity: 0.9;">Your complete enterprise resource planning solution. Manage finances, inventory, and operations seamlessly.</p>
                 <div class="flex gap-3 mt-6">
-                    <button class="bg-white text-primary-700 px-6 py-2.5 rounded-lg font-semibold shadow-lg hover:bg-gray-50 transition-colors" onclick="window.router.navigate('vouchers')">Create Voucher</button>
-                    <button class="bg-primary-700/50 text-white border border-white/20 px-6 py-2.5 rounded-lg font-semibold hover:bg-primary-700/70 transition-colors" onclick="window.router.navigate('reports')">View Reports</button>
+                    <button class="text-white px-6 py-2.5 rounded-lg font-semibold shadow-lg transition-all hover:opacity-90 active:scale-95" 
+                            style="background: #a78bfa;" 
+                            onclick="window.router.navigate('vouchers')">Create Voucher</button>
+                    <button class="bg-white/10 text-white border border-white/20 px-6 py-2.5 rounded-lg font-semibold hover:bg-white/20 transition-colors active:scale-95" 
+                            onclick="window.router.navigate('reports')">View Reports</button>
                 </div>
             </div>
         </div>
@@ -107,14 +110,14 @@
 
     function updateHomeSyncStatus() {
         if (!window.syncScheduler) return;
-        
+
         const status = window.syncScheduler.getStatus();
         const indicatorDot = document.getElementById('syncIndicatorDot');
         const statusText = document.getElementById('syncStatusTextHome');
         const intervalDisplay = document.getElementById('syncIntervalDisplay');
-        
+
         if (!indicatorDot || !statusText || !intervalDisplay) return;
-        
+
         if (status.isRunning) {
             indicatorDot.className = 'w-2 h-2 bg-green-500 rounded-full';
             if (status.isSyncing) {
@@ -141,10 +144,10 @@
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getHomeTemplate();
-            
+
             // Update sync status
             updateHomeSyncStatus();
-            
+
             // Update every 10 seconds
             setInterval(updateHomeSyncStatus, 10000);
         }

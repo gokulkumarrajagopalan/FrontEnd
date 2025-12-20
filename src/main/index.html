@@ -36,11 +36,20 @@
             color: #1f2937;
         }
 
-        h1, h2, h3, h4, h5, h6 {
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
             color: #111827;
         }
 
-        p, span, div, li, a:not(.btn):not(.nav-link):not(.nav-link.active) {
+        p,
+        span,
+        div,
+        li,
+        a:not(.btn):not(.nav-link):not(.nav-link.active) {
             color: #374151;
         }
 
@@ -370,25 +379,209 @@
                 opacity: 1;
             }
         }
+
+        /* Notification System Styles */
+        #notification-container {
+            position: fixed !important;
+            top: 20px !important;
+            right: 20px !important;
+            z-index: 10000 !important;
+            max-width: 400px !important;
+            pointer-events: none !important;
+        }
+
+        .notification {
+            background: white !important;
+            border-radius: 12px !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+            padding: 16px 20px !important;
+            margin-bottom: 12px !important;
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+            animation: notificationSlideIn 0.3s ease !important;
+            pointer-events: all !important;
+            border-left: 4px solid #a78bfa !important;
+            min-width: 300px !important;
+        }
+
+        .notification.success {
+            border-left-color: #a78bfa !important;
+            background: linear-gradient(135deg, #ffffff 0%, #ede9fe 100%) !important;
+        }
+
+        .notification.error {
+            border-left-color: #f44336 !important;
+            background: linear-gradient(135deg, #ffffff 0%, #fef1f0 100%) !important;
+        }
+
+        .notification.warning {
+            border-left-color: #ff9800 !important;
+            background: linear-gradient(135deg, #ffffff 0%, #fff8f1 100%) !important;
+        }
+
+        .notification.info {
+            border-left-color: #2196F3 !important;
+            background: linear-gradient(135deg, #ffffff 0%, #f1f8ff 100%) !important;
+        }
+
+        .notification-icon {
+            font-size: 24px !important;
+            flex-shrink: 0 !important;
+            min-width: 28px !important;
+            text-align: center !important;
+        }
+
+        .notification.success .notification-icon {
+            color: #a78bfa !important;
+        }
+
+        .notification.error .notification-icon {
+            color: #f44336 !important;
+        }
+
+        .notification.warning .notification-icon {
+            color: #ff9800 !important;
+        }
+
+        .notification.info .notification-icon {
+            color: #2196F3 !important;
+        }
+
+        .notification-content {
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 4px !important;
+        }
+
+        .notification-title {
+            font-weight: 600 !important;
+            color: #1f2937 !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+            margin: 0 !important;
+        }
+
+        .notification-message {
+            color: #4b5563 !important;
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+            margin: 0 !important;
+        }
+
+        .notification-close {
+            cursor: pointer !important;
+            color: #9ca3af !important;
+            font-size: 24px !important;
+            line-height: 1 !important;
+            padding: 0 !important;
+            background: none !important;
+            border: none !important;
+            flex-shrink: 0 !important;
+            transition: all 0.2s !important;
+            width: 24px !important;
+            height: 24px !important;
+        }
+
+        .notification-close:hover {
+            color: #1f2937 !important;
+            transform: scale(1.1) !important;
+        }
+
+        .notification-progress {
+            height: 3px !important;
+            background: rgba(0, 0, 0, 0.1) !important;
+            border-radius: 2px !important;
+            overflow: hidden !important;
+            margin-top: 8px !important;
+        }
+
+        .notification-progress-bar {
+            height: 100% !important;
+            background: currentColor !important;
+            animation: notificationProgress linear forwards !important;
+        }
+
+        @keyframes notificationSlideIn {
+            from {
+                transform: translateX(450px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes notificationSlideOut {
+            from {
+                transform: translateX(0) scale(1);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(450px) scale(0.95);
+                opacity: 0;
+            }
+        }
+
+        @keyframes notificationProgress {
+            from {
+                width: 100%;
+            }
+
+            to {
+                width: 0%;
+            }
+        }
+
+        @media (max-width: 600px) {
+            #notification-container {
+                left: 12px !important;
+                right: 12px !important;
+                max-width: none !important;
+                top: 12px !important;
+            }
+
+            .notification {
+                min-width: auto !important;
+            }
+        }
     </style>
 </head>
 
 <body>
     <!-- Splash/Loading Screen -->
-    <div id="splash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+    <div id="splash"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; z-index: 9999;">
         <div style="text-align: center; color: white;">
             <div style="font-size: 3rem; margin-bottom: 1rem;">T</div>
             <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">Tally Prime</div>
             <div style="font-size: 0.875rem; opacity: 0.8; margin-bottom: 2rem;">Loading...</div>
-            <div style="width: 200px; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden;">
-                <div style="width: 30%; height: 100%; background: white; animation: loading 1.5s ease-in-out infinite;"></div>
+            <div
+                style="width: 200px; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden;">
+                <div style="width: 30%; height: 100%; background: white; animation: loading 1.5s ease-in-out infinite;">
+                </div>
             </div>
         </div>
         <style>
             @keyframes loading {
-                0% { width: 30%; margin-left: 0; }
-                50% { width: 70%; margin-left: 15%; }
-                100% { width: 30%; margin-left: 70%; }
+                0% {
+                    width: 30%;
+                    margin-left: 0;
+                }
+
+                50% {
+                    width: 70%;
+                    margin-left: 15%;
+                }
+
+                100% {
+                    width: 30%;
+                    margin-left: 70%;
+                }
             }
         </style>
     </div>
@@ -397,7 +590,8 @@
     <div id="errorDisplay" style="display: none;"></div>
 
     <!-- Notification Container -->
-    <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;"></div>
+    <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;">
+    </div>
 
     <!-- Service Scripts -->
     <script src="../renderer/services/theme-manager.js"></script>
@@ -434,6 +628,9 @@
     <script src="../renderer/pages/import-company.js"></script>
     <script src="../renderer/pages/company-sync.js"></script>
 
+    <!-- Voucher Type Page -->
+    <script src="../renderer/pages/voucher-type.js"></script>
+
     <!-- Components -->
     <script src="../renderer/components/sync-controller.js"></script>
     <script src="../renderer/components/notifications.js"></script>
@@ -443,12 +640,12 @@
 
     <!-- Test log -->
     <script>console.log('✅ All scripts loaded successfully');</script>
-    
+
     <!-- Initialization -->
     <script>
         console.log('🔄 Scripts loaded, waiting for DOM ready...');
         console.log('📍 document.readyState:', document.readyState);
-        
+
         // Global error handler - log to console only
         window.addEventListener('error', (e) => {
             console.error('❌ Global error:', e.error);
@@ -459,7 +656,7 @@
             console.error('❌ Unhandled promise rejection:', e.reason);
             // Error display removed - errors only logged to console
         });
-        
+
         function hideSplash() {
             console.log('🎬 Hiding splash screen');
             const splash = document.getElementById('splash');
@@ -475,14 +672,14 @@
         function initializeApp() {
             console.log('📍 Attempting to initialize app...');
             console.log('   window.app exists?', typeof window.app !== 'undefined');
-            
+
             if (window.app && typeof window.app.init === 'function') {
                 console.log('✅ App object exists and init is callable, calling init()');
                 try {
                     window.app.init();
                     console.log('✅ App.init() called successfully');
                     setTimeout(hideSplash, 500);
-                    
+
                     // Start auto-sync scheduler if user is authenticated
                     setTimeout(() => {
                         if (window.authService && window.authService.isAuthenticated() && window.syncScheduler) {
@@ -522,25 +719,25 @@
             }
         }, 2000);
     </script>
-        }
+    }
 
-        // Method 3: Timeout fallback
-        setTimeout(() => {
-            console.log('⏱️ 2 second timeout check');
-            if (document.body.children.length === 1 && document.getElementById('splash')) {
-                console.warn('⚠️ Still showing splash screen, forcing init');
-                initializeApp();
-            }
-        }, 2000);
+    // Method 3: Timeout fallback
+    setTimeout(() => {
+    console.log('⏱️ 2 second timeout check');
+    if (document.body.children.length === 1 && document.getElementById('splash')) {
+    console.warn('⚠️ Still showing splash screen, forcing init');
+    initializeApp();
+    }
+    }, 2000);
 
-        setTimeout(() => {
-            console.log('⏱️ 5 second final check');
-            const splash = document.getElementById('splash');
-            if (splash) {
-                console.warn('⚠️ Splash still present after 5s');
-                hideSplash();
-            }
-        }, 5000);
+    setTimeout(() => {
+    console.log('⏱️ 5 second final check');
+    const splash = document.getElementById('splash');
+    if (splash) {
+    console.warn('⚠️ Splash still present after 5s');
+    hideSplash();
+    }
+    }, 5000);
     </script>
 </body>
 

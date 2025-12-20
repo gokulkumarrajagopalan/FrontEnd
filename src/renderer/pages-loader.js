@@ -20,7 +20,8 @@ class PageLoader {
             'users': 'initializeUsers',
             'sync-settings': 'initializeSyncSettings',
             'import-company': 'initializeImportCompany',
-            'company-sync': 'initializeCompanySync'
+            'company-sync': 'initializeCompanySync',
+            'voucher-type': 'initializeVoucherType'
         };
 
         for (const [route, initName] of Object.entries(pageInitializers)) {

@@ -1235,9 +1235,9 @@ header.h-16 {
 }
 
 /* ==================== SYNC STATUS INDICATORS ==================== */
-.w-3.h-3.rounded-full {
+/* .w-3.h-3.rounded-full {
     box-shadow: 0 0 8px currentColor !important;
-}
+} */
 
 .bg-green-400.rounded-full,
 .bg-emerald-500.rounded-full {
