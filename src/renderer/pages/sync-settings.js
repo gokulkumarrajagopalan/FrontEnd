@@ -223,17 +223,17 @@
             // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            
+
             // Use IPC to check connection from main process (avoids CORS)
             if (window.electronAPI && window.electronAPI.invoke) {
                 const result = await window.electronAPI.invoke('check-tally-connection', { tallyPort });
                 return result === true;
             }
-            
+
             // Fallback: Direct fetch with simple GET request
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
-            
+
             const response = await fetch(`http://localhost:${tallyPort}/`, {
                 method: 'GET',
                 signal: controller.signal
@@ -250,7 +250,7 @@
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
-            
+
             const response = await fetch('https://8.8.8.8//', {
                 method: 'HEAD',
                 mode: 'no-cors',
@@ -262,7 +262,7 @@
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000);
-                
+
                 await fetch('https://www.google.com/', {
                     method: 'HEAD',
                     mode: 'no-cors',
@@ -333,7 +333,7 @@
         if (tallyConnected) tallyConnected.textContent = syncState.tally.successCount;
         if (tallyDisconnected) tallyDisconnected.textContent = syncState.tally.totalCount - syncState.tally.successCount;
         if (tallyRate) {
-            const rate = syncState.tally.totalCount > 0 
+            const rate = syncState.tally.totalCount > 0
                 ? Math.round((syncState.tally.successCount / syncState.tally.totalCount) * 100)
                 : 0;
             tallyRate.textContent = rate + '%';
@@ -386,10 +386,10 @@
 
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
-        
+
         const entry = document.createElement('div');
         entry.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg';
-        
+
         if (customMessage) {
             // Custom message entry (license fetch, etc)
             entry.innerHTML = `
@@ -404,7 +404,7 @@
             const tallyStatus = syncState.tally.connected ? '✅ Tally' : '❌ Tally';
             const internetStatus = syncState.internet.connected ? '✅ Internet' : '❌ Internet';
             const isOnline = syncState.tally.connected && syncState.internet.connected;
-            
+
             entry.innerHTML = `
                 <div class="w-2 h-2 ${isOnline ? 'bg-green-400' : 'bg-red-400'} rounded-full flex-shrink-0"></div>
                 <div class="text-sm text-gray-600 flex-1">
@@ -470,11 +470,11 @@
             // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            
+
             console.log(`Auto-fetching license info from port ${tallyPort}...`);
             if (window.electronAPI && window.electronAPI.invoke) {
                 const result = await window.electronAPI.invoke('fetch-license', { tallyPort });
-                
+
                 if (result.success && result.data) {
                     console.log('License fetched successfully:', result.data);
                     updateLicenseInfo(result.data);
@@ -576,18 +576,18 @@
                 fetchLicenseBtn.addEventListener('click', async () => {
                     fetchLicenseBtn.disabled = true;
                     fetchLicenseBtn.innerHTML = '<span>⏳</span><span>Fetching License...</span>';
-                    
+
                     try {
                         // Get Tally port from settings
                         const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
                         const tallyPort = appSettings.tallyPort || 9000;
-                        
+
                         console.log(`Fetching license from port ${tallyPort}...`);
-                        
+
                         // Call Python via IPC to fetch license
                         if (window.electronAPI && window.electronAPI.invoke) {
                             const result = await window.electronAPI.invoke('fetch-license', { tallyPort });
-                            
+
                             if (result.success && result.data) {
                                 updateLicenseInfo(result.data);
                                 addTimelineEntry('✅ License fetched successfully');

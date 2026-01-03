@@ -5,15 +5,17 @@
 
 class AuthService {
     constructor() {
-        this.token = localStorage.getItem('authToken');
-        this.deviceToken = localStorage.getItem('deviceToken');
-        this.user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        this.token = sessionStorage.getItem('authToken');
+        this.deviceToken = sessionStorage.getItem('deviceToken');
+        this.csrfToken = sessionStorage.getItem('csrfToken');
+        this.user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
         this.refreshInterval = null;
         
         // Log initialization for debugging
         console.log('🔐 AuthService initialized:', {
             hasToken: !!this.token,
             hasDeviceToken: !!this.deviceToken,
+            hasCsrfToken: !!this.csrfToken,
             hasUser: !!this.user,
             userId: this.user?.userId
         });
@@ -47,6 +49,7 @@ class AuthService {
             // Store token, device token and user
             this.token = data.token;
             this.deviceToken = data.deviceToken;
+            this.csrfToken = data.csrfToken || this.extractCsrfToken(response);
             this.user = {
                 userId: data.userId,
                 username: data.username,
@@ -54,10 +57,13 @@ class AuthService {
                 role: data.role
             };
 
-            localStorage.setItem('authToken', data.token);
-            localStorage.setItem('deviceToken', data.deviceToken);
-            localStorage.setItem('currentUser', JSON.stringify(this.user));
-            localStorage.setItem('loginTime', new Date().toISOString());
+            sessionStorage.setItem('authToken', data.token);
+            sessionStorage.setItem('deviceToken', data.deviceToken);
+            if (this.csrfToken) {
+                sessionStorage.setItem('csrfToken', this.csrfToken);
+            }
+            sessionStorage.setItem('currentUser', JSON.stringify(this.user));
+            sessionStorage.setItem('loginTime', new Date().toISOString());
 
             // Set token in all future requests
             this.setupTokenInterceptor();
@@ -141,12 +147,14 @@ class AuthService {
 
         this.token = null;
         this.deviceToken = null;
+        this.csrfToken = null;
         this.user = null;
 
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('deviceToken');
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('loginTime');
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('deviceToken');
+        sessionStorage.removeItem('csrfToken');
+        sessionStorage.removeItem('currentUser');
+        sessionStorage.removeItem('loginTime');
 
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
@@ -186,7 +194,7 @@ class AuthService {
 
             if (response.ok) {
                 this.token = data.token;
-                localStorage.setItem('authToken', data.token);
+                sessionStorage.setItem('authToken', data.token);
                 return true;
             }
 
@@ -230,6 +238,10 @@ class AuthService {
         
         if (this.deviceToken) {
             headers['X-Device-Token'] = this.deviceToken;
+        }
+
+        if (this.csrfToken) {
+            headers['X-CSRF-Token'] = this.csrfToken;
         }
         
         return headers;
@@ -293,6 +305,31 @@ class AuthService {
             console.error('Token validation error:', error);
             return false;
         }
+    }
+
+    /**
+     * Extract CSRF token from response headers
+     * @param {Response} response 
+     * @returns {string|null}
+     */
+    extractCsrfToken(response) {
+        // Try common CSRF header names
+        const csrfHeaders = [
+            'x-csrf-token',
+            'x-xsrf-token',
+            'csrf-token',
+            'xsrf-token'
+        ];
+
+        for (const header of csrfHeaders) {
+            const token = response.headers.get(header);
+            if (token) {
+                console.log(`✅ CSRF token extracted from header: ${header}`);
+                return token;
+            }
+        }
+
+        return null;
     }
 }
 

@@ -7,24 +7,36 @@
     * {
         @apply text-gray-800;
     }
-    
-    h1, h2, h3, h4, h5, h6 {
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
         @apply text-gray-900;
     }
-    
-    p, span, div, li {
+
+    p,
+    span,
+    div,
+    li {
         @apply text-gray-800;
     }
-    
+
     /* Ensure input/select text is visible */
-    input, select, textarea {
+    input,
+    select,
+    textarea {
         @apply text-gray-900 bg-white;
     }
-    
-    input::placeholder, select::placeholder, textarea::placeholder {
+
+    input::placeholder,
+    select::placeholder,
+    textarea::placeholder {
         @apply text-gray-400;
     }
-    
+
     /* Links are blue */
     a {
         @apply text-blue-600 hover:text-blue-700;
@@ -77,7 +89,7 @@
     align-items: center;
     justify-content: center;
     padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+    border-radius: 12px;
     font-weight: 500;
     font-size: 0.875rem;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -90,29 +102,29 @@
     transform: scale(0.98);
 }
 
-.btn-primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+.btn-erp {
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
     color: white;
-    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3), 0 2px 4px -1px rgba(79, 70, 229, 0.15);
+    box-shadow: 0 4px 12px rgba(94, 134, 186, 0.25);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.btn-primary:hover {
-    background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
-    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4), 0 4px 6px -2px rgba(79, 70, 229, 0.2);
-    transform: translateY(-1px);
+.btn-erp:hover {
+    background: linear-gradient(135deg, var(--primary-400) 0%, var(--primary-500) 100%);
+    box-shadow: 0 10px 15px -3px rgba(73, 109, 160, 0.4), 0 4px 6px -2px rgba(73, 109, 160, 0.2);
+    transform: translateY(-2px);
 }
 
 .btn-secondary {
     background: white;
-    color: #334155;
+    color: #395984;
     border: 1px solid #e2e8f0;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary:hover {
     background: #f8fafc;
-    color: #0f172a;
+    color: #2e476b;
     border-color: #cbd5e1;
 }
 
@@ -196,9 +208,9 @@
 
 .nav-link.active {
     background: #ffffff;
-    color: #111827;
+    color: var(--accent-500);
     border: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(41, 65, 96, 0.15);
 }
 
 .nav-link.active .nav-link-icon {
@@ -236,8 +248,8 @@ input:focus,
 select:focus,
 textarea:focus {
     outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.2);
 }
 
 /* Badges */

@@ -1,6 +1,5 @@
 (function () {
     const getSettingsTemplate = () => {
-        // Use the new UI components
         const tallyPortInput = window.UIComponents.input({
             id: 'tallyPort',
             type: 'number',
@@ -155,14 +154,23 @@
         }
     }
 
+    function validateSettings(tallyPort, syncInterval) {
+        if (isNaN(tallyPort) || tallyPort < 1 || tallyPort > 65535) {
+            throw new Error('Port must be between 1 and 65535');
+        }
+        if (isNaN(syncInterval) || syncInterval < 0) {
+            throw new Error('Interval must be a positive number');
+        }
+        return true;
+    }
+
     function setupEventListeners() {
-        // Theme Buttons
         const lightThemeBtn = document.getElementById('lightThemeBtn');
         const darkThemeBtn = document.getElementById('darkThemeBtn');
-        
+
         function updateThemeButtons() {
             const currentTheme = window.themeManager ? window.themeManager.getTheme() : 'light';
-            
+
             if (lightThemeBtn && darkThemeBtn) {
                 if (currentTheme === 'light') {
                     lightThemeBtn.style.borderColor = 'var(--primary-600)';
@@ -177,7 +185,7 @@
                 }
             }
         }
-        
+
         if (lightThemeBtn) {
             lightThemeBtn.addEventListener('click', () => {
                 if (window.themeManager) {
@@ -189,7 +197,7 @@
                 }
             });
         }
-        
+
         if (darkThemeBtn) {
             darkThemeBtn.addEventListener('click', () => {
                 if (window.themeManager) {
@@ -201,51 +209,55 @@
                 }
             });
         }
-        
-        // Initial button state
+
         updateThemeButtons();
-        
-        // Listen for theme changes from other sources
         window.addEventListener('theme-applied', updateThemeButtons);
-        
-        // Tally Connection
+
         const saveConnectionBtn = document.getElementById('saveConnectionBtn');
         if (saveConnectionBtn) {
             saveConnectionBtn.addEventListener('click', () => {
-                const tallyPortInput = document.getElementById('tallyPort').value;
-                const tallyPort = parseInt(tallyPortInput, 10);
-                
-                const syncIntervalInput = document.getElementById('syncInterval').value;
-                const syncInterval = parseInt(syncIntervalInput, 10) || 30;
-                
-                console.log('💾 Saving Settings:');
-                console.log('   Tally Port:', tallyPort);
-                console.log('   Sync Interval:', syncInterval, 'minutes');
-                
-                const settings = {
-                    tallyPort: tallyPort,
-                    syncInterval: syncInterval
-                };
-                
-                saveSettings(settings);
-                
-                console.log('✅ Settings saved to localStorage:', JSON.stringify(settings));
-                console.log('📦 Full appSettings now:', localStorage.getItem('appSettings'));
-                
-                if (window.notificationService) {
-                    let message = `✅ Settings saved: Port ${tallyPort}`;
-                    if (syncInterval > 0) {
-                        message += `, Auto-sync every ${syncInterval} minutes`;
-                    } else {
-                        message += `, Auto-sync disabled`;
+                try {
+                    const tallyPort = parseInt(document.getElementById('tallyPort').value, 10);
+                    const syncInterval = parseInt(document.getElementById('syncInterval').value, 10) || 30;
+
+                    validateSettings(tallyPort, syncInterval);
+
+                    console.log('💾 Saving Settings:');
+                    console.log('   Tally Port:', tallyPort);
+                    console.log('   Sync Interval:', syncInterval, 'minutes');
+
+                    const settings = {
+                        tallyPort: tallyPort,
+                        syncInterval: syncInterval
+                    };
+
+                    saveSettings(settings);
+
+                    console.log('✅ Settings saved');
+
+                    if (window.notificationService) {
+                        let message = `✅ Settings saved: Port ${tallyPort}`;
+                        if (syncInterval > 0) {
+                            message += `, Auto-sync every ${syncInterval} minutes`;
+                        } else {
+                            message += `, Auto-sync disabled`;
+                        }
+                        window.notificationService.success(message);
                     }
-                    window.notificationService.success(message);
-                }
-                
-                // Restart sync scheduler with new interval
-                if (window.syncScheduler) {
-                    console.log('🔄 Restarting sync scheduler with new interval...');
-                    window.syncScheduler.restart();
+
+                    if (window.electronAPI && window.electronAPI.send) {
+                        window.electronAPI.send('update-sync-settings', settings);
+                    }
+
+                    if (window.syncScheduler) {
+                        console.log('🔄 Restarting sync scheduler with new interval...');
+                        window.syncScheduler.restart();
+                    }
+                } catch (error) {
+                    console.error('❌ Settings validation error:', error.message);
+                    if (window.notificationService) {
+                        window.notificationService.error('❌ ' + error.message);
+                    }
                 }
             });
         }
@@ -258,30 +270,30 @@
 
     function updateSyncStatus() {
         if (!window.syncScheduler) return;
-        
+
         const status = window.syncScheduler.getStatus();
         const statusDiv = document.getElementById('autoSyncStatus');
         const indicator = document.getElementById('syncStatusIndicator');
         const statusText = document.getElementById('syncStatusText');
         const lastTimeDiv = document.getElementById('syncLastTime');
         const nextTimeDiv = document.getElementById('syncNextTime');
-        
+
         if (!statusDiv) return;
-        
+
         statusDiv.style.display = 'block';
-        
+
         if (status.isRunning) {
             statusDiv.className = 'mt-2 p-2 rounded-lg text-xs bg-green-50 border border-green-200';
             indicator.textContent = status.isSyncing ? '🔄' : '✅';
-            statusText.textContent = status.isSyncing 
-                ? 'Syncing now...' 
+            statusText.textContent = status.isSyncing
+                ? 'Syncing now...'
                 : `Auto-sync active (every ${status.syncInterval} min)`;
-            
+
             if (status.lastSyncTime) {
                 lastTimeDiv.style.display = 'block';
                 lastTimeDiv.textContent = `Last sync: ${status.lastSyncTime.toLocaleString()}`;
             }
-            
+
             if (status.nextSyncTime) {
                 nextTimeDiv.style.display = 'block';
                 nextTimeDiv.textContent = `Next sync: ${status.nextSyncTime.toLocaleString()}`;
@@ -302,8 +314,7 @@
             content.innerHTML = getSettingsTemplate();
             loadSettings();
             updateSyncStatus();
-            
-            // Update status every 5 seconds
+
             setInterval(updateSyncStatus, 5000);
             setupEventListeners();
         }

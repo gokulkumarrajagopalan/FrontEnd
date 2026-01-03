@@ -38,8 +38,8 @@
         @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-[0.98] text-xs uppercase tracking-wide;
     }
 
-    .btn-primary {
-        background: #000000 !important;
+    .btn-erp {
+        background: var(--primary-600) !important;
         color: #ffffff !important;
     }
 
@@ -119,8 +119,8 @@
 
     .nav-link.active {
         @apply bg-white shadow-lg font-medium;
-        border-left: 3px solid #667eea;
-        color: #ffffff !important;
+        border-left: 3px solid var(--primary-500);
+        color: var(--accent-600) !important;
     }
 
     .nav-link-icon {
@@ -128,7 +128,7 @@
     }
 
     .nav-link.active .nav-link-icon {
-        color: #ffffff !important;
+        color: var(--accent-600) !important;
     }
 
     .nav-link:hover .nav-link-icon {

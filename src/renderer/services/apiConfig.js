@@ -1,5 +1,9 @@
+// Support both module and non-module environments
 const apiConfig = {
-    BASE_URL: 'http://localhost:8080',
+    get BASE_URL() {
+        // No import.meta in non-module context - use direct URL
+        return 'http://localhost:8080';
+    },
 
     endpoints: {
         auth: {
@@ -10,42 +14,50 @@ const apiConfig = {
             validate: '/auth/validate'
         },
         companies: '/companies',
-        
+
         masters: {
             accounts: '/masters/accounts',
             costcenters: '/masters/cost-centers',
             categories: '/masters/categories',
-            units: '/masters/units'
+            units: '/units'
         },
-        
+
         // Transactions
         vouchers: '/vouchers',
         invoices: '/invoices',
         payments: '/payments',
-        
+
         // Data
         ledgers: '/ledgers',
         items: '/items',
-        
+
         // Reports & Analytics
         audit: '/audit/logs',
         bank: '/bank/statements',
         budgets: '/budgets',
         reports: '/reports',
-        
+
         // User
         users: '/users'
     },
-    
+
     /**
      * Get full API URL for an endpoint
      * @param {string} endpoint - The endpoint path
      * @returns {string} - Full API URL
      */
     getUrl(endpoint) {
-        return `${this.BASE_URL}${endpoint}`;
+        const base = this.BASE_URL;
+        return `${base}${endpoint}`;
     },
     
+    /**
+     * Get base URL (alias for BASE_URL)
+     */
+    get baseURL() {
+        return this.BASE_URL;
+    },
+
     /**
      * Get full API URL for a specific endpoint with ID
      * @param {string} endpoint - The endpoint path
@@ -55,7 +67,7 @@ const apiConfig = {
     getUrlWithId(endpoint, id) {
         return `${this.BASE_URL}${endpoint}/${id}`;
     },
-    
+
     /**
      * Get nested endpoint (e.g., masters.accounts)
      * @param {string} category - Parent category (e.g., 'masters', 'auth')
@@ -72,8 +84,12 @@ const apiConfig = {
     }
 };
 
-// Export for module systems and make globally available
+// Make globally available
+if (typeof window !== 'undefined') {
+    window.apiConfig = apiConfig;
+}
+
+// Also export for module systems if needed
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = apiConfig;
 }
-window.apiConfig = apiConfig;

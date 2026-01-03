@@ -59,141 +59,92 @@ class ThemeManager {
     }
 
     applyLightTheme(root) {
-        // Background colors - Light Grey Background (#F5F5F5)
-        root.style.setProperty('--bg-primary', '#F5F5F5');
+        // Background colors - Clean Professional Blue/Grey
+        root.style.setProperty('--bg-primary', '#F8FAFC');
         root.style.setProperty('--bg-secondary', '#ffffff');
-        root.style.setProperty('--bg-tertiary', '#E3F2FD'); // Soft Blue Panels
-        root.style.setProperty('--bg-hover', '#E3F2FD');
+        root.style.setProperty('--bg-tertiary', '#eff3f8');
+        root.style.setProperty('--bg-hover', '#f1f5f9');
 
         // Text colors
-        root.style.setProperty('--text-primary', '#1a1a2e');
-        root.style.setProperty('--text-secondary', '#374151');
-        root.style.setProperty('--text-tertiary', '#6b7280');
-        root.style.setProperty('--text-disabled', '#9ca3af');
+        root.style.setProperty('--text-primary', '#1e293b');
+        root.style.setProperty('--text-secondary', '#475569');
+        root.style.setProperty('--text-tertiary', '#64748b');
+        root.style.setProperty('--text-disabled', '#94a3b8');
 
         // Border colors
-        root.style.setProperty('--border-primary', '#e0e0e0');
-        root.style.setProperty('--border-secondary', '#bdbdbd');
-        root.style.setProperty('--border-focus', '#1565C0'); // Royal Blue
+        root.style.setProperty('--border-primary', '#e2e8f0');
+        root.style.setProperty('--border-secondary', '#cbd5e1');
+        root.style.setProperty('--border-focus', '#5E86BA');
 
-        // Brand colors - Royal Blue Theme
-        root.style.setProperty('--primary-50', '#E3F2FD');
-        root.style.setProperty('--primary-100', '#BBDEFB');
-        root.style.setProperty('--primary-200', '#90CAF9');
-        root.style.setProperty('--primary-300', '#64B5F6');
-        root.style.setProperty('--primary-400', '#42A5F5');
-        root.style.setProperty('--primary-500', '#2196F3');
-        root.style.setProperty('--primary-600', '#1565C0'); // Royal Blue - Primary
-        root.style.setProperty('--primary-700', '#0D47A1');
-        root.style.setProperty('--primary-800', '#0A3A7A');
-        root.style.setProperty('--primary-900', '#072654');
+        // Brand colors - Blue Steel Theme
+        root.style.setProperty('--primary-50', '#eff3f8');
+        root.style.setProperty('--primary-100', '#dce7f1');
+        root.style.setProperty('--primary-200', '#bccee3');
+        root.style.setProperty('--primary-300', '#9cabce');
+        root.style.setProperty('--primary-400', '#7d97b9');
+        root.style.setProperty('--primary-500', '#5E86BA');
+        root.style.setProperty('--primary-600', '#4a6da1');
+        root.style.setProperty('--primary-700', '#395584');
+        root.style.setProperty('--primary-800', '#29416a');
+        root.style.setProperty('--primary-900', '#1d2e50');
 
-        // Secondary/Accent colors - Sky Blue
-        root.style.setProperty('--secondary-50', '#E1F5FE');
-        root.style.setProperty('--secondary-100', '#B3E5FC');
-        root.style.setProperty('--secondary-200', '#81D4FA');
-        root.style.setProperty('--secondary-300', '#4FC3F7');
-        root.style.setProperty('--secondary-400', '#29B6F6'); // Accent Sky Blue
-        root.style.setProperty('--secondary-500', '#03A9F4');
-        root.style.setProperty('--secondary-600', '#039BE5');
-        root.style.setProperty('--secondary-700', '#0288D1');
-        root.style.setProperty('--secondary-800', '#0277BD');
-        root.style.setProperty('--secondary-900', '#01579B');
+        // Secondary Colors - Deep Blue Steel
+        root.style.setProperty('--secondary-50', '#ebeeef');
+        root.style.setProperty('--secondary-400', '#4d698f');
+        root.style.setProperty('--secondary-500', '#395984');
+        root.style.setProperty('--secondary-600', '#2d4a70');
+        root.style.setProperty('--secondary-700', '#243b5a');
+        root.style.setProperty('--secondary-800', '#1a2c45');
+        root.style.setProperty('--secondary-900', '#0c131d');
 
         // Gradient
-        root.style.setProperty('--gradient-start', '#1565C0');
-        root.style.setProperty('--gradient-middle', '#1976D2');
-        root.style.setProperty('--gradient-end', '#29B6F6');
+        root.style.setProperty('--gradient-start', '#5E86BA');
+        root.style.setProperty('--gradient-middle', '#395984');
+        root.style.setProperty('--gradient-end', '#294160');
 
-        // Sidebar - Dark Blue for contrast
-        root.style.setProperty('--sidebar-bg', '#0D47A1');
+        // Sidebar
+        root.style.setProperty('--sidebar-bg', '#294160');
         root.style.setProperty('--sidebar-text', '#ffffff');
-        root.style.setProperty('--sidebar-hover', '#1565C0');
+        root.style.setProperty('--sidebar-hover', '#395984');
 
         // Card
         root.style.setProperty('--card-bg', '#ffffff');
-        root.style.setProperty('--card-border', '#e0e0e0');
-        root.style.setProperty('--card-shadow', 'rgba(21, 101, 192, 0.08)');
+        root.style.setProperty('--card-border', '#e2e8f0');
+        root.style.setProperty('--card-shadow', 'rgba(41, 65, 96, 0.08)');
 
         // Input
         root.style.setProperty('--input-bg', '#ffffff');
-        root.style.setProperty('--input-border', '#e0e0e0');
-        root.style.setProperty('--input-text', '#1a1a2e');
-        root.style.setProperty('--input-placeholder', '#9ca3af');
+        root.style.setProperty('--input-border', '#e2e8f0');
+        root.style.setProperty('--input-text', '#1e293b');
+        root.style.setProperty('--input-placeholder', '#94a3b8');
 
         // Table
-        root.style.setProperty('--table-header-bg', '#E3F2FD');
-        root.style.setProperty('--table-row-hover', '#f5f5f5');
-        root.style.setProperty('--table-border', '#e0e0e0');
+        root.style.setProperty('--table-header-bg', '#f1f5f9');
+        root.style.setProperty('--table-row-hover', '#f8fafc');
+        root.style.setProperty('--table-border', '#e2e8f0');
     }
 
     applyDarkTheme(root) {
-        // Background colors - Charcoal Black (#121212) for eye comfort
-        root.style.setProperty('--bg-primary', '#121212');
-        root.style.setProperty('--bg-secondary', '#1E1E1E'); // Dark Grey Panels
-        root.style.setProperty('--bg-tertiary', '#2D2D2D');
-        root.style.setProperty('--bg-hover', '#333333');
+        // Deep Professional Dark
+        root.style.setProperty('--bg-primary', '#0f172a');
+        root.style.setProperty('--bg-secondary', '#1e293b');
+        root.style.setProperty('--bg-tertiary', '#334155');
+        root.style.setProperty('--bg-hover', '#334155');
 
-        // Text colors - Grey for readability (#E0E0E0)
-        root.style.setProperty('--text-primary', '#E0E0E0');
-        root.style.setProperty('--text-secondary', '#B0B0B0');
-        root.style.setProperty('--text-tertiary', '#808080');
-        root.style.setProperty('--text-disabled', '#606060');
+        // Text colors
+        root.style.setProperty('--text-primary', '#f8fafc');
+        root.style.setProperty('--text-secondary', '#cbd5e1');
+        root.style.setProperty('--text-tertiary', '#94a3b8');
+        root.style.setProperty('--text-disabled', '#64748b');
 
-        // Border colors
-        root.style.setProperty('--border-primary', '#333333');
-        root.style.setProperty('--border-secondary', '#444444');
-        root.style.setProperty('--border-focus', '#00BCD4'); // Teal highlight
+        // Brand colors - Muted Blue highlight
+        root.style.setProperty('--primary-500', '#5E86BA');
+        root.style.setProperty('--primary-600', '#4a6da1');
+        root.style.setProperty('--sidebar-bg', '#020617');
+        root.style.setProperty('--sidebar-hover', '#1e293b');
 
-        // Brand colors - Teal/Cyan theme for dark mode
-        root.style.setProperty('--primary-50', '#E0F7FA');
-        root.style.setProperty('--primary-100', '#B2EBF2');
-        root.style.setProperty('--primary-200', '#80DEEA');
-        root.style.setProperty('--primary-300', '#4DD0E1');
-        root.style.setProperty('--primary-400', '#26C6DA');
-        root.style.setProperty('--primary-500', '#00BCD4'); // Highlight Teal
-        root.style.setProperty('--primary-600', '#00ACC1');
-        root.style.setProperty('--primary-700', '#0097A7');
-        root.style.setProperty('--primary-800', '#00838F');
-        root.style.setProperty('--primary-900', '#006064');
-
-        // Secondary/Accent colors - Blue accent
-        root.style.setProperty('--secondary-50', '#E3F2FD');
-        root.style.setProperty('--secondary-100', '#BBDEFB');
-        root.style.setProperty('--secondary-200', '#90CAF9');
-        root.style.setProperty('--secondary-300', '#64B5F6');
-        root.style.setProperty('--secondary-400', '#42A5F5');
-        root.style.setProperty('--secondary-500', '#2979FF'); // Highlight Blue
-        root.style.setProperty('--secondary-600', '#2196F3');
-        root.style.setProperty('--secondary-700', '#1976D2');
-        root.style.setProperty('--secondary-800', '#1565C0');
-        root.style.setProperty('--secondary-900', '#0D47A1');
-
-        // Gradient - Teal to Blue
-        root.style.setProperty('--gradient-start', '#00BCD4');
-        root.style.setProperty('--gradient-middle', '#00ACC1');
-        root.style.setProperty('--gradient-end', '#2979FF');
-
-        // Sidebar - Darker for contrast
-        root.style.setProperty('--sidebar-bg', '#0A0A0A');
-        root.style.setProperty('--sidebar-text', '#E0E0E0');
-        root.style.setProperty('--sidebar-hover', '#1E1E1E');
-
-        // Card
-        root.style.setProperty('--card-bg', '#1E1E1E');
-        root.style.setProperty('--card-border', '#333333');
-        root.style.setProperty('--card-shadow', 'rgba(0, 188, 212, 0.1)');
-
-        // Input
-        root.style.setProperty('--input-bg', '#1E1E1E');
-        root.style.setProperty('--input-border', '#333333');
-        root.style.setProperty('--input-text', '#E0E0E0');
-        root.style.setProperty('--input-placeholder', '#606060');
-
-        // Table
-        root.style.setProperty('--table-header-bg', '#1E1E1E');
-        root.style.setProperty('--table-row-hover', '#2D2D2D');
-        root.style.setProperty('--table-border', '#333333');
+        root.style.setProperty('--card-bg', '#1e293b');
+        root.style.setProperty('--border-primary', '#334155');
     }
 
     getTheme() {

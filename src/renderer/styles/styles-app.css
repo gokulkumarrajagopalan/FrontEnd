@@ -3,13 +3,13 @@
    ===================================================== */
 
 :root {
-    --primary: #667eea;
-    --primary-dark: #764ba2;
-    --secondary: #6c757d;
-    --success: #28a745;
-    --danger: #dc3545;
-    --warning: #ffc107;
-    --info: #17a2b8;
+    --primary: var(--primary-500);
+    --primary-dark: var(--primary-700);
+    --secondary: var(--secondary-500);
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: var(--primary-400);
     --light: #f8f9fa;
     --dark: #343a40;
     --text: #333;
@@ -74,8 +74,8 @@
 }
 
 .auth-tab-btn.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
+    color: var(--primary-500);
+    border-bottom-color: var(--primary-500);
 }
 
 .auth-form {
@@ -138,7 +138,7 @@
 /* Sidebar */
 .sidebar {
     width: 280px;
-    background: var(--primary-600);
+    background: var(--sidebar-bg);
     color: white;
     display: flex;
     flex-direction: column;
@@ -218,9 +218,9 @@
 
 .nav-link.active {
     background: #ffffff;
-    color: #111827;
-    border-left-color: #667eea;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: var(--accent-500);
+    border-left-color: var(--primary-500);
+    box-shadow: 0 4px 12px rgba(41, 65, 96, 0.15);
 }
 
 .nav-icon {
@@ -314,19 +314,19 @@
 }
 
 .stat-card-1 {
-    border-top: 4px solid #667eea;
+    border-top: 4px solid var(--primary-500);
 }
 
 .stat-card-2 {
-    border-top: 4px solid #f093fb;
+    border-top: 4px solid var(--secondary-400);
 }
 
 .stat-card-3 {
-    border-top: 4px solid #f5576c;
+    border-top: 4px solid var(--accent-400);
 }
 
 .stat-card-4 {
-    border-top: 4px solid #4facfe;
+    border-top: 4px solid var(--primary-300);
 }
 
 .stat-icon {
@@ -453,8 +453,8 @@
 .master-tab.active,
 .voucher-tab.active,
 .report-tab.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
+    color: var(--primary-600);
+    border-bottom-color: var(--primary-500);
 }
 
 .master-tab:hover,
@@ -544,7 +544,7 @@
 }
 
 .report-table thead {
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(90deg, var(--primary-600) 0%, var(--secondary-500) 100%);
     color: white;
 }
 
@@ -644,6 +644,7 @@
         transform: translateY(20px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -654,6 +655,7 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }

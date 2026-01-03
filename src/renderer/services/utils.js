@@ -136,7 +136,7 @@ class Utils {
                 <p class="text-gray-500 mb-6 text-sm">${message}</p>
                 <div class="flex gap-3 justify-center">
                     <button class="btn btn-secondary btn-cancel w-full">Cancel</button>
-                    <button class="btn ${type === 'danger' ? 'btn-danger' : 'btn-primary'} btn-confirm w-full">${confirmText}</button>
+                    <button class="btn ${type === 'danger' ? 'btn-danger' : 'btn-erp'} btn-confirm w-full">${confirmText}</button>
                 </div>
             </div>
         `;

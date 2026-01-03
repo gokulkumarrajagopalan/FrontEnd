@@ -45,24 +45,24 @@
             <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl shadow-lg p-6 flex flex-col justify-between">
                 <div>
                     <p class="text-xs uppercase text-blue-100">Sync Health Score</p>
-                    <h3 class="text-4xl font-bold mt-1" id="syncHealthScore">98%</h3>
+                    <h3 class="text-4xl font-bold mt-1" id="companySyncHealthScore">98%</h3>
                     <p class="text-sm text-blue-100 mt-1">Measured across the last 24 hours</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4 mt-6">
                     <div class="bg-white/15 rounded-xl p-3">
                         <p class="text-xs text-blue-100">Avg. Duration</p>
-                        <p class="text-xl font-bold">02m 14s</p>
+                        <p class="text-xl font-bold" id="companySyncAvgDuration">02m 14s</p>
                         <p class="text-[11px] text-blue-100 mt-1">Per company</p>
                     </div>
                     <div class="bg-white/15 rounded-xl p-3">
                         <p class="text-xs text-blue-100">Queue Size</p>
-                        <p class="text-xl font-bold">6 Pending</p>
+                        <p class="text-xl font-bold" id="companySyncQueueSize">6 Pending</p>
                         <p class="text-[11px] text-blue-100 mt-1">Awaiting sync</p>
                     </div>
                 </div>
                 <div class="mt-6 text-xs text-blue-100 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-300"></span>
-                    Live anomaly detection enabled
+                    <span class="w-2 h-2 rounded-full bg-emerald-300" id="companySyncAnomalyIndicator"></span>
+                    <span id="companySyncAnomalyStatus">Live anomaly detection enabled</span>
                 </div>
             </div>
         </div>
@@ -181,6 +181,7 @@
     `;
 
     let companies = [];
+    let isSyncing = false;
 
     async function loadCompanies() {
         try {
@@ -248,13 +249,33 @@
     }
 
     async function syncCompanyGroups(company, button) {
+        // Check if sync is already in progress using SyncStateManager
+        if (window.syncStateManager && window.syncStateManager.isSyncInProgress()) {
+            window.notificationService.warning('🔄 Sync is already in progress. Request has been queued and will run after current sync completes.');
+            console.warn('Sync already in progress, queueing request');
+            return;
+        }
+
+        // Prevent local isSyncing flag conflicts
+        if (isSyncing) {
+            window.notificationService.warning('🔄 Sync is already in progress. Please wait...');
+            return;
+        }
+
+        // Try to start sync through SyncStateManager
+        if (window.syncStateManager && !window.syncStateManager.startSync('company-specific', 1)) {
+            window.notificationService.warning('🔄 Sync is already in progress. Request has been queued.');
+            return;
+        }
+
+        isSyncing = true;
         const originalContent = button.innerHTML;
 
         try {
             button.disabled = true;
             button.innerHTML = '<span class="animate-pulse">🔄 Syncing...</span>';
 
-            console.log(`🔄 Starting Tally sync for company: ${company.name} (ID: ${company.id})`);
+            console.log(`🔄 Starting Full Master Sync for company: ${company.name} (ID: ${company.id})`);
 
             // Get auth tokens
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -265,121 +286,113 @@
                 throw new Error('Authentication required. Please log in again.');
             }
 
-            // Check if Electron API is available
-            if (!window.electronAPI || !window.electronAPI.syncGroups || !window.electronAPI.syncLedgers) {
-                throw new Error('Electron API not available. Please restart the application.');
-            }
-
             // Get settings for Tally port and backend URL
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
 
-            let groupsSuccess = false;
-            let ledgersSuccess = false;
-            let groupsCount = 0;
-            let ledgersCount = 0;
+            const syncSteps = [
+                { name: 'Units', api: window.electronAPI.syncUnits },
+                { name: 'Stock Groups', api: window.electronAPI.syncStockGroups },
+                { name: 'Stock Categories', api: window.electronAPI.syncStockCategories },
+                { name: 'Stock Items', api: window.electronAPI.syncStockItems },
+                { name: 'Godowns', api: window.electronAPI.syncGodowns },
+                { name: 'Groups', api: window.electronAPI.syncGroups },
+                { name: 'Ledgers', api: window.electronAPI.syncLedgers },
+                { name: 'Cost Categories', api: window.electronAPI.syncCostCategories },
+                { name: 'Cost Centres', api: window.electronAPI.syncCostCenters },
+                { name: 'Voucher Types', api: window.electronAPI.syncVoucherTypes },
+                { name: 'Currencies', api: window.electronAPI.syncCurrencies },
+                { name: 'Tax Units', api: window.electronAPI.syncTaxUnits }
+            ];
 
-            // Sync Groups
-            button.innerHTML = '<span class="animate-pulse">🔄 Syncing Groups...</span>';
-            console.log('   📊 Syncing groups...');
+            let successCount = 0;
+            let companyAllSuccess = true;
 
-            const groupsResult = await window.electronAPI.syncGroups({
-                companyId: company.id,
-                userId: currentUser?.userId || 1,
-                authToken: authToken,
-                deviceToken: deviceToken,
-                tallyPort: tallyPort,
-                backendUrl: backendUrl
-            });
+            for (let i = 0; i < syncSteps.length; i++) {
+                const step = syncSteps[i];
+                button.innerHTML = `<span class="animate-pulse">🔄 [${i + 1}/${syncSteps.length}] ${step.name}...</span>`;
+                
+                // Update progress in SyncStateManager
+                if (window.syncStateManager) {
+                    window.syncStateManager.updateProgress(i, `${company.name} - ${step.name}`);
+                }
+                
+                console.log(`   🔄 Syncing ${step.name}...`);
 
-            if (groupsResult.success) {
-                groupsSuccess = true;
-                groupsCount = groupsResult.count || 0;
-                console.log(`   ✅ Synced ${groupsCount} groups`);
-            } else {
-                console.error('   ❌ Groups sync failed:', groupsResult.message);
+                if (!step.api) {
+                    console.warn(`   ⚠️ API for ${step.name} not available`);
+                    continue;
+                }
+
+                const result = await step.api({
+                    companyId: company.id,
+                    userId: currentUser?.userId || 1,
+                    authToken: authToken,
+                    deviceToken: deviceToken,
+                    tallyPort: tallyPort,
+                    backendUrl: backendUrl,
+                    companyName: company.name
+                });
+
+                if (result.success) {
+                    successCount++;
+                    console.log(`   ✅ ${step.name} synced`);
+                } else {
+                    console.error(`   ❌ ${step.name} sync failed:`, result.message);
+                    companyAllSuccess = false;
+
+                    // Step 9: Critical Error Handling (Popups)
+                    const isCritical = result.message?.includes('Company mismatch') ||
+                        result.message?.includes('Another sync session') ||
+                        result.message?.includes('integrity violation');
+
+                    if (isCritical && window.notificationService) {
+                        window.notificationService.error(
+                            `Sync Blocked: ${result.message}`,
+                            { title: 'Data Safety Alert', duration: 10000 }
+                        );
+                        // Stop further steps for safety
+                        break;
+                    }
+                }
             }
 
-            // Sync Ledgers
-            button.innerHTML = '<span class="animate-pulse">🔄 Syncing Ledgers...</span>';
-            console.log('   📒 Syncing ledgers...');
-
-            const ledgersResult = await window.electronAPI.syncLedgers({
-                companyId: company.id,
-                userId: currentUser?.userId || 1,
-                authToken: authToken,
-                deviceToken: deviceToken,
-                tallyPort: tallyPort,
-                backendUrl: backendUrl
-            });
-
-            if (ledgersResult.success) {
-                ledgersSuccess = true;
-                ledgersCount = ledgersResult.count || 0;
-                console.log(`   ✅ Synced ${ledgersCount} ledgers`);
-            } else {
-                console.error('   ❌ Ledgers sync failed:', ledgersResult.message);
-            }
-
-            // Check overall sync result
-            if (groupsSuccess && ledgersSuccess) {
-                window.notificationService.success(
-                    `✅ Successfully synced ${company.name}!\n` +
-                    `📊 Groups: ${groupsCount} | 📒 Ledgers: ${ledgersCount}`
-                );
-
-                // Update company sync status
+            // Update UI and Status based on results
+            if (companyAllSuccess) {
+                window.notificationService.success(`✅ Successfully synced all ${successCount} masters for ${company.name}!`);
                 company.syncStatus = 'synced';
-                company.status = 'active';
-                company.lastSyncDate = new Date().toISOString();
-
-                // Update in backend
                 await updateCompanyStatus(company.id, 'synced', 'active');
-
-                // Reload companies to refresh the table
-                await loadCompanies();
-            } else if (groupsSuccess || ledgersSuccess) {
-                // Partial success
-                let message = `⚠️ Partial sync for ${company.name}:\n`;
-                if (groupsSuccess) message += `✅ Groups: ${groupsCount}\n`;
-                else message += `❌ Groups: Failed\n`;
-                if (ledgersSuccess) message += `✅ Ledgers: ${ledgersCount}`;
-                else message += `❌ Ledgers: Failed`;
-
-                window.notificationService.warning(message);
-
-                // Update to pending status
+                if (window.syncStateManager) {
+                    window.syncStateManager.endSync(true, `${successCount} masters synced for ${company.name}`);
+                }
+            } else if (successCount > 0) {
+                window.notificationService.warning(`⚠️ Partial sync for ${company.name}: ${successCount}/${syncSteps.length} masters succeeded.`);
                 company.syncStatus = 'pending';
                 await updateCompanyStatus(company.id, 'pending', 'active');
-                await loadCompanies();
+                if (window.syncStateManager) {
+                    window.syncStateManager.endSync(true, `Partial sync: ${successCount}/${syncSteps.length} completed`);
+                }
             } else {
-                // Both failed
-                let errorMessage = `❌ Failed to sync ${company.name}:\n`;
-                if (groupsResult.message) errorMessage += `Groups: ${groupsResult.message}\n`;
-                if (ledgersResult.message) errorMessage += `Ledgers: ${ledgersResult.message}`;
-
-                window.notificationService.error(errorMessage);
-
+                window.notificationService.error(`❌ Failed to sync any masters for ${company.name}. Check logs for details.`);
                 company.syncStatus = 'error';
                 await updateCompanyStatus(company.id, 'error', 'active');
-                await loadCompanies();
+                if (window.syncStateManager) {
+                    window.syncStateManager.endSync(false, `Failed to sync ${company.name}`);
+                }
             }
+
+            // Reload companies to refresh table
+            await loadCompanies();
 
         } catch (error) {
             console.error('❌ Sync error:', error);
-
-            let errorMessage = `Failed to sync ${company.name}: `;
-            if (error.message && error.message.includes('Authentication required')) {
-                errorMessage += 'Please log in again.';
-            } else if (error.message && error.message.includes('Electron API not available')) {
-                errorMessage += error.message;
-            } else {
-                errorMessage += (error.message || 'Unknown error');
+            window.notificationService.error(`Failed to sync ${company.name}: ${error.message || 'Unknown error'}`);
+            if (window.syncStateManager) {
+                window.syncStateManager.endSync(false, error.message);
             }
-
-            window.notificationService.error(errorMessage);
         } finally {
+            isSyncing = false;
             button.disabled = false;
             button.innerHTML = originalContent;
         }
@@ -635,7 +648,7 @@
                 </div>
 
                 <div class="flex gap-3 pt-4">
-                    <button class="btn btn-primary flex-1" onclick="document.getElementById('syncDetailsModal').style.display='none'">Close</button>
+                    <button class="btn btn-erp flex-1" onclick="document.getElementById('syncDetailsModal').style.display='none'">Close</button>
                 </div>
             </div>
         `;
@@ -684,6 +697,50 @@
         }
     }
 
+    function updateCompanySyncHealthMetrics() {
+        if (!window.syncScheduler) return;
+
+        const status = window.syncScheduler.getStatus();
+        const healthScoreEl = document.getElementById('companySyncHealthScore');
+        const avgDurationEl = document.getElementById('companySyncAvgDuration');
+        const queueSizeEl = document.getElementById('companySyncQueueSize');
+        const anomalyIndicator = document.getElementById('companySyncAnomalyIndicator');
+        const anomalyStatus = document.getElementById('companySyncAnomalyStatus');
+
+        if (!healthScoreEl || !avgDurationEl || !queueSizeEl) return;
+
+        // Calculate health score based on sync status
+        let score = 100;
+        if (status.lastSyncError) {
+            score -= 15;
+        } else if (!status.isRunning) {
+            score -= 25;
+        } else if (status.isSyncing) {
+            score = 98;
+        }
+
+        healthScoreEl.textContent = Math.max(0, Math.min(100, score)) + '%';
+
+        // Get sync metrics from localStorage or use defaults
+        const syncMetrics = JSON.parse(localStorage.getItem('syncMetrics') || '{"avgDuration":"02m 14s","queueSize":0}');
+        avgDurationEl.textContent = syncMetrics.avgDuration || '02m 14s';
+        
+        // Update queue size with pending companies count
+        const pendingCount = companies.filter(c => c.syncStatus === 'pending').length;
+        queueSizeEl.textContent = pendingCount > 0 ? `${pendingCount} Pending` : 'Ready';
+
+        // Update anomaly detection status
+        if (anomalyIndicator && anomalyStatus) {
+            if (status.lastSyncError || score < 70) {
+                anomalyIndicator.className = 'w-2 h-2 rounded-full bg-rose-300 animate-pulse';
+                anomalyStatus.textContent = 'Anomaly detected';
+            } else {
+                anomalyIndicator.className = 'w-2 h-2 rounded-full bg-emerald-300';
+                anomalyStatus.textContent = 'Live anomaly detection enabled';
+            }
+        }
+    }
+
     window.initializeCompanySync = async function () {
         console.log('Initializing Company Sync Page...');
         const content = document.getElementById('page-content');
@@ -691,6 +748,12 @@
             content.innerHTML = getTemplate();
             setupEventListeners();
             await loadCompanies();
+            
+            // Update sync health metrics
+            updateCompanySyncHealthMetrics();
+            // Update every 10 seconds
+            setInterval(updateCompanySyncHealthMetrics, 10000);
+            
             console.log('✅ Company Sync Page initialized');
         }
     };

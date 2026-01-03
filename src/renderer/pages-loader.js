@@ -6,7 +6,7 @@
 class PageLoader {
     static async loadAllPages() {
         const pagesMap = {};
-        
+
         // Map of route names to their initialize function names
         const pageInitializers = {
             'home': 'initializeHome',
@@ -21,6 +21,11 @@ class PageLoader {
             'sync-settings': 'initializeSyncSettings',
             'import-company': 'initializeImportCompany',
             'company-sync': 'initializeCompanySync',
+            'units': 'initializeUnits',
+            'stock-groups': 'initializeStockGroups',
+            'stock-categories': 'initializeStockCategories',
+            'stock-items': 'initializeStockItems',
+            'godowns': 'initializeGodowns',
             'voucher-type': 'initializeVoucherType'
         };
 

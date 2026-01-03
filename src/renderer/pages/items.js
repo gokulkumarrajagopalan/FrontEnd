@@ -8,7 +8,7 @@
 
         <div class="page-actions justify-between">
             <div class="flex gap-3">
-                <button id="addItemBtn" class="btn btn-primary">
+                <button id="addItemBtn" class="btn btn-erp">
                     <span class="mr-2">+</span> Add Item
                 </button>
                 <div class="relative">
@@ -79,7 +79,7 @@
                     </div>
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-50">
                         <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Item</button>
+                        <button type="submit" class="btn btn-erp">Save Item</button>
                     </div>
                 </form>
             </div>

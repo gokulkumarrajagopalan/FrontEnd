@@ -18,6 +18,7 @@ def get_common_args():
     parser.add_argument("--auth-token", help="JWT Auth Token")
     parser.add_argument("--device-token", help="Device Token")
     parser.add_argument("--backend-url", help="Backend API URL")
+    parser.add_argument("--company-name", help="Tally Company Name")
     
     # Execution
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")

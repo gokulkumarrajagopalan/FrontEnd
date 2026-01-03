@@ -6,7 +6,7 @@
                 <h2>User Management</h2>
                 <p>Manage application users and their roles</p>
             </div>
-            <button id="addUserBtn" class="btn btn-primary">+ New User</button>
+            <button id="addUserBtn" class="btn btn-erp">+ New User</button>
         </div>
 
         <div class="flex gap-4 mb-6">

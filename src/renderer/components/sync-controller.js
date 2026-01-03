@@ -64,6 +64,13 @@ class SyncController {
             this.isRunning = data.running;
             this.updateSyncUI();
         });
+
+        // Listen for queued sync to be processed
+        window.addEventListener('sync-process-queue', (e) => {
+            const syncType = e.detail.type;
+            console.log(`⏳ Processing queued sync: ${syncType}`);
+            this.triggerSync(syncType);
+        });
     }
 
     /**
@@ -114,10 +121,10 @@ class SyncController {
     /**
      * Trigger manual sync
      */
-    triggerSync() {
-        console.log('🔄 Triggering manual sync...');
+    triggerSync(syncType = 'manual') {
+        console.log(`🔄 Triggering ${syncType} sync...`);
         if (window.electronAPI) {
-            window.electronAPI.triggerSync(this.config);
+            window.electronAPI.triggerSync({ ...this.config, syncType });
         }
     }
 

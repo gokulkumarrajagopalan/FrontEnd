@@ -11,7 +11,8 @@ class SessionManager {
         this.maxReconnectAttempts = 5;
         this.reconnectDelay = 3000; // 3 seconds
         this.isLoggedOut = false;
-        this.wsUrl = 'ws://localhost:8080/session';
+        // Dynamic WebSocket URL based on current location
+        this.wsUrl = this.getWebSocketUrl();
         this.pollingInterval = null;
         this.isChecking = false;
         this.POLL_INTERVAL = 60000; // 60 seconds fallback polling
@@ -21,11 +22,28 @@ class SessionManager {
     }
 
     /**
+     * Get WebSocket URL based on current location and API config
+     */
+    getWebSocketUrl() {
+        try {
+            const apiBaseUrl = window.apiConfig?.BASE_URL || 'http://localhost:8080';
+            // Convert http/https to ws/wss
+            const wsUrl = apiBaseUrl
+                .replace(/^https:/, 'wss:')
+                .replace(/^http:/, 'ws:');
+            return `${wsUrl}/session`;
+        } catch (error) {
+            console.warn('⚠️ Error getting WebSocket URL:', error);
+            return 'ws://localhost:8080/session';
+        }
+    }
+
+    /**
      * Start WebSocket session monitoring
      */
     start() {
-        const token = localStorage.getItem('authToken');
-        const deviceToken = localStorage.getItem('deviceToken');
+        const token = sessionStorage.getItem('authToken');
+        const deviceToken = sessionStorage.getItem('deviceToken');
 
         if (!token || !deviceToken) {
             console.warn('⚠️ Cannot start SessionManager: No tokens found');
@@ -48,8 +66,8 @@ class SessionManager {
     connectWebSocket() {
         try {
             // Create WebSocket URL with authentication headers
-            const token = localStorage.getItem('authToken');
-            const deviceToken = localStorage.getItem('deviceToken');
+            const token = sessionStorage.getItem('authToken');
+            const deviceToken = sessionStorage.getItem('deviceToken');
             
             // WebSocket URL with query parameters for authentication
             const url = `${this.wsUrl}?token=${encodeURIComponent(token)}&deviceToken=${encodeURIComponent(deviceToken)}`;

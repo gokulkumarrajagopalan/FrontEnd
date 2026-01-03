@@ -2,7 +2,7 @@ import requests
 import xml.etree.ElementTree as ET
 import json
 import logging
-from typing import Dict, Optional, Tuple, Any
+from typing import Dict, Optional, Tuple, Any, List
 from datetime import datetime
 
 # Configure logging
@@ -42,6 +42,7 @@ class TallyAPIClient:
         if isinstance(obj, dict):
             return obj.get("_text", default).strip()
         return str(obj).strip()
+
 
     def build_envelope(
         self,
@@ -97,6 +98,93 @@ class TallyAPIClient:
         xml_str = "".join(xml_parts)
         logger.debug(f"Built envelope for {function_id}: {xml_str[:100]}...")
         return xml_str
+
+    def get_current_company_name(self) -> Optional[str]:
+        """
+        Fetch the currently active company name from Tally.
+        This uses a Collection approach which is more robust across Tally versions.
+        """
+        logger.info("Fetching active company name from Tally...")
+        
+        # Robust Collection approach with IsActive filter
+        xml_request = """<ENVELOPE>
+<HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>ActiveCompany</ID></HEADER>
+<BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES><TDL><TDLMESSAGE>
+<COLLECTION NAME="ActiveCompany"><TYPE>Company</TYPE><FILTER>IsActive</FILTER><FETCH>NAME</FETCH></COLLECTION>
+<SYSTEM TYPE="Formulae" NAME="IsActive">$Name = $$CurrentCompany</SYSTEM>
+</TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>"""
+
+        try:
+            success, response = self.send_request(xml_request)
+            if not success:
+                logger.error(f"Failed to get current company: {response}")
+                return None
+            
+            # Extract from Collection -> Company -> Name
+            data_section = response.get("DATA", {})
+            collection = data_section.get("COLLECTION", {})
+            company = collection.get("COMPANY")
+            
+            # If multiple companies are open, we take the one that matched the IsActive filter
+            if isinstance(company, list) and len(company) > 0:
+                company = company[0]
+            
+            if company:
+                name = self._get_t(company.get("NAME"))
+                if name:
+                    logger.info(f"Active Tally Company: '{name}'")
+                    return name.strip()
+            
+            # Fallback: Check for SVCOMPANYNAME in response
+            name = response.get("SVCOMPANYNAME")
+            if name:
+                return str(name).strip()
+
+            logger.warning(f"Could not find company name in response. Response keys: {list(response.keys())}")
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching active company: {e}")
+            return None
+
+    def get_open_companies(self) -> List[str]:
+        """
+        Fetch all currently open companies in Tally.
+        """
+        logger.info("Fetching all open companies from Tally...")
+        
+        xml_request = """<ENVELOPE>
+<HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>ListOpenCompanies</ID></HEADER>
+<BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES><TDL><TDLMESSAGE>
+<COLLECTION NAME="ListOpenCompanies"><TYPE>Company</TYPE><FETCH>NAME</FETCH></COLLECTION>
+</TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>"""
+
+        try:
+            success, response = self.send_request(xml_request)
+            if not success:
+                logger.error(f"Failed to get open companies: {response}")
+                return []
+            
+            data_section = response.get("DATA", {})
+            collection = data_section.get("COLLECTION", {})
+            companies_data = collection.get("COMPANY")
+            
+            if not companies_data:
+                return []
+                
+            if isinstance(companies_data, dict):
+                companies_data = [companies_data]
+            
+            names = []
+            for company in companies_data:
+                name = self._get_t(company.get("NAME"))
+                if name:
+                    names.append(name.strip())
+            
+            logger.info(f"Open Tally Companies: {names}")
+            return names
+        except Exception as e:
+            logger.error(f"Error fetching open companies: {e}")
+            return []
 
     @staticmethod
     def clean_xml(xml_string: str) -> str:
@@ -193,7 +281,8 @@ class TallyAPIClient:
 
     def get_groups(self, company: Optional[str] = None) -> Tuple[bool, Any]:
         """Fetch all groups from Tally."""
-        xml = self._build_collection_request("Group", "AllGroups", company)
+        fetch_fields = "GUID, MASTERID, ALTERID, Name, Alias, Parent, Nature, IsRevenue, RESERVEDNAME"
+        xml = self._build_collection_request("Group", "AllGroups", company, fetch_fields=fetch_fields)
         success, result = self.send_request(xml)
         if not success:
             return False, result
@@ -202,17 +291,24 @@ class TallyAPIClient:
             groups = []
             data = self._get_collection_data(result, "GROUP")
             for group_elem in data:
+                # Handle Alias list
+                aliases = group_elem.get("LANGUAGENAME.LIST", {}).get("NAME.LIST", {}).get("NAME", "")
+                if isinstance(aliases, list):
+                    aliases = ", ".join([self._get_t(a) for a in aliases])
+                else:
+                    aliases = self._get_t(aliases)
+
                 group_data = {
-                    'grpName': group_elem.get("@NAME", ""),
+                    'name': group_elem.get("@NAME", ""),
+                    'alias': aliases,
                     'guid': self._get_t(group_elem.get('GUID')),
                     'masterId': int(self._get_t(group_elem.get('MASTERID'), '0') or '0'),
                     'alterId': int(self._get_t(group_elem.get('ALTERID'), '0') or '0'),
-                    'grpParent': self._get_t(group_elem.get('PARENT')) or None,
-                    'grpPrimaryGroup': self._get_t(group_elem.get('PRIMARYGROUP')) or None,
-                    'grpNature': self._get_t(group_elem.get('NATURE')) or None,
+                    'parent': self._get_t(group_elem.get('PARENT')) or None,
+                    'nature': self._get_t(group_elem.get('NATURE')) or None,
                     'isRevenue': self._get_t(group_elem.get('ISREVENUE'), 'No').lower() == 'yes',
-                    'isReserved': bool(group_elem.get("@RESERVEDNAME")),
-                    'reservedName': group_elem.get("@RESERVEDNAME"),
+                    'isReserved': bool(self._get_t(group_elem.get("RESERVEDNAME"))),
+                    'reservedName': self._get_t(group_elem.get("RESERVEDNAME")),
                     'isActive': True
                 }
                 groups.append(group_data)
@@ -223,7 +319,7 @@ class TallyAPIClient:
 
     def get_ledgers(self, company: Optional[str] = None) -> Tuple[bool, Any]:
         """Fetch ledgers from Tally."""
-        xml = self._build_collection_request("Ledger", "Collection of Ledgers", company, fetch_fields="GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*")
+        xml = self._build_collection_request("Ledger", "Collection of Ledgers", company, fetch_fields="GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*, RESERVEDNAME")
         success, result = self.send_request(xml)
         if not success:
             return False, result
@@ -239,28 +335,29 @@ class TallyAPIClient:
                 if isinstance(gst_details, list): gst_details = gst_details[0] if gst_details else {}
 
                 ledger_data = {
-                    'ledName': ledger_elem.get("@NAME", ""),
+                    'name': ledger_elem.get("@NAME", ""),
                     'guid': self._get_t(ledger_elem.get('GUID')),
                     'masterId': int(self._get_t(ledger_elem.get('MASTERID'), '0') or '0'),
                     'alterId': int(self._get_t(ledger_elem.get('ALTERID'), '0') or '0'),
-                    'ledParent': self._get_t(ledger_elem.get('PARENT')) or None,
-                    'ledPrimaryGroup': self._get_t(ledger_elem.get('LASTPARENT')) or None,
-                    'ledDescription': self._get_t(ledger_elem.get('DESCRIPTION')) or None,
-                    'ledNote': self._get_t(ledger_elem.get('NARRATION')) or None,
-                    'ledBillWiseOn': self._get_t(ledger_elem.get('ISBILLWISEON'), 'No').lower() == 'yes',
-                    'ledIsCostCentreOn': self._get_t(ledger_elem.get('ISCOSTCENTRESON'), 'No').lower() == 'yes',
-                    'ledMailingName': self._get_t(mailing_details.get('MAILINGNAME')) or ledger_elem.get("@NAME", ""),
-                    'ledState': self._get_t(mailing_details.get('STATE')) or None,
-                    'ledCountry': self._get_t(mailing_details.get('COUNTRY')) or None,
-                    'ledPincode': self._get_t(mailing_details.get('PINCODE')) or None,
-                    'ledPhone': self._get_t(ledger_elem.get('LEDGERPHONE')) or None,
-                    'ledMobile': self._get_t(ledger_elem.get('LEDGERMOBILE')) or None,
-                    'ledEmail': self._get_t(ledger_elem.get('EMAIL')) or None,
-                    'ledWebsite': self._get_t(ledger_elem.get('WEBSITE')) or None,
-                    'ledOpeningBalance': float(self._get_t(ledger_elem.get('OPENINGBALANCE'), '0.0').replace(',', '') or '0.0'),
-                    'ledGstin': self._get_t(gst_details.get('GSTIN')) or None,
-                    'ledGstRegistrationType': self._get_t(gst_details.get('GSTREGISTRATIONTYPE')) or None,
+                    'parent': self._get_t(ledger_elem.get('PARENT')) or None,
+                    'primaryGroup': self._get_t(ledger_elem.get('LASTPARENT')) or None,
+                    'description': self._get_t(ledger_elem.get('DESCRIPTION')) or None,
+                    'narration': self._get_t(ledger_elem.get('NARRATION')) or None,
+                    'isBillWiseOn': self._get_t(ledger_elem.get('ISBILLWISEON'), 'No').lower() == 'yes',
+                    'isCostCentresOn': self._get_t(ledger_elem.get('ISCOSTCENTRESON'), 'No').lower() == 'yes',
+                    'mailingName': self._get_t(mailing_details.get('MAILINGNAME')) or ledger_elem.get("@NAME", ""),
+                    'state': self._get_t(mailing_details.get('STATE')) or None,
+                    'country': self._get_t(mailing_details.get('COUNTRY')) or None,
+                    'pincode': self._get_t(mailing_details.get('PINCODE')) or None,
+                    'phone': self._get_t(ledger_elem.get('LEDGERPHONE')) or None,
+                    'mobile': self._get_t(ledger_elem.get('LEDGERMOBILE')) or None,
+                    'email': self._get_t(ledger_elem.get('EMAIL')) or None,
+                    'website': self._get_t(ledger_elem.get('WEBSITE')) or None,
+                    'openingBalance': float(self._get_t(ledger_elem.get('OPENINGBALANCE'), '0.0').replace(',', '') or '0.0'),
+                    'gstin': self._get_t(gst_details.get('GSTIN')) or None,
+                    'gstRegistrationType': self._get_t(gst_details.get('GSTREGISTRATIONTYPE')) or None,
                     'isRevenue': self._get_t(ledger_elem.get('ISREVENUE'), 'No').lower() == 'yes',
+                    'reservedName': self._get_t(ledger_elem.get("RESERVEDNAME")),
                     'isActive': True
                 }
                 ledgers.append(ledger_data)
@@ -271,32 +368,12 @@ class TallyAPIClient:
 
     def get_items(self, company: Optional[str] = None) -> Tuple[bool, Any]:
         """Fetch stock items from Tally."""
-        xml = self._build_collection_request("StockItem", "Collection of StockItems", company, fetch_fields="GUID, NAME, PARENT, BASEUNITS, OPENINGBALANCE, OPENINGVALUE, OPENINGRATE")
-        success, result = self.send_request(xml)
-        if not success:
-            return False, result
-        
-        try:
-            items = []
-            data = self._get_collection_data(result, "STOCKITEM")
-            for item_elem in data:
-                item_data = {
-                    'name': item_elem.get("@NAME", ""),
-                    'guid': self._get_t(item_elem.get('GUID')),
-                    'parent': self._get_t(item_elem.get('PARENT')) or None,
-                    'units': self._get_t(item_elem.get('BASEUNITS')) or None,
-                    'openingBalance': self._get_t(item_elem.get('OPENINGBALANCE')) or None,
-                    'openingValue': self._get_t(item_elem.get('OPENINGVALUE')) or None
-                }
-                items.append(item_data)
-            return True, items
-        except Exception as e:
-            logger.error(f"Error parsing items: {e}")
-            return False, {"error": str(e)}
+        data = self.get_stockitems(company)
+        return True, data
 
     def get_costcategories(self, company: Optional[str] = None) -> Tuple[bool, Any]:
         """Fetch cost categories from Tally."""
-        xml = self._build_collection_request("CostCategory", "Collection of COSTCATEGORY", company, fetch_fields="GUID, MASTERID, ALTERID, Name, ALLOCATEREVENUE, ALLOCATENONREVENUE")
+        xml = self._build_collection_request("CostCategory", "Collection of COSTCATEGORY", company, fetch_fields="GUID, MASTERID, ALTERID, Name, ALLOCATEREVENUE, ALLOCATENONREVENUE, RESERVEDNAME")
         success, result = self.send_request(xml)
         if not success:
             return False, result
@@ -310,7 +387,7 @@ class TallyAPIClient:
                     'guid': self._get_t(cat_elem.get('GUID')),
                     'masterId': int(self._get_t(cat_elem.get('MASTERID'), '0') or '0'),
                     'alterId': int(self._get_t(cat_elem.get('ALTERID'), '0') or '0'),
-                    'reservedName': cat_elem.get("@RESERVEDNAME", ""),
+                    'reservedName': self._get_t(cat_elem.get("RESERVEDNAME")),
                     'allocateRevenue': self._get_t(cat_elem.get('ALLOCATEREVENUE'), 'No').lower() == 'yes',
                     'allocateNonRevenue': self._get_t(cat_elem.get('ALLOCATENONREVENUE'), 'No').lower() == 'yes',
                     'isActive': True
@@ -323,7 +400,7 @@ class TallyAPIClient:
 
     def get_costcentres(self, company: Optional[str] = None) -> Tuple[bool, Any]:
         """Fetch cost centres from Tally."""
-        xml = self._build_collection_request("CostCentre", "Collection of COSTCENTRE", company, fetch_fields="GUID, MASTERID, ALTERID, Name, CATEGORY, PARENT")
+        xml = self._build_collection_request("CostCentre", "Collection of COSTCENTRE", company, fetch_fields="GUID, MASTERID, ALTERID, Name, CATEGORY, PARENT, RESERVEDNAME")
         success, result = self.send_request(xml)
         if not success:
             return False, result
@@ -339,7 +416,7 @@ class TallyAPIClient:
                     'alterId': int(self._get_t(centre_elem.get('ALTERID'), '0') or '0'),
                     'category': self._get_t(centre_elem.get('CATEGORY')),
                     'parent': self._get_t(centre_elem.get('PARENT')) or None,
-                    'reservedName': centre_elem.get("@RESERVEDNAME", ""),
+                    'reservedName': self._get_t(centre_elem.get("RESERVEDNAME")),
                     'isActive': True
                 }
                 centres.append(centre_data)
@@ -1325,6 +1402,233 @@ class TallyAPIClient:
             params=params
         )
         return self.send_request(xml)
+
+    def get_godowns(self, company_name: str = None) -> list:
+        """
+        Fetch godowns (locations/warehouses) from Tally.
+        
+        Args:
+            company_name: Name of the company in Tally
+        
+        Returns:
+            List of godowns with camelCase field names
+        """
+        logger.info(f"Fetching godowns from Tally for company: {company_name or 'current'}")
+        
+        xml_request = self._build_collection_request("Godown", "Collection of GODOWN", company_name, fetch_fields="GUID, MASTERID, ALTERID, Name, ADDRESS.*, RESERVEDNAME")
+        
+        success, response = self.send_request(xml_request)
+        if not success:
+            logger.error(f"Failed to fetch godowns: {response}")
+            return []
+        
+        godowns_list = []
+        data = self._get_collection_data(response, "GODOWN")
+        
+        for godown in data:
+            address_list = godown.get("ADDRESS.LIST", {})
+            if isinstance(address_list, list):
+                address = self._get_t(address_list[0].get("ADDRESS")) if address_list else ""
+            else:
+                address = self._get_t(address_list.get("ADDRESS"))
+            godown_obj = {
+                "guid": self._get_t(godown.get("GUID")),
+                "masterId": int(self._get_t(godown.get("MASTERID"), "0")),
+                "alterId": int(self._get_t(godown.get("ALTERID"), "0")),
+                "name": godown.get("@NAME") or godown.get("NAME") or "",
+                "address": address,
+                "reservedName": self._get_t(godown.get("RESERVEDNAME"))
+            }
+            godowns_list.append(godown_obj)
+        
+        logger.info(f"Fetched {len(godowns_list)} godowns")
+        return godowns_list
+
+    def get_stockcategories(self, company_name: str = None) -> list:
+        """
+        Fetch stock categories from Tally.
+        
+        Args:
+            company_name: Name of the company in Tally
+        
+        Returns:
+            List of stock categories with camelCase field names
+        """
+        logger.info(f"Fetching stock categories from Tally for company: {company_name or 'current'}")
+        
+        xml_request = self._build_collection_request("StockCategory", "Collection of STOCKCATEGORY", company_name, fetch_fields="GUID, MASTERID, ALTERID, Name, PARENT, RESERVEDNAME")
+        
+        success, response = self.send_request(xml_request)
+        if not success:
+            logger.error(f"Failed to fetch stock categories: {response}")
+            return []
+        
+        categories_list = []
+        data = self._get_collection_data(response, "STOCKCATEGORY")
+        
+        for cat in data:
+            parent = self._get_t(cat.get("PARENT"))
+            # Remove special character prefix if present
+            if parent and parent.startswith("&#4;"):
+                parent = parent.replace("&#4;", "").strip()
+            cat_obj = {
+                "guid": self._get_t(cat.get("GUID")),
+                "masterId": int(self._get_t(cat.get("MASTERID"), "0")),
+                "alterId": int(self._get_t(cat.get("ALTERID"), "0")),
+                "name": cat.get("@NAME") or cat.get("NAME") or "",
+                "parent": parent,
+                "reservedName": self._get_t(cat.get("RESERVEDNAME"))
+            }
+            categories_list.append(cat_obj)
+        
+        logger.info(f"Fetched {len(categories_list)} stock categories")
+        return categories_list
+
+    def get_stockgroups(self, company_name: str = None) -> list:
+        """
+        Fetch stock groups from Tally.
+        
+        Args:
+            company_name: Name of the company in Tally
+        
+        Returns:
+            List of stock groups with camelCase field names
+        """
+        logger.info(f"Fetching stock groups from Tally for company: {company_name or 'current'}")
+        
+        xml_request = self._build_collection_request("StockGroup", "Collection of STOCKGROUP", company_name, fetch_fields="GUID, MASTERID, ALTERID, Name, PARENT, RESERVEDNAME")
+        
+        success, response = self.send_request(xml_request)
+        if not success:
+            logger.error(f"Failed to fetch stock groups: {response}")
+            return []
+        
+        groups_list = []
+        data = self._get_collection_data(response, "STOCKGROUP")
+        
+        for group in data:
+            parent = self._get_t(group.get("PARENT"))
+            # Remove special character prefix if present
+            if parent and parent.startswith("&#4;"):
+                parent = parent.replace("&#4;", "").strip()
+                
+            group_obj = {
+                "guid": self._get_t(group.get("GUID")),
+                "masterId": int(self._get_t(group.get("MASTERID"), "0")),
+                "alterId": int(self._get_t(group.get("ALTERID"), "0")),
+                "name": group.get("@NAME") or group.get("NAME") or "",
+                "parent": parent,
+                "reservedName": self._get_t(group.get("RESERVEDNAME"))
+            }
+            groups_list.append(group_obj)
+        
+        logger.info(f"Fetched {len(groups_list)} stock groups")
+        return groups_list
+
+    def get_stockitems(self, company_name: str = None) -> list:
+        """
+        Fetch stock items from Tally.
+        
+        Args:
+            company_name: Name of the company in Tally
+        
+        Returns:
+            List of stock items with camelCase field names
+        """
+        logger.info(f"Fetching stock items from Tally for company: {company_name or 'current'}")
+        
+        fetch_fields = "GUID, MASTERID, ALTERID, NAME, PARENT, MAILINGNAME, CATEGORY, DESCRIPTION, RESERVEDNAME, COSTINGMETHOD, VALUATIONMETHOD, BASEUNITS, ADDITIONALUNITS, ISBATCHWISEON, ISCOSTCENTRESON, OPENINGBALANCE, OPENINGVALUE, OPENINGRATE, GSTTYPEOFSUPPLY, GSTDETAILS.*, HSNDETAILS.*, REPORTINGUOMDETAILS.*, STANDARDCOSTLIST.*, STANDARDPRICELIST.*"
+        xml_request = self._build_collection_request("StockItem", "Collection of STOCKITEM", company_name, fetch_fields=fetch_fields)
+        
+        success, response = self.send_request(xml_request)
+        if not success:
+            logger.error(f"Failed to fetch stock items: {response}")
+            return []
+        
+        items_list = []
+        data = self._get_collection_data(response, "STOCKITEM")
+        
+        for item in data:
+            # Extract mailing name
+            mailing_name_list = item.get("MAILINGNAME.LIST", {})
+            if isinstance(mailing_name_list, list):
+                mailing_name = self._get_t(mailing_name_list[0].get("MAILINGNAME")) if mailing_name_list else ""
+            else:
+                mailing_name = self._get_t(mailing_name_list.get("MAILINGNAME"))
+            
+            # Extract HSN code
+            hsn_details = item.get("HSNDETAILS.LIST", {})
+            if isinstance(hsn_details, list):
+                hsn_code = self._get_t(hsn_details[0].get("HSNCODE")) if hsn_details else ""
+            else:
+                hsn_code = self._get_t(hsn_details.get("HSNCODE"))
+            
+            item_obj = {
+                "guid": self._get_t(item.get("GUID")),
+                "masterId": int(self._get_t(item.get("MASTERID"), "0")),
+                "alterId": int(self._get_t(item.get("ALTERID"), "0")),
+                "name": item.get("@NAME") or item.get("NAME") or "",
+                "parent": self._get_t(item.get("PARENT")),
+                "category": self._get_t(item.get("CATEGORY")),
+                "description": self._get_t(item.get("DESCRIPTION")),
+                "mailingName": mailing_name,
+                "reservedName": self._get_t(item.get("RESERVEDNAME")),
+                "baseUnits": self._get_t(item.get("BASEUNITS")),
+                "additionalUnits": self._get_t(item.get("ADDITIONALUNITS")),
+                "openingBalance": self._get_t(item.get("OPENINGBALANCE")),
+                "openingValue": self._get_t(item.get("OPENINGVALUE")),
+                "openingRate": self._get_t(item.get("OPENINGRATE")),
+                "costingMethod": self._get_t(item.get("COSTINGMETHOD")),
+                "valuationMethod": self._get_t(item.get("VALUATIONMETHOD")),
+                "gstTypeOfSupply": self._get_t(item.get("GSTTYPEOFSUPPLY")),
+                "hsnCode": hsn_code,
+                "batchWiseOn": self._get_t(item.get("ISBATCHWISEON"), "No") == "Yes",
+                "costCentersOn": self._get_t(item.get("ISCOSTCENTRESON"), "No") == "Yes"
+            }
+            items_list.append(item_obj)
+        
+        logger.info(f"Fetched {len(items_list)} stock items")
+        return items_list
+
+    def get_units(self, company_name: str = None) -> list:
+        """
+        Fetch units (units of measure) from Tally.
+        
+        Args:
+            company_name: Name of the company in Tally
+        
+        Returns:
+            List of units with camelCase field names
+        """
+        logger.info(f"Fetching units from Tally for company: {company_name or 'current'}")
+        
+        fetch_fields = "GUID, MASTERID, ALTERID, Name, ORIGINALNAME, ISSIMPLEUNIT"
+        xml_request = self._build_collection_request("Unit", "Collection of UNIT", company_name, fetch_fields=fetch_fields)
+        
+        success, response = self.send_request(xml_request)
+        if not success:
+            logger.error(f"Failed to fetch units: {response}")
+            return []
+        
+        units_list = []
+        data = self._get_collection_data(response, "UNIT")
+        
+        for unit in data:
+            is_simple = self._get_t(unit.get("ISSIMPLEUNIT", "Yes")) == "Yes"
+            unit_obj = {
+                "guid": self._get_t(unit.get("GUID")),
+                "masterId": int(self._get_t(unit.get("MASTERID"), "0")),
+                "alterId": int(self._get_t(unit.get("ALTERID"), "0")),
+                "unitName": unit.get("@NAME") or unit.get("NAME") or "",
+                "originalName": self._get_t(unit.get("ORIGINALNAME")),
+                "simpleUnit": is_simple
+            }
+            units_list.append(unit_obj)
+            
+        logger.info(f"Fetched {len(units_list)} units")
+        return units_list
+
+
 
 
 # Test script

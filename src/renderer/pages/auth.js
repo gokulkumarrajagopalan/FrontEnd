@@ -18,7 +18,7 @@
                     <span class="text-5xl">📊</span>
                 </div>
                 <h1 class="text-4xl font-bold mb-2" style="color: var(--text-primary);">
-                    Talli<span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">ffy</span>
+                    Talli<span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-600">ffy</span>
                 </h1>
                 <p class="text-sm" style="color: var(--text-tertiary);">Enterprise Resource Planning</p>
             </div>
@@ -32,11 +32,11 @@
                 <!-- Login Mode Toggle -->
                 <div class="mb-6 flex gap-4 p-2 bg-gray-100 rounded-xl">
                     <label class="flex-1 flex items-center justify-center gap-2 cursor-pointer">
-                        <input type="radio" name="loginMode" value="username" id="loginModeUsername" checked class="w-4 h-4 text-purple-600 focus:ring-purple-500">
+                        <input type="radio" name="loginMode" value="username" id="loginModeUsername" checked class="w-4 h-4 text-blue-600 focus:ring-blue-500">
                         <span class="text-sm font-medium text-gray-700">Username</span>
                     </label>
                     <label class="flex-1 flex items-center justify-center gap-2 cursor-pointer">
-                        <input type="radio" name="loginMode" value="email" id="loginModeEmail" class="w-4 h-4 text-purple-600 focus:ring-purple-500">
+                        <input type="radio" name="loginMode" value="email" id="loginModeEmail" class="w-4 h-4 text-blue-600 focus:ring-blue-500">
                         <span class="text-sm font-medium text-gray-700">Email + Licence</span>
                     </label>
                 </div>
@@ -63,7 +63,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">👤</span>
                                 </div>
-                                <input type="text" id="username" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Enter your username">
+                                <input type="text" id="username" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Enter your username">
                             </div>
                         </div>
                     </div>
@@ -76,7 +76,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">📧</span>
                                 </div>
-                                <input type="email" id="loginEmail" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john@example.com">
+                                <input type="email" id="loginEmail" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john@example.com">
                             </div>
                         </div>
                         <div>
@@ -85,7 +85,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔑</span>
                                 </div>
-                                <input type="number" id="loginLicenceNo" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px); -moz-appearance: textfield;" placeholder="1001" min="1">
+                                <input type="number" id="loginLicenceNo" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px); -moz-appearance: textfield;" placeholder="1001" min="1">
                                 <style>
                                     #loginLicenceNo::-webkit-outer-spin-button,
                                     #loginLicenceNo::-webkit-inner-spin-button {
@@ -104,21 +104,21 @@
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <span class="text-lg">🔐</span>
                             </div>
-                            <input type="password" id="password" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Enter your password" required>
+                            <input type="password" id="password" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Enter your password" required>
                         </div>
                     </div>
 
                     <div class="flex items-center justify-between pt-2">
                         <label class="flex items-center gap-2.5 cursor-pointer group">
-                            <input type="checkbox" id="rememberMe" class="w-5 h-5 rounded-lg border-2 border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                            <input type="checkbox" id="rememberMe" class="w-5 h-5 rounded-lg border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer">
                             <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Remember me</span>
                         </label>
-                        <a href="#" class="text-sm font-bold text-purple-600 hover:text-purple-700 hover:underline">Forgot password?</a>
+                        <a href="#" class="text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline">Forgot password?</a>
                     </div>
 
                     <div id="loadingSpinner" class="hidden text-center py-4">
                         <div class="inline-block">
-                            <div class="animate-spin rounded-full h-10 w-10 border-4 border-purple-200 border-t-purple-600"></div>
+                            <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600"></div>
                         </div>
                     </div>
 
@@ -131,7 +131,7 @@
                 <div class="mt-6 pt-5 border-t border-gray-200">
                     <p class="text-center text-xs text-gray-600">
                         Don't have an account?
-                        <a href="#" id="showSignup" class="font-bold text-purple-600 hover:text-purple-700 hover:underline ml-1" data-route="signup">Create Account</a>
+                        <a href="#" id="showSignup" class="font-bold text-blue-600 hover:text-blue-700 hover:underline ml-1" data-route="signup">Create Account</a>
                     </p>
                 </div>
             </div>
@@ -178,24 +178,24 @@
                     <div>
                         <label class="block text-xs font-bold mb-3 text-center" style="color: var(--text-primary);">Enter 6-Digit OTP Code</label>
                         <div class="flex gap-2 justify-center">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="0">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="1">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="2">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="3">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="4">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="5">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" data-index="0">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" data-index="1">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" data-index="2">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" data-index="3">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" data-index="4">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all" data-index="5">
                         </div>
                     </div>
 
                     <div class="text-center">
                         <p class="text-sm font-medium" style="color: var(--text-secondary);">
-                            ⏱ Code expires in: <span id="otpTimer" class="font-bold text-purple-600">5:00</span>
+                            ⏱ Code expires in: <span id="otpTimer" class="font-bold text-blue-600">5:00</span>
                         </p>
                     </div>
 
                     <div id="loadingSpinner" class="hidden text-center py-4">
                         <div class="inline-block">
-                            <div class="animate-spin rounded-full h-10 w-10 border-4 border-purple-200 border-t-purple-600"></div>
+                            <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600"></div>
                         </div>
                     </div>
 
@@ -207,7 +207,7 @@
 
                 <div class="mt-6 pt-5 border-t border-gray-200 text-center">
                     <p class="text-xs mb-3" style="color: var(--text-secondary);">Didn't receive the code?</p>
-                    <button id="resendBtn" class="text-sm font-bold text-purple-600 hover:text-purple-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button id="resendBtn" class="text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed">
                         Resend OTP (<span id="remainingAttempts">3</span> attempts remaining)
                     </button>
                     <p id="resendTimer" class="text-xs mt-2 hidden" style="color: var(--text-tertiary);">Wait <span id="resendCountdown">60</span>s to resend</p>
@@ -255,7 +255,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">👤</span>
                                 </div>
-                                <input type="text" id="fullName" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="John Doe" required>
+                                <input type="text" id="fullName" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="John Doe" required>
                             </div>
                         </div>
 
@@ -263,9 +263,9 @@
                             <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Username <span class="text-red-500">*</span></label>
                             <div class="relative group">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-lg text-purple-500">@</span>
+                                    <span class="text-lg text-blue-500">@</span>
                                 </div>
-                                <input type="text" id="username" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john_company_a" required>
+                                <input type="text" id="username" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john_company_a" required>
                             </div>
                             <p class="text-xs mt-1" style="color: var(--text-tertiary);">Unique username for login</p>
                         </div>
@@ -276,7 +276,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">📧</span>
                                 </div>
-                                <input type="email" id="email" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john@example.com" required>
+                                <input type="email" id="email" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john@example.com" required>
                             </div>
                             <p class="text-xs mt-1" style="color: var(--text-tertiary);">Can be used for multiple companies</p>
                         </div>
@@ -287,7 +287,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔑</span>
                                 </div>
-                                <input type="number" id="licenceNo" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px); -moz-appearance: textfield;" placeholder="1001" required min="1">
+                                <input type="number" id="licenceNo" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px); -moz-appearance: textfield;" placeholder="1001" required min="1">
                                 <style>
                                     #licenceNo::-webkit-outer-spin-button,
                                     #licenceNo::-webkit-inner-spin-button {
@@ -305,7 +305,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔐</span>
                                 </div>
-                                <input type="password" id="password" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Min 6 characters" required minlength="6">
+                                <input type="password" id="password" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Min 6 characters" required minlength="6">
                             </div>
                         </div>
 
@@ -315,21 +315,21 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔐</span>
                                 </div>
-                                <input type="password" id="confirmPassword" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Re-enter password" required minlength="6">
+                                <input type="password" id="confirmPassword" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Re-enter password" required minlength="6">
                             </div>
                         </div>
                     </div>
 
                     <div class="flex items-start gap-3 p-4 rounded-xl border-2 bg-gray-50">
-                        <input type="checkbox" id="agreeTerms" class="w-4 h-4 mt-0.5 rounded border-2 cursor-pointer text-purple-600 focus:ring-purple-500" required>
+                        <input type="checkbox" id="agreeTerms" class="w-4 h-4 mt-0.5 rounded border-2 cursor-pointer text-blue-600 focus:ring-blue-500" required>
                         <label for="agreeTerms" class="text-xs font-medium cursor-pointer" style="color: var(--text-primary);">
-                            I agree to the <a href="#" class="font-bold hover:underline text-purple-600">Terms of Service</a> and <a href="#" class="font-bold hover:underline text-purple-600">Privacy Policy</a>
+                            I agree to the <a href="#" class="font-bold hover:underline text-blue-600">Terms of Service</a> and <a href="#" class="font-bold hover:underline text-blue-600">Privacy Policy</a>
                         </label>
                     </div>
 
                     <div id="loadingSpinner" class="hidden text-center py-3">
                         <div class="inline-block">
-                            <div class="animate-spin rounded-full h-8 w-8 border-4 border-purple-200 border-t-purple-600"></div>
+                            <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600"></div>
                         </div>
                     </div>
 
@@ -342,7 +342,7 @@
                 <div class="mt-6 pt-5 border-t border-gray-200">
                     <p class="text-center text-xs" style="color: var(--text-secondary);">
                         Already have an account?
-                        <a href="#" id="showLogin" class="font-bold text-purple-600 hover:text-purple-700 hover:underline ml-1" data-route="login">Sign In</a>
+                        <a href="#" id="showLogin" class="font-bold text-blue-600 hover:text-blue-700 hover:underline ml-1" data-route="login">Sign In</a>
                     </p>
                 </div>
             </div>
@@ -649,10 +649,10 @@
                     throw new Error('No authentication token received');
                 }
 
-                // Success - Store credentials
-                localStorage.setItem('authToken', data.token);
-                localStorage.setItem('deviceToken', data.deviceToken);
-                localStorage.setItem('currentUser', JSON.stringify({
+                // Success - Store credentials in sessionStorage (secure, cleared on app close)
+                sessionStorage.setItem('authToken', data.token);
+                sessionStorage.setItem('deviceToken', data.deviceToken);
+                sessionStorage.setItem('currentUser', JSON.stringify({
                     username: data.username,
                     userId: data.userId,
                     fullName: data.fullName,
@@ -660,7 +660,12 @@
                     licenceNo: data.licenceNo,
                     role: data.role
                 }));
-                localStorage.setItem('isAuthenticated', 'true');
+                sessionStorage.setItem('loginTime', new Date().toISOString());
+                
+                // Extract CSRF token from response if available
+                if (data.csrfToken) {
+                    sessionStorage.setItem('csrfToken', data.csrfToken);
+                }
 
                 console.log('✅ Login successful:', {
                     hasToken: !!data.token,

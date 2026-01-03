@@ -14,8 +14,8 @@ class App {
         try {
             console.log('🚀 App initialization started...');
 
-            // Check Auth
-            const token = localStorage.getItem('authToken');
+            // Check Auth - Use sessionStorage (migrated from localStorage for security)
+            const token = sessionStorage.getItem('authToken');
             if (!token) {
                 console.log('⚠️ No auth token found - rendering login');
                 this.renderLogin();
@@ -52,6 +52,9 @@ class App {
 
             // STEP 3: Fetch Companies
             await this.fetchTallyCompanies();
+
+            // STEP 4: Initialize Sync Scheduler based on appSettings
+            this.initializeSyncScheduler();
 
             console.log('✅ Tally initialization complete');
             console.log('='.repeat(80) + '\n');
@@ -190,6 +193,36 @@ class App {
         }
     }
 
+    /**
+     * Initialize sync scheduler based on appSettings
+     */
+    initializeSyncScheduler() {
+        try {
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const syncInterval = appSettings.syncInterval || 0;
+
+            console.log('\n[4] INITIALIZING SYNC SCHEDULER');
+            console.log('-'.repeat(80));
+            console.log('📊 Sync Interval from settings:', syncInterval, 'minutes');
+
+            if (syncInterval <= 0) {
+                console.log('⏸️ Auto-sync disabled (interval is 0 or not set)');
+                return;
+            }
+
+            // Create and start the sync scheduler
+            if (window.SyncScheduler) {
+                window.syncScheduler = new window.SyncScheduler();
+                window.syncScheduler.start();
+                console.log(`✅ Sync scheduler started with ${syncInterval} minute interval`);
+            } else {
+                console.warn('⚠️ SyncScheduler class not available');
+            }
+        } catch (error) {
+            console.error('❌ Error initializing sync scheduler:', error);
+        }
+    }
+
     renderLogin() {
         try {
             console.log('🚀 Rendering login page using auth.js...');
@@ -241,12 +274,12 @@ class App {
                 <aside class="w-64 flex flex-col h-screen" id="mainSidebar">
                     <div class="p-6 border-b border-gray-200 flex-shrink-0">
                         <div class="flex items-center gap-3">
-                            <div><h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Talliffy</h1></div>
+                            <div><h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">Talliffy</h1></div>
                         </div>
                         <p class="text-xs text-gray-400 mt-1">Enterprise Sync Platform</p>
                     </div>
                     <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Masters</div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Main</div>
                         <a class="nav-link active" data-route="import-company">
                             <span class="nav-icon">📥</span> <span>Import Company</span>
                         </a>
@@ -260,16 +293,44 @@ class App {
                             <span class="nav-icon">⚙️</span> <span>Settings</span>
                         </a>
 
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Finance</div>
-                        <a class="nav-link" data-route="groups">
-                            <span class="nav-icon">📁</span> <span>Groups</span>
-                        </a>
-                        <a class="nav-link" data-route="ledgers">
-                            <span class="nav-icon">📒</span> <span>Ledgers</span>
-                        </a>
-                                    <!-- <a class="nav-link" data-route="voucher-type">
-                                        <span class="nav-icon">📑</span> <span>Voucher Type</span>
-                                    </a> -->
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Masters</div>
+                        
+                        <!-- Finance Masters Section -->
+                        <div class="nav-section-header" onclick="window.app.toggleSection('finance-section')">
+                            <span>Finance Masters</span>
+                            <span class="chevron">▼</span>
+                        </div>
+                        <div id="finance-section" class="nav-collapse-container">
+                            <a class="nav-link nested" data-route="groups">
+                                <span class="nav-icon">📁</span> <span>Groups</span>
+                            </a>
+                            <a class="nav-link nested" data-route="ledgers">
+                                <span class="nav-icon">📒</span> <span>Ledgers</span>
+                            </a>
+                        </div>
+
+                        <!-- Inventory Masters Section -->
+                        <div class="nav-section-header" onclick="window.app.toggleSection('inventory-section')">
+                            <span>Inventory masters</span>
+                            <span class="chevron">▼</span>
+                        </div>
+                        <div id="inventory-section" class="nav-collapse-container">
+                            <a class="nav-link nested" data-route="stock-groups">
+                                <span class="nav-icon">📦</span> <span>Stock Groups</span>
+                            </a>
+                            <a class="nav-link nested" data-route="stock-categories">
+                                <span class="nav-icon">🏷️</span> <span>Stock Categories</span>
+                            </a>
+                            <a class="nav-link nested" data-route="stock-items">
+                                <span class="nav-icon">🍎</span> <span>Stock Items</span>
+                            </a>
+                            <a class="nav-link nested" data-route="units">
+                                 <span class="nav-icon">📏</span> <span>Units</span>
+                            </a>
+                            <a class="nav-link nested" data-route="godowns">
+                                <span class="nav-icon">🏬</span> <span>Godowns</span>
+                            </a>
+                        </div>
                     </nav>
                     
                     <!-- Logout Button at bottom of sidebar -->
@@ -304,8 +365,10 @@ class App {
             // Update user info
             this.updateUserInfo();
 
-            // Load companies for global selector
-            this.loadGlobalCompanies();
+            // Load companies for global selector (apiConfig should be available by now)
+            setTimeout(() => {
+                this.loadGlobalCompanies();
+            }, 100);
 
             // Setup global company selector change handler
             this.setupGlobalCompanySelector();
@@ -316,6 +379,7 @@ class App {
             // Setup router after layout is rendered
             setTimeout(() => {
                 this.setupRouter();
+                this.restoreSidebarStates();
             }, 100);
         } catch (e) {
             console.error('❌ Error in renderAppLayout:', e);
@@ -325,7 +389,7 @@ class App {
 
     updateUserInfo() {
         try {
-            const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const user = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
             console.log('✅ User info updated:', user.fullName || user.username);
 
             // Update header username display
@@ -350,47 +414,145 @@ class App {
 
     async loadGlobalCompanies() {
         try {
-            console.log('🏢 Fetching companies from:', window.apiConfig.getUrl('/companies'));
-            const response = await fetch(window.apiConfig.getUrl('/companies'), {
-                method: 'GET',
-                headers: window.authService.getHeaders()
-            });
+            // Check if apiConfig is available
+            if (!window.apiConfig) {
+                console.warn('⚠️ window.apiConfig not available yet, waiting...');
+                // Wait for apiConfig to be initialized
+                let attempts = 0;
+                while (!window.apiConfig && attempts < 50) {
+                    await new Promise(r => setTimeout(r, 100));
+                    attempts++;
+                }
+                
+                if (!window.apiConfig) {
+                    console.error('❌ window.apiConfig still not available after waiting');
+                    const selector = document.getElementById('globalCompanySelector');
+                    if (selector) {
+                        selector.innerHTML = '<option value="">API Configuration Error</option>';
+                    }
+                    return;
+                }
+            }
 
+            // Get current user from session storage
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const userId = currentUser.userId;
+            
+            console.log('🏢 Loading companies for user:', userId);
+            console.log('   Current user:', JSON.stringify(currentUser, null, 2));
+
+            let endpoint;
+            let response;
+
+            // PREFERRED: If we have userId, fetch user-specific companies first
+            if (userId) {
+                endpoint = window.apiConfig.getUrl(`/companies/user/${userId}`);
+                console.log('   📡 Using user-specific endpoint:', endpoint);
+                
+                response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: window.authService.getHeaders()
+                });
+                
+                console.log('   📊 Response status:', response.status);
+                
+                // If user endpoint fails, fall back to general endpoint
+                if (!response.ok) {
+                    console.warn(`⚠️ User endpoint returned ${response.status}, trying general endpoint`);
+                    endpoint = window.apiConfig.getUrl('/companies');
+                    response = await fetch(endpoint, {
+                        method: 'GET',
+                        headers: window.authService.getHeaders()
+                    });
+                }
+            } else {
+                // No userId, use general endpoint
+                endpoint = window.apiConfig.getUrl('/companies');
+                console.log('   📡 No userId found, using general endpoint:', endpoint);
+                
+                response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: window.authService.getHeaders()
+                });
+                
+                console.log('   📊 Response status:', response.status);
+            }
+
+            // Check response
             if (!response.ok) {
-                console.error('❌ Failed to load companies, status:', response.status);
+                const errorText = await response.text();
+                console.error('❌ Failed to load companies, HTTP:', response.status);
+                console.log('   Response:', errorText.substring(0, 200));
+                
+                const selector = document.getElementById('globalCompanySelector');
+                if (selector) {
+                    selector.innerHTML = '<option value="">Error loading companies (HTTP ' + response.status + ')</option>';
+                }
                 return;
             }
 
             const result = await response.json();
-            console.log('📦 Companies response:', result);
-            const companies = result.success ? result.data : [];
-            console.log('📋 Companies data:', companies);
+            console.log('📦 Companies API response received');
+            console.log('   Success:', result.success);
+            console.log('   Count:', result.count);
+            
+            // Extract companies data from response
+            const companies = (result.success && Array.isArray(result.data)) ? result.data : [];
+            console.log('📋 Total companies to display:', companies.length);
 
             const selector = document.getElementById('globalCompanySelector');
-            if (selector && companies.length > 0) {
-                // Log first company to see structure
-                console.log('🔍 First company structure:', companies[0]);
+            if (!selector) {
+                console.warn('⚠️ globalCompanySelector element not found in DOM');
+                return;
+            }
 
-                selector.innerHTML = '<option value="">Select Companies</option>' +
-                    companies.map(c => {
-                        const id = c.cmpId || c.id || c.companyId;
-                        const name = c.name || c.companyName || c.cmpName;
-                        console.log(`  - Company: ${name} (ID: ${id})`);
-                        return `<option value="${id}">${name}</option>`;
-                    }).join('');
+            if (companies.length === 0) {
+                console.warn('⚠️ No companies available to display');
+                selector.innerHTML = '<option value="">No companies available</option>';
+                return;
+            }
 
-                // Restore previously selected company
-                const savedCompanyId = localStorage.getItem('selectedCompanyId');
-                if (savedCompanyId) {
+            // Log first company to see structure
+            console.log('🔍 First company structure:', JSON.stringify(companies[0], null, 2));
+
+            // Build options HTML
+            const optionsHtml = companies.map(c => {
+                // Try multiple field names for ID and name
+                const id = c.id || c.cmpId || c.companyId;
+                const name = c.name || c.companyName || c.cmpName;
+                
+                if (!id || !name) {
+                    console.warn('⚠️ Missing id or name for company:', JSON.stringify(c));
+                    return '';
+                }
+                
+                console.log(`   ✓ Option: ID=${id}, Name="${name}"`);
+                return `<option value="${id}">${name}</option>`;
+            }).filter(opt => opt).join('');
+
+            selector.innerHTML = '<option value="">Select a company</option>' + optionsHtml;
+
+            // Restore previously selected company
+            const savedCompanyId = localStorage.getItem('selectedCompanyId');
+            if (savedCompanyId) {
+                const option = selector.querySelector(`option[value="${savedCompanyId}"]`);
+                if (option) {
                     selector.value = savedCompanyId;
                     window.selectedCompanyId = parseInt(savedCompanyId);
                     console.log('✅ Restored saved company ID:', window.selectedCompanyId);
+                } else {
+                    console.log('⚠️ Saved company ID not found in current list:', savedCompanyId);
                 }
-
-                console.log('✅ Loaded', companies.length, 'companies for global selector');
             }
+
+            console.log('✅ Successfully populated dropdown with', companies.length, 'companies');
         } catch (error) {
-            console.error('Error loading companies:', error);
+            console.error('❌ Error loading companies:', error);
+            console.error('   Stack:', error.stack);
+            const selector = document.getElementById('globalCompanySelector');
+            if (selector) {
+                selector.innerHTML = '<option value="">Error loading companies</option>';
+            }
         }
     }
 
@@ -465,6 +627,42 @@ class App {
                 window.location.reload();
             }, 500);
         }
+    }
+
+    /**
+     * Toggle sidebar section
+     * @param {string} sectionId 
+     */
+    toggleSection(sectionId) {
+        const container = document.getElementById(sectionId);
+        const header = container?.previousElementSibling;
+
+        if (container && header) {
+            container.classList.toggle('collapsed');
+            header.classList.toggle('collapsed');
+
+            // Save state to localStorage
+            const states = JSON.parse(localStorage.getItem('sidebarStates') || '{}');
+            states[sectionId] = container.classList.contains('collapsed');
+            localStorage.setItem('sidebarStates', JSON.stringify(states));
+        }
+    }
+
+    /**
+     * Restore sidebar section states
+     */
+    restoreSidebarStates() {
+        const states = JSON.parse(localStorage.getItem('sidebarStates') || '{}');
+        Object.keys(states).forEach(sectionId => {
+            if (states[sectionId]) {
+                const container = document.getElementById(sectionId);
+                const header = container?.previousElementSibling;
+                if (container && header) {
+                    container.classList.add('collapsed');
+                    header.classList.add('collapsed');
+                }
+            }
+        });
     }
 
     /**

@@ -53,7 +53,7 @@
         style.id = 'voucher-type-page-styles';
         style.textContent = `
             .type-badge {
-                background: #667eea;
+                background: var(--primary-500);
                 color: white;
                 padding: 4px 12px;
                 border-radius: 20px;
@@ -154,13 +154,19 @@
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
+            // Get company name for verification
+            const companies = JSON.parse(localStorage.getItem('importedCompanies') || '[]');
+            const company = companies.find(c => c.id == selectedCompanyId);
+            const companyName = company ? company.name : null;
+
             const result = await window.electronAPI.syncVoucherTypes({
                 companyId: selectedCompanyId,
                 userId: currentUser?.userId || 1,
                 authToken: authToken,
                 deviceToken: deviceToken,
                 tallyPort: tallyPort,
-                backendUrl: backendUrl
+                backendUrl: backendUrl,
+                companyName: companyName
             });
             if (result.success) {
                 showSuccess(`✅ Successfully synced ${result.count || ''} voucher types from Tally!`);

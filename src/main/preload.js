@@ -115,8 +115,17 @@ try {
         syncVoucherTypes: (config) => {
             return ipcRenderer.invoke('sync-voucher-types', config);
         },
-        syncTaxUnits: (config) => {
-            return ipcRenderer.invoke('sync-tax-units', config);
+        syncTaxUnits: (config) => ipcRenderer.invoke("sync-tax-units", config),
+        syncUnits: (config) => ipcRenderer.invoke("sync-units", config),
+        syncStockGroups: (config) => ipcRenderer.invoke("sync-stock-groups", config),
+        syncStockCategories: (config) => ipcRenderer.invoke("sync-stock-categories", config),
+        syncStockItems: (config) => ipcRenderer.invoke("sync-stock-items", config),
+        syncGodowns: (config) => ipcRenderer.invoke("sync-godowns", config),
+        
+        // Incremental sync API
+        incrementalSync: (config) => {
+            console.log('📡 Preload: Calling incremental-sync handler...');
+            return ipcRenderer.invoke('incremental-sync', config);
         }
     });
     console.log('✅ Preload: electronAPI exposed successfully');

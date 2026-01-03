@@ -1,0 +1,1686 @@
+/**
+ * Base Page Class - Eliminates code duplication across pages
+ * Provides common functionality for all data management pages
+ */
+
+class BasePage {
+    constructor(config) {
+        this.config = {
+            pageName: 'Base',
+            apiEndpoint: '',
+            entityName: 'item',
+            entityNamePlural: 'items',
+            tableColumns: [],
+            searchFields: ['name'],
+            ...config
+        };
+
+        this.data = [];
+        this.filteredData = [];
+        this.selectedCompanyId = null;
+        this.isLoading = false;
+        this.isSyncing = false;
+        
+        // Grid features
+        this.sortField = null;
+        this.sortOrder = 'asc'; // 'asc' or 'desc'
+        this.currentPage = 1;
+        this.pageSize = 10;
+        this.visibleColumns = new Set(this.config.tableColumns.map(col => col.field));
+    }
+
+    /**
+     * Initialize the page
+     */
+    async init() {
+        console.log(`🚀 Initializing ${this.config.pageName} page...`);
+
+        try {
+            // Check authentication
+            if (!this.checkAuth()) return;
+
+            // Render page template
+            this.render();
+
+            // Setup company selection
+            this.setupCompanySelection();
+
+            // Load initial data
+            await this.loadData();
+
+            // Setup event listeners
+            this.setupEventListeners();
+
+            console.log(`✅ ${this.config.pageName} page initialized`);
+        } catch (error) {
+            console.error(`❌ Error initializing ${this.config.pageName}:`, error);
+            this.showError(`Failed to initialize ${this.config.pageName.toLowerCase()} page`);
+        }
+    }
+
+    /**
+     * Check authentication
+     */
+    checkAuth() {
+        const isAuthenticated = window.authService?.isAuthenticated();
+        if (!isAuthenticated) {
+            console.warn('⚠️ User not authenticated, redirecting to login...');
+            window.router?.navigate('login');
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Render page template
+     */
+    render() {
+        const content = document.getElementById('page-content');
+        if (!content) {
+            console.error('Page content container not found');
+            return;
+        }
+
+        content.innerHTML = this.getTemplate();
+        this.injectStyles();
+    }
+
+    /**
+     * Get page template - to be overridden by child classes
+     */
+    getTemplate() {
+        return `
+            <div class="space-y-6">
+                ${this.getPageHeader()}
+                ${this.getFilters()}
+                ${this.getDataTable()}
+                ${this.getModal()}
+            </div>
+        `;
+    }
+
+    /**
+     * Get page header template
+     */
+    getPageHeader() {
+        return `
+            <div class="page-header flex justify-between items-center">
+                <div>
+                    <h2>${this.config.pageName}</h2>
+                    <p>Manage ${this.config.entityNamePlural}</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="sync${this.config.pageName}Btn" class="btn-sync">
+                        <span>🔄</span>
+                        <span>Sync From Tally</span>
+                    </button>
+                    <button id="add${this.config.pageName}Btn" class="btn-erp">
+                        + Add ${this.config.entityName}
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Get filters template
+     */
+    getFilters() {
+        return `
+            <div class="filters-container">
+                <div class="material-search-wrapper">
+                    <div class="material-form-field">
+                        <input type="text" id="searchInput" class="material-input" 
+                               placeholder="">
+                        <label for="searchInput" class="material-label">🔍 Search ${this.config.entityNamePlural}</label>
+                       
+                    </div>
+                </div>
+                <div id="additionalFilters" style="flex: 1 1 auto;"></div>
+                <button class="btn-export">📥 Export</button>
+            </div>
+        `;
+    }
+
+    /**
+     * Get data table template
+     */
+    getDataTable() {
+        return `
+            <div class="data-table-wrapper">
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr id="headerRow">
+                                ${this.config.tableColumns.map(col =>
+            `<th class="${col.align || 'text-left'} sortable-header" data-field="${col.field}" data-visible="true">
+                                    <div class="header-content">
+                                        <span>${col.label}</span>
+                                        <span class="sort-icon">⇅</span>
+                                    </div>
+                                </th>`
+        ).join('')}
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            <tr>
+                                <td colspan="${this.config.tableColumns.length + 1}" class="no-data">
+                                    Select a company to view ${this.config.entityNamePlural}...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-pagination-controls">
+                    <div class="pagination-info">
+                        <span id="recordsInfo">0 records</span>
+                    </div>
+                    <div class="pagination-buttons">
+                        <button id="prevPageBtn" class="pagination-btn">← Previous</button>
+                        <div class="page-info">
+                            <span>Page <span id="currentPageNum">1</span> of <span id="totalPages">1</span></span>
+                        </div>
+                        <button id="nextPageBtn" class="pagination-btn">Next →</button>
+                    </div>
+                    <div class="page-size-selector">
+                        <label for="pageSizeSelect">Rows per page:</label>
+                        <select id="pageSizeSelect" class="page-size-select">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Get modal template
+     */
+    getModal() {
+        return `
+            <div id="dataModal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modalTitle">Add ${this.config.entityName}</h3>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <form id="dataForm" class="modal-body">
+                        <div id="formFields"></div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
+                            <button type="submit" class="btn-erp">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Inject page-specific styles
+     */
+    injectStyles() {
+        if (document.getElementById(`${this.config.pageName.toLowerCase()}-styles`)) return;
+
+        const style = document.createElement('style');
+        style.id = `${this.config.pageName.toLowerCase()}-styles`;
+        style.textContent = `
+            .filters-container {
+                display: flex;
+                gap: 1rem;
+                align-items: center;
+                background: white;
+                padding: 1.25rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                border: 1px solid #e5e7eb;
+            }
+            
+            .material-search-wrapper {
+                flex: 0 0 auto;
+                max-width: 400px;
+                width: 100%;
+            }
+            
+            .material-form-field {
+                position: relative;
+                width: 100%;
+                margin-top: 0.5rem;
+            }
+            
+            .material-input {
+                width: 100%;
+                padding: 1rem 0.75rem 0.5rem 0.75rem;
+                border: none;
+                background: transparent;
+                font-size: 0.95rem;
+                color: #374151;
+                outline: none;
+                box-sizing: border-box;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .material-label {
+                position: absolute;
+                top: 1rem;
+                left: 0.75rem;
+                font-size: 0.95rem;
+                color: #9ca3af;
+                pointer-events: none;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                transform-origin: left top;
+            }
+            
+            .material-input:focus ~ .material-label,
+            .material-input:not(:placeholder-shown) ~ .material-label {
+                top: 0.25rem;
+                font-size: 0.75rem;
+                color: var(--primary-500);
+                font-weight: 500;
+            }
+            
+            .material-underline {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: #d1d5db;
+                transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .material-focus-line {
+                position: absolute;
+                bottom: 0;
+                left: 50%;
+                right: auto;
+                width: 0;
+                height: 2px;
+                background: var(--primary-500);
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                transform: translateX(-50%);
+            }
+            
+            .material-input:focus ~ .material-underline {
+                background: transparent;
+            }
+            
+            .material-input:focus ~ .material-focus-line {
+                width: 100%;
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+            }
+            
+            #additionalFilters {
+                display: flex;
+                gap: 0.75rem;
+                align-items: center;
+            }
+            
+            .form-input {
+                min-height: 44px;
+                padding: 0.875rem 1rem;
+                border: 2px solid #e5e7eb;
+                border-radius: 10px;
+                font-size: 0.95rem;
+                background: #f9fafb;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .form-input:focus {
+                outline: none;
+                border-color: var(--primary-500);
+                background: white;
+                box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.15);
+            }
+            
+            .btn-export {
+                min-height: 38px;
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+                font-weight: 600;
+                white-space: nowrap;
+                border: 1px solid #d1d5db;
+                background: white;
+                color: #374151;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                gap: 0.375rem;
+            }
+            
+            .btn-export:hover {
+                border-color: var(--primary-500);
+                background: #f9fafb;
+                box-shadow: 0 1px 4px rgba(94, 134, 186, 0.1);
+            }
+            
+            .btn-export:active {
+                transform: scale(0.98);
+            }
+            
+            .flex-grow {
+                flex-grow: 1;
+                flex: 1 1 0%;
+            }
+            
+            .data-table-wrapper {
+                display: flex;
+                flex-direction: column;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                border: 1px solid #e5e7eb;
+                overflow: hidden;
+            }
+            
+            .data-table-header-bar {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 1rem 1.5rem;
+                background: #f8fafc;
+                border-bottom: 1px solid #e5e7eb;
+                flex-wrap: wrap;
+            }
+            
+            .column-toggle-btn {
+                padding: 0.5rem 0.875rem;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: #374151;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                gap: 0.375rem;
+            }
+            
+            .column-toggle-btn:hover {
+                border-color: var(--primary-500);
+                background: #f9fafb;
+                color: var(--primary-600);
+            }
+            
+            .column-visibility-menu {
+                position: absolute;
+                top: 100%;
+                right: 0;
+                background: white;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 1000;
+                min-width: 200px;
+                padding: 0.5rem 0;
+                max-height: 400px;
+                overflow-y: auto;
+                display: none;
+            }
+            
+            .column-visibility-menu.show {
+                display: block;
+            }
+            
+            .column-toggle-item {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.75rem 1rem;
+                color: #374151;
+                cursor: pointer;
+                transition: background 0.2s ease;
+                user-select: none;
+            }
+            
+            .column-toggle-item:hover {
+                background: #f3f4f6;
+            }
+            
+            .column-toggle-item input[type="checkbox"] {
+                cursor: pointer;
+                width: 16px;
+                height: 16px;
+            }
+            
+            .export-btn {
+                padding: 0.5rem 0.875rem;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: #374151;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                gap: 0.375rem;
+            }
+            
+            .export-btn:hover {
+                border-color: var(--primary-500);
+                background: #f9fafb;
+                color: var(--primary-600);
+            }
+            
+            .data-table-container {
+                background: white;
+                border-radius: 0;
+                overflow: auto;
+                box-shadow: none;
+                border: none;
+                flex: 1;
+                max-height: 600px;
+                position: relative;
+            }
+            
+            .data-table {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: auto;
+            }
+            
+            .data-table thead {
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+            
+            .data-table th {
+                background: #f8fafc;
+                padding: 1rem 1.5rem;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #374151;
+                border-bottom: 2px solid #e5e7eb;
+                position: relative;
+                white-space: nowrap;
+            }
+            
+            .data-table td {
+                padding: 1rem 1.5rem;
+                border-bottom: 1px solid #f3f4f6;
+                color: #374151;
+                word-break: break-word;
+                max-width: 400px;
+            }
+            
+            .data-table tbody tr {
+                transition: background 0.15s ease;
+            }
+            
+            .data-table tbody tr:nth-child(odd) {
+                background: #fafbfc;
+            }
+            
+            .data-table tbody tr:nth-child(even) {
+                background: white;
+            }
+            
+            .data-table tbody tr:hover {
+                background: #f0f4f8;
+            }
+            
+            .data-table tbody tr.selected {
+                background: #dbeafe;
+                border-left: 3px solid var(--primary-500);
+            }
+            
+            .cell-content {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            
+            .cell-content:hover {
+                cursor: help;
+            }
+            
+            .cell-icon {
+                flex-shrink: 0;
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+            
+            .cell-status {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.375rem;
+                padding: 0.25rem 0.75rem;
+                background: #f3f4f6;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: #374151;
+            }
+            
+            .cell-status.success {
+                background: #dcfce7;
+                color: #15803d;
+            }
+            
+            .cell-status.warning {
+                background: #fef3c7;
+                color: #b45309;
+            }
+            
+            .cell-status.error {
+                background: #fee2e2;
+                color: #991b1b;
+            }
+            
+            .no-data {
+                text-align: center;
+                color: #9ca3af;
+                font-style: italic;
+                padding: 3rem !important;
+            }
+            
+            .btn-sync {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1.75rem;
+                background: linear-gradient(145deg, var(--accent-500) 0%, #1f3550 100%);
+                color: white;
+                border: none;
+                border-radius: 12px;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 4px 12px rgba(41, 65, 96, 0.3);
+            }
+            
+            .btn-sync:hover:not(:disabled) {
+                background: linear-gradient(145deg, #3a5a7f 0%, var(--accent-500) 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(41, 65, 96, 0.4);
+            }
+            
+            .btn-sync:active:not(:disabled) {
+                transform: translateY(0);
+                box-shadow: 0 2px 8px rgba(41, 65, 96, 0.2);
+            }
+            
+            .btn-sync:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+                transform: none;
+            }
+            
+            .sortable-header {
+                cursor: pointer;
+                user-select: none;
+                transition: background 0.2s ease;
+            }
+            
+            .sortable-header:hover {
+                background: #f3f4f6;
+            }
+            
+            .header-content {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+            }
+            
+            .sort-icon {
+                font-size: 0.85rem;
+                color: #9ca3af;
+                font-weight: normal;
+                transition: color 0.2s ease;
+            }
+            
+            .table-pagination-controls {
+                background: white;
+                padding: 1.5rem;
+                border-top: 1px solid #e5e7eb;
+                border-radius: 0 0 12px 12px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 1.5rem;
+                box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+            }
+            
+            .pagination-info {
+                flex: 0 0 auto;
+                font-size: 0.875rem;
+                color: #6b7280;
+                font-weight: 500;
+            }
+            
+            .pagination-buttons {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                flex: 0 0 auto;
+            }
+            
+            .pagination-btn {
+                padding: 0.625rem 1rem;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-radius: 8px;
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: #374151;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            }
+            
+            .pagination-btn:hover:not(:disabled) {
+                border-color: var(--primary-500);
+                background: #f9fafb;
+                color: var(--primary-600);
+                box-shadow: 0 2px 4px rgba(94, 134, 186, 0.1);
+            }
+            
+            .pagination-btn:active:not(:disabled) {
+                transform: scale(0.98);
+            }
+            
+            .pagination-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                background: #f3f4f6;
+            }
+            
+            .page-info {
+                font-size: 0.875rem;
+                color: #6b7280;
+                font-weight: 500;
+                white-space: nowrap;
+            }
+            
+            .page-size-selector {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                flex: 0 0 auto;
+            }
+            
+            .page-size-selector label {
+                font-size: 0.875rem;
+                color: #6b7280;
+                font-weight: 500;
+                white-space: nowrap;
+            }
+            
+            .page-size-select {
+                padding: 0.5rem 0.75rem;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                background: white;
+                font-size: 0.875rem;
+                color: #374151;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            
+            .page-size-select:hover {
+                border-color: var(--primary-500);
+                box-shadow: 0 1px 3px rgba(94, 134, 186, 0.1);
+            }
+            
+            .page-size-select:focus {
+                outline: none;
+                border-color: var(--primary-500);
+                box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+            }
+            
+            /* Row selection and actions */
+            .row-select-checkbox {
+                width: 18px;
+                height: 18px;
+                cursor: pointer;
+            }
+            
+            .action-buttons {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .btn-action {
+                padding: 0.4rem 0.7rem;
+                background: white;
+                border: 1px solid #e5e7eb;
+                border-radius: 6px;
+                font-size: 0.8rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+            }
+            
+            .btn-action:hover {
+                border-color: var(--primary-500);
+                background: #f9fafb;
+                color: var(--primary-600);
+            }
+            
+            .btn-action.delete:hover {
+                border-color: #ef4444;
+                color: #ef4444;
+            }
+            
+            .btn-action.edit:hover {
+                border-color: #3b82f6;
+                color: #3b82f6;
+            }
+            
+            /* Keyboard shortcuts hint */
+            .keyboard-hint {
+                font-size: 0.75rem;
+                color: #9ca3af;
+                background: #f3f4f6;
+                padding: 0.5rem 0.75rem;
+                border-radius: 6px;
+                margin-top: 1rem;
+            }
+            
+            .keyboard-hint strong {
+                font-weight: 600;
+                color: #6b7280;
+            }
+            
+            /* Tooltip styling */
+            .tooltip {
+                position: relative;
+                display: inline-block;
+            }
+            
+            .tooltip .tooltiptext {
+                visibility: hidden;
+                width: 200px;
+                background-color: #1f2937;
+                color: #fff;
+                text-align: center;
+                border-radius: 6px;
+                padding: 0.5rem 0.75rem;
+                position: absolute;
+                z-index: 1000;
+                bottom: 125%;
+                left: 50%;
+                margin-left: -100px;
+                opacity: 0;
+                transition: opacity 0.3s;
+                font-size: 0.75rem;
+                white-space: normal;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            
+            .tooltip .tooltiptext::after {
+                content: "";
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                margin-left: -5px;
+                border-width: 5px;
+                border-style: solid;
+                border-color: #1f2937 transparent transparent transparent;
+            }
+            
+            .tooltip:hover .tooltiptext {
+                visibility: visible;
+                opacity: 1;
+            }
+            
+            /* Loading animation for table */
+            .data-table.loading tbody tr td {
+                opacity: 0.6;
+                pointer-events: none;
+            }
+            
+            /* Search highlight in results */
+            .highlight {
+                background: #fef08a;
+                padding: 0.1rem 0.2rem;
+                border-radius: 2px;
+                font-weight: 600;
+            }
+            
+            /* Table header actions */
+            .table-header-actions {
+                display: flex;
+                gap: 0.5rem;
+                margin-left: auto;
+            }
+            
+            @media (max-width: 768px) {
+                .table-pagination-controls {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                
+                .pagination-info,
+                .pagination-buttons,
+                .page-size-selector {
+                    width: 100%;
+                    justify-content: center;
+                }
+                
+                .pagination-buttons {
+                    justify-content: space-around;
+                }
+                
+                .data-table-header-bar {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                
+                .column-toggle-btn,
+                .export-btn {
+                    width: 100%;
+                }
+                
+                .data-table th,
+                .data-table td {
+                    padding: 0.75rem 0.75rem;
+                    font-size: 0.85rem;
+                }
+                
+                .data-table-container {
+                    max-height: 400px;
+                }
+                
+                .action-buttons {
+                    flex-direction: column;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .data-table {
+                    font-size: 0.8rem;
+                }
+                
+                .data-table th,
+                .data-table td {
+                    padding: 0.5rem;
+                }
+                
+                .header-content {
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                
+                .sort-icon {
+                    display: inline;
+                    margin-left: 0.25rem;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    /**
+     * Setup company selection handling
+     */
+    setupCompanySelection() {
+        // Use global company selector
+        const savedCompanyId = sessionStorage.getItem('selectedCompanyId');
+        this.selectedCompanyId = window.selectedCompanyId || (savedCompanyId ? parseInt(savedCompanyId) : null);
+
+        // Listen for global company changes
+        window.addEventListener('companyChanged', async (e) => {
+            console.log(`📋 ${this.config.pageName} - Company changed:`, e.detail.companyId);
+            this.selectedCompanyId = e.detail.companyId;
+            await this.loadData();
+        });
+    }
+
+    /**
+     * Load data from API
+     */
+    async loadData() {
+        console.log(`📊 Loading ${this.config.entityNamePlural} for company:`, this.selectedCompanyId);
+
+        const tbody = document.getElementById('dataTableBody');
+        if (!tbody) return;
+
+        if (!this.selectedCompanyId) {
+            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data">
+                📋 Please select a company from the dropdown above to view ${this.config.entityNamePlural}
+            </td></tr>`;
+            return;
+        }
+
+        try {
+            this.showLoading();
+
+            const url = window.apiConfig.getUrl(`${this.config.apiEndpoint}/company/${this.selectedCompanyId}`);
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: window.authService.getHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.data = result.data || [];
+                this.filteredData = [...this.data];
+                console.log(`✅ Loaded ${this.data.length} ${this.config.entityNamePlural}`);
+                this.renderTable();
+                this.setupTableListeners();
+            } else {
+                throw new Error(result.message || `Failed to load ${this.config.entityNamePlural}`);
+            }
+        } catch (error) {
+            console.error(`❌ Error loading ${this.config.entityNamePlural}:`, error);
+            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data text-red-500">
+                Error loading ${this.config.entityNamePlural}: ${error.message}
+            </td></tr>`;
+            this.showError(`Failed to load ${this.config.entityNamePlural}: ${error.message}`);
+        }
+    }
+
+    /**
+     * Show loading state
+     */
+    showLoading() {
+        const tbody = document.getElementById('dataTableBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data">
+                <div class="flex items-center justify-center gap-2">
+                    <div class="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    <span>Loading ${this.config.entityNamePlural}...</span>
+                </div>
+            </td></tr>`;
+        }
+    }
+
+    /**
+     * Render table with data
+     */
+    renderTable() {
+        const tbody = document.getElementById('dataTableBody');
+        if (!tbody) return;
+
+        if (!Array.isArray(this.filteredData) || this.filteredData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data">
+                No ${this.config.entityNamePlural} found for this company
+            </td></tr>`;
+            this.updatePaginationControls();
+            this.updateColumnVisibility();
+            return;
+        }
+
+        // Calculate pagination
+        const totalPages = Math.ceil(this.filteredData.length / this.pageSize);
+        if (this.currentPage > totalPages) {
+            this.currentPage = Math.max(1, totalPages);
+        }
+
+        const startIndex = (this.currentPage - 1) * this.pageSize;
+        const endIndex = startIndex + this.pageSize;
+        const pageData = this.filteredData.slice(startIndex, endIndex);
+
+        tbody.innerHTML = pageData.map(item => this.renderTableRow(item)).join('');
+        
+        // Update visible records info
+        const visibleRecordsInfo = document.getElementById('visibleRecordsInfo');
+        if (visibleRecordsInfo) {
+            visibleRecordsInfo.textContent = pageData.length;
+        }
+        
+        this.attachRowHandlers();
+        this.updatePaginationControls();
+        this.updateColumnVisibility();
+    }
+
+    /**
+     * Render single table row - to be overridden by child classes
+     */
+    renderTableRow(item) {
+        return `
+            <tr class="hover:bg-gray-50">
+                ${this.config.tableColumns.map(col => `
+                    <td class="${col.align || 'text-left'}">
+                        ${this.formatCellValue(item, col)}
+                    </td>
+                `).join('')}
+                <td class="text-center">
+                    <div class="flex gap-2 justify-center">
+                        <button class="action-btn edit-btn" data-id="${item.id || item[this.config.idField || 'id']}">✏️</button>
+                        <button class="action-btn delete-btn" data-id="${item.id || item[this.config.idField || 'id']}">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    /**
+     * Escape HTML to prevent XSS attacks
+     * @private
+     */
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Format cell value based on column configuration
+     */
+    formatCellValue(item, column) {
+        const value = item[column.field];
+
+        if (column.type === 'currency') {
+            return `₹${(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+        }
+
+        if (column.type === 'badge') {
+            // Escape user data in badge to prevent XSS
+            const escapedValue = this.escapeHtml(value || 'N/A');
+            return `<span class="badge ${column.badgeClass || 'badge-primary'}">${escapedValue}</span>`;
+        }
+
+        if (column.type === 'boolean') {
+            return value ?
+                '<span class="text-green-600 font-medium">✓ Yes</span>' :
+                '<span class="text-gray-400">✗ No</span>';
+        }
+
+        // Escape text values to prevent XSS
+        return this.escapeHtml(String(value || 'N/A'));
+    }
+
+    /**
+     * Setup event listeners
+     */
+    setupEventListeners() {
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => this.filterData());
+        }
+
+        // Sync button
+        const syncBtn = document.getElementById(`sync${this.config.pageName}Btn`);
+        if (syncBtn) {
+            syncBtn.addEventListener('click', () => this.syncFromTally());
+        }
+
+        // Add button
+        const addBtn = document.getElementById(`add${this.config.pageName}Btn`);
+        if (addBtn) {
+            addBtn.addEventListener('click', () => this.showAddModal());
+        }
+
+        // Modal handlers
+        this.setupModalHandlers();
+    }
+
+    /**
+     * Setup modal event handlers
+     */
+    setupModalHandlers() {
+        const modal = document.getElementById('dataModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const closeBtn = document.querySelector('.modal-close');
+        const form = document.getElementById('dataForm');
+
+        if (cancelBtn) cancelBtn.addEventListener('click', () => this.hideModal());
+        if (closeBtn) closeBtn.addEventListener('click', () => this.hideModal());
+
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveData();
+            });
+        }
+
+        // Close on backdrop click
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) this.hideModal();
+        });
+    }
+
+    /**
+     * Filter data based on search input
+     */
+    filterData() {
+        const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+
+        this.filteredData = this.data.filter(item => {
+            return this.config.searchFields.some(field => {
+                const value = item[field];
+                return value && value.toString().toLowerCase().includes(searchTerm);
+            });
+        });
+
+        // Reset to first page when filtering
+        this.currentPage = 1;
+        this.renderTable();
+        this.setupTableListeners();
+    }
+
+    /**
+     * Attach row action handlers
+     */
+    attachRowHandlers() {
+        // Delete handlers
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.closest('button').getAttribute('data-id');
+                const row = e.target.closest('tr');
+                
+                if (confirm(`Are you sure you want to delete this ${this.config.entityName}?`)) {
+                    // Add visual feedback
+                    row.style.opacity = '0.5';
+                    await this.deleteItem(id);
+                }
+            });
+        });
+
+        // Edit handlers
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.closest('button').getAttribute('data-id');
+                const row = e.target.closest('tr');
+                
+                // Highlight row
+                row.classList.add('selected');
+                this.showEditModal(id);
+            });
+        });
+
+        // Row double-click to edit (if double-click handler exists)
+        document.querySelectorAll('#dataTableBody tr').forEach(row => {
+            row.addEventListener('dblclick', (e) => {
+                // Don't trigger on button clicks
+                if (e.target.tagName !== 'BUTTON') {
+                    const editBtn = row.querySelector('.edit-btn');
+                    if (editBtn) {
+                        editBtn.click();
+                    }
+                }
+            });
+            row.style.cursor = 'pointer';
+        });
+
+        // Add row hover effect
+        document.querySelectorAll('#dataTableBody tr').forEach(row => {
+            row.addEventListener('mouseenter', () => {
+                row.style.boxShadow = '0 2px 8px rgba(94, 134, 186, 0.1) inset';
+            });
+            row.addEventListener('mouseleave', () => {
+                row.style.boxShadow = 'none';
+            });
+        });
+
+        // Add cell copy-to-clipboard on double-click
+        document.querySelectorAll('#dataTableBody td').forEach(cell => {
+            cell.addEventListener('dblclick', () => {
+                const text = cell.textContent.trim();
+                if (text && !cell.querySelector('button')) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        // Visual feedback
+                        const originalBg = cell.style.backgroundColor;
+                        cell.style.backgroundColor = '#dcfce7';
+                        setTimeout(() => {
+                            cell.style.backgroundColor = originalBg;
+                        }, 200);
+                    });
+                }
+            });
+        });
+    }
+
+    /**
+     * Show add modal
+     */
+    showAddModal() {
+        if (!this.selectedCompanyId) {
+            this.showError('Please select a company first');
+            return;
+        }
+
+        document.getElementById('modalTitle').textContent = `Add ${this.config.entityName}`;
+        document.getElementById('dataForm').reset();
+        this.showModal();
+    }
+
+    /**
+     * Show edit modal
+     */
+    showEditModal(id) {
+        // To be implemented by child classes
+        this.showInfo('Edit functionality coming soon');
+    }
+
+    /**
+     * Show modal
+     */
+    showModal() {
+        const modal = document.getElementById('dataModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    /**
+     * Hide modal
+     */
+    hideModal() {
+        const modal = document.getElementById('dataModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    /**
+     * Sort data by field
+     */
+    sortBy(field) {
+        // Toggle sort order if same field
+        if (this.sortField === field) {
+            this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortField = field;
+            this.sortOrder = 'asc';
+        }
+
+        // Sort the filtered data
+        this.filteredData.sort((a, b) => {
+            let aVal = a[field];
+            let bVal = b[field];
+
+            // Handle null/undefined
+            if (aVal == null) aVal = '';
+            if (bVal == null) bVal = '';
+
+            // Case-insensitive string comparison
+            if (typeof aVal === 'string') {
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+            }
+
+            // Compare values
+            if (aVal < bVal) return this.sortOrder === 'asc' ? -1 : 1;
+            if (aVal > bVal) return this.sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        // Reset to first page and render
+        this.currentPage = 1;
+        this.renderTable();
+        this.updateSortIcons();
+    }
+
+    /**
+     * Update sort icons to show current sort direction
+     */
+    updateSortIcons() {
+        document.querySelectorAll('.sortable-header').forEach(header => {
+            const field = header.getAttribute('data-field');
+            const icon = header.querySelector('.sort-icon');
+            
+            if (!icon) return;
+
+            if (field === this.sortField) {
+                icon.textContent = this.sortOrder === 'asc' ? '↑' : '↓';
+                icon.style.color = '#2563eb';
+                icon.style.fontWeight = 'bold';
+            } else {
+                icon.textContent = '⇅';
+                icon.style.color = '#9ca3af';
+                icon.style.fontWeight = 'normal';
+            }
+        });
+    }
+
+    /**
+     * Update pagination controls
+     */
+    updatePaginationControls() {
+        const totalPages = Math.ceil(this.filteredData.length / this.pageSize);
+        
+        // Update records info
+        const recordsInfo = document.getElementById('recordsInfo');
+        if (recordsInfo) {
+            recordsInfo.textContent = `${this.filteredData.length} records`;
+        }
+
+        // Update page numbers
+        document.getElementById('currentPageNum').textContent = this.currentPage;
+        document.getElementById('totalPages').textContent = totalPages;
+
+        // Update button states
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        
+        if (prevBtn) {
+            prevBtn.disabled = this.currentPage <= 1;
+            prevBtn.style.opacity = this.currentPage <= 1 ? '0.5' : '1';
+            prevBtn.style.cursor = this.currentPage <= 1 ? 'not-allowed' : 'pointer';
+        }
+
+        if (nextBtn) {
+            nextBtn.disabled = this.currentPage >= totalPages;
+            nextBtn.style.opacity = this.currentPage >= totalPages ? '0.5' : '1';
+            nextBtn.style.cursor = this.currentPage >= totalPages ? 'not-allowed' : 'pointer';
+        }
+    }
+
+    /**
+     * Go to specific page
+     */
+    goToPage(pageNum) {
+        const totalPages = Math.ceil(this.filteredData.length / this.pageSize);
+        if (pageNum >= 1 && pageNum <= totalPages) {
+            this.currentPage = pageNum;
+            this.renderTable();
+        }
+    }
+
+    /**
+     * Change page size
+     */
+    changePageSize(newSize) {
+        this.pageSize = parseInt(newSize, 10);
+        this.currentPage = 1;
+        this.renderTable();
+    }
+
+    /**
+     * Setup table event listeners
+     */
+    setupTableListeners() {
+        // Sort header listeners
+        document.querySelectorAll('.sortable-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const field = header.getAttribute('data-field');
+                this.sortBy(field);
+            });
+            header.style.cursor = 'pointer';
+            header.style.userSelect = 'none';
+        });
+
+        // Pagination button listeners
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                if (this.currentPage > 1) {
+                    this.goToPage(this.currentPage - 1);
+                }
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                const totalPages = Math.ceil(this.filteredData.length / this.pageSize);
+                if (this.currentPage < totalPages) {
+                    this.goToPage(this.currentPage + 1);
+                }
+            });
+        }
+
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', (e) => {
+                this.changePageSize(e.target.value);
+            });
+        }
+
+        // Keyboard shortcuts
+        this.setupKeyboardShortcuts();
+
+        this.updatePaginationControls();
+        this.updateSortIcons();
+    }
+
+    /**
+     * Setup column visibility toggle
+     */
+    setupColumnVisibilityToggle() {
+        const columnToggleBtn = document.getElementById('columnToggleBtn');
+        const columnVisibilityMenu = document.getElementById('columnVisibilityMenu');
+
+        if (!columnToggleBtn || !columnVisibilityMenu) return;
+
+        // Toggle menu
+        columnToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            columnVisibilityMenu.classList.toggle('show');
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', () => {
+            columnVisibilityMenu.classList.remove('show');
+        });
+
+        // Column toggle listeners
+        document.querySelectorAll('.column-toggle-item input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const field = e.target.getAttribute('data-field');
+                if (e.target.checked) {
+                    this.visibleColumns.add(field);
+                } else {
+                    this.visibleColumns.delete(field);
+                }
+                this.updateColumnVisibility();
+            });
+        });
+    }
+
+    /**
+     * Update column visibility in table
+     */
+    updateColumnVisibility() {
+        // Hide/show header cells
+        document.querySelectorAll('.sortable-header').forEach(header => {
+            const field = header.getAttribute('data-field');
+            const isVisible = this.visibleColumns.has(field);
+            header.style.display = isVisible ? '' : 'none';
+            header.setAttribute('data-visible', isVisible);
+        });
+
+        // Hide/show body cells
+        document.querySelectorAll('#dataTableBody tr').forEach(row => {
+            const cells = row.querySelectorAll('td');
+            cells.forEach((cell, index) => {
+                if (index < this.config.tableColumns.length) {
+                    const field = this.config.tableColumns[index].field;
+                    const isVisible = this.visibleColumns.has(field);
+                    cell.style.display = isVisible ? '' : 'none';
+                }
+            });
+        });
+    }
+
+    /**
+     * Export table data to CSV
+     */
+    exportToCSV() {
+        try {
+            // Get visible columns
+            const visibleCols = this.config.tableColumns.filter(col => this.visibleColumns.has(col.field));
+            
+            // Create CSV header
+            const headers = visibleCols.map(col => `"${col.label}"`).join(',');
+            
+            // Create CSV rows
+            const rows = this.filteredData.map(item => {
+                return visibleCols.map(col => {
+                    let value = item[col.field] || '';
+                    // Escape quotes and wrap in quotes
+                    value = String(value).replace(/"/g, '""');
+                    return `"${value}"`;
+                }).join(',');
+            });
+
+            // Combine
+            const csv = [headers, ...rows].join('\n');
+
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${this.config.entityNamePlural}_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            this.showSuccess(`✅ Exported ${this.filteredData.length} ${this.config.entityNamePlural} to CSV`);
+        } catch (error) {
+            console.error('Export error:', error);
+            this.showError('Failed to export data');
+        }
+    }
+
+    /**
+     * Setup keyboard shortcuts
+     */
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Skip if in input field
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                // Allow Ctrl+E for export even in inputs
+                if (!(e.ctrlKey && e.key === 'e')) return;
+            }
+
+            // Ctrl+E = Export
+            if (e.ctrlKey && e.key === 'e') {
+                e.preventDefault();
+                document.getElementById('exportBtn')?.click();
+            }
+
+            // Ctrl+K = Focus search
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('searchInput')?.focus();
+            }
+
+            // Arrow up = Previous page
+            if (e.key === 'ArrowUp' && e.ctrlKey) {
+                e.preventDefault();
+                document.getElementById('prevPageBtn')?.click();
+            }
+
+            // Arrow down = Next page
+            if (e.key === 'ArrowDown' && e.ctrlKey) {
+                e.preventDefault();
+                document.getElementById('nextPageBtn')?.click();
+            }
+        });
+    }
+
+
+    /**
+     * Save data (create/update)
+     */
+    async saveData() {
+        // To be implemented by child classes
+        this.showInfo('Save functionality to be implemented');
+    }
+
+    /**
+     * Delete item
+     */
+    async deleteItem(id) {
+        try {
+            const response = await fetch(window.apiConfig.getUrl(`${this.config.apiEndpoint}/${id}`), {
+                method: 'DELETE',
+                headers: window.authService.getHeaders()
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                this.showSuccess(`${this.config.entityName} deleted successfully`);
+                await this.loadData();
+            } else {
+                throw new Error(result.message || 'Delete failed');
+            }
+        } catch (error) {
+            console.error(`Error deleting ${this.config.entityName}:`, error);
+            this.showError(`Failed to delete ${this.config.entityName}`);
+        }
+    }
+
+    /**
+     * Sync from Tally - to be implemented by child classes
+     */
+    async syncFromTally() {
+        if (this.isSyncing) {
+            this.showInfo('🔄 Sync is already in progress. Please wait...');
+            return;
+        }
+        this.showInfo('Sync functionality to be implemented by child class');
+    }
+
+    /**
+     * Notification helpers
+     */
+    showError(message) {
+        console.error(message);
+        if (window.notificationService) {
+            window.notificationService.error(message);
+        } else {
+            alert('❌ ' + message);
+        }
+    }
+
+    showSuccess(message) {
+        console.log('✅', message);
+        if (window.notificationService) {
+            window.notificationService.success(message);
+        } else {
+            const msg = document.createElement('div');
+            msg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            msg.textContent = message;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 3000);
+        }
+    }
+
+    showInfo(message) {
+        console.log('ℹ️', message);
+        if (window.notificationService) {
+            window.notificationService.info(message);
+        } else {
+            const msg = document.createElement('div');
+            msg.className = 'fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            msg.textContent = message;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 3000);
+        }
+    }
+}
+
+// Export for use in other modules
+if (typeof window !== 'undefined') {
+    window.BasePage = BasePage;
+}

@@ -120,7 +120,7 @@
             const statusIcon = isSuccess ? '✓' : '✗';
             const bgClass = isSuccess ? 'bg-green-100' : 'bg-red-100';
             const textClass = isSuccess ? 'text-green-600' : 'text-red-600';
-            
+
             return `
                 <div class="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
                     <div class="flex items-center gap-3">
@@ -154,9 +154,10 @@
 
     function showStatus(message, type = 'info') {
         const statusDiv = document.getElementById('statusMessage');
-        statusDiv.innerHTML = message;
+        // Use textContent for security (prevents XSS)
+        statusDiv.textContent = message;
         statusDiv.style.display = 'block';
-        
+
         if (type === 'success') {
             statusDiv.className = 'p-4 rounded-lg border-l-4 bg-green-50 border-green-500 text-green-800';
         } else if (type === 'error') {
@@ -169,11 +170,10 @@
     function addImportLog(message, status = 'info') {
         const log = document.getElementById('importLog');
         const entry = document.createElement('div');
-        entry.className = `text-sm ${
-            status === 'success' ? 'text-green-700' :
-            status === 'error' ? 'text-red-700' :
-            'text-gray-700'
-        }`;
+        entry.className = `text-sm ${status === 'success' ? 'text-green-700' :
+                status === 'error' ? 'text-red-700' :
+                    'text-gray-700'
+            }`;
         entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
         log.appendChild(entry);
         log.scrollTop = log.scrollHeight;
@@ -190,9 +190,9 @@
             // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            
+
             console.log('📍 Fetching companies with Tally Port:', tallyPort);
-            
+
             if (window.electronAPI && window.electronAPI.invoke) {
                 const result = await window.electronAPI.invoke('fetch-companies', { tallyPort });
 
@@ -229,7 +229,6 @@
         // Fetch already imported companies from database
         let importedGuids = new Set();
         try {
-            // Check authentication - but don't block display if not authenticated
             if (window.authService && window.authService.isAuthenticated()) {
                 const headers = window.authService.getHeaders();
                 const response = await fetch(window.apiConfig.getUrl('/companies'), {
@@ -237,29 +236,17 @@
                     headers: headers
                 });
 
-                if (response.status === 401 || response.status === 403) {
-                    console.warn('⚠️ Session expired (HTTP ' + response.status + ')');
-                    // Clear authService in-memory tokens immediately
-                    if (window.authService) {
-                        window.authService.token = null;
-                        window.authService.deviceToken = null;
-                        window.authService.user = null;
-                    }
-                    // Don't return - continue to display companies
-                    console.warn('   Session manager will log you out in ~1 minute');
-                } else if (response.ok) {
+                if (response.ok) {
                     const result = await response.json();
                     if (result.success && Array.isArray(result.data)) {
-                        importedGuids = new Set(result.data.map(c => c.companyGuid || c.guid));
+                        // Normalize GUIDs to uppercase for reliable matching
+                        importedGuids = new Set(result.data.map(c => (c.companyGuid || c.guid || '').toUpperCase().trim()));
                         console.log(`✅ Loaded ${importedGuids.size} companies from database`);
                     }
                 }
-            } else {
-                console.log('⚠️ Not authenticated, showing all companies as available');
             }
         } catch (error) {
             console.error('Error fetching companies from database:', error);
-            // Don't block display - just log the error
         }
 
         if (companies.length === 0) {
@@ -270,25 +257,23 @@
         }
 
         container.innerHTML = companies.map((company, index) => {
-            // Check both guid and companyGuid properties
-            const companyGuid = company.guid || company.companyGuid || '';
-            const isImported = importedGuids.has(companyGuid);
-            
+            const companyGuid = (company.guid || company.companyGuid || '').toUpperCase().trim();
+            const isImported = companyGuid ? importedGuids.has(companyGuid) : false;
+
             return `
-            <div class="company-card flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${
-                isImported 
-                ? 'bg-gray-100 border-gray-200 opacity-70 cursor-not-allowed' 
-                : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md cursor-pointer'
-            }" data-index="${index}">
-                <input type="checkbox" class="company-checkbox w-6 h-6 rounded border-2 border-blue-500" data-index="${index}" ${isImported ? 'disabled' : ''}>
+            <div class="company-card flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${isImported
+                    ? 'bg-gray-100 border-gray-200 opacity-70 cursor-not-allowed'
+                    : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md cursor-pointer'
+                }" data-index="${index}" data-imported="${isImported}">
+                <input type="checkbox" class="company-checkbox w-6 h-6 rounded border-2 border-blue-500 ${isImported ? 'opacity-50 cursor-not-allowed' : ''}" data-index="${index}" ${isImported ? 'disabled' : ''}>
                 
                 <div class="flex-1">
                     <div class="flex items-center gap-3 mb-1">
                         <h4 class="text-base text-gray-900">${company.name}</h4>
-                        ${isImported 
-                            ? '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">✓ Imported</span>' 
-                            : '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-50 text-green-700 border border-green-200">● Available</span>'
-                        }
+                        ${isImported
+                    ? '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">✓ Imported</span>'
+                    : '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-50 text-green-700 border border-green-200">● Available</span>'
+                }
                     </div>
                     <div class="flex gap-6 text-sm text-gray-600">
                         <span>Code: <span class="font-mono bg-gray-100 px-2 py-1 rounded text-gray-900">${company.code || 'N/A'}</span></span>
@@ -317,6 +302,12 @@
         });
 
         document.querySelectorAll('.company-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('click', (e) => {
+                if (checkbox.disabled) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
             checkbox.addEventListener('change', updateSelection);
         });
 
@@ -349,9 +340,9 @@
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
             const tallyUrl = `http://localhost:${tallyPort}`;
-            
+
             console.log(`Syncing groups from Tally at ${tallyUrl}...`);
-            
+
             const response = await fetch(tallyUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/xml' },
@@ -369,10 +360,10 @@
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
             const groupElements = xmlDoc.querySelectorAll('GROUP');
-            
+
             if (groupElements.length === 0) return;
 
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
             const tallyGroups = Array.from(groupElements).map(elem => {
                 const getTextContent = (tag) => {
                     const node = elem.querySelector(tag);
@@ -393,8 +384,8 @@
             });
 
             // Sync to backend
-            const authToken = localStorage.getItem('authToken');
-            const deviceToken = localStorage.getItem('deviceToken');
+            const authToken = sessionStorage.getItem('authToken');
+            const deviceToken = sessionStorage.getItem('deviceToken');
             const syncResponse = await fetch(window.apiConfig.getUrl('/groups/sync'), {
                 method: 'POST',
                 headers: {
@@ -417,7 +408,7 @@
 
     async function sendCompanyToBackend(company) {
         const backendUrl = window.apiConfig.getUrl('/companies');
-        
+
         try {
             // Check authentication
             if (!window.authService || !window.authService.isAuthenticated()) {
@@ -438,9 +429,9 @@
             console.log('User ID:', company.userId);
             console.log('Total Fields:', Object.keys(company).length);
             console.log('Full Payload:', JSON.stringify(company, null, 2));
-            
+
             const headers = window.authService.getHeaders();
-            
+
             const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: headers,
@@ -449,7 +440,7 @@
 
             const responseText = await response.text();
             let result;
-            
+
             try {
                 result = JSON.parse(responseText);
             } catch (e) {
@@ -464,12 +455,12 @@
                 // Extract detailed error information
                 let errorMsg = result.message || result.error || `HTTP ${response.status}`;
                 let errorDetails = result.details || result.fieldErrors || '';
-                
+
                 addImportLog(`   ⚠️ Backend Error (${response.status}): ${errorMsg}`, 'error');
                 if (errorDetails) {
                     addImportLog(`   📋 Details: ${JSON.stringify(errorDetails)}`, 'error');
                 }
-                
+
                 // Log FULL response for debugging
                 console.error('❌ BACKEND ERROR RESPONSE:', {
                     status: response.status,
@@ -478,7 +469,7 @@
                     errorMessage: errorMsg,
                     errorDetails: errorDetails
                 });
-                
+
                 return { success: false, error: errorMsg };
             }
         } catch (err) {
@@ -496,45 +487,45 @@
 
         const importBtn = document.getElementById('importSelectedBtn');
         importBtn.disabled = true;
-        
+
         document.getElementById('importProgress').style.display = 'block';
         document.getElementById('importLog').innerHTML = '';
 
         addImportLog(`Starting import of ${selectedCompanies.length} company/companies...`, 'info');
 
         try {
-            // Get auth token and user directly from localStorage (more reliable)
-            const authToken = localStorage.getItem('authToken');
-            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-            
+            // Get auth token and user directly from sessionStorage (more reliable)
+            const authToken = sessionStorage.getItem('authToken');
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+
             console.log('🔐 Import - Auth check:', {
                 hasToken: !!authToken,
                 hasUser: !!currentUser,
                 userId: currentUser?.userId,
                 username: currentUser?.username
             });
-            
+
             if (!authToken) {
                 addImportLog('❌ Authentication token not found. Please login.', 'error');
-                console.error('No authToken in localStorage');
+                console.error('No authToken in sessionStorage');
                 showStatus('⚠️ Please login to import companies', 'error');
                 importBtn.disabled = false;
                 return;
             }
-            
+
             if (!currentUser || !currentUser.userId) {
                 addImportLog('❌ User information not found. Please login again.', 'error');
-                console.error('No currentUser in localStorage or missing userId');
+                console.error('No currentUser in sessionStorage or missing userId');
                 showStatus('⚠️ User session invalid. Please login again.', 'error');
                 importBtn.disabled = false;
                 return;
             }
 
             // Generate device token if missing
-            let deviceToken = localStorage.getItem('deviceToken');
+            let deviceToken = sessionStorage.getItem('deviceToken');
             if (!deviceToken) {
                 deviceToken = 'device-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
-                localStorage.setItem('deviceToken', deviceToken);
+                sessionStorage.setItem('deviceToken', deviceToken);
                 addImportLog('🔑 Generated new device token', 'info');
             }
 
@@ -594,10 +585,10 @@
                         userId: currentUser.userId,
                         userid: currentUser.userId,
                         user_id: currentUser.userId,
-                        
+
                         // ========== IDENTIFICATION (1 field) ==========
                         companyGuid: company.companyGuid || company.guid || '',
-                        
+
                         // ========== CORE INFORMATION (20 fields) ==========
                         alterId: company.alterId || '',
                         code: company.code || '',
@@ -621,7 +612,7 @@
                         currencySymbol: company.currencySymbol || '₹',
                         currencyFormalName: company.currencyFormalName || 'INR',
                         currencyDecimalPlaces: company.currencyDecimalPlaces || 2,
-                        
+
                         // ========== GST DETAILS (7 fields - India) ==========
                         gstApplicableDate: formatTallyDate(company.gstApplicableDate) || '',
                         gstState: company.gstState || '',
@@ -630,14 +621,14 @@
                         gstFreezone: company.gstFreezone === true || company.gstFreezone === 'true',
                         gstEInvoiceApplicable: company.gstEInvoiceApplicable === true || company.gstEInvoiceApplicable === 'true',
                         gstEWayBillApplicable: company.gstEWayBillApplicable === true || company.gstEWayBillApplicable === 'true',
-                        
+
                         // ========== VAT DETAILS (5 fields - GCC) ==========
                         vatEmirate: company.vatEmirate || '',
                         vatApplicableDate: formatTallyDate(company.vatApplicableDate) || '',
                         vatRegistrationNumber: company.vatRegistrationNumber || '',
                         vatAccountId: company.vatAccountId || '',
                         vatFreezone: company.vatFreezone === true || company.vatFreezone === 'true',
-                        
+
                         // ========== COMPANY FEATURES (6 fields) ==========
                         billwiseEnabled: company.billwiseEnabled === true || company.billwiseEnabled === 'true',
                         costcentreEnabled: company.costcentreEnabled === true || company.costcentreEnabled === 'true',
@@ -645,11 +636,11 @@
                         useDiscountColumn: company.useDiscountColumn === true || company.useDiscountColumn === 'true',
                         useActualColumn: company.useActualColumn === true || company.useActualColumn === 'true',
                         payrollEnabled: company.payrollEnabled === true || company.payrollEnabled === 'true',
-                        
+
                         // ========== AUDIT TIMESTAMPS (2 fields) ==========
                         createdAt: company.createdAt || new Date().toISOString(),
                         updatedAt: company.updatedAt || new Date().toISOString(),
-                        
+
                         // ========== BACKWARD COMPATIBILITY (7+ fields) ==========
                         guid: company.companyGuid || company.guid || '',
                         businessType: company.businessType || 'Tally Company',
@@ -663,7 +654,7 @@
                     // SEND TO BACKEND API
                     addImportLog(`Importing: ${company.name}...`, 'info');
                     const backendResponse = await sendCompanyToBackend(newCompany);
-                    
+
                     if (backendResponse.success) {
                         addImportLog(`✅ Imported: ${company.name} (ID: ${backendResponse.backendId})`, 'success');
                         importedCount++;

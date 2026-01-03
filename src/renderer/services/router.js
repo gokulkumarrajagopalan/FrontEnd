@@ -32,6 +32,12 @@ class Router {
         console.log('Navigating to route:', route);
         this.currentRoute = route;
 
+        // Reset scroll position to top
+        const content = document.getElementById('page-content');
+        if (content) {
+            content.scrollTop = 0;
+        }
+
         try {
             // Initialize the page
             await this.initializePage(route);

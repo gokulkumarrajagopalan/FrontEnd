@@ -2,23 +2,21 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const security = require("./security");
 
 console.log("🔥 main.js loaded");
 
 let mainWindow;
 let syncWorker = null;
 
-// Determine if we're in production or development
 const isDev = process.env.NODE_ENV === "development";
 
-// Set app data path before window creation
 const appDataPath = path.join(app.getPath('appData'), 'DesktopApp');
 if (!fs.existsSync(appDataPath)) {
   fs.mkdirSync(appDataPath, { recursive: true });
 }
 app.setPath('userData', appDataPath);
 
-// Disable all caching and networking issues
 app.commandLine.appendSwitch('disable-http-cache');
 app.commandLine.appendSwitch('disable-background-networking');
 app.commandLine.appendSwitch('disable-default-apps');
@@ -27,6 +25,10 @@ app.commandLine.appendSwitch('no-first-run');
 app.commandLine.appendSwitch('no-default-browser-check');
 app.commandLine.appendSwitch('disable-sync');
 app.commandLine.appendSwitch('disable-extensions');
+
+if (!isDev) {
+  app.commandLine.appendSwitch('disable-dev-tools');
+}
 
 function createWindow() {
   console.log("🔥 createWindow called");
@@ -48,17 +50,14 @@ function createWindow() {
   });
   console.log("🔥 BrowserWindow created");
 
-  // Load the app
   mainWindow.loadFile(path.join(__dirname, "index.html"));
   console.log("🔥 index.html loading...");
 
-  // Show window when ready
   mainWindow.once('ready-to-show', () => {
     console.log("🔥 Window ready to show - displaying now");
     mainWindow.show();
   });
 
-  // Fallback: show after timeout if ready-to-show doesn't fire
   setTimeout(() => {
     if (mainWindow && !mainWindow.isVisible()) {
       console.log("🔥 Timeout - forcing window.show()");
@@ -66,23 +65,19 @@ function createWindow() {
     }
   }, 2000);
 
-  // Handle page loading errors
   mainWindow.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
     console.error("❌ Page failed to load:", errorDescription, errorCode);
   });
 
   mainWindow.webContents.on("crashed", () => {
     console.error("❌ Renderer process crashed");
-    // Don't quit - try to recover
-    // app.quit();
   });
 
   mainWindow.webContents.on("unresponsive", () => {
     console.warn("⚠️ Renderer process became unresponsive");
   });
 
-  // Open DevTools in development
-  if (isDev && false) {  // DevTools disabled
+  if (isDev && false) {
     mainWindow.webContents.openDevTools();
   }
 
@@ -92,10 +87,6 @@ function createWindow() {
   });
 }
 
-
-/**
- * Start the Python sync worker
- */
 function startSyncWorker() {
   if (syncWorker) {
     console.log("Sync worker already running");
@@ -105,7 +96,6 @@ function startSyncWorker() {
   try {
     const workerScript = path.join(__dirname, "../..", "python", "sync_worker.py");
 
-    // Determine Python executable path
     let pythonPath = "python";
     if (process.platform === "win32") {
       pythonPath = path.join(__dirname, "../..", "python", "python.exe");
@@ -121,12 +111,54 @@ function startSyncWorker() {
       stdio: ["pipe", "pipe", "pipe"]
     });
 
+    const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+    
+    try {
+      security.validateSettings(appSettings);
+    } catch (error) {
+      console.error("❌ Invalid settings:", error.message);
+      syncWorker.kill();
+      syncWorker = null;
+      return;
+    }
+
+    const settings = {
+      tallyPort: appSettings.tallyPort || 9000,
+      syncInterval: appSettings.syncInterval || 30
+    };
+    
+    syncWorker.stdin.write(JSON.stringify(settings) + '\n');
+    syncWorker.stdin.end();
+
     syncWorker.stdout.on("data", (data) => {
       const output = data.toString().trim();
       if (output) {
-        console.log(`Sync Worker Output: ${output}`);
         try {
           const result = JSON.parse(output);
+          const type = result.type || 'unknown';
+          const timestamp = new Date().toLocaleTimeString();
+          
+          if (type === 'worker_started') {
+            console.log(`\n${'='.repeat(60)}`);
+            console.log(`🚀 [${timestamp}] SYNC WORKER STARTED`);
+            console.log(`   Port: ${result.data?.tally_port || 9000}`);
+            console.log(`   Interval: ${result.data?.sync_interval || 30} minutes`);
+            console.log(`${'='.repeat(60)}\n`);
+          } else if (type === 'sync_started') {
+            console.log(`\n📤 [${timestamp}] SYNC STARTED`);
+            console.log(`   Port: ${result.data?.tally_port || 'N/A'}`);
+          } else if (type === 'sync_completed') {
+            console.log(`✅ [${timestamp}] SYNC COMPLETED`);
+            console.log(`   Last Sync: ${result.data?.last_sync_time || 'N/A'}`);
+            console.log(`   Next Sync: ${new Date(result.data?.next_sync_time * 1000).toLocaleTimeString() || 'N/A'}\n`);
+          } else if (type === 'sync_error') {
+            console.error(`\n❌ [${timestamp}] SYNC ERROR`);
+            console.error(`   Error: ${result.data?.error || 'Unknown error'}\n`);
+          } else if (type === 'worker_stopped') {
+            console.log(`\n⏹️  [${timestamp}] SYNC WORKER STOPPED`);
+            console.log(`   Last Sync: ${result.data?.last_sync_time || 'Never'}\n`);
+          }
+          
           if (mainWindow) {
             mainWindow.webContents.send("sync-update", result);
           }
@@ -162,9 +194,6 @@ function startSyncWorker() {
   }
 }
 
-/**
- * Stop the Python sync worker
- */
 function stopSyncWorker() {
   if (syncWorker) {
     console.log("Stopping sync worker");
@@ -173,31 +202,23 @@ function stopSyncWorker() {
   }
 }
 
-/**
- * IPC Handlers for sync operations
- */
-
-// Start sync
 ipcMain.on("start-sync", (event, config) => {
-  console.log("Received start-sync request", config);
+  console.log("Received start-sync request");
   startSyncWorker();
   event.reply("sync-started", { status: "Sync started" });
 });
 
-// Stop sync
 ipcMain.on("stop-sync", (event) => {
   console.log("Received stop-sync request");
   stopSyncWorker();
   event.reply("sync-stopped", { status: "Sync stopped" });
 });
 
-// Check sync status
 ipcMain.on("check-sync-status", (event) => {
   const isRunning = syncWorker !== null;
   event.reply("sync-status", { running: isRunning });
 });
 
-// Get sync worker status
 ipcMain.handle("get-sync-status", async () => {
   return {
     running: syncWorker !== null,
@@ -205,20 +226,29 @@ ipcMain.handle("get-sync-status", async () => {
   };
 });
 
-// Handle periodic sync
 ipcMain.on("trigger-sync", (event, config) => {
-  console.log("Trigger sync with config:", config);
+  console.log("Trigger sync with config");
   startSyncWorker();
 });
 
-// Handle fetch license request
+ipcMain.on("update-sync-settings", (event, settings) => {
+  try {
+    security.validateSettings(settings);
+    console.log("Sync settings updated");
+    stopSyncWorker();
+    setTimeout(() => {
+      startSyncWorker();
+    }, 500);
+  } catch (error) {
+    console.error("❌ Invalid settings:", error.message);
+    event.reply("settings-error", { error: error.message });
+  }
+});
+
 ipcMain.handle("fetch-license", async (event, { tallyPort } = {}) => {
   try {
-    const port = tallyPort || 9000;
-    console.log(`📥 fetch-license IPC called`);
-    console.log(`   - Received tallyPort parameter:`, tallyPort);
-    console.log(`   - Using port:`, port);
-    console.log(`Fetching Tally license info from port ${port}...`);
+    const port = security.validatePort(tallyPort || 9000);
+    console.log(`📥 fetch-license IPC called on port ${port}`);
 
     return new Promise((resolve, reject) => {
       const pythonPath = process.platform === "win32" ? "python.exe" : "python";
@@ -262,18 +292,17 @@ except Exception as e:
       });
 
       python.on('close', (code) => {
-        console.log(`Python license fetch exit code: ${code}`);
         if (code === 0 && output.trim()) {
           try {
             const result = JSON.parse(output.trim());
-            console.log("License fetch result:", result);
+            console.log("License fetch result: success");
             resolve(result);
           } catch (e) {
-            console.error('Failed to parse Python output:', output);
+            console.error('Failed to parse Python output');
             reject(new Error('Failed to parse Python output'));
           }
         } else {
-          console.error('Python script error:', errorOutput);
+          console.error('Python script error');
           reject(new Error(errorOutput || 'Python script failed'));
         }
       });
@@ -284,22 +313,20 @@ except Exception as e:
       });
     });
   } catch (error) {
-    console.error("License fetch error:", error);
+    console.error("License fetch error:", error.message);
     return { success: false, error: error.message };
   }
 });
 
-// Check Tally connection via HTTP (bypasses CORS)
 ipcMain.handle("check-tally-connection", async (event, { tallyPort } = {}) => {
   try {
     const http = require('http');
-    const port = tallyPort || 9000;
+    const port = security.validatePort(tallyPort || 9000);
     const url = `http://localhost:${port}/`;
-    console.log(`Checking Tally connection at ${url}...`);
+    console.log(`Checking Tally connection at port ${port}...`);
 
     return new Promise((resolve) => {
       const request = http.get(url, { timeout: 3000 }, (response) => {
-        // If we get any response (even an error response), server is up
         resolve(true);
       });
 
@@ -313,15 +340,20 @@ ipcMain.handle("check-tally-connection", async (event, { tallyPort } = {}) => {
       });
     });
   } catch (error) {
-    console.error("Tally connection check error:", error);
+    console.error("Tally connection check error:", error.message);
     return false;
   }
 });
 
-// Fetch companies from Tally
+console.log("🔥 Registering IPC handlers...");
+
+const { registerMasterDataHandler } = require('./master-data-handler');
+registerMasterDataHandler();
+console.log("✅ 'fetch-master-data' IPC handler registered");
+
 ipcMain.handle("fetch-companies", async (event, { tallyPort } = {}) => {
   try {
-    const port = tallyPort || 9000;
+    const port = security.validatePort(tallyPort || 9000);
     console.log(`Fetching companies from Tally on port ${port}...`);
 
     return new Promise((resolve, reject) => {
@@ -366,18 +398,17 @@ except Exception as e:
       });
 
       python.on('close', (code) => {
-        console.log(`Python companies fetch exit code: ${code}`);
         if (code === 0 && output.trim()) {
           try {
             const result = JSON.parse(output.trim());
-            console.log("Companies fetch result:", result);
+            console.log("Companies fetch result: success");
             resolve(result);
           } catch (e) {
-            console.error('Failed to parse Python output:', output);
+            console.error('Failed to parse Python output');
             reject(new Error('Failed to parse Python output'));
           }
         } else {
-          console.error('Python script error:', errorOutput);
+          console.error('Python script error');
           reject(new Error(errorOutput || 'Python script failed'));
         }
       });
@@ -388,265 +419,90 @@ except Exception as e:
       });
     });
   } catch (error) {
-    console.error("Companies fetch error:", error);
+    console.error("Companies fetch error:", error.message);
     return { success: false, error: error.message };
   }
 });
 
-// Sync groups from Tally to Backend
-console.log("📝 Registering 'sync-groups' IPC handler...");
-ipcMain.handle("sync-groups", async (event, { companyId, userId, authToken, deviceToken, tallyPort, backendUrl }) => {
-  try {
-    console.log(`🔄 Syncing groups for company ${companyId}...`);
-
-    return new Promise((resolve, reject) => {
-      const pythonPath = process.platform === "win32" ? "python" : "python3";
-      const scriptPath = path.join(__dirname, "../..", "python", "sync_groups.py");
-
-      console.log(`📍 Python script path: ${scriptPath}`);
-      console.log(`📍 Company ID: ${companyId}, User ID: ${userId}`);
-      console.log(`📍 Tally Port: ${tallyPort || 9000}`);
-
-      const args = [
-        scriptPath,
-        '--company-id', companyId.toString(),
-        '--user-id', userId.toString(),
-        '--auth-token', authToken,
-        '--device-token', deviceToken
-      ];
-
-      // Add tallyPort if provided
-      if (tallyPort) {
-        args.push('--tally-port', tallyPort.toString());
-      }
-
-      // Add backendUrl if provided
-      if (backendUrl) {
-        args.push('--backend-url', backendUrl);
-      }
-
-      const python = spawn(pythonPath, args, {
-        cwd: path.join(__dirname, "../..", "python")
-      });
-
-      let output = '';
-      let errorOutput = '';
-      let lastJsonOutput = '';
-
-      python.stdout.on('data', (data) => {
-        const text = data.toString();
-        output += text;
-        console.log(`[Python] ${text.trim()}`);
-
-        // Try to capture JSON output (last line)
-        const lines = text.trim().split('\n');
-        for (const line of lines) {
-          if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
-            lastJsonOutput = line.trim();
-          }
-        }
-      });
-
-      python.stderr.on('data', (data) => {
-        const text = data.toString();
-        errorOutput += text;
-        console.error(`[Python Error] ${text.trim()}`);
-      });
-
-      python.on('close', (code) => {
-        console.log(`🔄 Python sync exit code: ${code}`);
-        console.log(`📄 Full stdout: ${output}`);
-        console.log(`📄 Full stderr: ${errorOutput}`);
-
-        if (code === 0 && lastJsonOutput) {
-          try {
-            const result = JSON.parse(lastJsonOutput);
-            console.log("✅ Sync result:", result);
-            resolve(result);
-          } catch (e) {
-            console.error('Failed to parse Python JSON output:', lastJsonOutput);
-            resolve({
-              success: false,
-              message: 'Failed to parse sync result',
-              error: lastJsonOutput
-            });
-          }
-        } else if (code === 0) {
-          // Success but no JSON output
-          resolve({
-            success: true,
-            message: 'Sync completed',
-            output: output
-          });
-        } else {
-          console.error('Python sync failed with exit code:', code);
-          console.error('Error output:', errorOutput);
-          console.error('Standard output:', output);
-          resolve({
-            success: false,
-            message: errorOutput || output || 'Sync failed',
-            exitCode: code,
-            stderr: errorOutput,
-            stdout: output
-          });
-        }
-      });
-
-      python.on('error', (err) => {
-        console.error('Python spawn error:', err);
-        resolve({
-          success: false,
-          message: `Failed to start Python: ${err.message}`
-        });
-      });
-    });
-  } catch (error) {
-    console.error("Sync groups error:", error);
-    return {
-      success: false,
-      message: error.message
-    };
-  }
+ipcMain.handle("sync-groups", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "groups", "Group");
 });
 console.log("✅ 'sync-groups' IPC handler registered successfully");
 
-// Ledgers sync handler
-console.log("📝 Registering 'sync-ledgers' IPC handler...");
-ipcMain.handle("sync-ledgers", async (event, { companyId, userId, authToken, deviceToken, tallyPort, backendUrl }) => {
-  try {
-    console.log(`🔄 Syncing ledgers for company ${companyId}...`);
-    console.log(`🔌 Using Tally Port: ${tallyPort || 9000}`);
-
-    return new Promise((resolve, reject) => {
-      const pythonPath = process.platform === "win32" ? "python" : "python3";
-      const scriptPath = path.join(__dirname, "../..", "python", "sync_ledgers.py");
-
-      console.log(`📍 Python script path: ${scriptPath}`);
-      console.log(`📍 Company ID: ${companyId}, User ID: ${userId}`);
-
-      const args = [
-        scriptPath,
-        '--company-id', companyId.toString(),
-        '--user-id', userId.toString(),
-        '--auth-token', authToken,
-        '--device-token', deviceToken
-      ];
-
-      // Add tally port if provided
-      if (tallyPort) {
-        args.push('--tally-port', tallyPort.toString());
-      }
-
-      // Add backend URL if provided
-      if (backendUrl) {
-        args.push('--backend-url', backendUrl);
-      }
-
-      const python = spawn(pythonPath, args, {
-        cwd: path.join(__dirname, "../..", "python")
-      });
-
-      let output = '';
-      let errorOutput = '';
-      let lastJsonOutput = '';
-
-      python.stdout.on('data', (data) => {
-        const text = data.toString();
-        output += text;
-        console.log(`[Python Ledgers] ${text.trim()}`);
-
-        // Try to capture JSON output (last line)
-        const lines = text.trim().split('\n');
-        for (const line of lines) {
-          if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
-            lastJsonOutput = line.trim();
-          }
-        }
-      });
-
-      python.stderr.on('data', (data) => {
-        const text = data.toString();
-        errorOutput += text;
-        console.error(`[Python Ledgers Error] ${text.trim()}`);
-      });
-
-      python.on('close', (code) => {
-        console.log(`🔄 Python ledgers sync exit code: ${code}`);
-        console.log(`📄 Full stdout: ${output}`);
-        console.log(`📄 Full stderr: ${errorOutput}`);
-
-        if (code === 0 && lastJsonOutput) {
-          try {
-            const result = JSON.parse(lastJsonOutput);
-            console.log("✅ Ledgers sync result:", result);
-            resolve(result);
-          } catch (e) {
-            console.error('Failed to parse Python JSON output:', lastJsonOutput);
-            resolve({
-              success: false,
-              message: 'Failed to parse sync result',
-              error: lastJsonOutput
-            });
-          }
-        } else if (code === 0) {
-          // Success but no JSON output
-          resolve({
-            success: true,
-            message: 'Sync completed',
-            output: output
-          });
-        } else {
-          console.error('Python ledgers sync failed with exit code:', code);
-          console.error('Error output:', errorOutput);
-          console.error('Standard output:', output);
-          resolve({
-            success: false,
-            message: errorOutput || output || 'Sync failed',
-            exitCode: code,
-            stderr: errorOutput,
-            stdout: output
-          });
-        }
-      });
-
-      python.on('error', (err) => {
-        console.error('Python spawn error:', err);
-        resolve({
-          success: false,
-          message: `Failed to start Python: ${err.message}`
-        });
-      });
-    });
-  } catch (error) {
-    console.error("Sync ledgers error:", error);
-    return {
-      success: false,
-      message: error.message
-    };
-  }
+ipcMain.handle("sync-ledgers", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "ledgers", "Ledger");
 });
 console.log("✅ 'sync-ledgers' IPC handler registered successfully");
 
-// Currencies sync handler
-console.log("📝 Registering 'sync-currencies' IPC handler...");
-ipcMain.handle("sync-currencies", async (event, { companyId, userId, authToken, deviceToken, tallyPort, backendUrl }) => {
-  try {
-    console.log(`🔄 Syncing currencies for company ${companyId}...`);
+ipcMain.handle("sync-currencies", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "currencies", "Currency");
+});
+console.log("✅ 'sync-currencies' IPC handler registered successfully");
 
-    return new Promise((resolve, reject) => {
+ipcMain.handle("sync-cost-categories", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "cost categories", "CostCategory");
+});
+
+ipcMain.handle("sync-cost-centers", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "cost centers", "CostCenter");
+});
+
+ipcMain.handle("sync-voucher-types", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "voucher types", "VoucherType");
+});
+
+ipcMain.handle("sync-tax-units", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "tax units", "TaxUnit");
+});
+
+ipcMain.handle("sync-units", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "units", "Unit");
+});
+
+ipcMain.handle("sync-stock-groups", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "stock groups", "StockGroup");
+});
+
+ipcMain.handle("sync-stock-categories", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "stock categories", "StockCategory");
+});
+
+ipcMain.handle("sync-stock-items", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "stock items", "StockItem");
+});
+
+ipcMain.handle("sync-godowns", async (event, config) => {
+  return handleSync(config, "incremental_sync.py", "godowns", "Godown");
+});
+
+console.log("🔧 About to register 'incremental-sync' handler...");
+
+ipcMain.handle("incremental-sync", async (event, config) => {
+  console.log('📡 Received incremental-sync IPC call');
+  try {
+    const { companyId, userId, tallyPort, backendUrl, authToken, deviceToken, entityType, maxAlterID } = config;
+    
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`🔄 INCREMENTAL SYNC STARTED: ${entityType.toUpperCase()}`);
+    console.log(`   Company: ${companyId}`);
+    console.log(`   Max AlterID: ${maxAlterID}`);
+    console.log(`${'='.repeat(60)}`);
+    
+    return new Promise((resolve) => {
       const pythonPath = process.platform === "win32" ? "python" : "python3";
-      const scriptPath = path.join(__dirname, "../..", "python", "sync_currencies.py");
+      const scriptPath = path.join(__dirname, "../..", "python", "incremental_sync.py");
 
       const args = [
         scriptPath,
-        '--company-id', companyId.toString(),
-        '--user-id', userId.toString(),
-        '--auth-token', authToken,
-        '--device-token', deviceToken
+        companyId.toString(),
+        userId.toString(),
+        tallyPort.toString(),
+        backendUrl,
+        authToken,
+        deviceToken,
+        entityType,
+        maxAlterID.toString()
       ];
-
-      if (tallyPort) args.push('--tally-port', tallyPort.toString());
-      if (backendUrl) args.push('--backend-url', backendUrl);
 
       const python = spawn(pythonPath, args, {
         cwd: path.join(__dirname, "../..", "python")
@@ -654,17 +510,9 @@ ipcMain.handle("sync-currencies", async (event, { companyId, userId, authToken, 
 
       let output = '';
       let errorOutput = '';
-      let lastJsonOutput = '';
 
       python.stdout.on('data', (data) => {
-        const text = data.toString();
-        output += text;
-        const lines = text.trim().split('\n');
-        for (const line of lines) {
-          if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
-            lastJsonOutput = line.trim();
-          }
-        }
+        output += data.toString();
       });
 
       python.stderr.on('data', (data) => {
@@ -672,67 +520,54 @@ ipcMain.handle("sync-currencies", async (event, { companyId, userId, authToken, 
       });
 
       python.on('close', (code) => {
-        console.log(`🔄 Python currencies sync exit code: ${code}`);
-        if (code === 0 && lastJsonOutput) {
+        if (code === 0) {
           try {
-            resolve(JSON.parse(lastJsonOutput));
+            const lines = output.trim().split('\n');
+            const lastLine = lines[lines.length - 1];
+            const result = JSON.parse(lastLine);
+            console.log(`✅ ${entityType.toUpperCase()} INCREMENTAL SYNC SUCCEEDED`);
+            console.log(`   Records: ${result.count || 0}`);
+            console.log(`${'='.repeat(60)}\n`);
+            resolve(result);
           } catch (e) {
-            resolve({ success: false, message: 'Failed to parse sync result', output: lastJsonOutput });
+            console.log(`✅ ${entityType.toUpperCase()} INCREMENTAL SYNC COMPLETED`);
+            console.log(`${'='.repeat(60)}\n`);
+            resolve({ success: true, count: 0, message: 'Sync completed' });
           }
         } else {
-          // Attempt to parse JSON even if code is non-zero, as output_result exits with 1
-          if (lastJsonOutput) {
-            try {
-              resolve(JSON.parse(lastJsonOutput));
-              return;
-            } catch (e) { }
-          }
-          resolve({
-            success: false,
-            message: errorOutput.trim() || output.trim() || 'Sync failed',
-            exitCode: code,
-            stdout: output,
-            stderr: errorOutput
-          });
+          console.error(`❌ ${entityType.toUpperCase()} INCREMENTAL SYNC FAILED`);
+          console.error(`   Error: ${errorOutput.trim() || 'Unknown error'}`);
+          console.error(`${'='.repeat(60)}\n`);
+          resolve({ success: false, message: errorOutput || 'Sync failed', count: 0 });
         }
       });
 
       python.on('error', (err) => {
-        resolve({ success: false, message: `Failed to start Python: ${err.message}` });
+        console.error(`❌ ${entityType.toUpperCase()} INCREMENTAL SYNC FAILED`);
+        console.error(`   Error: ${err.message}`);
+        console.error(`${'='.repeat(60)}\n`);
+        resolve({ success: false, message: err.message, count: 0 });
       });
     });
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error(`❌ INCREMENTAL SYNC FAILED`);
+    console.error(`   Error: ${error.message}`);
+    console.error(`${'='.repeat(60)}\n`);
+    return { success: false, message: error.message, count: 0 };
   }
 });
-console.log("✅ 'sync-currencies' IPC handler registered successfully");
+console.log("✅ 'incremental-sync' IPC handler registered successfully");
 
-// Cost Categories sync handler
-ipcMain.handle("sync-cost-categories", async (event, config) => {
-  return handleSync(config, "sync_costcategories.py", "cost categories");
-});
-
-// Cost Centers sync handler
-ipcMain.handle("sync-cost-centers", async (event, config) => {
-  return handleSync(config, "sync_costcentres.py", "cost centers");
-});
-
-// Voucher Types sync handler
-ipcMain.handle("sync-voucher-types", async (event, config) => {
-  return handleSync(config, "sync_vouchertypes.py", "voucher types");
-});
-
-// Tax Units sync handler
-ipcMain.handle("sync-tax-units", async (event, config) => {
-  return handleSync(config, "sync_taxunits.py", "tax units");
-});
-
-/**
- * Generic sync handler to avoid code duplication
- */
-function handleSync({ companyId, userId, authToken, deviceToken, tallyPort, backendUrl }, scriptName, displayName) {
+function handleSync({ companyId, userId, authToken, deviceToken, tallyPort, backendUrl, companyName }, scriptName, displayName, entityType) {
   try {
-    console.log(`🔄 Syncing ${displayName} for company ${companyId}...`);
+    security.validateScriptPath(scriptName, path.join(__dirname, "../..", "python"));
+    
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`🔄 SYNC STARTED: ${displayName.toUpperCase()}`);
+    console.log(`   Company: ${companyName || companyId}`);
+    console.log(`   Entity Type: ${entityType}`);
+    console.log(`   Auth Token: ${security.maskToken(authToken)}`);
+    console.log(`${'='.repeat(60)}`);
 
     return new Promise((resolve) => {
       const pythonPath = process.platform === "win32" ? "python" : "python3";
@@ -740,14 +575,16 @@ function handleSync({ companyId, userId, authToken, deviceToken, tallyPort, back
 
       const args = [
         scriptPath,
-        '--company-id', companyId.toString(),
-        '--user-id', userId.toString(),
-        '--auth-token', authToken,
-        '--device-token', deviceToken
+        companyId.toString(),
+        userId.toString(),
+        tallyPort.toString(),
+        backendUrl,
+        authToken,
+        deviceToken,
+        entityType
       ];
 
-      if (tallyPort) args.push('--tally-port', tallyPort.toString());
-      if (backendUrl) args.push('--backend-url', backendUrl);
+      if (companyName) args.push('--company-name', companyName);
 
       const python = spawn(pythonPath, args, {
         cwd: path.join(__dirname, "../..", "python")
@@ -773,33 +610,52 @@ function handleSync({ companyId, userId, authToken, deviceToken, tallyPort, back
       });
 
       python.on('close', (code) => {
-        console.log(`🔄 Python ${displayName} sync exit code: ${code}`);
         if (code === 0 && lastJsonOutput) {
           try {
-            resolve(JSON.parse(lastJsonOutput));
+            const result = JSON.parse(lastJsonOutput);
+            console.log(`✅ ${displayName.toUpperCase()} SYNC SUCCEEDED`);
+            console.log(`   Status: ${result.success ? 'Success' : 'Failed'}`);
+            console.log(`${'='.repeat(60)}\n`);
+            resolve(result);
           } catch (e) {
-            resolve({ success: false, message: `Failed to parse ${displayName} sync result`, output: lastJsonOutput });
+            console.error(`❌ ${displayName.toUpperCase()} SYNC FAILED`);
+            console.error(`   Error: Failed to parse result`);
+            console.error(`${'='.repeat(60)}\n`);
+            resolve({ success: false, message: `Failed to parse ${displayName} sync result` });
           }
         } else {
           if (lastJsonOutput) {
             try {
-              resolve(JSON.parse(lastJsonOutput));
+              const result = JSON.parse(lastJsonOutput);
+              console.log(`✅ ${displayName.toUpperCase()} SYNC COMPLETED`);
+              console.log(`   Status: ${result.success ? 'Success' : 'Failed'}`);
+              console.log(`${'='.repeat(60)}\n`);
+              resolve(result);
               return;
             } catch (e) { }
           }
+          console.error(`❌ ${displayName.toUpperCase()} SYNC FAILED`);
+          console.error(`   Error: ${errorOutput.trim() || 'Unknown error'}`);
+          console.error(`${'='.repeat(60)}\n`);
           resolve({
             success: false,
-            message: errorOutput.trim() || output.trim() || `Syncing ${displayName} failed`,
+            message: errorOutput.trim() || `Syncing ${displayName} failed`,
             exitCode: code
           });
         }
       });
 
       python.on('error', (err) => {
+        console.error(`❌ ${displayName.toUpperCase()} SYNC FAILED`);
+        console.error(`   Error: ${err.message}`);
+        console.error(`${'='.repeat(60)}\n`);
         resolve({ success: false, message: `Failed to start Python: ${err.message}` });
       });
     });
   } catch (error) {
+    console.error(`❌ ${displayName.toUpperCase()} SYNC FAILED`);
+    console.error(`   Error: ${error.message}`);
+    console.error(`${'='.repeat(60)}\n`);
     return { success: false, message: error.message };
   }
 }
@@ -815,7 +671,6 @@ app.whenReady().then(() => {
     }
   });
 
-  // Add uncaught exception handler
   process.on('uncaughtException', (error) => {
     console.error('🔥 Uncaught exception:', error);
   });
@@ -832,7 +687,6 @@ app.on("before-quit", () => {
   stopSyncWorker();
 });
 
-// Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {

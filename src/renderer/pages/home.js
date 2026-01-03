@@ -9,7 +9,7 @@
                 <p class="text-lg max-w-xl" style="color: #ffffff !important; opacity: 0.9;">Your complete enterprise resource planning solution. Manage finances, inventory, and operations seamlessly.</p>
                 <div class="flex gap-3 mt-6">
                     <button class="text-white px-6 py-2.5 rounded-lg font-semibold shadow-lg transition-all hover:opacity-90 active:scale-95" 
-                            style="background: #a78bfa;" 
+                            style="background: #8761e3;" 
                             onclick="window.router.navigate('vouchers')">Create Voucher</button>
                     <button class="bg-white/10 text-white border border-white/20 px-6 py-2.5 rounded-lg font-semibold hover:bg-white/20 transition-colors active:scale-95" 
                             onclick="window.router.navigate('reports')">View Reports</button>
@@ -42,8 +42,8 @@
         </div>
 
         <!-- Features Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h3 class="text-lg font-bold text-gray-800">System Status</h3>
                     <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Operational</span>
@@ -137,6 +137,31 @@
             statusText.textContent = 'Disabled';
             intervalDisplay.textContent = 'Idle';
         }
+    }
+    
+    function updateHealthScoreCard(status) {
+        const healthScore = document.getElementById('healthScore');
+        const avgDuration = document.getElementById('avgDuration');
+        const queueSize = document.getElementById('queueSize');
+        
+        if (!healthScore || !avgDuration || !queueSize) return;
+        
+        // Calculate health score based on sync status
+        let score = 100;
+        if (status.lastSyncError) {
+            score -= 15;
+        } else if (!status.isRunning) {
+            score -= 25;
+        } else if (status.isSyncing) {
+            score = 98;
+        }
+        
+        healthScore.textContent = Math.max(0, Math.min(100, score)) + '%';
+        
+        // Get sync metrics from localStorage or API
+        const syncMetrics = JSON.parse(localStorage.getItem('syncMetrics') || '{"avgDuration":"02m 14s","queueSize":6}');
+        avgDuration.textContent = syncMetrics.avgDuration || '02m 14s';
+        queueSize.textContent = syncMetrics.queueSize || 0;
     }
 
     window.initializeHome = function () {

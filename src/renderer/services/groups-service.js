@@ -9,12 +9,14 @@ class GroupsService {
     }
 
     getHeaders() {
-        const token = localStorage.getItem('authToken');
-        const deviceToken = localStorage.getItem('deviceToken');
+        const token = sessionStorage.getItem('authToken');
+        const deviceToken = sessionStorage.getItem('deviceToken');
+        const csrfToken = sessionStorage.getItem('csrfToken');
         return {
             'Content-Type': 'application/json',
             ...(token && { 'Authorization': `Bearer ${token}` }),
-            ...(deviceToken && { 'X-Device-Token': deviceToken })
+            ...(deviceToken && { 'X-Device-Token': deviceToken }),
+            ...(csrfToken && { 'X-CSRF-Token': csrfToken })
         };
     }
 
@@ -205,9 +207,9 @@ class GroupsService {
         const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
         const tallyPort = appSettings.tallyPort || 9000;
         const tallyUrl = `http://localhost:${tallyPort}`;
-        
+
         console.log(`Fetching groups from Tally at ${tallyUrl}...`);
-        
+
         const response = await fetch(tallyUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/xml' },
@@ -251,7 +253,7 @@ class GroupsService {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
         const groupElements = xmlDoc.querySelectorAll('GROUP');
-        
+
         return Array.from(groupElements).map(elem => {
             const getTextContent = (tag) => {
                 const node = elem.querySelector(tag);

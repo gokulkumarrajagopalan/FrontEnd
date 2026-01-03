@@ -1,69 +1,65 @@
 /**
- * Automatic Sync Scheduler Service
- * Handles interval-based automatic syncing of groups and ledgers for all imported companies
+ * Sync Scheduler - Runs incremental sync at configured interval
+ * Replaces full reconciliation with optimized AlterID-based sync
  */
 
 class SyncScheduler {
     constructor() {
-        this.intervalId = null;
+        this.syncInterval = null;
         this.isRunning = false;
-        this.isSyncing = false;
-        this.syncInterval = 30; // Default 30 minutes
         this.lastSyncTime = null;
-
-        console.log('🔄 SyncScheduler initialized');
     }
 
     /**
-     * Start the automatic sync scheduler
+     * Get sync interval from global settings (converts minutes to ms)
+     */
+    getSyncInterval() {
+        try {
+            const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            // Settings stores interval in MINUTES, convert to milliseconds
+            const intervalMinutes = settings.syncInterval || 60; // Default 60 minutes
+            const intervalMs = intervalMinutes * 60 * 1000;
+            console.log(`📊 Sync interval: ${intervalMinutes} minutes (${intervalMs}ms)`);
+            return intervalMs;
+        } catch (error) {
+            console.error('Error getting sync interval:', error);
+            return 3600000; // Default 1 hour in ms
+        }
+    }
+
+    /**
+     * Start scheduler
      */
     start() {
-        // Load sync interval from settings
-        const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-        this.syncInterval = settings.syncInterval || 30;
-
-        console.log(`🔄 Starting sync scheduler with interval: ${this.syncInterval} minutes`);
-
-        // Don't start if interval is 0 (disabled)
-        if (this.syncInterval === 0) {
-            console.log('⏸️ Auto-sync disabled (interval = 0)');
+        if (this.isRunning) {
+            console.log('⚠️ Scheduler already running');
             return;
         }
 
-        // Stop existing interval if running
-        this.stop();
-
-        // Convert minutes to milliseconds
-        const intervalMs = this.syncInterval * 60 * 1000;
-
-        // Start interval
-        this.intervalId = setInterval(() => {
-            this.performAutoSync();
-        }, intervalMs);
+        const interval = this.getSyncInterval();
+        console.log(`🔄 Starting sync scheduler with interval: ${interval}ms`);
 
         this.isRunning = true;
+        this.syncInterval = setInterval(() => this.runSync(), interval);
 
-        console.log(`✅ Sync scheduler started. Next sync in ${this.syncInterval} minutes`);
-
-        // Optionally perform initial sync immediately
-        // Uncomment if you want to sync on startup
-        // this.performAutoSync();
+        // Run first sync immediately
+        this.runSync();
     }
 
     /**
-     * Stop the automatic sync scheduler
+     * Stop scheduler
      */
     stop() {
-        if (this.intervalId) {
-            clearInterval(this.intervalId);
-            this.intervalId = null;
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+            this.syncInterval = null;
             this.isRunning = false;
             console.log('⏹️ Sync scheduler stopped');
         }
     }
 
     /**
-     * Restart the scheduler (useful when settings change)
+     * Restart scheduler with new settings
      */
     restart() {
         console.log('🔄 Restarting sync scheduler...');
@@ -72,385 +68,460 @@ class SyncScheduler {
     }
 
     /**
-     * Perform automatic sync for all imported companies
+     * Run incremental sync for all companies
      */
-    async performAutoSync() {
-        if (this.isSyncing) {
-            console.log('⏭️ Sync already in progress, skipping...');
-            return;
-        }
-
+    async runSync() {
         try {
-            this.isSyncing = true;
-            console.log('='.repeat(60));
-            console.log('🔄 AUTO-SYNC STARTED');
-            console.log('='.repeat(60));
-            console.log('⏰ Time:', new Date().toLocaleString());
-
-            // Check if user is authenticated
-            if (!window.authService || !window.authService.isAuthenticated()) {
-                console.log('⚠️ User not authenticated, skipping auto-sync');
-                return;
-            }
-
-            // Get auth tokens
-            const authToken = localStorage.getItem('authToken');
-            const deviceToken = localStorage.getItem('deviceToken');
-            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-            if (!authToken || !deviceToken || !currentUser) {
-                console.log('⚠️ Missing authentication data, skipping auto-sync');
-                return;
-            }
-
-            // Get all imported companies from backend
-            const companies = await this.getImportedCompanies(authToken, deviceToken);
-
-            if (!companies || companies.length === 0) {
-                console.log('📋 No companies found to sync');
-                return;
-            }
-
-            console.log(`📊 Found ${companies.length} companies to sync`);
-
-            // Get settings
-            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-            const tallyPort = appSettings.tallyPort || 9000;
-            const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
-
-            let successCount = 0;
-            let failCount = 0;
-
-            // Sync each company
-            for (const company of companies) {
-                console.log(`\n📦 Syncing company: ${company.name} (ID: ${company.id})`);
-
-                try {
-                    // Sync groups
-                    console.log('   🔄 Syncing groups...');
-                    const groupsResult = await this.syncCompanyGroups(
-                        company.id,
-                        currentUser.userId,
-                        authToken,
-                        deviceToken,
-                        tallyPort,
-                        backendUrl
-                    );
-
-                    if (groupsResult.success) {
-                        console.log(`   ✅ Groups synced: ${groupsResult.count || 0} groups`);
-                    } else {
-                        console.log(`   ⚠️ Groups sync failed: ${groupsResult.message}`);
-                    }
-
-                    // Sync ledgers
-                    console.log('   🔄 Syncing ledgers...');
-                    const ledgersResult = await this.syncCompanyLedgers(
-                        company.id,
-                        currentUser.userId,
-                        authToken,
-                        deviceToken,
-                        tallyPort,
-                        backendUrl
-                    );
-
-                    if (ledgersResult.success) {
-                        console.log(`   ✅ Ledgers synced: ${ledgersResult.count || 0} ledgers`);
-                    } else {
-                        console.log(`   ⚠️ Ledgers sync failed: ${ledgersResult.message}`);
-                    }
-
-                    // Sync currencies
-                    console.log('   🔄 Syncing currencies...');
-                    const currenciesResult = await this.syncCompanyCurrencies(
-                        company.id,
-                        currentUser.userId,
-                        authToken,
-                        deviceToken,
-                        tallyPort,
-                        backendUrl
-                    );
-
-                    if (currenciesResult.success) {
-                        console.log(`   ✅ Currencies synced: ${currenciesResult.count || 0} currencies`);
-                    } else {
-                        console.log(`   ⚠️ Currencies sync failed: ${currenciesResult.message}`);
-                    }
-
-                    // Sync cost categories
-                    console.log('   🔄 Syncing cost categories...');
-                    const costCategoriesResult = await this.syncCompanyCostCategories(
-                        company.id, currentUser.userId, authToken, deviceToken, tallyPort, backendUrl
-                    );
-                    if (costCategoriesResult.success) {
-                        console.log(`   ✅ Cost categories synced: ${costCategoriesResult.count || 0} categories`);
-                    } else {
-                        console.log(`   ⚠️ Cost categories sync failed: ${costCategoriesResult.message}`);
-                    }
-
-                    // Sync cost centers
-                    console.log('   🔄 Syncing cost centers...');
-                    const costCentersResult = await this.syncCompanyCostCenters(
-                        company.id, currentUser.userId, authToken, deviceToken, tallyPort, backendUrl
-                    );
-                    if (costCentersResult.success) {
-                        console.log(`   ✅ Cost centers synced: ${costCentersResult.count || 0} centers`);
-                    } else {
-                        console.log(`   ⚠️ Cost centers sync failed: ${costCentersResult.message}`);
-                    }
-
-                    // Sync voucher types
-                    console.log('   🔄 Syncing voucher types...');
-                    const voucherTypesResult = await this.syncCompanyVoucherTypes(
-                        company.id, currentUser.userId, authToken, deviceToken, tallyPort, backendUrl
-                    );
-                    if (voucherTypesResult.success) {
-                        console.log(`   ✅ Voucher types synced: ${voucherTypesResult.count || 0} voucher types`);
-                    } else {
-                        console.log(`   ⚠️ Voucher types sync failed: ${voucherTypesResult.message}`);
-                    }
-
-                    // Sync tax units
-                    console.log('   🔄 Syncing tax units...');
-                    const taxUnitsResult = await this.syncCompanyTaxUnits(
-                        company.id, currentUser.userId, authToken, deviceToken, tallyPort, backendUrl
-                    );
-                    if (taxUnitsResult.success) {
-                        console.log(`   ✅ Tax units synced: ${taxUnitsResult.count || 0} tax units`);
-                    } else {
-                        console.log(`   ⚠️ Tax units sync failed: ${taxUnitsResult.message}`);
-                    }
-
-                    const allSuccess = groupsResult.success &&
-                        ledgersResult.success &&
-                        currenciesResult.success &&
-                        costCategoriesResult.success &&
-                        costCentersResult.success &&
-                        voucherTypesResult.success &&
-                        taxUnitsResult.success;
-
-                    if (allSuccess) {
-                        successCount++;
-                    } else {
-                        failCount++;
-                    }
-
-                } catch (error) {
-                    console.error(`   ❌ Error syncing company ${company.name}:`, error);
-                    failCount++;
-                }
-            }
-
+            console.log(`\n📊 Running incremental sync at ${new Date().toLocaleTimeString()}`);
             this.lastSyncTime = new Date();
 
-            console.log('\n' + '='.repeat(60));
-            console.log('✅ AUTO-SYNC COMPLETED');
-            console.log('='.repeat(60));
-            console.log(`📊 Results: ${successCount} succeeded, ${failCount} failed`);
-            console.log(`⏰ Next sync in ${this.syncInterval} minutes`);
-            console.log('='.repeat(60));
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+            const backendUrl = window.apiConfig?.baseURL || 'http://localhost:8080';
+            const authToken = sessionStorage.getItem('authToken');
+            const deviceToken = sessionStorage.getItem('deviceToken');
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
 
-            // Show notification to user
-            if (window.notificationService) {
-                if (successCount > 0) {
-                    window.notificationService.success(
-                        `🔄 Auto-sync completed: ${successCount} companies synced successfully`
+            if (!authToken || !deviceToken) {
+                console.warn('⚠️ Not authenticated, skipping sync');
+                return;
+            }
+
+            // Fetch companies from backend API instead of localStorage
+            const companies = await this.fetchImportedCompanies(backendUrl, authToken, deviceToken);
+            if (companies.length === 0) {
+                console.log('ℹ️ No companies to sync');
+                return;
+            }
+
+            console.log(`📋 Found ${companies.length} companies to sync`);
+
+            // Use SyncStateManager to prevent concurrent syncs
+            if (window.syncStateManager && !window.syncStateManager.startSync('incremental', companies.length)) {
+                console.warn('⚠️ Sync already in progress, this sync will be queued');
+                return;
+            }
+
+            let successCount = 0;
+            let failureCount = 0;
+            const failedCompanies = [];
+
+            // Sync each company
+            for (let i = 0; i < companies.length; i++) {
+                const company = companies[i];
+                
+                // Update progress in SyncStateManager
+                if (window.syncStateManager) {
+                    window.syncStateManager.updateProgress(i, company.name);
+                }
+
+                try {
+                    const syncResult = await this.syncCompany(
+                        company.id,
+                        currentUser.userId || 1,
+                        tallyPort,
+                        backendUrl,
+                        authToken,
+                        deviceToken
                     );
+                    
+                    if (syncResult.success) {
+                        successCount++;
+                    } else {
+                        failureCount++;
+                        failedCompanies.push({
+                            name: company.name,
+                            errors: syncResult.errors
+                        });
+                    }
+                } catch (error) {
+                    console.error(`❌ Error syncing company ${company.name}:`, error);
+                    failureCount++;
+                    failedCompanies.push({
+                        name: company.name,
+                        errors: [{ entity: 'COMPANY', message: error.message }]
+                    });
                 }
             }
 
+            console.log(`✅ Sync cycle completed - ${successCount} successful, ${failureCount} failed`);
+            
+            // Build detailed message
+            const success = failureCount === 0;
+            let message = `${successCount}/${companies.length} companies synced`;
+            
+            if (failureCount > 0) {
+                const failureDetails = failedCompanies
+                    .map(c => `${c.name}: ${c.errors.map(e => `${e.entity}(${e.message})`).join(', ')}`)
+                    .join(' | ');
+                message = `${message}. Failed: ${failureDetails}`;
+            }
+            
+            // Notify via SyncStateManager
+            if (window.syncStateManager) {
+                window.syncStateManager.endSync(success, message);
+            } else {
+                // Fallback to direct notification if SyncStateManager not available
+                if (window.notificationService) {
+                    if (success) {
+                        window.notificationService.success(message, 'Sync Completed');
+                    } else {
+                        window.notificationService.warning(message, 'Sync Completed with Errors');
+                    }
+                }
+            }
         } catch (error) {
-            console.error('❌ Auto-sync error:', error);
-        } finally {
-            this.isSyncing = false;
+            console.error('❌ Sync error:', error);
+            
+            // Notify error via SyncStateManager
+            if (window.syncStateManager) {
+                window.syncStateManager.endSync(false, error.message || 'An error occurred during sync');
+            } else {
+                // Fallback to direct notification
+                if (window.notificationService) {
+                    window.notificationService.error(
+                        error.message || 'An error occurred during sync',
+                        'Sync Failed'
+                    );
+                }
+            }
         }
     }
 
     /**
-     * Get all imported companies from backend
+     * Fetch imported companies from backend API
      */
-    async getImportedCompanies(authToken, deviceToken) {
+    async fetchImportedCompanies(backendUrl, authToken, deviceToken) {
         try {
-            const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
-
-            const response = await fetch(`${backendUrl}/companies`, {
+            // Use apiConfig if available, otherwise construct URL
+            const companiesUrl = window.apiConfig 
+                ? window.apiConfig.getUrl('/companies')
+                : `${backendUrl}/companies`;
+            
+            console.log(`📡 Fetching companies from: ${companiesUrl}`);
+            
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`,
+                'X-Device-Token': deviceToken
+            };
+            
+            // Add CSRF token if available
+            const csrfToken = sessionStorage.getItem('csrfToken');
+            if (csrfToken) {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+            
+            const response = await fetch(companiesUrl, {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'X-Device-Token': deviceToken
-                }
+                headers
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                console.warn(`⚠️ Failed to fetch companies: HTTP ${response.status}`);
+                if (response.status === 403) {
+                    console.error('❌ Access Forbidden - Check authentication and permissions');
+                }
+                return [];
             }
 
             const result = await response.json();
-
             if (result.success && Array.isArray(result.data)) {
+                console.log(`✅ Fetched ${result.data.length} companies from backend`);
                 return result.data;
             }
-
             return [];
         } catch (error) {
-            console.error('Error fetching companies:', error);
+            console.error('❌ Error fetching companies:', error);
             return [];
         }
     }
 
     /**
-     * Sync groups for a specific company
+     * Sync single company incrementally
+     * Returns object with success flag and error details
      */
-    async syncCompanyGroups(companyId, userId, authToken, deviceToken, tallyPort, backendUrl) {
+    async syncCompany(companyId, userId, tallyPort, backendUrl, authToken, deviceToken) {
+        const result = { success: true, errors: [] };
+        
         try {
-            if (!window.electronAPI || !window.electronAPI.syncGroups) {
-                throw new Error('Electron API not available');
+            console.log(`\n📋 Syncing company ${companyId}...`);
+
+            // Fetch master mapping once for all entities (efficient single call)
+            const masterMapping = await this.getMasterMapping(companyId, backendUrl, authToken, deviceToken);
+            
+            // All 12 entity types
+            const entities = [
+                { type: 'Group', key: 'group' },
+                { type: 'Currency', key: 'currency' },
+                { type: 'Unit', key: 'unit' },
+                { type: 'StockGroup', key: 'stockgroup' },
+                { type: 'StockCategory', key: 'stockcategory' },
+                { type: 'CostCategory', key: 'costcategory' },
+                { type: 'CostCenter', key: 'costcenter' },
+                { type: 'Godown', key: 'godown' },
+                { type: 'VoucherType', key: 'vouchertype' },
+                { type: 'TaxUnit', key: 'taxunit' },
+                { type: 'Ledger', key: 'ledger' },
+                { type: 'StockItem', key: 'stockitem' }
+            ];
+            
+            for (const entity of entities) {
+                const maxAlterID = masterMapping[entity.key] || 0;
+                const entityResult = await this.syncEntity(
+                    companyId,
+                    userId,
+                    entity.type,
+                    maxAlterID,
+                    tallyPort,
+                    backendUrl,
+                    authToken,
+                    deviceToken
+                );
+                
+                // Track entity-level failures
+                if (!entityResult || !entityResult.success) {
+                    result.success = false;
+                    result.errors.push({
+                        entity: entity.type,
+                        message: entityResult?.message || 'Unknown error'
+                    });
+                }
+            }
+        } catch (error) {
+            console.error(`❌ Error syncing company ${companyId}:`, error);
+            result.success = false;
+            result.errors.push({
+                entity: 'COMPANY',
+                message: error.message || 'Unexpected error during company sync'
+            });
+        }
+        
+        return result;
+    }
+
+    /**
+     * Sync single entity incrementally
+     * Returns object with success flag and message
+     */
+    async syncEntity(companyId, userId, entityType, maxAlterID, tallyPort, backendUrl, authToken, deviceToken) {
+        try {
+            const isFirstSync = maxAlterID === 0;
+
+            console.log(`  📦 ${entityType}: Max AlterID in DB = ${maxAlterID}${isFirstSync ? ' (FIRST-TIME SYNC)' : ''}`);
+
+            // Call Python incremental sync - it will fetch only records with alterID > maxAlterID
+            const result = await this.callIncrementalSync(
+                companyId,
+                userId,
+                tallyPort,
+                backendUrl,
+                authToken,
+                deviceToken,
+                entityType,
+                maxAlterID
+            );
+
+            if (result.success) {
+                if (result.count > 0) {
+                    console.log(`  ✅ ${entityType}: Synced ${result.count} records`);
+                }
+                return { success: true, message: `${result.count} records synced` };
+            } else {
+                console.warn(`  ⚠️ ${entityType}: ${result.message}`);
+                return { success: false, message: result.message };
+            }
+        } catch (error) {
+            console.error(`  ❌ Error syncing ${entityType}:`, error);
+            return { success: false, message: error.message || 'Unknown error' };
+        }
+    }
+
+    /**
+     * Get master mapping (per-entity alterIDs) from backend
+     * Fetches the maximum AlterID for each entity type
+     */
+    async getMasterMapping(companyId, backendUrl, authToken, deviceToken) {
+        try {
+            console.log(`📊 Fetching master mapping for company ${companyId}...`);
+            
+            // First try the dedicated endpoint
+            const url = window.apiConfig 
+                ? window.apiConfig.getUrl(`/api/companies/${companyId}/master-mapping`)
+                : `${backendUrl}/api/companies/${companyId}/master-mapping`;
+            
+            console.log(`   📡 Trying endpoint: ${url}`);
+            
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`,
+                'X-Device-Token': deviceToken
+            };
+            
+            const csrfToken = sessionStorage.getItem('csrfToken');
+            if (csrfToken) {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log(`✅ Master mapping retrieved:`, data);
+                if (data && typeof data === 'object') {
+                    return data;
+                }
+            } else {
+                console.warn(`⚠️ Master mapping endpoint returned ${response.status}`);
+                if (response.status === 403) {
+                    console.error('❌ Access Forbidden - Check authentication and permissions');
+                }
+            }
+            
+            // Fallback: Fetch max AlterID for each entity type from individual endpoints
+            console.log(`🔄 Using fallback: fetching individual entity max AlterIDs...`);
+            const mapping = {};
+            
+            const entities = [
+                { type: 'Group', endpoint: '/groups/company/{cmpId}' },
+                { type: 'Currency', endpoint: '/currencies/company/{cmpId}' },
+                { type: 'Unit', endpoint: '/units/company/{cmpId}' },
+                { type: 'StockGroup', endpoint: '/stock-groups/company/{cmpId}' },
+                { type: 'StockCategory', endpoint: '/stock-categories/company/{cmpId}' },
+                { type: 'CostCategory', endpoint: '/cost-categories/company/{cmpId}' },
+                { type: 'CostCenter', endpoint: '/cost-centers/company/{cmpId}' },
+                { type: 'Godown', endpoint: '/godowns/company/{cmpId}' },
+                { type: 'VoucherType', endpoint: '/voucher-types/company/{cmpId}' },
+                { type: 'TaxUnit', endpoint: '/tax-units/company/{cmpId}' },
+                { type: 'Ledger', endpoint: '/ledgers/company/{cmpId}' },
+                { type: 'StockItem', endpoint: '/stock-items/company/{cmpId}' }
+            ];
+            
+            for (const entity of entities) {
+                try {
+                    const endpointUrl = entity.endpoint.replace('{cmpId}', companyId);
+                    const entityUrl = window.apiConfig 
+                        ? window.apiConfig.getUrl(endpointUrl)
+                        : `${backendUrl}${endpointUrl}`;
+                    
+                    const entityHeaders = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-Device-Token': deviceToken
+                    };
+                    
+                    if (csrfToken) {
+                        entityHeaders['X-CSRF-Token'] = csrfToken;
+                    }
+                    
+                    const response = await fetch(entityUrl, {
+                        method: 'GET',
+                        headers: entityHeaders
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        
+                        // Extract max AlterID from the data
+                        let maxAlterID = 0;
+                        
+                        if (Array.isArray(result.data)) {
+                            // If data is an array, find the max AlterID
+                            maxAlterID = result.data.reduce((max, item) => {
+                                const alterId = item.alterId || item.alterid || item.altId || 0;
+                                return Math.max(max, Number(alterId) || 0);
+                            }, 0);
+                        } else if (result.maxAlterID) {
+                            maxAlterID = result.maxAlterID;
+                        } else if (result.data && result.data.maxAlterID) {
+                            maxAlterID = result.data.maxAlterID;
+                        }
+                        
+                        const key = entity.type.toLowerCase();
+                        mapping[key] = maxAlterID;
+                        console.log(`   ✅ ${entity.type}: Max AlterID = ${maxAlterID}`);
+                    } else if (response.status === 403) {
+                        console.warn(`   ⚠️ ${entity.type}: HTTP 403 Forbidden - Check permissions`);
+                    } else {
+                        console.warn(`   ⚠️ ${entity.type}: HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    console.warn(`   ⚠️ Error fetching ${entity.type}: ${error.message}`);
+                }
+            }
+            
+            console.log(`📊 Final master mapping:`, mapping);
+            return mapping;
+        } catch (error) {
+            console.warn(`⚠️ Error getting master mapping: ${error}`);
+            return {};
+        }
+    }
+
+    /**
+     * Call Python incremental sync script
+     */
+    async callIncrementalSync(companyId, userId, tallyPort, backendUrl, authToken, deviceToken, entityType, maxAlterID = 0) {
+        try {
+            console.log(`🔍 Checking window.electronAPI:`, window.electronAPI);
+            console.log(`🔍 Checking incrementalSync method:`, window.electronAPI?.incrementalSync);
+            
+            if (!window.electronAPI?.incrementalSync) {
+                console.warn('⚠️ Electron API not available');
+                console.warn(`   window.electronAPI exists: ${!!window.electronAPI}`);
+                console.warn(`   incrementalSync method exists: ${!!window.electronAPI?.incrementalSync}`);
+                return { success: false, message: 'API not available', count: 0 };
             }
 
-            const result = await window.electronAPI.syncGroups({
-                companyId: companyId,
-                userId: userId,
-                authToken: authToken,
-                deviceToken: deviceToken,
-                tallyPort: tallyPort,
-                backendUrl: backendUrl
+            console.log(`📡 Calling incremental-sync for ${entityType}...`);
+            const result = await window.electronAPI.incrementalSync({
+                companyId,
+                userId,
+                tallyPort,
+                backendUrl,
+                authToken,
+                deviceToken,
+                entityType,
+                maxAlterID  // Pass maxAlterID from DB - Python will fetch records with alterID > maxAlterID
             });
 
             return result;
         } catch (error) {
-            return { success: false, message: error.message };
+            console.error('❌ Error calling incremental sync:', error);
+            console.error('   Error message:', error.message);
+            console.error('   Error stack:', error.stack);
+            return { success: false, message: error.message, count: 0 };
         }
     }
 
     /**
-     * Sync ledgers for a specific company
+     * Get API endpoint for entity type
      */
-    async syncCompanyLedgers(companyId, userId, authToken, deviceToken, tallyPort, backendUrl) {
-        try {
-            if (!window.electronAPI || !window.electronAPI.syncLedgers) {
-                throw new Error('Electron API not available');
-            }
-
-            const result = await window.electronAPI.syncLedgers({
-                companyId: companyId,
-                userId: userId,
-                authToken: authToken,
-                deviceToken: deviceToken,
-                tallyPort: tallyPort,
-                backendUrl: backendUrl
-            });
-
-            return result;
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
+    getEndpoint(entityType) {
+        const endpoints = {
+            'Ledger': '/api/ledgers',
+            'Group': '/api/groups',
+            'StockItem': '/api/stock-items'
+        };
+        return endpoints[entityType] || '/api/ledgers';
     }
 
     /**
-     * Sync currencies for a specific company
-     */
-    async syncCompanyCurrencies(companyId, userId, authToken, deviceToken, tallyPort, backendUrl) {
-        try {
-            if (!window.electronAPI || !window.electronAPI.syncCurrencies) {
-                throw new Error('Electron API not available');
-            }
-
-            const result = await window.electronAPI.syncCurrencies({
-                companyId: companyId,
-                userId: userId,
-                authToken: authToken,
-                deviceToken: deviceToken,
-                tallyPort: tallyPort,
-                backendUrl: backendUrl
-            });
-
-            return result;
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    }
-
-    /**
-     * Sync cost categories for a specific company
-     */
-    async syncCompanyCostCategories(companyId, userId, authToken, deviceToken, tallyPort, backendUrl) {
-        try {
-            if (!window.electronAPI || !window.electronAPI.syncCostCategories) {
-                throw new Error('Electron API not available');
-            }
-            return await window.electronAPI.syncCostCategories({
-                companyId, userId, authToken, deviceToken, tallyPort, backendUrl
-            });
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    }
-
-    /**
-     * Sync cost centers for a specific company
-     */
-    async syncCompanyCostCenters(companyId, userId, authToken, deviceToken, tallyPort, backendUrl) {
-        try {
-            if (!window.electronAPI || !window.electronAPI.syncCostCenters) {
-                throw new Error('Electron API not available');
-            }
-            return await window.electronAPI.syncCostCenters({
-                companyId, userId, authToken, deviceToken, tallyPort, backendUrl
-            });
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    }
-
-    /**
-     * Sync voucher types for a specific company
-     */
-    async syncCompanyVoucherTypes(companyId, userId, authToken, deviceToken, tallyPort, backendUrl) {
-        try {
-            if (!window.electronAPI || !window.electronAPI.syncVoucherTypes) {
-                throw new Error('Electron API not available');
-            }
-            return await window.electronAPI.syncVoucherTypes({
-                companyId, userId, authToken, deviceToken, tallyPort, backendUrl
-            });
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    }
-
-    /**
-     * Sync tax units for a specific company
-     */
-    async syncCompanyTaxUnits(companyId, userId, authToken, deviceToken, tallyPort, backendUrl) {
-        try {
-            if (!window.electronAPI || !window.electronAPI.syncTaxUnits) {
-                throw new Error('Electron API not available');
-            }
-            return await window.electronAPI.syncTaxUnits({
-                companyId, userId, authToken, deviceToken, tallyPort, backendUrl
-            });
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    }
-
-    /**
-     * Get status of the scheduler
+     * Get scheduler status
      */
     getStatus() {
         return {
             isRunning: this.isRunning,
-            isSyncing: this.isSyncing,
-            syncInterval: this.syncInterval,
             lastSyncTime: this.lastSyncTime,
-            nextSyncTime: this.lastSyncTime
-                ? new Date(this.lastSyncTime.getTime() + this.syncInterval * 60 * 1000)
-                : null
+            interval: this.getSyncInterval()
         };
     }
 }
 
-// Create global instance
-window.syncScheduler = new SyncScheduler();
-
-console.log('✅ SyncScheduler service loaded');
+// Export for use
+if (typeof window !== 'undefined') {
+    window.SyncScheduler = SyncScheduler;
+}

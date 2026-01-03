@@ -86,12 +86,12 @@ class NotificationService {
                 }
 
                 .notification.info {
-                    border-left-color: #2196F3 !important;
+                    border-left-color: var(--primary-500) !important;
                     background: linear-gradient(135deg, #ffffff 0%, #f1f8ff 100%) !important;
                 }
 
                 .notification.info .notification-icon {
-                    color: #2196F3 !important;
+                    color: var(--primary-500) !important;
                     font-size: 24px !important;
                 }
 
@@ -145,6 +145,8 @@ class NotificationService {
                 .notification-close:hover {
                     color: #1f2937 !important;
                     transform: scale(1.1) !important;
+                    background: rgba(0, 0, 0, 0.05) !important;
+                    border-radius: 4px !important;
                 }
 
                 .notification-progress {
@@ -220,6 +222,7 @@ class NotificationService {
 
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
+        notification.style.cursor = 'pointer';
 
         let titleText = title;
         if (!titleText) {
@@ -240,11 +243,39 @@ class NotificationService {
                     <div class="notification-progress-bar" style="animation-duration: ${duration}ms; color: ${this.getProgressColor(type)};"></div>
                 </div>` : ''}
             </div>
-            <button class="notification-close">×</button>
+            <button class="notification-close" title="Close notification">×</button>
         `;
 
         const closeBtn = notification.querySelector('.notification-close');
-        closeBtn.addEventListener('click', () => this.remove(notification));
+        
+        // Close button click handler
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.remove(notification);
+        });
+        
+        // Click on notification to close
+        notification.addEventListener('click', (e) => {
+            if (e.target === notification || e.target.closest('.notification-content')) {
+                this.remove(notification);
+            }
+        });
+        
+        // Add outside click handler to close notification
+        const outsideClickHandler = (e) => {
+            if (!notification.contains(e.target) && notification.parentNode) {
+                this.remove(notification);
+                document.removeEventListener('click', outsideClickHandler);
+            }
+        };
+        
+        // Store the handler on the notification element for cleanup
+        notification._closeHandler = outsideClickHandler;
+        
+        // Delay outside click handler to avoid immediate closure
+        setTimeout(() => {
+            document.addEventListener('click', outsideClickHandler);
+        }, 100);
 
         const container = document.getElementById('notification-container');
         if (!container) {
@@ -285,6 +316,11 @@ class NotificationService {
     }
 
     remove(notification) {
+        // Remove outside click listener if it exists
+        if (notification._closeHandler) {
+            document.removeEventListener('click', notification._closeHandler);
+        }
+        
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => {
             if (notification.parentNode) {
@@ -303,7 +339,7 @@ class NotificationService {
             success: '#4CAF50',
             error: '#f44336',
             warning: '#ff9800',
-            info: '#2196F3'
+            info: '#5E86BA'
         };
         return colors[type] || colors.info;
     }
