@@ -41,7 +41,11 @@ class SyncController {
         // Listen for sync errors
         window.electronAPI.onSyncError((error) => {
             console.error('❌ Sync Error:', error);
-            this.showSyncError(error);
+            try {
+                this.showSyncError(error);
+            } catch (err) {
+                console.error('Error handling sync error:', err);
+            }
         });
 
         // Listen for sync started
@@ -78,6 +82,12 @@ class SyncController {
      */
     async initializeSync() {
         try {
+            // Check if localStorage is available (renderer process only)
+            if (typeof localStorage === 'undefined') {
+                console.warn('⚠️ localStorage not available - skipping sync initialization');
+                return;
+            }
+
             // Load config from localStorage
             const savedConfig = localStorage.getItem('syncConfig');
             if (savedConfig) {
@@ -133,7 +143,12 @@ class SyncController {
      */
     updateConfig(newConfig) {
         this.config = { ...this.config, ...newConfig };
-        localStorage.setItem('syncConfig', JSON.stringify(this.config));
+        
+        // Only save to localStorage if available (renderer process)
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('syncConfig', JSON.stringify(this.config));
+        }
+        
         console.log('⚙️ Config updated:', this.config);
     }
 
@@ -184,8 +199,14 @@ class SyncController {
      * Show sync error
      */
     showSyncError(error) {
-        if (window.notificationService) {
-            window.notificationService.show(`Sync Error: ${error}`, 'error');
+        try {
+            if (window.notificationService) {
+                window.notificationService.show(`Sync Error: ${error}`, 'error');
+            } else {
+                console.error('🔔 Notification service not available:', error);
+            }
+        } catch (err) {
+            console.error('Error showing sync notification:', err);
         }
     }
 
@@ -262,8 +283,11 @@ class SyncController {
     }
 }
 
-// Initialize sync controller when app loads
-const syncController = new SyncController();
-
-// Make it globally available
-window.syncController = syncController;
+// Initialize sync controller only in renderer process (browser context)
+if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    const syncController = new SyncController();
+    // Make it globally available
+    window.syncController = syncController;
+} else {
+    console.warn('⚠️ SyncController not initialized - not in renderer process context');
+}

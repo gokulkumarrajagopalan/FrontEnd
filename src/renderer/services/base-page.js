@@ -129,12 +129,8 @@ class BasePage {
         return `
             <div class="filters-container">
                 <div class="material-search-wrapper">
-                    <div class="material-form-field">
-                        <input type="text" id="searchInput" class="material-input" 
-                               placeholder="">
-                        <label for="searchInput" class="material-label">🔍 Search ${this.config.entityNamePlural}</label>
-                       
-                    </div>
+                    <input type="text" id="searchInput" class="material-input" 
+                           placeholder="🔍 Search ${this.config.entityNamePlural}">
                 </div>
                 <div id="additionalFilters" style="flex: 1 1 auto;"></div>
                 <button class="btn-export">📥 Export</button>
@@ -232,7 +228,7 @@ class BasePage {
             .filters-container {
                 display: flex;
                 gap: 1rem;
-                align-items: center;
+                align-items: flex-end;
                 background: white;
                 padding: 1.25rem 1.5rem;
                 border-radius: 12px;
@@ -242,45 +238,41 @@ class BasePage {
             
             .material-search-wrapper {
                 flex: 0 0 auto;
-                max-width: 400px;
-                width: 100%;
-            }
-            
-            .material-form-field {
-                position: relative;
-                width: 100%;
-                margin-top: 0.5rem;
+                width: 280px;
             }
             
             .material-input {
                 width: 100%;
-                padding: 1rem 0.75rem 0.5rem 0.75rem;
-                border: none;
-                background: transparent;
-                font-size: 0.95rem;
+                padding: 0.625rem 0.75rem;
+                border: 1px solid #d1d5db;
+                background: white;
+                font-size: 0.875rem;
                 color: #374151;
                 outline: none;
                 box-sizing: border-box;
-                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                height: 38px;
+                border-radius: 6px;
+                transition: all 0.2s ease;
+            }
+            
+            .material-input::placeholder {
+                color: #9ca3af;
+            }
+            
+            .material-input:focus {
+                border-color: var(--primary-500);
+                box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
             }
             
             .material-label {
                 position: absolute;
-                top: 1rem;
-                left: 0.75rem;
-                font-size: 0.95rem;
-                color: #9ca3af;
-                pointer-events: none;
-                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                transform-origin: left top;
-            }
-            
-            .material-input:focus ~ .material-label,
-            .material-input:not(:placeholder-shown) ~ .material-label {
-                top: 0.25rem;
+                top: -1.25rem;
+                left: 0;
                 font-size: 0.75rem;
-                color: var(--primary-500);
-                font-weight: 500;
+                color: #6b7280;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
             }
             
             .material-underline {
@@ -323,20 +315,21 @@ class BasePage {
             }
             
             .form-input {
-                min-height: 44px;
-                padding: 0.875rem 1rem;
-                border: 2px solid #e5e7eb;
-                border-radius: 10px;
-                font-size: 0.95rem;
-                background: #f9fafb;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                min-height: 38px;
+                padding: 0.625rem 0.75rem;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 0.875rem;
+                background: white;
+                color: #374151;
+                transition: all 0.2s ease;
+                box-sizing: border-box;
             }
             
             .form-input:focus {
                 outline: none;
                 border-color: var(--primary-500);
-                background: white;
-                box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.15);
+                box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
             }
             
             .btn-export {

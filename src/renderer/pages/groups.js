@@ -20,16 +20,19 @@
         getFilters() {
             return `
                 <div class="filters-container">
-                    <div class="relative flex-grow">
-                        <input type="text" id="searchInput" placeholder="Search groups..." class="search-input">
-                        <span class="search-icon">🔍</span>
+                    <div class="material-search-wrapper">
+                        <input type="text" id="searchInput" class="material-input" 
+                               placeholder="🔍 Search groups">
                     </div>
-                    <select id="groupTypeFilter" class="form-input" style="width: 200px;">
-                        <option value="">All Types</option>
-                        <option value="revenue">Revenue (P&L)</option>
-                        <option value="balancesheet">Balance Sheet</option>
-                        <option value="primary">Primary Groups</option>
-                    </select>
+                    <div id="additionalFilters" style="flex: 0 0 auto; width: 280px;">
+                        <select id="groupTypeFilter" class="form-input">
+                            <option value="">All Types</option>
+                            <option value="revenue">Revenue (P&L)</option>
+                            <option value="balancesheet">Balance Sheet</option>
+                            <option value="primary">Primary Groups</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1 1 auto;"></div>
                     <button class="btn-export">📥 Export</button>
                 </div>
             `;

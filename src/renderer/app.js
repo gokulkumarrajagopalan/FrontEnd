@@ -1,7 +1,41 @@
 class App {
     constructor() {
         this.initialized = false;
+        this.initializeUpgrades();
         console.log('✅ App class created');
+    }
+
+    /**
+     * Initialize upgraded services
+     * @private
+     */
+    initializeUpgrades() {
+        try {
+            // Initialize Logger
+            this.logger = window.loggerApp;
+            this.logger.info('Logger initialized');
+
+            // Initialize Error Boundary
+            this.errorBoundary = window.errorBoundary;
+            this.logger.info('Error Boundary initialized');
+
+            // Initialize Telemetry
+            this.telemetry = window.telemetry;
+            this.telemetry.trackEvent('App', 'Initialized');
+            this.logger.info('Telemetry initialized');
+
+            // Initialize Offline Queue
+            this.offlineQueue = window.offlineQueue;
+            this.logger.info('Offline Queue initialized');
+
+            // Initialize Sync Reconciliation
+            this.syncReconciliation = window.syncReconciliation;
+            this.logger.info('Sync Reconciliation initialized');
+
+            console.log('✅ All upgrade services initialized successfully');
+        } catch (error) {
+            console.error('❌ Error initializing upgrades:', error);
+        }
     }
 
     async init() {

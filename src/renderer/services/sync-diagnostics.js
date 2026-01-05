@@ -38,19 +38,24 @@ class SyncDiagnostics {
         console.log(`  Auth Token Present: ${!!authToken ? '✅ YES' : '❌ NO'}`);
         if (authToken) {
             console.log(`    Length: ${authToken.length} chars`);
-            console.log(`    Starts with: ${authToken.substring(0, 20)}...`);\n        }
+            console.log(`    Starts with: ${authToken.substring(0, 20)}...`);
+        }
 
         console.log(`  Device Token Present: ${!!deviceToken ? '✅ YES' : '❌ NO'}`);
         if (deviceToken) {
-            console.log(`    Value: ${deviceToken}`);\n        }
+            console.log(`    Value: ${deviceToken}`);
+        }
 
         console.log(`  CSRF Token Present: ${!!csrfToken ? '✅ YES' : '❌ NO'}`);
         if (csrfToken) {
-            console.log(`    Length: ${csrfToken.length} chars`);\n        }
+            console.log(`    Length: ${csrfToken.length} chars`);
+        }
 
         console.log(`  Current User: ${currentUser.userId ? '✅ YES' : '❌ NO'}`);
         if (currentUser.userId) {
-            console.log(`    User ID: ${currentUser.userId}`);\n            console.log(`    Username: ${currentUser.username}`);\n        }
+            console.log(`    User ID: ${currentUser.userId}`);
+            console.log(`    Username: ${currentUser.username}`);
+        }
 
         console.log('');
     }
