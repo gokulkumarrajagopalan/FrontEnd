@@ -445,6 +445,12 @@ class NotificationCenter {
             this.notifications.pop();
         }
 
+        // Show toast notification if NotificationUtil is available
+        if (window.NotificationUtil) {
+            const toastMessage = `${title}\n${message}`;
+            window.NotificationUtil[type](toastMessage, 4000);
+        }
+
         // Only render if component is initialized
         if (this.initialized) {
             console.log('✅ NotificationCenter initialized, rendering notification');

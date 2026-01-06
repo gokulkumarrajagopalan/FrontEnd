@@ -145,6 +145,12 @@ class SyncStateManager {
             addedAt: new Date()
         });
         console.log(`📋 Sync queued. Queue size: ${this.syncQueue.length}`);
+        // Notify listeners that queue size changed
+        try {
+            this.notifyListeners('queue-updated', { queueSize: this.syncQueue.length });
+        } catch (e) {
+            console.warn('Failed to notify queue update listeners:', e);
+        }
     }
 
     /**

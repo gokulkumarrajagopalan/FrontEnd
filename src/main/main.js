@@ -87,7 +87,7 @@ function createWindow() {
   });
 }
 
-function startSyncWorker() {
+function startSyncWorker(config = {}) {
   if (syncWorker) {
     console.log("Sync worker already running");
     return;
@@ -111,21 +111,19 @@ function startSyncWorker() {
       stdio: ["pipe", "pipe", "pipe"]
     });
 
-    const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+    const settings = {
+      tallyPort: config.tallyPort || 9000,
+      syncInterval: config.syncInterval || 30
+    };
     
     try {
-      security.validateSettings(appSettings);
+      security.validateSettings(settings);
     } catch (error) {
       console.error("❌ Invalid settings:", error.message);
       syncWorker.kill();
       syncWorker = null;
       return;
     }
-
-    const settings = {
-      tallyPort: appSettings.tallyPort || 9000,
-      syncInterval: appSettings.syncInterval || 30
-    };
     
     syncWorker.stdin.write(JSON.stringify(settings) + '\n');
     syncWorker.stdin.end();
@@ -204,7 +202,7 @@ function stopSyncWorker() {
 
 ipcMain.on("start-sync", (event, config) => {
   console.log("Received start-sync request");
-  startSyncWorker();
+  startSyncWorker(config);
   event.reply("sync-started", { status: "Sync started" });
 });
 
@@ -228,7 +226,7 @@ ipcMain.handle("get-sync-status", async () => {
 
 ipcMain.on("trigger-sync", (event, config) => {
   console.log("Trigger sync with config");
-  startSyncWorker();
+  startSyncWorker(config);
 });
 
 ipcMain.on("update-sync-settings", (event, settings) => {
@@ -237,7 +235,7 @@ ipcMain.on("update-sync-settings", (event, settings) => {
     console.log("Sync settings updated");
     stopSyncWorker();
     setTimeout(() => {
-      startSyncWorker();
+      startSyncWorker(settings);
     }, 500);
   } catch (error) {
     console.error("❌ Invalid settings:", error.message);
