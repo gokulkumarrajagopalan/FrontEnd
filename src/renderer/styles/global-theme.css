@@ -283,7 +283,7 @@ a:hover {
 .card,
 .bg-white {
     background: var(--card-bg);
-    border-radius: var(--radius-xl);
+    /* border-radius: var(--radius-xl); */
     box-shadow: 0 1px 3px 0 var(--card-shadow);
     border: 1px solid var(--card-border);
     transition: all 0.3s ease;

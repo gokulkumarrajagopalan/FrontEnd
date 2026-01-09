@@ -24,7 +24,7 @@
             height: 20px;
         }
     </style>
-    <div id="companySyncPageContainer" class="space-y-6">
+    <div id="companySyncPageContainer" class="space-y-6" style="padding: 1rem; box-sizing: border-box;">
         <!-- Hero & Snapshot -->
         <div class="grid gap-4 xl:grid-cols-3">
             <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 xl:col-span-2">

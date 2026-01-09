@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tally Prime - Enterprise ERP</title>
     <!-- Security: Content Security Policy -->
-    <!-- Security: Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http://localhost:* ws: wss: ws://localhost:*; object-src 'none'; upgrade-insecure-requests;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http://localhost:* ws: wss: ws://localhost:*; object-src 'none'; upgrade-insecure-requests;">
     <!-- Tailwind CSS (compiled output) -->
     <link rel="stylesheet" href="../renderer/styles/output.css">
     <!-- Global Theme System -->
@@ -762,6 +761,8 @@
     <script src="../renderer/services/groups-service.js"></script>
     <script src="../renderer/services/sync-diagnostics.js"></script>
     <script src="../renderer/services/sync-scheduler.js"></script>
+    <script src="../renderer/services/background-sync-scheduler.js"></script>
+    <script src="../renderer/services/app-initializer.js"></script>
     <script src="../renderer/services/router.js"></script>
 
     <!-- Redux -->

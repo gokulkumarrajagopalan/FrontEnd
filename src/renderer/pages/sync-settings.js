@@ -1,6 +1,6 @@
 (function () {
     const getSyncSettingsTemplate = () => `
-    <div id="syncSettingsPageContainer" class="space-y-6">
+    <div id="syncSettingsPageContainer" class="space-y-6" style="padding: 1rem; box-sizing: border-box;">
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
             <div class="page-header">
                 <h2>Tally Sync Dashboard</h2>

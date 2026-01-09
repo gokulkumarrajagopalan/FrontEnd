@@ -126,6 +126,12 @@ try {
         incrementalSync: (config) => {
             console.log('📡 Preload: Calling incremental-sync handler...');
             return ipcRenderer.invoke('incremental-sync', config);
+        },
+
+        // Reconciliation API
+        reconcileData: (config) => {
+            console.log('📡 Preload: Calling reconcile-data handler...');
+            return ipcRenderer.invoke('reconcile-data', config);
         }
     });
     console.log('✅ Preload: electronAPI exposed successfully');

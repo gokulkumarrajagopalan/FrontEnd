@@ -556,6 +556,86 @@ ipcMain.handle("incremental-sync", async (event, config) => {
 });
 console.log("✅ 'incremental-sync' IPC handler registered successfully");
 
+// Reconciliation IPC handler
+ipcMain.handle("reconcile-data", async (event, config) => {
+  console.log('📡 Received reconcile-data IPC call');
+  try {
+    const { companyId, userId, tallyPort, backendUrl, authToken, deviceToken, entityType } = config;
+    
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`🔍 RECONCILIATION STARTED: ${entityType.toUpperCase()}`);
+    console.log(`   Company: ${companyId}`);
+    console.log(`${'='.repeat(60)}`);
+    
+    return new Promise((resolve) => {
+      const pythonPath = process.platform === "win32" ? "python" : "python3";
+      const scriptPath = path.join(__dirname, "../..", "python", "reconciliation.py");
+
+      const args = [
+        scriptPath,
+        companyId.toString(),
+        userId.toString(),
+        tallyPort.toString(),
+        backendUrl,
+        authToken,
+        deviceToken,
+        entityType
+      ];
+
+      const python = spawn(pythonPath, args, {
+        cwd: path.join(__dirname, "../..", "python")
+      });
+
+      let output = '';
+      let errorOutput = '';
+
+      python.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      python.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+
+      python.on('close', (code) => {
+        if (code === 0) {
+          try {
+            const lines = output.trim().split('\n');
+            const lastLine = lines[lines.length - 1];
+            const result = JSON.parse(lastLine);
+            console.log(`✅ RECONCILIATION SUCCEEDED`);
+            console.log(`   Missing: ${result.totalMissing || 0}`);
+            console.log(`   Updated: ${result.totalUpdated || 0}`);
+            console.log(`   Synced: ${result.totalSynced || 0}`);
+            console.log(`${'='.repeat(60)}\n`);
+            resolve(result);
+          } catch (e) {
+            console.log(`✅ RECONCILIATION COMPLETED`);
+            console.log(`${'='.repeat(60)}\n`);
+            resolve({ success: true, totalMissing: 0, totalUpdated: 0, totalSynced: 0 });
+          }
+        } else {
+          console.error(`❌ RECONCILIATION FAILED`);
+          console.error(`   Error: ${errorOutput.trim() || 'Unknown error'}`);
+          console.error(`${'='.repeat(60)}\n`);
+          resolve({ success: false, error: errorOutput || 'Reconciliation failed' });
+        }
+      });
+
+      python.on('error', (err) => {
+        console.error(`❌ RECONCILIATION FAILED`);
+        console.error(`   Error: ${err.message}`);
+        console.error(`${'='.repeat(60)}\n`);
+        resolve({ success: false, error: err.message });
+      });
+    });
+  } catch (error) {
+    console.error(`❌ RECONCILIATION ERROR: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+console.log("✅ 'reconcile-data' IPC handler registered successfully");
+
 function handleSync({ companyId, userId, authToken, deviceToken, tallyPort, backendUrl, companyName }, scriptName, displayName, entityType) {
   try {
     security.validateScriptPath(scriptName, path.join(__dirname, "../..", "python"));

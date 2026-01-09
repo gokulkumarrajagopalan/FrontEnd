@@ -63,6 +63,7 @@
                 this.filteredData = [...this.data];
                 console.log(`✅ Loaded ${this.data.length} ${this.config.entityNamePlural}`);
                 this.renderTable();
+                this.setupTableListeners();
             } catch (error) {
                 console.error(`❌ Error loading ${this.config.entityNamePlural}:`, error);
                 tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data text-red-500">Error loading ${this.config.entityNamePlural}: ${error.message}</td></tr>`;

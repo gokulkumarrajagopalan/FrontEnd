@@ -68,6 +68,9 @@ class AuthService {
             // Set token in all future requests
             this.setupTokenInterceptor();
 
+            // Initialize sync system after successful login
+            this.initializeSyncAfterLogin();
+
             return {
                 success: true,
                 message: 'Login successful',
@@ -253,6 +256,40 @@ class AuthService {
      */
     isAuthenticated() {
         return !!this.token && !!this.user;
+    }
+
+    /**
+     * Initialize sync system after successful login
+     * This ensures sync only runs when user is properly authenticated
+     */
+    initializeSyncAfterLogin() {
+        try {
+            console.log('🔄 Initializing sync system after login...');
+            
+            // Verify we have valid auth credentials
+            if (!this.token || !this.deviceToken || !this.user) {
+                console.warn('⚠️ Missing auth credentials, cannot initialize sync');
+                return;
+            }
+
+            // Initialize AppInitializer if available
+            if (window.AppInitializer && typeof window.AppInitializer.initialize === 'function') {
+                // Use setTimeout to avoid blocking login flow
+                setTimeout(() => {
+                    window.AppInitializer.initialize()
+                        .then(() => {
+                            console.log('✅ Sync system initialized successfully after login');
+                        })
+                        .catch(error => {
+                            console.error('❌ Error initializing sync system:', error);
+                        });
+                }, 1000); // 1 second delay to allow app to fully load
+            } else {
+                console.warn('⚠️ AppInitializer not available');
+            }
+        } catch (error) {
+            console.error('❌ Error in initializeSyncAfterLogin:', error);
+        }
     }
 
     /**

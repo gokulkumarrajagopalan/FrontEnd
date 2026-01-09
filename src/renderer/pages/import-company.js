@@ -1,6 +1,6 @@
 (function () {
     const getTemplate = () => `
-    <div id="importCompanyPageContainer" class="space-y-6">
+    <div id="importCompanyPageContainer" class="space-y-6" style="padding: 1rem; box-sizing: border-box;">
         <!-- Import Header -->
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-gray-900">
             <div class="flex items-center justify-between gap-6 flex-wrap">
@@ -154,6 +154,10 @@
 
     function showStatus(message, type = 'info') {
         const statusDiv = document.getElementById('statusMessage');
+        if (!statusDiv) {
+            console.warn('Status div not found, message:', message);
+            return;
+        }
         // Use textContent for security (prevents XSS)
         statusDiv.textContent = message;
         statusDiv.style.display = 'block';
@@ -169,6 +173,10 @@
 
     function addImportLog(message, status = 'info') {
         const log = document.getElementById('importLog');
+        if (!log) {
+            console.warn('Import log not found, message:', message);
+            return;
+        }
         const entry = document.createElement('div');
         entry.className = `text-sm ${status === 'success' ? 'text-green-700' :
                 status === 'error' ? 'text-red-700' :
@@ -181,6 +189,10 @@
 
     async function fetchTallyCompanies() {
         const fetchBtn = document.getElementById('fetchCompaniesBtn');
+        if (!fetchBtn) {
+            console.warn('Fetch button not found');
+            return;
+        }
         fetchBtn.disabled = true;
         fetchBtn.innerHTML = '<span>⏳</span><span>Fetching from Tally...</span>';
 
@@ -198,7 +210,8 @@
 
                 if (result.success && result.data && Array.isArray(result.data)) {
                     tallyCompanies = result.data;
-                    document.getElementById('tallyCompanyCount').textContent = tallyCompanies.length;
+                    const countElem = document.getElementById('tallyCompanyCount');
+                    if (countElem) countElem.textContent = tallyCompanies.length;
                     await displayCompanies(tallyCompanies);
                     showStatus(`✅ Found ${tallyCompanies.length} companies in Tally`, 'success');
                     saveConnectionHistory('success', tallyCompanies.length, 'Connected successfully');
@@ -479,6 +492,130 @@
         }
     }
 
+    /**
+     * Trigger first-time full sync for a newly imported company
+     * Scenario 1: First-time Import → Full Sync → Reconcile
+     */
+    async function triggerFirstTimeSync(companyId, companyData) {
+        console.log(`🔄 Starting first-time sync for: ${companyData.name}`);
+        
+        const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+        const authToken = sessionStorage.getItem('authToken');
+        const deviceToken = sessionStorage.getItem('deviceToken');
+        const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        
+        try {
+            // Call sync_master.py via Electron IPC for full sync
+            if (!window.electronAPI || !window.electronAPI.syncMasterData) {
+                throw new Error('Sync API not available');
+            }
+            
+            const result = await window.electronAPI.syncMasterData({
+                companyName: companyData.name,
+                cmpId: companyId,
+                userId: currentUser.userId,
+                tallyPort: appSettings.tallyPort || 9000,
+                backendUrl: window.apiConfig.baseURL,
+                authToken: authToken,
+                deviceToken: deviceToken
+            });
+            
+            if (result.success) {
+                console.log('✅ Full sync completed');
+                addImportLog(`   📊 Sync results: ${JSON.stringify(result.results)}`, 'info');
+                
+                // Trigger reconciliation for all entity types
+                await runFirstTimeReconciliation(companyId);
+                
+                return result;
+            } else {
+                throw new Error(result.error || 'Sync failed');
+            }
+        } catch (error) {
+            console.error('First-time sync error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Run reconciliation for all entity types after first-time sync
+     */
+    async function runFirstTimeReconciliation(companyId) {
+        console.log(`🔍 Starting reconciliation for company ${companyId}`);
+        
+        const entityTypes = [
+            'Group', 'Currency', 'Unit', 'StockGroup', 
+            'StockCategory', 'CostCategory', 'CostCenter',
+            'Godown', 'VoucherType', 'TaxUnit', 
+            'Ledger', 'StockItem'
+        ];
+        
+        let totalDiscrepancies = 0;
+        
+        for (const entityType of entityTypes) {
+            try {
+                const result = await reconcileEntity(companyId, entityType);
+                if (result.missing > 0 || result.extra > 0) {
+                    totalDiscrepancies += result.missing + result.extra;
+                    addImportLog(`   ⚠️ ${entityType}: ${result.missing} missing, ${result.extra} extra`, 'info');
+                } else {
+                    addImportLog(`   ✅ ${entityType}: Verified (${result.matched} records)`, 'success');
+                }
+            } catch (error) {
+                console.error(`Reconciliation error for ${entityType}:`, error);
+                addImportLog(`   ⚠️ ${entityType}: Reconciliation failed - ${error.message}`, 'info');
+            }
+        }
+        
+        if (totalDiscrepancies === 0) {
+            addImportLog(`   ✅ All entity types reconciled successfully`, 'success');
+        } else {
+            addImportLog(`   ⚠️ Found ${totalDiscrepancies} total discrepancies`, 'info');
+        }
+    }
+
+    /**
+     * Reconcile a single entity type
+     */
+    async function reconcileEntity(companyId, entityType) {
+        try {
+            const authToken = sessionStorage.getItem('authToken');
+            const deviceToken = sessionStorage.getItem('deviceToken');
+            
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`,
+                'X-Device-Token': deviceToken
+            };
+            
+            const response = await fetch(
+                window.apiConfig.getUrl(`/api/companies/${companyId}/reconcile`),
+                {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        entityType: entityType
+                    })
+                }
+            );
+            
+            if (response.ok) {
+                const result = await response.json();
+                return {
+                    matched: result.matched || 0,
+                    missing: result.missing || 0,
+                    extra: result.extra || 0,
+                    missingGuids: result.missingGuids || []
+                };
+            } else {
+                throw new Error(`HTTP ${response.status}`);
+            }
+        } catch (error) {
+            console.error(`Reconcile entity ${entityType} error:`, error);
+            return { matched: 0, missing: 0, extra: 0 };
+        }
+    }
+
     async function importSelectedCompanies() {
         if (selectedCompanies.length === 0) {
             showStatus('❌ Please select at least one company', 'error');
@@ -497,6 +634,7 @@
             // Get auth token and user directly from sessionStorage (more reliable)
             const authToken = sessionStorage.getItem('authToken');
             const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
 
             console.log('🔐 Import - Auth check:', {
                 hasToken: !!authToken,
@@ -659,13 +797,88 @@
                         addImportLog(`✅ Imported: ${company.name} (ID: ${backendResponse.backendId})`, 'success');
                         importedCount++;
 
-                        // AUTO-SYNC GROUPS from Tally for this company
+                        // TRIGGER FIRST-TIME FULL SYNC → RECONCILE
                         try {
-                            addImportLog(`   🔄 Syncing groups from Tally for ${company.name}...`, 'info');
-                            await syncGroupsForCompany(backendResponse.backendId, company);
-                            addImportLog(`   ✅ Groups synced successfully`, 'success');
+                            addImportLog(`   🔄 Starting first-time full sync for ${company.name}...`, 'info');
+                            
+                            // Mark as syncing in notification center
+                            if (window.notificationCenter) {
+                                window.notificationCenter.updateCompanySyncStatus(
+                                    company.name,
+                                    'syncing',
+                                    0
+                                );
+                            }
+                            
+                            const syncResult = await triggerFirstTimeSync(backendResponse.backendId, company);
+                            addImportLog(`   ✅ First-time sync completed successfully`, 'success');
+                            
+                            // Update as success in notification center
+                            if (window.notificationCenter) {
+                                window.notificationCenter.updateCompanySyncStatus(
+                                    company.name,
+                                    'success',
+                                    syncResult.totalCount || 0
+                                );
+                            }
+                            
+                            // CASE 1: Run reconciliation after company import
+                            addImportLog(`   🔍 Running reconciliation for ${company.name}...`, 'info');
+                            try {
+                                const reconResult = await window.electronAPI.reconcileData({
+                                    companyId: backendResponse.backendId,
+                                    userId: currentUser.userId,
+                                    tallyPort: appSettings.tallyPort || 9000,
+                                    backendUrl: window.apiConfig.baseURL,
+                                    authToken: authToken,
+                                    deviceToken: deviceToken,
+                                    entityType: 'all'
+                                });
+                                
+                                if (reconResult.success) {
+                                    if (reconResult.totalSynced > 0) {
+                                        addImportLog(`   ✅ Reconciliation: ${reconResult.totalSynced} records auto-synced`, 'success');
+                                    } else {
+                                        addImportLog(`   ✅ Reconciliation: All records in sync`, 'success');
+                                    }
+                                } else {
+                                    addImportLog(`   ⚠️ Reconciliation completed with warnings`, 'info');
+                                }
+                            } catch (reconError) {
+                                addImportLog(`   ⚠️ Reconciliation skipped: ${reconError.message}`, 'info');
+                            }
+                            
+                            // Show success notification
+                            if (window.notificationService) {
+                                window.notificationService.show({
+                                    type: 'success',
+                                    message: `${company.name} imported & synced successfully`,
+                                    details: `All data synchronized from Tally`,
+                                    duration: 5000
+                                });
+                            }
                         } catch (syncError) {
-                            addImportLog(`   ⚠️ Group sync failed: ${syncError.message}`, 'info');
+                            addImportLog(`   ⚠️ First-time sync failed: ${syncError.message}`, 'error');
+                            
+                            // Update as error in notification center
+                            if (window.notificationCenter) {
+                                window.notificationCenter.updateCompanySyncStatus(
+                                    company.name,
+                                    'error',
+                                    0,
+                                    syncError.message
+                                );
+                            }
+                            
+                            // Show error notification
+                            if (window.notificationService) {
+                                window.notificationService.show({
+                                    type: 'error',
+                                    message: `Sync failed for ${company.name}`,
+                                    details: syncError.message,
+                                    duration: 8000
+                                });
+                            }
                         }
                     } else {
                         addImportLog(`❌ Failed: ${company.name} - ${backendResponse.error}`, 'error');

@@ -7,10 +7,12 @@ class NotificationCenter {
     constructor() {
         this.isOpen = false;
         this.notifications = [];
+        this.companySyncStatus = {}; // Store last sync status per company
         this.maxNotifications = 50;
         this.initialized = false;
         this.initializeStyles();
         this.initializeWhenReady();
+        this.loadCompanySyncStatus();
     }
 
     /**
@@ -111,48 +113,49 @@ class NotificationCenter {
             }
 
             .notification-center-modal {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 9999;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                position: fixed !important;
+                top: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                left: auto !important;
+                background: transparent !important;
+                z-index: 999999 !important;
+                display: block !important;
                 opacity: 0;
                 pointer-events: none;
                 transition: opacity 0.3s ease;
             }
 
             .notification-center-modal.active {
-                opacity: 1;
-                pointer-events: all;
+                opacity: 1 !important;
+                pointer-events: all !important;
             }
 
             .notification-center-panel {
                 background: white;
-                border-radius: 16px;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                width: 90%;
-                max-width: 600px;
-                height: 90%;
-                max-height: 700px;
+                box-shadow: -5px 0 30px rgba(0, 0, 0, 0.3);
+                width: 430px;
+                height: 100vh;
                 display: flex;
                 flex-direction: column;
-                animation: slideUp 0.3s ease;
                 overflow: hidden;
+                position: absolute;
+                right: 0;
+                top: 0;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
             }
 
-            @keyframes slideUp {
+            .notification-center-modal.active .notification-center-panel {
+                transform: translateX(0);
+            }
+
+            @keyframes slideInRight {
                 from {
-                    transform: translateY(30px);
-                    opacity: 0;
+                    transform: translateX(100%);
                 }
                 to {
-                    transform: translateY(0);
-                    opacity: 1;
+                    transform: translateX(0);
                 }
             }
 
@@ -280,35 +283,147 @@ class NotificationCenter {
             }
 
             .notification-center-btn {
-                padding: 8px 16px;
-                border-radius: 8px;
-                border: none;
+                padding: 6px 12px;
+                border-radius: 6px;
+                border: 1px solid #e5e7eb;
                 cursor: pointer;
-                font-size: 13px;
-                font-weight: 600;
+                font-size: 12px;
+                font-weight: 400;
                 transition: all 0.3s ease;
             }
 
             .notification-center-btn-clear {
-                background: #f3f4f6;
-                color: #374151;
+                background: transparent;
+                color: #6b7280;
             }
 
             .notification-center-btn-clear:hover {
-                background: #e5e7eb;
+                background: #f9fafb;
+                color: #374151;
+            }
+
+            .sync-status-section {
+                padding: 16px 20px;
+                background: #f9fafb;
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            .sync-status-title {
+                font-size: 14px;
+                font-weight: 700;
+                color: #374151;
+                margin: 0 0 12px 0;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .sync-status-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .sync-status-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 12px;
+                background: white;
+                border-radius: 8px;
+                border-left: 3px solid transparent;
+                transition: all 0.2s ease;
+            }
+
+            .sync-status-item:hover {
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+
+            .sync-status-item.success {
+                border-left-color: #10b981;
+            }
+
+            .sync-status-item.error {
+                border-left-color: #ef4444;
+            }
+
+            .sync-status-item.syncing {
+                border-left-color: #3b82f6;
+                animation: syncPulse 1.5s infinite;
+            }
+
+            @keyframes syncPulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.7; }
+            }
+
+            .sync-status-company {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: 1;
+                min-width: 0;
+            }
+
+            .sync-status-icon {
+                font-size: 16px;
+                flex-shrink: 0;
+            }
+
+            .sync-status-info {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .sync-status-company-name {
+                font-weight: 600;
+                color: #1f2937;
+                font-size: 13px;
+                margin: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .sync-status-details {
+                font-size: 11px;
+                color: #6b7280;
+                margin: 2px 0 0 0;
+            }
+
+            .sync-status-badge {
+                padding: 4px 8px;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+
+            .sync-status-badge.success {
+                background: #d1fae5;
+                color: #065f46;
+            }
+
+            .sync-status-badge.error {
+                background: #fee2e2;
+                color: #991b1b;
+            }
+
+            .sync-status-badge.syncing {
+                background: #dbeafe;
+                color: #1e40af;
+            }
+
+            .sync-status-empty {
+                text-align: center;
+                padding: 20px;
+                color: #9ca3af;
+                font-size: 13px;
             }
 
             @media (max-width: 768px) {
-                .sync-notification-badge {
-                    bottom: 20px;
-                    right: 20px;
-                    width: 50px;
-                    height: 50px;
-                }
-
                 .notification-center-panel {
-                    width: 95%;
-                    height: 95%;
+                    width: 100%;
                     max-width: none;
                 }
             }
@@ -320,43 +435,177 @@ class NotificationCenter {
      * Create notification center UI
      */
     createUI() {
-        // Badge button
-        const badge = document.createElement('div');
-        badge.id = 'sync-notification-badge';
-        badge.className = 'sync-notification-badge';
-        badge.innerHTML = `
-            <span>📋</span>
-            <div class="sync-notification-badge-count" id="notification-count" style="display: none;">0</div>
-        `;
-        badge.addEventListener('click', () => this.toggle());
-        document.body.appendChild(badge);
+        console.log('🎨 Creating NotificationCenter UI...');
+        
+        // Skip creating the badge button - we'll use the header bell icon instead
+        console.log('   Skipping badge creation (using header bell icon)');
 
-        // Modal backdrop and panel
-        const modal = document.createElement('div');
-        modal.id = 'notification-center-modal';
-        modal.className = 'notification-center-modal';
-        modal.innerHTML = `
-            <div class="notification-center-panel">
-                <div class="notification-center-header">
-                    <h2 class="notification-center-title">📋 Sync Notifications</h2>
-                    <button class="notification-center-close" id="notification-center-close">✕</button>
+        // Check if modal already exists
+        let modal = document.getElementById('notification-center-modal');
+        if (!modal) {
+            console.log('   Creating modal...');
+            modal = document.createElement('div');
+            modal.id = 'notification-center-modal';
+            modal.className = 'notification-center-modal';
+            modal.innerHTML = `
+                <div class="notification-center-panel">
+                    <div class="notification-center-header">
+                        <h2 class="notification-center-title">📋 Sync Notifications</h2>
+                        <button class="notification-center-close" id="notification-center-close">✕</button>
+                    </div>
+                    
+                    <!-- Sync Status Section -->
+                    <div class="sync-status-section">
+                        <div class="sync-status-title">
+                            <span>🔄</span>
+                            <span>Company Sync Status</span>
+                        </div>
+                        <div class="sync-status-list" id="sync-status-list">
+                            <div class="sync-status-empty">No sync data available</div>
+                        </div>
+                    </div>
+                    
+                    <div class="notification-center-content" id="notification-center-list">
+                        <div class="notification-center-empty">No notifications yet</div>
+                    </div>
+                    <div class="notification-center-footer">
+                        <button class="notification-center-btn notification-center-btn-clear" id="clear-notifications">Clear All</button>
+                    </div>
                 </div>
-                <div class="notification-center-content" id="notification-center-list">
-                    <div class="notification-center-empty">No notifications yet</div>
-                </div>
-                <div class="notification-center-footer">
-                    <button class="notification-center-btn notification-center-btn-clear" id="clear-notifications">Clear All</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
+            `;
+            document.body.appendChild(modal);
+            console.log('   ✅ Modal created and added to body');
+            console.log('   Modal z-index:', window.getComputedStyle(modal).zIndex);
+            console.log('   Modal position:', window.getComputedStyle(modal).position);
 
-        // Event listeners
-        document.getElementById('notification-center-close').addEventListener('click', () => this.close());
-        document.getElementById('clear-notifications').addEventListener('click', () => this.clear());
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) this.close();
+            // Event listeners
+            const closeBtn = document.getElementById('notification-center-close');
+            const clearBtn = document.getElementById('clear-notifications');
+            
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => this.close());
+                console.log('   ✅ Close button listener attached');
+            }
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => this.clear());
+                console.log('   ✅ Clear button listener attached');
+            }
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) this.close();
+            });
+            console.log('   ✅ Modal backdrop listener attached');
+        } else {
+            console.log('   Modal already exists');
+        }
+    }
+
+    /**
+     * Load company sync status from localStorage
+     */
+    loadCompanySyncStatus() {
+        try {
+            const saved = localStorage.getItem('companySyncStatus');
+            if (saved) {
+                this.companySyncStatus = JSON.parse(saved);
+            }
+        } catch (error) {
+            console.error('Failed to load company sync status:', error);
+        }
+    }
+
+    /**
+     * Save company sync status to localStorage
+     */
+    saveCompanySyncStatus() {
+        try {
+            localStorage.setItem('companySyncStatus', JSON.stringify(this.companySyncStatus));
+        } catch (error) {
+            console.error('Failed to save company sync status:', error);
+        }
+    }
+
+    /**
+     * Update sync status for a company
+     */
+    updateCompanySyncStatus(companyName, status, recordCount = 0, error = null) {
+        this.companySyncStatus[companyName] = {
+            status: status, // 'success', 'error', 'syncing'
+            recordCount: recordCount,
+            error: error,
+            lastSync: new Date().toISOString(),
+            timestamp: Date.now()
+        };
+        this.saveCompanySyncStatus();
+        this.renderSyncStatus();
+    }
+
+    /**
+     * Render sync status section
+     */
+    renderSyncStatus() {
+        const container = document.getElementById('sync-status-list');
+        if (!container) return;
+
+        const companies = Object.keys(this.companySyncStatus);
+        
+        if (companies.length === 0) {
+            container.innerHTML = '<div class="sync-status-empty">No sync data available</div>';
+            return;
+        }
+
+        // Sort by timestamp (most recent first)
+        companies.sort((a, b) => {
+            return this.companySyncStatus[b].timestamp - this.companySyncStatus[a].timestamp;
         });
+
+        container.innerHTML = companies.map(companyName => {
+            const sync = this.companySyncStatus[companyName];
+            const statusClass = sync.status;
+            const timeAgo = this.getTimeAgo(new Date(sync.lastSync));
+            
+            let icon = '✅';
+            let badgeText = 'Success';
+            let details = `${sync.recordCount} records synced`;
+            
+            if (sync.status === 'error') {
+                icon = '❌';
+                badgeText = 'Failed';
+                details = sync.error || 'Sync failed';
+            } else if (sync.status === 'syncing') {
+                icon = '🔄';
+                badgeText = 'Syncing...';
+                details = 'Sync in progress';
+            }
+
+            return `
+                <div class="sync-status-item ${statusClass}">
+                    <div class="sync-status-company">
+                        <span class="sync-status-icon">${icon}</span>
+                        <div class="sync-status-info">
+                            <p class="sync-status-company-name">${companyName}</p>
+                            <p class="sync-status-details">${details} • ${timeAgo}</p>
+                        </div>
+                    </div>
+                    <span class="sync-status-badge ${statusClass}">${badgeText}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Get relative time ago string
+     */
+    getTimeAgo(date) {
+        const seconds = Math.floor((new Date() - date) / 1000);
+        
+        if (seconds < 60) return 'just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
     }
 
     /**
@@ -528,13 +777,20 @@ class NotificationCenter {
      * Toggle notification center
      */
     toggle() {
+        console.log('🔄 NotificationCenter.toggle() called');
+        console.log('   initialized:', this.initialized);
+        console.log('   isOpen:', this.isOpen);
+        
         if (!this.initialized) {
-            console.warn('NotificationCenter not yet initialized');
+            console.error('❌ NotificationCenter not yet initialized');
             return;
         }
+        
         if (this.isOpen) {
+            console.log('   ▶ Closing...');
             this.close();
         } else {
+            console.log('   ▶ Opening...');
             this.open();
         }
     }
@@ -543,12 +799,42 @@ class NotificationCenter {
      * Open notification center
      */
     open() {
-        if (!this.initialized) return;
+        console.log('📦 NotificationCenter.open() called');
+        if (!this.initialized) {
+            console.error('❌ Cannot open - not initialized');
+            return;
+        }
         
-        const modal = document.getElementById('notification-center-modal');
+        let modal = document.getElementById('notification-center-modal');
+        console.log('   Modal element found:', !!modal);
+        
+        // If modal doesn't exist, recreate it
+        if (!modal) {
+            console.warn('⚠️ Modal element missing from DOM, recreating...');
+            this.createUI();
+            modal = document.getElementById('notification-center-modal');
+            console.log('   Modal recreated:', !!modal);
+        }
+        
         if (modal) {
+            console.log('   Modal current display:', window.getComputedStyle(modal).display);
+            console.log('   Modal current opacity:', window.getComputedStyle(modal).opacity);
+            console.log('   Modal current z-index:', window.getComputedStyle(modal).zIndex);
+            
             modal.classList.add('active');
             this.isOpen = true;
+            
+            console.log('   ✅ Modal opened (active class added)');
+            console.log('   Modal classList:', modal.classList.toString());
+            console.log('   Modal opacity after:', window.getComputedStyle(modal).opacity);
+            
+            // Force reflow to ensure transition happens
+            modal.offsetHeight;
+            
+            // Render latest sync status when opening
+            this.renderSyncStatus();
+        } else {
+            console.error('❌ notification-center-modal element still not found after recreation!');
         }
     }
 
@@ -610,3 +896,28 @@ class NotificationCenter {
 
 // Create global instance
 window.notificationCenter = new NotificationCenter();
+
+// Add global debug function
+window.testNotificationCenter = function() {
+    console.log('🧪 Testing NotificationCenter...');
+    console.log('   Initialized:', window.notificationCenter?.initialized);
+    console.log('   IsOpen:', window.notificationCenter?.isOpen);
+    
+    const modal = document.getElementById('notification-center-modal');
+    console.log('   Modal exists:', !!modal);
+    if (modal) {
+        console.log('   Modal display:', window.getComputedStyle(modal).display);
+        console.log('   Modal opacity:', window.getComputedStyle(modal).opacity);
+        console.log('   Modal z-index:', window.getComputedStyle(modal).zIndex);
+        console.log('   Modal position:', window.getComputedStyle(modal).position);
+        console.log('   Modal classList:', modal.classList.toString());
+    }
+    
+    const badge = document.getElementById('sync-notification-badge');
+    console.log('   Badge exists:', !!badge);
+    
+    console.log('   Calling toggle()...');
+    window.notificationCenter.toggle();
+};
+
+console.log('✅ NotificationCenter loaded. Type testNotificationCenter() in console to debug.');

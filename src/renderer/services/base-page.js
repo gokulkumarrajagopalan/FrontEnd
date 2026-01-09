@@ -20,7 +20,7 @@ class BasePage {
         this.selectedCompanyId = null;
         this.isLoading = false;
         this.isSyncing = false;
-        
+        this.selectedR        
         // Grid features
         this.sortField = null;
         this.sortOrder = 'asc'; // 'asc' or 'desc'
@@ -50,6 +50,9 @@ class BasePage {
 
             // Setup event listeners
             this.setupEventListeners();
+
+            // Setup scroll-aware header collapse
+            this.setupScrollCollapse();
 
             console.log(`✅ ${this.config.pageName} page initialized`);
         } catch (error) {
@@ -90,7 +93,7 @@ class BasePage {
      */
     getTemplate() {
         return `
-            <div class="space-y-6">
+            <div class="page-container-full-height">
                 ${this.getPageHeader()}
                 ${this.getFilters()}
                 ${this.getDataTable()}
@@ -104,7 +107,7 @@ class BasePage {
      */
     getPageHeader() {
         return `
-            <div class="page-header flex justify-between items-center">
+            <div id="pageHeader" class="page-header page-header-collapsible flex justify-between items-center">
                 <div>
                     <h2>${this.config.pageName}</h2>
                     <p>Manage ${this.config.entityNamePlural}</p>
@@ -127,7 +130,7 @@ class BasePage {
      */
     getFilters() {
         return `
-            <div class="filters-container">
+            <div class="filters-container filters-sticky">
                 <div class="material-search-wrapper">
                     <input type="text" id="searchInput" class="material-input" 
                            placeholder="🔍 Search ${this.config.entityNamePlural}">
@@ -225,15 +228,58 @@ class BasePage {
         const style = document.createElement('style');
         style.id = `${this.config.pageName.toLowerCase()}-styles`;
         style.textContent = `
+            /* Full-height page container */
+            .page-container-full-height {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+                min-height: 0;
+                overflow: hidden;
+                padding: 1rem;
+                box-sizing: border-box;
+                gap: 0.75rem;
+            }
+            
+            /* Page header with collapse animation */
+            .page-header-collapsible {
+                flex: 0 0 auto;
+                overflow: hidden;
+                max-height: 200px;
+                opacity: 1;
+                transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+            }
+            
+            .page-header-collapsible.header-collapsed {
+                max-height: 0;
+                opacity: 0;
+                margin: 0;
+                padding-top: 0 !important;
+                padding-bottom: 0 !important;
+                border: none;
+            }
+            
+            /* Sticky filters */
+            .filters-sticky {
+                position: sticky;
+                top: 0;
+                z-index: 20;
+                transition: box-shadow 0.3s ease;
+            }
+            
+            .filters-sticky.scrolled {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+            
             .filters-container {
                 display: flex;
                 gap: 1rem;
                 align-items: flex-end;
                 background: white;
-                padding: 1.25rem 1.5rem;
+                padding: 0.75rem 1rem;
                 border-radius: 12px;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
                 border: 1px solid #e5e7eb;
+                flex: 0 0 auto;
             }
             
             .material-search-wrapper {
@@ -372,6 +418,8 @@ class BasePage {
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
                 border: 1px solid #e5e7eb;
                 overflow: hidden;
+                flex: 1 1 auto;
+                min-height: 0;
             }
             
             .data-table-header-bar {
@@ -470,12 +518,15 @@ class BasePage {
             .data-table-container {
                 background: white;
                 border-radius: 0;
-                overflow: auto;
+                overflow-y: auto;
+                overflow-x: auto;
                 box-shadow: none;
                 border: none;
-                flex: 1;
-                max-height: 600px;
+                flex: 1 1 auto;
+                min-height: 0;
+                max-height: 100%;
                 position: relative;
+                scroll-behavior: smooth;
             }
             
             .data-table {
@@ -487,24 +538,26 @@ class BasePage {
             .data-table thead {
                 position: sticky;
                 top: 0;
-                z-index: 10;
+                z-index: 15;
             }
             
             .data-table th {
                 background: #f8fafc;
-                padding: 1rem 1.5rem;
+                padding: 0.625rem 1rem;
                 font-size: 0.75rem;
                 font-weight: 600;
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
                 color: #374151;
                 border-bottom: 2px solid #e5e7eb;
-                position: relative;
+                position: sticky;
+                top: 0;
                 white-space: nowrap;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
             }
             
             .data-table td {
-                padding: 1rem 1.5rem;
+                padding: 0.5rem 1rem;
                 border-bottom: 1px solid #f3f4f6;
                 color: #374151;
                 word-break: break-word;
@@ -644,20 +697,20 @@ class BasePage {
             
             .table-pagination-controls {
                 background: white;
-                padding: 1.5rem;
+                padding: 0.625rem 1rem;
                 border-top: 1px solid #e5e7eb;
                 border-radius: 0 0 12px 12px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 flex-wrap: wrap;
-                gap: 1.5rem;
+                gap: 0.75rem;
                 box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
             }
             
             .pagination-info {
                 flex: 0 0 auto;
-                font-size: 0.875rem;
+                font-size: 0.813rem;
                 color: #6b7280;
                 font-weight: 500;
             }
@@ -665,16 +718,16 @@ class BasePage {
             .pagination-buttons {
                 display: flex;
                 align-items: center;
-                gap: 1rem;
+                gap: 0.625rem;
                 flex: 0 0 auto;
             }
             
             .pagination-btn {
-                padding: 0.625rem 1rem;
+                padding: 0.375rem 0.75rem;
                 background: white;
                 border: 1px solid #d1d5db;
-                border-radius: 8px;
-                font-size: 0.875rem;
+                border-radius: 6px;
+                font-size: 0.813rem;
                 font-weight: 500;
                 color: #374151;
                 cursor: pointer;
@@ -700,7 +753,7 @@ class BasePage {
             }
             
             .page-info {
-                font-size: 0.875rem;
+                font-size: 0.813rem;
                 color: #6b7280;
                 font-weight: 500;
                 white-space: nowrap;
@@ -709,23 +762,23 @@ class BasePage {
             .page-size-selector {
                 display: flex;
                 align-items: center;
-                gap: 0.75rem;
+                gap: 0.5rem;
                 flex: 0 0 auto;
             }
             
             .page-size-selector label {
-                font-size: 0.875rem;
+                font-size: 0.813rem;
                 color: #6b7280;
                 font-weight: 500;
                 white-space: nowrap;
             }
             
             .page-size-select {
-                padding: 0.5rem 0.75rem;
+                padding: 0.25rem 0.5rem;
                 border: 1px solid #d1d5db;
                 border-radius: 6px;
                 background: white;
-                font-size: 0.875rem;
+                font-size: 0.813rem;
                 color: #374151;
                 cursor: pointer;
                 transition: all 0.2s ease;
@@ -1555,20 +1608,57 @@ class BasePage {
     }
 
     /**
+     * Setup scroll-aware header collapse
+     */
+    setupScrollCollapse() {
+        const tableContainer = document.querySelector('.data-table-container');
+        const pageHeader = document.getElementById('pageHeader');
+        const filtersContainer = document.querySelector('.filters-sticky');
+        
+        if (!tableContainer || !pageHeader) {
+            console.warn('⚠️ Scroll collapse elements not found');
+            return;
+        }
+
+        let lastScrollTop = 0;
+        let isCollapsed = false;
+
+        tableContainer.addEventListener('scroll', () => {
+            const scrollTop = tableContainer.scrollTop;
+            
+            // Scrolling down and past threshold
+            if (scrollTop > lastScrollTop && scrollTop > 50 && !isCollapsed) {
+                pageHeader.classList.add('header-collapsed');
+                if (filtersContainer) {
+                    filtersContainer.classList.add('scrolled');
+                }
+                isCollapsed = true;
+            }
+            // Scrolling up and back to top
+            else if (scrollTop < lastScrollTop && scrollTop < 20 && isCollapsed) {
+                pageHeader.classList.remove('header-collapsed');
+                if (filtersContainer) {
+                    filtersContainer.classList.remove('scrolled');
+                }
+                isCollapsed = false;
+            }
+            
+            lastScrollTop = scrollTop;
+        });
+    }
+
+    /**
      * Setup keyboard shortcuts
      */
     setupKeyboardShortcuts() {
+        // Only setup once
+        if (this._keyboardShortcutsSetup) return;
+        this._keyboardShortcutsSetup = true;
+
         document.addEventListener('keydown', (e) => {
             // Skip if in input field
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                // Allow Ctrl+E for export even in inputs
-                if (!(e.ctrlKey && e.key === 'e')) return;
-            }
-
-            // Ctrl+E = Export
-            if (e.ctrlKey && e.key === 'e') {
-                e.preventDefault();
-                document.getElementById('exportBtn')?.click();
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                return;
             }
 
             // Ctrl+K = Focus search
@@ -1577,50 +1667,18 @@ class BasePage {
                 document.getElementById('searchInput')?.focus();
             }
 
-            // Arrow up = Previous page
-            if (e.key === 'ArrowUp' && e.ctrlKey) {
+            // Ctrl+Arrow Up = Previous page
+            if (e.ctrlKey && e.key === 'ArrowUp') {
                 e.preventDefault();
                 document.getElementById('prevPageBtn')?.click();
             }
 
-            // Arrow down = Next page
-            if (e.key === 'ArrowDown' && e.ctrlKey) {
+            // Ctrl+Arrow Down = Next page
+            if (e.ctrlKey && e.key === 'ArrowDown') {
                 e.preventDefault();
                 document.getElementById('nextPageBtn')?.click();
             }
         });
-    }
-
-
-    /**
-     * Save data (create/update)
-     */
-    async saveData() {
-        // To be implemented by child classes
-        this.showInfo('Save functionality to be implemented');
-    }
-
-    /**
-     * Delete item
-     */
-    async deleteItem(id) {
-        try {
-            const response = await fetch(window.apiConfig.getUrl(`${this.config.apiEndpoint}/${id}`), {
-                method: 'DELETE',
-                headers: window.authService.getHeaders()
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                this.showSuccess(`${this.config.entityName} deleted successfully`);
-                await this.loadData();
-            } else {
-                throw new Error(result.message || 'Delete failed');
-            }
-        } catch (error) {
-            console.error(`Error deleting ${this.config.entityName}:`, error);
-            this.showError(`Failed to delete ${this.config.entityName}`);
-        }
     }
 
     /**

@@ -170,6 +170,13 @@ class SyncScheduler {
                     }
                 }
             }
+            
+            // CASE 3: Run reconciliation after background sync (every 2 hours)
+            console.log('🔍 Starting post-sync reconciliation...');
+            setTimeout(() => {
+                this.runReconciliation(companies, currentUser.userId, authToken, deviceToken, appSettings);
+            }, 1000); // 1 second delay after sync notification
+            
         } catch (error) {
             console.error('❌ Sync error:', error);
             
@@ -185,6 +192,63 @@ class SyncScheduler {
                     );
                 }
             }
+        }
+    }
+
+    /**
+     * Run reconciliation for all companies after sync
+     */
+    async runReconciliation(companies, userId, authToken, deviceToken, appSettings) {
+        try {
+            console.log(`🔍 Reconciling ${companies.length} companies...`);
+            
+            let totalMissing = 0;
+            let totalUpdated = 0;
+            let totalSynced = 0;
+            
+            for (const company of companies) {
+                try {
+                    const result = await window.electronAPI.reconcileData({
+                        companyId: company.id,
+                        userId: userId,
+                        tallyPort: appSettings.tallyPort || 9000,
+                        backendUrl: appSettings.backendUrl || window.apiConfig?.baseURL || 'http://localhost:8080',
+                        authToken: authToken,
+                        deviceToken: deviceToken,
+                        entityType: 'all'
+                    });
+                    
+                    if (result.success) {
+                        totalMissing += result.totalMissing || 0;
+                        totalUpdated += result.totalUpdated || 0;
+                        totalSynced += result.totalSynced || 0;
+                        
+                        if (result.totalSynced > 0) {
+                            console.log(`✅ ${company.name}: Reconciled and synced ${result.totalSynced} records`);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`❌ Error reconciling ${company.name}:`, error);
+                }
+            }
+            
+            // Show notification if any records were synced
+            if (totalSynced > 0) {
+                if (window.notificationService) {
+                    window.notificationService.show({
+                        type: 'info',
+                        message: `🔍 Reconciliation: ${totalSynced} records auto-synced`,
+                        details: `Missing: ${totalMissing}, Updated: ${totalUpdated}`,
+                        duration: 4000
+                    });
+                }
+                console.log(`✅ Background reconciliation: ${totalSynced} records synced`);
+            } else {
+                console.log('✅ Background reconciliation: All records in sync');
+            }
+            
+        } catch (error) {
+            console.error('❌ Background reconciliation error:', error);
         }
     }
 

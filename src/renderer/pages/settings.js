@@ -128,12 +128,14 @@
             title: 'Settings',
             subtitle: 'Configure Tally connection and application preferences',
             content: `
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    ${tallyConnectionCard}
-                    ${themeCard}
-                </div>
-                <div class="mt-6">
-                    ${aboutCard}
+                <div style="padding: 1rem; box-sizing: border-box;">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        ${tallyConnectionCard}
+                        ${themeCard}
+                    </div>
+                    <div class="mt-6">
+                        ${aboutCard}
+                    </div>
                 </div>
             `
         });

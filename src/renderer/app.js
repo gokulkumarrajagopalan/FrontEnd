@@ -87,13 +87,38 @@ class App {
             // STEP 3: Fetch Companies
             await this.fetchTallyCompanies();
 
-            // STEP 4: Initialize Sync Scheduler based on appSettings
+            // STEP 4: Initialize new sync system (app-start + background)
+            // NOTE: Sync system will be initialized after login, not here
+            // await this.initializeNewSyncSystem();
+
+            // STEP 5: Initialize legacy sync scheduler (if configured)
             this.initializeSyncScheduler();
 
             console.log('✅ Tally initialization complete');
             console.log('='.repeat(80) + '\n');
         } catch (error) {
             console.error('❌ Error during Tally initialization:', error);
+        }
+    }
+
+    /**
+     * Initialize new sync system (Scenario 2 & 3)
+     * - App-start incremental sync
+     * - Background sync every 2 hours
+     */
+    async initializeNewSyncSystem() {
+        try {
+            console.log('\n[4] INITIALIZING NEW SYNC SYSTEM');
+            console.log('-'.repeat(80));
+            
+            if (window.AppInitializer) {
+                await window.AppInitializer.initialize();
+                console.log('✅ New sync system initialized');
+            } else {
+                console.warn('⚠️ AppInitializer not available');
+            }
+        } catch (error) {
+            console.error('❌ Error initializing new sync system:', error);
         }
     }
 
@@ -228,14 +253,15 @@ class App {
     }
 
     /**
-     * Initialize sync scheduler based on appSettings
+     * Initialize legacy sync scheduler based on appSettings
+     * (Kept for backward compatibility)
      */
     initializeSyncScheduler() {
         try {
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const syncInterval = appSettings.syncInterval || 0;
 
-            console.log('\n[4] INITIALIZING SYNC SCHEDULER');
+            console.log('\n[5] INITIALIZING LEGACY SYNC SCHEDULER (if configured)');
             console.log('-'.repeat(80));
             console.log('📊 Sync Interval from settings:', syncInterval, 'minutes');
 
@@ -376,7 +402,7 @@ class App {
                     </div>
                 </aside>
                 <main class="flex-1 flex flex-col min-w-0">
-                    <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm nav-link">
+                    <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
                         <h2 class="text-lg font-semibold text-gray-800" id="page-title">Home</h2>
                         <div class="flex items-center gap-4">
                             <div class="flex items-center gap-2">
@@ -389,10 +415,12 @@ class App {
                                 <span style="font-size: 16px;">👤</span>
                                 <span class="text-sm font-medium text-gray-700" id="headerUsername">User</span>
                             </div>
-                            <span style="font-size: 18px; cursor: pointer;">🔔</span>
+                            <button id="notificationBell" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 8px; border-radius: 8px; transition: opacity 0.2s;" title="Open Notifications" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                                🔔
+                            </button>
                         </div>
                     </header>
-                    <div id="page-content" class="flex-1 overflow-y-auto p-6 bg-gray-50">Loading...</div>
+                    <div id="page-content" class="flex-1 overflow-y-auto bg-gray-50" style="height: 100%; min-height: 0;">Loading...</div>
                 </main>
             `;
 
@@ -406,6 +434,17 @@ class App {
 
             // Setup global company selector change handler
             this.setupGlobalCompanySelector();
+            
+            // Setup notification bell click handler
+            this.setupNotificationBell();
+            
+            // Retry notification bell setup after a delay if notification center not ready
+            setTimeout(() => {
+                if (!window.notificationCenter || !window.notificationCenter.initialized) {
+                    console.log('⏳ Retrying notification bell setup...');
+                    this.setupNotificationBell();
+                }
+            }, 1000);
 
             console.log('✅ App layout rendered successfully');
             console.log('📍 page-content element exists:', !!document.getElementById('page-content'));
@@ -629,6 +668,34 @@ class App {
             });
         }
     }
+    
+    setupNotificationBell() {
+        console.log('🔍 Setting up notification bell...');
+        const bell = document.getElementById('notificationBell');
+        console.log('   Bell element found:', !!bell);
+        
+        if (bell) {
+            bell.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔔 Notification bell clicked!');
+                console.log('   notificationCenter exists:', !!window.notificationCenter);
+                console.log('   notificationCenter initialized:', window.notificationCenter?.initialized);
+                
+                if (window.notificationCenter) {
+                    console.log('   ▶ Calling toggle()...');
+                    window.notificationCenter.toggle();
+                    console.log('   isOpen after toggle:', window.notificationCenter.isOpen);
+                } else {
+                    console.error('❌ NotificationCenter not available!');
+                    alert('Notification center not loaded yet. Please wait a moment and try again.');
+                }
+            });
+            console.log('✅ Notification bell click handler attached');
+        } else {
+            console.error('❌ Notification bell element NOT FOUND in DOM');
+        }
+    }
 
     async handleLogout() {
         console.log('🔐 App.handleLogout() - Starting logout sequence');
@@ -687,13 +754,32 @@ class App {
      */
     restoreSidebarStates() {
         const states = JSON.parse(localStorage.getItem('sidebarStates') || '{}');
-        Object.keys(states).forEach(sectionId => {
-            if (states[sectionId]) {
+        
+        // If no saved states, expand all sections by default
+        if (Object.keys(states).length === 0) {
+            const allSections = ['finance-section', 'inventory-section'];
+            allSections.forEach(sectionId => {
                 const container = document.getElementById(sectionId);
                 const header = container?.previousElementSibling;
                 if (container && header) {
+                    container.classList.remove('collapsed');
+                    header.classList.remove('collapsed');
+                }
+            });
+            return;
+        }
+        
+        // Restore saved states
+        Object.keys(states).forEach(sectionId => {
+            const container = document.getElementById(sectionId);
+            const header = container?.previousElementSibling;
+            if (container && header) {
+                if (states[sectionId]) {
                     container.classList.add('collapsed');
                     header.classList.add('collapsed');
+                } else {
+                    container.classList.remove('collapsed');
+                    header.classList.remove('collapsed');
                 }
             }
         });
