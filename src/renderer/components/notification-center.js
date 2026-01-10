@@ -450,19 +450,8 @@ class NotificationCenter {
             modal.innerHTML = `
                 <div class="notification-center-panel">
                     <div class="notification-center-header">
-                        <h2 class="notification-center-title">📋 Sync Notifications</h2>
+                        <h2 class="notification-center-title">📋 Notifications</h2>
                         <button class="notification-center-close" id="notification-center-close">✕</button>
-                    </div>
-                    
-                    <!-- Sync Status Section -->
-                    <div class="sync-status-section">
-                        <div class="sync-status-title">
-                            <span>🔄</span>
-                            <span>Company Sync Status</span>
-                        </div>
-                        <div class="sync-status-list" id="sync-status-list">
-                            <div class="sync-status-empty">No sync data available</div>
-                        </div>
                     </div>
                     
                     <div class="notification-center-content" id="notification-center-list">
@@ -507,7 +496,17 @@ class NotificationCenter {
         try {
             const saved = localStorage.getItem('companySyncStatus');
             if (saved) {
-                this.companySyncStatus = JSON.parse(saved);
+                const loaded = JSON.parse(saved);
+                // Filter out "Sync API not available" errors
+                this.companySyncStatus = {};
+                Object.keys(loaded).forEach(companyName => {
+                    const sync = loaded[companyName];
+                    if (!sync.error || !sync.error.includes('Sync API not available')) {
+                        this.companySyncStatus[companyName] = sync;
+                    }
+                });
+                // Save cleaned data back to localStorage
+                this.saveCompanySyncStatus();
             }
         } catch (error) {
             console.error('Failed to load company sync status:', error);
@@ -529,6 +528,12 @@ class NotificationCenter {
      * Update sync status for a company
      */
     updateCompanySyncStatus(companyName, status, recordCount = 0, error = null) {
+        // Filter out "Sync API not available" errors - these are not real sync failures
+        if (error && error.includes('Sync API not available')) {
+            console.log(`Skipping sync status update for ${companyName} - Sync API not available`);
+            return;
+        }
+        
         this.companySyncStatus[companyName] = {
             status: status, // 'success', 'error', 'syncing'
             recordCount: recordCount,

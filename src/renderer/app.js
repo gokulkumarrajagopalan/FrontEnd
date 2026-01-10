@@ -415,9 +415,9 @@ class App {
                                 <span style="font-size: 16px;">👤</span>
                                 <span class="text-sm font-medium text-gray-700" id="headerUsername">User</span>
                             </div>
-                            <button id="notificationBell" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 8px; border-radius: 8px; transition: opacity 0.2s;" title="Open Notifications" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                            <span id="notificationBell" style="font-size: 24px; cursor: pointer; opacity: 0.8; transition: opacity 0.2s;" title="Open Notifications" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
                                 🔔
-                            </button>
+                            </span>
                         </div>
                     </header>
                     <div id="page-content" class="flex-1 overflow-y-auto bg-gray-50" style="height: 100%; min-height: 0;">Loading...</div>
