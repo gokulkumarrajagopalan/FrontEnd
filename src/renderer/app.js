@@ -475,7 +475,15 @@ class App {
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async () => {
-                    if (confirm('Are you sure you want to logout?')) {
+                    const confirmed = await window.Popup.confirm({
+                        title: 'Logout',
+                        message: 'Are you sure you want to logout?',
+                        icon: '⚠️',
+                        confirmText: 'Logout',
+                        cancelText: 'Cancel',
+                        confirmVariant: 'danger'
+                    });
+                    if (confirmed) {
                         await this.handleLogout();
                     }
                 });

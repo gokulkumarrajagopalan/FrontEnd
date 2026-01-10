@@ -132,34 +132,34 @@
     }
 
     // Check Backend API
-    async function checkBackendAPI() {
-        const dot = document.getElementById('backendStatusDot');
-        const text = document.getElementById('backendStatusText');
-        const time = document.getElementById('backendResponseTime');
+    // async function checkBackendAPI() {
+    //     const dot = document.getElementById('backendStatusDot');
+    //     const text = document.getElementById('backendStatusText');
+    //     const time = document.getElementById('backendResponseTime');
         
-        if (!dot || !text || !time) return;
+    //     if (!dot || !text || !time) return;
 
-        const startTime = Date.now();
-        try {
-            const response = await fetch('http://localhost:8080/health', { 
-                method: 'GET',
-                timeout: 5000 
-            });
-            const elapsed = Date.now() - startTime;
+    //     const startTime = Date.now();
+    //     try {
+    //         const response = await fetch('http://localhost:8080/health', { 
+    //             method: 'GET',
+    //             timeout: 5000 
+    //         });
+    //         const elapsed = Date.now() - startTime;
             
-            if (response.ok) {
-                dot.className = 'w-2 h-2 bg-green-500 rounded-full animate-pulse';
-                text.textContent = 'Online (Port 8080)';
-                time.textContent = `${elapsed}ms`;
-            } else {
-                throw new Error('API error');
-            }
-        } catch (error) {
-            dot.className = 'w-2 h-2 bg-red-500 rounded-full';
-            text.textContent = 'Offline';
-            time.textContent = 'No response';
-        }
-    }
+    //         if (response.ok) {
+    //             dot.className = 'w-2 h-2 bg-green-500 rounded-full animate-pulse';
+    //             text.textContent = 'Online (Port 8080)';
+    //             time.textContent = `${elapsed}ms`;
+    //         } else {
+    //             throw new Error('API error');
+    //         }
+    //     } catch (error) {
+    //         dot.className = 'w-2 h-2 bg-red-500 rounded-full';
+    //         text.textContent = 'Offline';
+    //         time.textContent = 'No response';
+    //     }
+    // }
 
     // Update Auto-Sync Status
     function updateAutoSyncStatus() {
@@ -291,7 +291,6 @@
     // Refresh all status indicators
     async function refreshAllStatus() {
         await checkTallyConnection();
-        await checkBackendAPI();
         updateAutoSyncStatus();
         updateLastSyncInfo();
         updateOverallStatus();
