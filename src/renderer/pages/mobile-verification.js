@@ -55,7 +55,7 @@ const getMobileVerificationTemplate = (email, licenceNo, phone) => `
                     </div>
                 </div>
 
-                <button type="submit" id="mobileVerifyBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm" style="background: #000000 !important;">
+                <button type="submit" id="mobileVerifyBtn" class="w-full font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm" style="background: var(--primary-600); color: white; border: none; cursor: pointer;">
                     <span class="text-lg">✅</span>
                     <span>Verify Mobile OTP</span>
                 </button>

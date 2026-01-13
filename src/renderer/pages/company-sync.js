@@ -36,7 +36,7 @@
                         <div class="flex flex-wrap gap-2">
                             <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">Live Monitoring</span>
                             <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">Auto Refresh</span>
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">Smart Alerts</span>
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700" style="background: var(--accent-purple-light); color: var(--accent-purple);">Smart Alerts</span>
                         </div>
                     </div>
                     <div class="flex flex-col items-end gap-4 lg:min-w-[240px]">
@@ -62,7 +62,7 @@
                         </div>
 
                         <div class="flex flex-col sm:flex-row gap-3 w-full">
-                            <button id="importMoreBtn" class="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all duration-200 font-semibold flex items-center justify-center gap-2 text-sm whitespace-nowrap min-w-[140px]">
+                            <button id="importMoreBtn" class="px-8 py-2.5 btn-purple text-white rounded-xl shadow-sm transition-all duration-200 font-semibold flex items-center justify-center gap-2 text-sm whitespace-nowrap min-w-[140px]" style="border: none;">
                                 <span class="text-lg">➕</span>
                                 <span>Import More</span>
                             </button>
@@ -74,7 +74,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl shadow-lg p-6 flex flex-col justify-between">
+            <div class="bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 text-white rounded-2xl shadow-lg p-6 flex flex-col justify-between">
                 <div>
                     <p class="text-xs uppercase text-blue-100">Sync Health Score</p>
                     <h3 class="text-4xl font-bold mt-1" id="companySyncHealthScore">98%</h3>
@@ -102,7 +102,7 @@
         <!-- Combined Search & Table Section -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
+            <div class="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b border-blue-100">
                 <h3 class="text-xl font-bold text-gray-900 mb-4">Company and Sync</h3>
                 <div class="flex items-center gap-3">
                     <div style="width: 50%;">
@@ -441,6 +441,20 @@
     }
 
     async function syncCompanyGroups(company, button) {
+        // Validate license before sync
+        if (window.LicenseValidator) {
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const userLicense = currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+
+            const isValid = await window.LicenseValidator.validateAndNotify(userLicense, tallyPort);
+            if (!isValid) {
+                console.error('❌ License validation failed - sync aborted');
+                return;
+            }
+        }
+
         // Check if sync is already in progress using SyncStateManager
         if (window.syncStateManager && window.syncStateManager.isSyncInProgress()) {
             window.notificationService.warning('🔄 Another company sync is in progress. Please wait...');
@@ -946,6 +960,14 @@
 
     window.initializeCompanySync = async function () {
         console.log('Initializing Company Sync Page...');
+        
+        // Check license validation
+        if (window.LicenseValidator && !await window.LicenseValidator.validateAndNotify()) {
+            console.warn('⚠️ License validation failed - access denied');
+            window.router?.navigate('home');
+            return;
+        }
+        
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getTemplate();

@@ -75,7 +75,7 @@
         </div>
 
         <!-- Tally License Information -->
-        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100 p-6">
+        <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow-sm border border-blue-100 p-6">
             <h3 class="text-lg font-bold text-gray-800 mb-4">📜 Tally License Information</h3>
             <div class="grid grid-cols-4 gap-4">
                 <div class="bg-white rounded-lg p-4 border border-blue-100">
@@ -88,9 +88,9 @@
                     <p class="text-2xl font-bold text-green-600" id="productVersion">--</p>
                     <p class="text-xs text-gray-400 mt-2">Tally ERP Version</p>
                 </div>
-                <div class="bg-white rounded-lg p-4 border border-purple-100">
+                <div class="bg-white rounded-lg p-4 border-2" style="border-color: var(--primary-100);">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Status</p>
-                    <p class="text-2xl font-bold text-purple-600" id="licenseStatus">--</p>
+                    <p class="text-2xl font-bold" id="licenseStatus" style="color: var(--primary-600);">--</p>
                     <p class="text-xs text-gray-400 mt-2">License Status</p>
                 </div>
                 <div class="bg-white rounded-lg p-4 border border-orange-100">
@@ -499,8 +499,16 @@
     }
 
     // Initialize page
-    window.initializeSyncSettings = function () {
+    window.initializeSyncSettings = async function () {
         console.log('Initializing Sync Settings Page...');
+        
+        // Check license validation
+        if (window.LicenseValidator && !await window.LicenseValidator.validateAndNotify()) {
+            console.warn('⚠️ License validation failed - access denied');
+            window.router?.navigate('home');
+            return;
+        }
+        
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getSyncSettingsTemplate();

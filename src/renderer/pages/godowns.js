@@ -16,6 +16,10 @@
             });
         }
 
+        getFilters() {
+            return ''; // Search is now built into table headers
+        }
+
         renderTableRow(godown) {
             const name = godown.name || 'N/A';
             const address = godown.address || '-';
@@ -24,12 +28,7 @@
                 <tr class="hover:bg-gray-50">
                     <td><div class="font-semibold text-gray-900">${name}</div></td>
                     <td class="text-gray-600 text-sm">${address}</td>
-                    <td class="text-center">
-                        <div class="flex gap-2 justify-center">
-                            <button class="action-btn edit-btn" data-id="${godown.id}">✏️</button>
-                            <button class="action-btn delete-btn" data-id="${godown.id}">🗑️</button>
-                        </div>
-                    </td>
+
                 </tr>
             `;
         }
@@ -64,6 +63,16 @@
             if (!this.selectedCompanyId) {
                 this.showError('Please select a company first');
                 return;
+            }
+
+            // Validate license before sync
+            if (window.LicenseValidator) {
+                const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+                const tallyPort = appSettings.tallyPort || 9000;
+                const isValid = await window.LicenseValidator.validateAndNotify(null, tallyPort);
+                if (!isValid) {
+                    return; // Block sync if license doesn't match
+                }
             }
 
             const syncBtn = document.getElementById(`sync${this.config.pageName}Btn`);

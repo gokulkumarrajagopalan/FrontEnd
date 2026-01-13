@@ -18,24 +18,7 @@
         }
 
         getFilters() {
-            return `
-                <div class="filters-container">
-                    <div class="material-search-wrapper">
-                        <input type="text" id="searchInput" class="material-input" 
-                               placeholder="🔍 Search groups">
-                    </div>
-                    <div id="additionalFilters" style="flex: 0 0 auto; width: 280px;">
-                        <select id="groupTypeFilter" class="form-input">
-                            <option value="">All Types</option>
-                            <option value="revenue">Revenue (P&L)</option>
-                            <option value="balancesheet">Balance Sheet</option>
-                            <option value="primary">Primary Groups</option>
-                        </select>
-                    </div>
-                    <div style="flex: 1 1 auto;"></div>
-                    <button class="btn-export">📥 Export</button>
-                </div>
-            `;
+            return ''; // Search is now built into table headers
         }
 
         getModal() {
@@ -86,42 +69,26 @@
                         ${group.grpAlias ? `<div class="text-xs text-gray-500">Alias: ${group.grpAlias}</div>` : ''}
                     </td>
                     <td class="text-gray-700">${parentGroupName}</td>
-                    <td class="text-center">
-                        <div class="flex gap-2 justify-center">
-                            <button class="action-btn edit-btn" data-id="${group.grpId}">✏️</button>
-                            <button class="action-btn delete-btn" data-id="${group.grpId}">🗑️</button>
-                        </div>
-                    </td>
+
                 </tr>
             `;
         }
 
         setupEventListeners() {
             super.setupEventListeners();
-
-            // Additional filter for group types
-            const typeFilter = document.getElementById('groupTypeFilter');
-            if (typeFilter) {
-                typeFilter.addEventListener('change', () => this.filterData());
-            }
+            // Header search is now handled by base-page.js
         }
 
         filterData() {
-            const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-            const typeFilter = document.getElementById('groupTypeFilter')?.value || '';
+            const headerSearch = this.headerSearch || {};
 
             this.filteredData = this.data.filter(group => {
-                const matchesSearch = this.config.searchFields.some(field => {
+                // Header per-column searches
+                return Object.entries(headerSearch).every(([field, term]) => {
+                    if (!term) return true;
                     const value = group[field];
-                    return value && value.toString().toLowerCase().includes(searchTerm);
+                    return value && value.toString().toLowerCase().includes(term.toLowerCase());
                 });
-
-                let matchesType = true;
-                if (typeFilter === 'revenue') matchesType = group.isRevenue === true;
-                else if (typeFilter === 'balancesheet') matchesType = group.isRevenue === false;
-                else if (typeFilter === 'primary') matchesType = group.grpParent === 'Primary';
-
-                return matchesSearch && matchesType;
             });
 
             this.renderTable();
@@ -136,6 +103,16 @@
             if (!this.selectedCompanyId) {
                 this.showError('Please select a company first');
                 return;
+            }
+
+            // Validate license before sync
+            if (window.LicenseValidator) {
+                const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+                const tallyPort = appSettings.tallyPort || 9000;
+                const isValid = await window.LicenseValidator.validateAndNotify(null, tallyPort);
+                if (!isValid) {
+                    return; // Block sync if license doesn't match
+                }
             }
 
             this.isSyncing = true;

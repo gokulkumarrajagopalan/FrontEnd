@@ -18,17 +18,21 @@
             });
         }
 
+        getFilters() {
+            return ''; // Search is now built into table headers
+        }
+
         renderTableRow(ledger) {
             const parentGroupName = ledger.ledParent || ledger.ledPrimaryGroup || 'N/A';
             const openingBalance = ledger.ledOpeningBalance || 0;
             const formattedBalance = new Intl.NumberFormat('en-IN', {
                 style: 'currency', currency: 'INR', minimumFractionDigits: 2
             }).format(openingBalance);
-            
-            const taxBadge = ledger.gstApplicable && ledger.gstGstin ? 
+
+            const taxBadge = ledger.gstApplicable && ledger.gstGstin ?
                 `<span class="badge badge-info" title="GST: ${ledger.gstGstin}">GST</span>` :
                 ledger.vatApplicable && ledger.vatTinNumber ?
-                `<span class="badge badge-primary" title="VAT: ${ledger.vatTinNumber}">VAT</span>` : '';
+                    `<span class="badge badge-primary" title="VAT: ${ledger.vatTinNumber}">VAT</span>` : '';
 
             return `
                 <tr class="hover:bg-gray-50">
@@ -40,7 +44,7 @@
                     <td>
                         <div class="text-gray-700">${parentGroupName}</div>
                         ${ledger.ledPrimaryGroup && ledger.ledPrimaryGroup !== parentGroupName ?
-                            `<div class="text-xs text-gray-400">${ledger.ledPrimaryGroup}</div>` : ''}
+                    `<div class="text-xs text-gray-400">${ledger.ledPrimaryGroup}</div>` : ''}
                     </td>
                     <td class="text-right font-mono ${openingBalance >= 0 ? 'text-green-600' : 'text-red-600'}">
                         ${formattedBalance}
@@ -48,12 +52,7 @@
                     <td class="text-right font-mono ${openingBalance >= 0 ? 'text-green-600' : 'text-red-600'}">
                         ${formattedBalance}
                     </td>
-                    <td class="text-center">
-                        <div class="flex gap-2 justify-center">
-                            <button class="action-btn edit-btn" data-id="${ledger.ledId}">✏️</button>
-                            <button class="action-btn delete-btn" data-id="${ledger.ledId}">🗑️</button>
-                        </div>
-                    </td>
+
                 </tr>
             `;
         }
@@ -103,6 +102,16 @@
             if (!this.selectedCompanyId) {
                 this.showError('Please select a company first');
                 return;
+            }
+
+            // Validate license before sync
+            if (window.LicenseValidator) {
+                const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+                const tallyPort = appSettings.tallyPort || 9000;
+                const isValid = await window.LicenseValidator.validateAndNotify(null, tallyPort);
+                if (!isValid) {
+                    return; // Block sync if license doesn't match
+                }
             }
 
             const syncBtn = document.getElementById(`sync${this.config.pageName}Btn`);

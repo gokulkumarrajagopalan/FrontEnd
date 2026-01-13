@@ -1,6 +1,7 @@
 class App {
     constructor() {
         this.initialized = false;
+        this.tableHeaderToggleBtnOpened = false;
         this.initializeUpgrades();
         console.log('✅ App class created');
     }
@@ -35,6 +36,33 @@ class App {
             console.log('✅ All upgrade services initialized successfully');
         } catch (error) {
             console.error('❌ Error initializing upgrades:', error);
+        }
+    }
+
+    /**
+     * Set table header toggle button visibility
+     * @param {boolean} visible 
+     * @param {boolean} isCollapsed - whether the header is currently collapsed
+     */
+    setTableHeaderToggleBtnVisibility(visible, isCollapsed = true) {
+        this.tableHeaderToggleBtnOpened = visible;
+        const btn = document.getElementById('tableHeaderToggleBtnOpened');
+        if (btn) {
+            btn.style.display = visible ? 'flex' : 'none';
+            
+            // Update icon based on state
+            const svg = btn.querySelector('svg');
+            if (svg) {
+                if (isCollapsed) {
+                    // Chevron Down (to expand)
+                    svg.innerHTML = '<path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+                    btn.setAttribute('title', 'Expand Header');
+                } else {
+                    // Chevron Up (to collapse)
+                    svg.innerHTML = '<path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+                    btn.setAttribute('title', 'Collapse Header');
+                }
+            }
         }
     }
 
@@ -110,7 +138,7 @@ class App {
         try {
             console.log('\n[4] INITIALIZING NEW SYNC SYSTEM');
             console.log('-'.repeat(80));
-            
+
             if (window.AppInitializer) {
                 await window.AppInitializer.initialize();
                 console.log('✅ New sync system initialized');
@@ -188,6 +216,7 @@ class App {
 
                     // Store license info
                     localStorage.setItem('tallyLicense', JSON.stringify(response.data));
+                    localStorage.setItem('tallyLicenseNumber', response.data.license_number);
                     window.tallyLicense = response.data;
                 } else {
                     console.warn('⚠️ LICENSE INFO: NOT AVAILABLE');
@@ -283,6 +312,69 @@ class App {
         }
     }
 
+    /**
+     * Check if Tally license matches user license
+     */
+    checkLicenseMatch() {
+        try {
+            // Get user license from storage (check multiple locations)
+            let userLicense = sessionStorage.getItem('userLicenseNumber') ||
+                sessionStorage.getItem('licenseNumber') ||
+                localStorage.getItem('licenseNumber') ||
+                localStorage.getItem('licenceNo');
+
+            // If still not found, try to get from currentUser object
+            if (!userLicense) {
+                const currentUser = sessionStorage.getItem('currentUser');
+                if (currentUser) {
+                    try {
+                        const parsed = JSON.parse(currentUser);
+                        userLicense = parsed.licenceNo || parsed.licenseNumber;
+                    } catch (e) {
+                        console.error('Error parsing currentUser:', e);
+                    }
+                }
+            }
+
+            // Get Tally license from storage
+            let tallyLicense = localStorage.getItem('tallyLicenseNumber');
+
+            // If not found, try to get from tallyLicense object
+            if (!tallyLicense) {
+                const tallyLicenseObj = localStorage.getItem('tallyLicense');
+                if (tallyLicenseObj) {
+                    try {
+                        const parsed = JSON.parse(tallyLicenseObj);
+                        tallyLicense = parsed.license_number;
+                    } catch (e) {
+                        console.error('Error parsing tallyLicense:', e);
+                    }
+                }
+            }
+
+            if (!userLicense || !tallyLicense) {
+                console.log('⚠️ License check: Missing license information', { userLicense, tallyLicense });
+                return false;
+            }
+
+            // Normalize licenses for comparison
+            const normalizeString = (str) => String(str || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            const normalizedUser = normalizeString(userLicense);
+            const normalizedTally = normalizeString(tallyLicense);
+
+            const matches = normalizedUser === normalizedTally;
+            console.log('🔐 License match check:', matches ? '✅ MATCHED' : '❌ NOT MATCHED', {
+                userLicense: normalizedUser,
+                tallyLicense: normalizedTally
+            });
+
+            return matches;
+        } catch (error) {
+            console.error('❌ Error checking license match:', error);
+            return false;
+        }
+    }
+
     renderLogin() {
         try {
             console.log('🚀 Rendering login page using auth.js...');
@@ -329,31 +421,49 @@ class App {
                 console.log('✅ Session monitoring started');
             }
 
+            // Check license match
+            const licenseMatches = this.checkLicenseMatch();
+
             document.body.className = 'h-screen overflow-hidden flex bg-gray-50';
             document.body.innerHTML = `
-                <aside class="w-64 flex flex-col h-screen" id="mainSidebar">
-                    <div class="p-6 border-b border-gray-200 flex-shrink-0">
-                        <div class="flex items-center gap-3">
-                            <div><h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">Talliffy</h1></div>
+                <aside class="flex flex-col relative transition-all duration-300" id="mainSidebar" style="width: 80px; flex-shrink: 0; height: 100vh; background: white; border-right: 1px solid #e5e7eb;" onmouseenter="window.app.expandSidebar()" onmouseleave="window.app.collapseSidebar()">
+                    <!-- Fixed Header - Collapsed View (Icon only) -->
+                    <div id="collapsedHeader" class="h-16 px-3 border-b border-gray-200 flex-shrink-0 flex flex-col justify-center transition-all duration-300">
+                        <div class="flex items-center justify-center">
+                            <div class="brand-icon-wrapper" onclick="window.router.navigate('home')" aria-label="Talliffy Home" title="Talliffy Home">
+                                <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image brand-icon-collapsed" />
+                            </div>
                         </div>
-                        <p class="text-xs text-gray-400 mt-1">Enterprise Sync Platform</p>
                     </div>
-                    <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Main</div>
-                        <a class="nav-link active" data-route="import-company">
+                    
+                    <!-- Expanded Content (Hidden by default) -->
+                    <div id="expandedHeader" style="display: none; padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">
+                        <div class="flex items-center gap-2" style="white-space: nowrap;">
+                            <div class="brand-icon-wrapper" onclick="window.router.navigate('home')" aria-label="Talliffy Home" title="Talliffy Home">
+                                <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image brand-icon-expanded" />
+                            </div>
+                            <h1 class="brand-title" style="cursor: pointer; margin: 0;" onclick="window.router.navigate('home')">Talliffy</h1>
+                        </div>
+                        <p class="brand-subtitle">Enterprise Sync Platform</p>
+                    </div>
+                    
+                    <!-- Resizable Navigation Area -->
+                    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-1 transition-all duration-300" id="sidebarNav">
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide sidebar-section-title" ${!licenseMatches ? 'style="display: none;"' : ''}>Main</div>
+                        <a class="nav-link active" data-route="import-company" ${!licenseMatches ? 'style="display: none;"' : ''}>
                             <span class="nav-icon">📥</span> <span>Import Company</span>
                         </a>
-                        <a class="nav-link" data-route="company-sync">
+                        <a class="nav-link" data-route="company-sync" ${!licenseMatches ? 'style="display: none;"' : ''}>
                             <span class="nav-icon">🏢</span> <span>Company Sync</span>
                         </a>
-                        <a class="nav-link" data-route="sync-settings">
+                        <a class="nav-link" data-route="sync-settings" ${!licenseMatches ? 'style="display: none;"' : ''}>
                             <span class="nav-icon">📡</span> <span>Tally Sync</span>
                         </a>
-                        <a class="nav-link" data-route="settings">
+                        <a class="nav-link" data-route="settings" ${!licenseMatches ? 'style="display: none;"' : ''}>
                             <span class="nav-icon">⚙️</span> <span>Settings</span>
                         </a>
 
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4">Masters</div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4 sidebar-section-title">Masters</div>
                         
                         <!-- Finance Masters Section -->
                         <div class="nav-section-header" onclick="window.app.toggleSection('finance-section')">
@@ -393,21 +503,33 @@ class App {
                         </div>
                     </nav>
                     
+                    <!-- Resize Handle - Only on nav/logout area (starts below header) -->
+                    <div id="sidebarResizeHandle" style="position: absolute; top: 64px; right: 0; width: 4px; height: calc(100% - 64px); cursor: ew-resize; background: transparent; z-index: 1000;" 
+                         onmouseenter="this.style.background='rgba(59, 130, 246, 0.5)'" 
+                         onmouseleave="this.style.background='transparent'"></div>
+                    
                     <!-- Logout Button at bottom of sidebar -->
-                    <div class="p-4 border-t border-gray-200 flex-shrink-0">
-                        <button id="logoutBtn" class="w-full py-2.5 px-4 text-white rounded-lg font-medium flex items-center justify-center gap-2">
-                            <span class="nav-icon">🚪</span>
-                            <span>Logout</span>
+                    <div class="p-2 border-t border-gray-200 flex-shrink-0">
+                        <button id="logoutBtn" class="py-1.5 px-2 text-gray-600 text-sm font-normal hover:text-red-600 transition-colors cursor-pointer" style="background: none; border: none; width: auto;">
+                            Logout
                         </button>
                     </div>
                 </aside>
-                <main class="flex-1 flex flex-col min-w-0">
-                    <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
-                        <h2 class="text-lg font-semibold text-gray-800" id="page-title">Home</h2>
+                <main class="flex-1 flex flex-col min-w-0" style="height: 100vh; overflow: hidden;">
+                    <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm" style="flex-shrink: 0; position: sticky; top: 0; z-index: 40;">
+                        <div class="flex items-center gap-4">
+                            <button id="tableHeaderToggleBtnOpened" class="header-toggle-btn" title="Collapse Header" style="${this.tableHeaderToggleBtnOpened ? 'display: flex;' : 'display: none;'}">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div class="h-8 w-px bg-gray-300"></div>
+                            <h2 class="text-lg font-semibold text-gray-800" id="page-title">Home</h2>
+                        </div>
                         <div class="flex items-center gap-4">
                             <div class="flex items-center gap-2">
                                 <span style="font-size: 16px;">🏢</span>
-                                <select id="globalCompanySelector" class="px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 cursor-pointer hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                <select id="globalCompanySelector" class="global-company-selector px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 cursor-pointer hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                                     <option value="">Select Companies</option>
                                 </select>
                             </div>
@@ -434,10 +556,31 @@ class App {
 
             // Setup global company selector change handler
             this.setupGlobalCompanySelector();
-            
+
+            // Setup sidebar resize functionality
+            this.setupSidebarResize();
+
             // Setup notification bell click handler
             this.setupNotificationBell();
-            
+
+            // Setup table header toggle button click handler
+            const tableHeaderToggleBtn = document.getElementById('tableHeaderToggleBtnOpened');
+            if (tableHeaderToggleBtn) {
+                tableHeaderToggleBtn.addEventListener('click', () => {
+                    // This button is intended to toggle the header or exit fullscreen
+                    // We dispatch a custom event that BasePage can listen to, or directly call the active page's method
+                    if (window.currentPage && typeof window.currentPage.exitTableFullscreenLock === 'function') {
+                        window.currentPage.exitTableFullscreenLock();
+                    } else {
+                        // Fallback: manual toggle of the app header if no page is active
+                        const header = document.querySelector('header');
+                        if (header) {
+                            header.style.display = header.style.display === 'none' ? 'flex' : 'none';
+                        }
+                    }
+                });
+            }
+
             // Retry notification bell setup after a delay if notification center not ready
             setTimeout(() => {
                 if (!window.notificationCenter || !window.notificationCenter.initialized) {
@@ -504,7 +647,7 @@ class App {
                     await new Promise(r => setTimeout(r, 100));
                     attempts++;
                 }
-                
+
                 if (!window.apiConfig) {
                     console.error('❌ window.apiConfig still not available after waiting');
                     const selector = document.getElementById('globalCompanySelector');
@@ -518,7 +661,7 @@ class App {
             // Get current user from session storage
             const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
             const userId = currentUser.userId;
-            
+
             console.log('🏢 Loading companies for user:', userId);
             console.log('   Current user:', JSON.stringify(currentUser, null, 2));
 
@@ -529,14 +672,14 @@ class App {
             if (userId) {
                 endpoint = window.apiConfig.getUrl(`/companies/user/${userId}`);
                 console.log('   📡 Using user-specific endpoint:', endpoint);
-                
+
                 response = await fetch(endpoint, {
                     method: 'GET',
                     headers: window.authService.getHeaders()
                 });
-                
+
                 console.log('   📊 Response status:', response.status);
-                
+
                 // If user endpoint fails, fall back to general endpoint
                 if (!response.ok) {
                     console.warn(`⚠️ User endpoint returned ${response.status}, trying general endpoint`);
@@ -550,12 +693,12 @@ class App {
                 // No userId, use general endpoint
                 endpoint = window.apiConfig.getUrl('/companies');
                 console.log('   📡 No userId found, using general endpoint:', endpoint);
-                
+
                 response = await fetch(endpoint, {
                     method: 'GET',
                     headers: window.authService.getHeaders()
                 });
-                
+
                 console.log('   📊 Response status:', response.status);
             }
 
@@ -564,7 +707,7 @@ class App {
                 const errorText = await response.text();
                 console.error('❌ Failed to load companies, HTTP:', response.status);
                 console.log('   Response:', errorText.substring(0, 200));
-                
+
                 const selector = document.getElementById('globalCompanySelector');
                 if (selector) {
                     selector.innerHTML = '<option value="">Error loading companies (HTTP ' + response.status + ')</option>';
@@ -576,7 +719,7 @@ class App {
             console.log('📦 Companies API response received');
             console.log('   Success:', result.success);
             console.log('   Count:', result.count);
-            
+
             // Extract companies data from response
             const companies = (result.success && Array.isArray(result.data)) ? result.data : [];
             console.log('📋 Total companies to display:', companies.length);
@@ -601,12 +744,12 @@ class App {
                 // Try multiple field names for ID and name
                 const id = c.id || c.cmpId || c.companyId;
                 const name = c.name || c.companyName || c.cmpName;
-                
+
                 if (!id || !name) {
                     console.warn('⚠️ Missing id or name for company:', JSON.stringify(c));
                     return '';
                 }
-                
+
                 console.log(`   ✓ Option: ID=${id}, Name="${name}"`);
                 return `<option value="${id}">${name}</option>`;
             }).filter(opt => opt).join('');
@@ -676,12 +819,92 @@ class App {
             });
         }
     }
-    
+
+    setupSidebarResize() {
+        const sidebarContainer = document.querySelector('div[style*="width: 256px"]'); // The outer fixed container
+        const sidebar = document.getElementById('mainSidebar');
+        const resizeHandle = document.getElementById('sidebarResizeHandle');
+
+        if (!sidebar || !resizeHandle || !sidebarContainer) return;
+
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        // Function to adjust text size based on sidebar width
+        const adjustTextSize = (width) => {
+            const minWidth = 200;
+            const maxWidth = 400;
+
+            // Calculate scale factor (0.75 to 1.0)
+            const scale = 0.75 + (0.25 * (width - minWidth) / (maxWidth - minWidth));
+
+            // Apply font size scaling ONLY to nav and logout button
+            const nav = sidebar.querySelector('nav');
+            const logoutSection = sidebar.querySelector('.p-4.border-t');
+
+            if (nav) {
+                nav.style.fontSize = `${scale * 100}%`;
+            }
+
+            if (logoutSection) {
+                logoutSection.style.fontSize = `${scale * 100}%`;
+            }
+        };
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startWidth = sidebarContainer.offsetWidth;
+
+            document.body.style.cursor = 'ew-resize';
+            document.body.style.userSelect = 'none';
+
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            const diff = e.clientX - startX;
+            const newWidth = startWidth + diff;
+
+            // Respect min and max width
+            const minWidth = 200;
+            const maxWidth = 400;
+
+            if (newWidth >= minWidth && newWidth <= maxWidth) {
+                sidebarContainer.style.width = newWidth + 'px';
+                adjustTextSize(newWidth);
+                // Save width to localStorage
+                localStorage.setItem('sidebarWidth', newWidth);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+
+        // Restore saved width
+        const savedWidth = localStorage.getItem('sidebarWidth');
+        if (savedWidth) {
+            const width = parseInt(savedWidth);
+            sidebarContainer.style.width = width + 'px';
+            adjustTextSize(width);
+        } else {
+            adjustTextSize(256); // Default width
+        }
+    }
+
     setupNotificationBell() {
         console.log('🔍 Setting up notification bell...');
         const bell = document.getElementById('notificationBell');
         console.log('   Bell element found:', !!bell);
-        
+
         if (bell) {
             bell.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -689,7 +912,7 @@ class App {
                 console.log('🔔 Notification bell clicked!');
                 console.log('   notificationCenter exists:', !!window.notificationCenter);
                 console.log('   notificationCenter initialized:', window.notificationCenter?.initialized);
-                
+
                 if (window.notificationCenter) {
                     console.log('   ▶ Calling toggle()...');
                     window.notificationCenter.toggle();
@@ -702,6 +925,63 @@ class App {
             console.log('✅ Notification bell click handler attached');
         } else {
             console.error('❌ Notification bell element NOT FOUND in DOM');
+        }
+    }
+    
+    expandSidebar() {
+        const sidebar = document.getElementById('mainSidebar');
+        const expandedHeader = document.getElementById('expandedHeader');
+        const collapsedHeader = document.getElementById('collapsedHeader');
+        const sidebarNav = document.getElementById('sidebarNav');
+        
+        if (!sidebar) return;
+        
+        // Set expanded state attribute
+        sidebar.setAttribute('data-expanded', 'true');
+        
+        // Expand sidebar
+        sidebar.style.width = '250px';
+        sidebar.style.transition = 'width 0.3s ease-in-out';
+        
+        // Show expanded header content
+        if (expandedHeader) {
+            expandedHeader.style.display = 'block';
+            setTimeout(() => {
+                expandedHeader.style.opacity = '1';
+            }, 50);
+        }
+
+        // Hide collapsed header to avoid duplicate icon when expanded
+        if (collapsedHeader) {
+            collapsedHeader.style.display = 'none';
+        }
+    }
+    
+    collapseSidebar() {
+        const sidebar = document.getElementById('mainSidebar');
+        const expandedHeader = document.getElementById('expandedHeader');
+        const collapsedHeader = document.getElementById('collapsedHeader');
+        
+        if (!sidebar) return;
+        
+        // Remove expanded state attribute
+        sidebar.setAttribute('data-expanded', 'false');
+        
+        // Collapse sidebar
+        sidebar.style.width = '80px';
+        sidebar.style.transition = 'width 0.3s ease-in-out';
+        
+        // Hide expanded header content
+        if (expandedHeader) {
+            expandedHeader.style.opacity = '0';
+            setTimeout(() => {
+                expandedHeader.style.display = 'none';
+            }, 150);
+        }
+
+        // Show collapsed header again
+        if (collapsedHeader) {
+            collapsedHeader.style.display = '';
         }
     }
 
@@ -762,7 +1042,7 @@ class App {
      */
     restoreSidebarStates() {
         const states = JSON.parse(localStorage.getItem('sidebarStates') || '{}');
-        
+
         // If no saved states, expand all sections by default
         if (Object.keys(states).length === 0) {
             const allSections = ['finance-section', 'inventory-section'];
@@ -776,7 +1056,7 @@ class App {
             });
             return;
         }
-        
+
         // Restore saved states
         Object.keys(states).forEach(sectionId => {
             const container = document.getElementById(sectionId);

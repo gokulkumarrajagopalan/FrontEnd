@@ -20,13 +20,95 @@ class BasePage {
         this.selectedCompanyId = null;
         this.isLoading = false;
         this.isSyncing = false;
-        this.selectedR        
+        this.selectedR
         // Grid features
         this.sortField = null;
         this.sortOrder = 'asc'; // 'asc' or 'desc'
         this.currentPage = 1;
-        this.pageSize = 10;
+        this.pageSize = 25;
         this.visibleColumns = new Set(this.config.tableColumns.map(col => col.field));
+        this.tableFullscreenLocked = false;
+    }
+
+    /**
+     * Enter fullscreen lock for the data table
+     */
+    enterTableFullscreenLock(context = {}) {
+        if (this.tableFullscreenLocked) return;
+
+        const pageHeader = context.pageHeader || document.getElementById('pageHeader');
+        const filtersContainer = context.filtersContainer || document.querySelector('.filters-sticky');
+        const pageContainer = context.pageContainer || document.querySelector('.page-container-full-height');
+        const tableHeaderToggleBtnOpened = document.getElementById('tableHeaderToggleBtnOpened');
+
+        this.tableFullscreenLocked = true;
+
+        pageHeader?.classList.add('header-collapsed');
+        filtersContainer?.classList.add('scrolled');
+        pageContainer?.classList.add('table-fullscreen-locked');
+        document.body.classList.add('table-fullscreen-mode');
+
+        // Compute dynamic fullscreen offset based on actual app header height
+        try {
+            const appHeader = document.querySelector('header');
+            const computeOffset = () => {
+                const h = appHeader ? appHeader.offsetHeight : 60;
+                pageContainer?.style.setProperty('--fs-offset', `${h}px`);
+            };
+            computeOffset();
+            // Recompute on window resize while locked
+            this._fsResizeHandler = () => computeOffset();
+            window.addEventListener('resize', this._fsResizeHandler);
+        } catch (e) {
+            // Fallback silently if header not found
+            pageContainer?.style.setProperty('--fs-offset', `60px`);
+        }
+
+        if (tableHeaderToggleBtnOpened) {
+            tableHeaderToggleBtnOpened.setAttribute('title', 'Exit full screen');
+            tableHeaderToggleBtnOpened.style.display = 'flex';
+        }
+
+        // Also update the app-level toggle button if it exists
+        if (window.app && typeof window.app.setTableHeaderToggleBtnVisibility === 'function') {
+            window.app.setTableHeaderToggleBtnVisibility(true, true);
+        }
+    }
+
+    /**
+     * Exit fullscreen lock for the data table
+     */
+    exitTableFullscreenLock(context = {}) {
+        if (!this.tableFullscreenLocked) return;
+
+        const pageHeader = context.pageHeader || document.getElementById('pageHeader');
+        const filtersContainer = context.filtersContainer || document.querySelector('.filters-sticky');
+        const pageContainer = context.pageContainer || document.querySelector('.page-container-full-height');
+        const tableHeaderToggleBtnOpened = document.getElementById('tableHeaderToggleBtnOpened');
+
+        this.tableFullscreenLocked = false;
+
+        pageContainer?.classList.remove('table-fullscreen-locked');
+        document.body.classList.remove('table-fullscreen-mode');
+        pageHeader?.classList.remove('header-collapsed');
+        filtersContainer?.classList.remove('scrolled');
+
+        // Cleanup fullscreen offset and resize handler
+        pageContainer?.style.removeProperty('--fs-offset');
+        if (this._fsResizeHandler) {
+            window.removeEventListener('resize', this._fsResizeHandler);
+            this._fsResizeHandler = null;
+        }
+
+        if (tableHeaderToggleBtnOpened) {
+            tableHeaderToggleBtnOpened.setAttribute('title', 'Toggle Header Visibility');
+            tableHeaderToggleBtnOpened.style.display = 'none';
+        }
+
+        // Also update the app-level toggle button if it exists
+        if (window.app && typeof window.app.setTableHeaderToggleBtnVisibility === 'function') {
+            window.app.setTableHeaderToggleBtnVisibility(false);
+        }
     }
 
     /**
@@ -107,7 +189,7 @@ class BasePage {
      */
     getPageHeader() {
         return `
-            <div id="pageHeader" class="page-header page-header-collapsible flex justify-between items-center">
+            <div id="pageHeader" class="page-header page-header-collapsible flex justify-between items-center relative">
                 <div>
                     <h2>${this.config.pageName}</h2>
                     <p>Manage ${this.config.entityNamePlural}</p>
@@ -154,17 +236,27 @@ class BasePage {
                                 ${this.config.tableColumns.map(col =>
             `<th class="${col.align || 'text-left'} sortable-header" data-field="${col.field}" data-visible="true">
                                     <div class="header-content">
-                                        <span>${col.label}</span>
-                                        <span class="sort-icon">⇅</span>
+                                        <div class="header-label-container">
+                                            <span class="header-label">${col.label}</span>
+                                            <input type="text" class="header-search-input inline-search" data-field="${col.field}" placeholder="Search ${col.label}..." />
+                                        </div>
+                                        <div class="header-tools">
+                                            <span class="header-search-trigger" title="Search ${col.label}">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                </svg>
+                                            </span>
+                                            <span class="sort-icon">⇅</span>
+                                        </div>
                                     </div>
                                 </th>`
         ).join('')}
-                                <th class="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="dataTableBody">
                             <tr>
-                                <td colspan="${this.config.tableColumns.length + 1}" class="no-data">
+                                <td colspan="${this.config.tableColumns.length}" class="no-data">
                                     Select a company to view ${this.config.entityNamePlural}...
                                 </td>
                             </tr>
@@ -185,10 +277,10 @@ class BasePage {
                     <div class="page-size-selector">
                         <label for="pageSizeSelect">Rows per page:</label>
                         <select id="pageSizeSelect" class="page-size-select">
-                            <option value="5">5</option>
-                            <option value="10" selected>10</option>
-                            <option value="25">25</option>
+                            <option value="25" selected>25</option>
                             <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
                         </select>
                     </div>
                 </div>
@@ -235,9 +327,16 @@ class BasePage {
                 height: 100%;
                 min-height: 0;
                 overflow: hidden;
-                padding: 1rem;
+                // padding: 0.5rem 0.5rem;
                 box-sizing: border-box;
-                gap: 0.75rem;
+                gap: 0.5rem;
+                position: relative;
+                transition: padding 0.3s ease;
+            }
+
+            .page-container-full-height:has(.header-collapsed) {
+                padding: 0.25rem;
+                gap: 0.25rem;
             }
             
             /* Page header with collapse animation */
@@ -247,6 +346,18 @@ class BasePage {
                 max-height: 200px;
                 opacity: 1;
                 transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+                padding-bottom: 0.5rem;
+            }
+
+            .page-header-collapsible h2 {
+                margin: 0;
+                font-size: 1.25rem;
+            }
+
+            .page-header-collapsible p {
+                margin: 0;
+                font-size: 0.813rem;
+                color: #64748b;
             }
             
             .page-header-collapsible.header-collapsed {
@@ -256,6 +367,30 @@ class BasePage {
                 padding-top: 0 !important;
                 padding-bottom: 0 !important;
                 border: none;
+                pointer-events: none;
+            }
+
+            .header-toggle-btn {
+                position: absolute;
+                left: 50%;
+                top: 1.125rem;
+                transform: translateX(-50%);
+                background: white;
+                border: 1px solid #e5e7eb;
+                border-radius: 50%;
+                width: 28px;
+                height: 28px;
+                display: none !important;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                z-index: 100;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                color: #64748b;
+                opacity: 0;
+                pointer-events: none;
+                visibility: hidden;
             }
             
             /* Sticky filters */
@@ -263,42 +398,61 @@ class BasePage {
                 position: sticky;
                 top: 0;
                 z-index: 20;
-                transition: box-shadow 0.3s ease;
+                transition: all 0.3s ease;
             }
-            
+
             .filters-sticky.scrolled {
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(8px);
             }
             
             .filters-container {
                 display: flex;
-                gap: 1rem;
-                align-items: flex-end;
+                gap: 0.75rem;
+                align-items: center;
                 background: white;
-                padding: 0.75rem 1rem;
-                border-radius: 12px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                padding: 0.375rem 0.75rem;
+                border-radius: 10px;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
                 border: 1px solid #e5e7eb;
                 flex: 0 0 auto;
+                transition: all 0.3s ease;
+            }
+
+            .header-collapsed ~ .filters-container {
+                padding: 0.25rem 0.5rem;
+                border-radius: 6px;
+                gap: 0.5rem;
             }
             
             .material-search-wrapper {
                 flex: 0 0 auto;
-                width: 280px;
+                width: 240px;
+                transition: width 0.3s ease;
+            }
+
+            .header-collapsed ~ .filters-container .material-search-wrapper {
+                width: 200px;
             }
             
             .material-input {
                 width: 100%;
-                padding: 0.625rem 0.75rem;
+                padding: 0.4rem 0.75rem;
                 border: 1px solid #d1d5db;
                 background: white;
-                font-size: 0.875rem;
+                font-size: 0.813rem;
                 color: #374151;
                 outline: none;
                 box-sizing: border-box;
-                height: 38px;
+                height: 32px;
                 border-radius: 6px;
                 transition: all 0.2s ease;
+            }
+
+            .header-collapsed ~ .filters-container .material-input {
+                height: 28px;
+                font-size: 0.75rem;
             }
             
             .material-input::placeholder {
@@ -361,15 +515,20 @@ class BasePage {
             }
             
             .form-input {
-                min-height: 38px;
-                padding: 0.625rem 0.75rem;
+                height: 32px;
+                padding: 0.4rem 0.75rem;
                 border: 1px solid #d1d5db;
                 border-radius: 6px;
-                font-size: 0.875rem;
+                font-size: 0.75rem;
                 background: white;
                 color: #374151;
                 transition: all 0.2s ease;
                 box-sizing: border-box;
+            }
+
+            .header-collapsed ~ .filters-container .form-input {
+                height: 28px;
+                padding: 0.25rem 0.5rem;
             }
             
             .form-input:focus {
@@ -379,9 +538,9 @@ class BasePage {
             }
             
             .btn-export {
-                min-height: 38px;
-                padding: 0.5rem 1rem;
-                font-size: 0.85rem;
+                height: 32px;
+                padding: 0.4rem 0.75rem;
+                font-size: 0.8rem;
                 font-weight: 600;
                 white-space: nowrap;
                 border: 1px solid #d1d5db;
@@ -393,6 +552,12 @@ class BasePage {
                 display: flex;
                 align-items: center;
                 gap: 0.375rem;
+            }
+
+            .header-collapsed ~ .filters-container .btn-export {
+                height: 28px;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
             }
             
             .btn-export:hover {
@@ -419,7 +584,65 @@ class BasePage {
                 border: 1px solid #e5e7eb;
                 overflow: hidden;
                 flex: 1 1 auto;
-                min-height: 0;
+                min-height: calc(100vh - 220px);
+            }
+
+            /* Fullscreen lock state for table */
+            .page-container-full-height.table-fullscreen-locked {
+                padding: 0 0.5rem;
+                background: white;
+                gap: 0;
+            }
+
+            .page-container-full-height.table-fullscreen-locked .data-table-wrapper {
+                position: relative;
+                border-radius: 0;
+                box-shadow: none;
+                border: none;
+                height: calc(100vh - var(--fs-offset, 60px));
+                max-height: calc(100vh - var(--fs-offset, 60px));
+                margin: 0;
+            }
+
+            .page-container-full-height.table-fullscreen-locked .data-table-container {
+                height: 100%;
+                max-height: 100%;
+            }
+
+            .page-container-full-height.table-fullscreen-locked .table-pagination-controls {
+                border-radius: 0;
+                position: sticky;
+                bottom: 0;
+                z-index: 5;
+            }
+
+            .page-container-full-height.table-fullscreen-locked #pageHeader,
+            .page-container-full-height.table-fullscreen-locked .filters-container {
+                opacity: 0;
+                pointer-events: none;
+                max-height: 0;
+                margin: 0;
+                padding: 0;
+            }
+
+            .page-container-full-height.table-fullscreen-locked .header-toggle-btn {
+                display: flex !important;
+                visibility: visible;
+                position: absolute;
+                top: 8px;
+                left: 50%;
+                transform: translateX(-50%);
+                transform-origin: center;
+                z-index: 999;
+                opacity: 1;
+                pointer-events: auto;
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+                transition: all 0.2s ease-out;
+            }
+
+            body.table-fullscreen-mode {
+                overflow: hidden;
+                background: white;
             }
             
             .data-table-header-bar {
@@ -516,17 +739,30 @@ class BasePage {
             }
             
             .data-table-container {
-                background: white;
-                border-radius: 0;
-                overflow-y: auto;
-                overflow-x: auto;
-                box-shadow: none;
-                border: none;
                 flex: 1 1 auto;
+                overflow-y: auto;
+                overflow-x: hidden;
                 min-height: 0;
-                max-height: 100%;
                 position: relative;
-                scroll-behavior: smooth;
+                max-height: calc(100vh - 170px);
+            }
+
+            /* Custom scrollbar for better UI integration */
+            .data-table-container::-webkit-scrollbar {
+                width: 8px;
+            }
+            
+            .data-table-container::-webkit-scrollbar-track {
+                background: #f9fafb;
+            }
+            
+            .data-table-container::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 4px;
+            }
+
+            .data-table-container::-webkit-scrollbar-thumb:hover {
+                background-color: #94a3b8;
             }
             
             .data-table {
@@ -541,27 +777,29 @@ class BasePage {
                 z-index: 15;
             }
             
+            .data-table thead tr {
+                background: #f8fafc;
+            }
+            
             .data-table th {
                 background: #f8fafc;
-                padding: 0.625rem 1rem;
-                font-size: 0.75rem;
-                font-weight: 600;
+                padding: 0.5rem 0.75rem;
+                font-size: 0.7rem;
+                font-weight: 700;
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
-                color: #374151;
-                border-bottom: 2px solid #e5e7eb;
-                position: sticky;
-                top: 0;
+                color: #475569;
+                border-bottom: 2px solid #e2e8f0;
                 white-space: nowrap;
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+                text-align: left;
             }
             
             .data-table td {
-                padding: 0.5rem 1rem;
-                border-bottom: 1px solid #f3f4f6;
-                color: #374151;
+                padding: 0.5rem 0.75rem;
+                border-bottom: 1px solid #f1f5f9;
+                color: #334155;
                 word-break: break-word;
-                max-width: 400px;
+                font-size: 0.813rem;
             }
             
             .data-table tbody tr {
@@ -577,7 +815,7 @@ class BasePage {
             }
             
             .data-table tbody tr:hover {
-                background: #f0f4f8;
+                background: #f8fafc;
             }
             
             .data-table tbody tr.selected {
@@ -632,32 +870,52 @@ class BasePage {
             }
             
             .no-data {
+                width: 100%;
                 text-align: center;
                 color: #9ca3af;
                 font-style: italic;
-                padding: 3rem !important;
+                padding: 3rem 1rem !important;
+                box-sizing: border-box;
             }
             
             .btn-sync {
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
-                padding: 0.75rem 1.75rem;
+                padding: 0.5rem 1.25rem;
                 background: linear-gradient(145deg, var(--accent-500) 0%, #1f3550 100%);
                 color: white;
                 border: none;
-                border-radius: 12px;
+                border-radius: 10px;
                 font-weight: 600;
-                font-size: 0.875rem;
+                font-size: 0.813rem;
                 cursor: pointer;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 0 4px 12px rgba(41, 65, 96, 0.3);
+                box-shadow: 0 4px 10px rgba(41, 65, 96, 0.2);
             }
-            
+
             .btn-sync:hover:not(:disabled) {
                 background: linear-gradient(145deg, #3a5a7f 0%, var(--accent-500) 100%);
-                transform: translateY(-2px);
-                box-shadow: 0 8px 20px rgba(41, 65, 96, 0.4);
+                transform: translateY(-1px);
+                box-shadow: 0 6px 15px rgba(41, 65, 96, 0.3);
+            }
+
+            .btn-erp {
+                padding: 0.5rem 1.25rem;
+                background: var(--primary-600);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 0.813rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .btn-erp:hover {
+                background: var(--primary-500);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 10px rgba(94, 134, 186, 0.2);
             }
             
             .btn-sync:active:not(:disabled) {
@@ -672,7 +930,7 @@ class BasePage {
             }
             
             .sortable-header {
-                cursor: pointer;
+                cursor: default;
                 user-select: none;
                 transition: background 0.2s ease;
             }
@@ -689,28 +947,36 @@ class BasePage {
             }
             
             .sort-icon {
+                cursor: pointer;
                 font-size: 0.85rem;
                 color: #9ca3af;
                 font-weight: normal;
-                transition: color 0.2s ease;
+                transition: color 0.2s ease, transform 0.2s ease;
+                padding: 4px;
+                border-radius: 4px;
+            }
+
+            .sort-icon:hover {
+                background: rgba(0, 0, 0, 0.05);
+                color: var(--primary-600);
             }
             
             .table-pagination-controls {
                 background: white;
-                padding: 0.625rem 1rem;
+                padding: 0.4rem 1rem;
                 border-top: 1px solid #e5e7eb;
                 border-radius: 0 0 12px 12px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 flex-wrap: wrap;
-                gap: 0.75rem;
+                gap: 0.5rem;
                 box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
             }
             
             .pagination-info {
                 flex: 0 0 auto;
-                font-size: 0.813rem;
+                font-size: 0.75rem;
                 color: #6b7280;
                 font-weight: 500;
             }
@@ -718,16 +984,16 @@ class BasePage {
             .pagination-buttons {
                 display: flex;
                 align-items: center;
-                gap: 0.625rem;
+                gap: 0.5rem;
                 flex: 0 0 auto;
             }
             
             .pagination-btn {
-                padding: 0.375rem 0.75rem;
+                padding: 0.25rem 0.625rem;
                 background: white;
                 border: 1px solid #d1d5db;
                 border-radius: 6px;
-                font-size: 0.813rem;
+                font-size: 0.75rem;
                 font-weight: 500;
                 color: #374151;
                 cursor: pointer;
@@ -753,7 +1019,7 @@ class BasePage {
             }
             
             .page-info {
-                font-size: 0.813rem;
+                font-size: 0.75rem;
                 color: #6b7280;
                 font-weight: 500;
                 white-space: nowrap;
@@ -767,18 +1033,18 @@ class BasePage {
             }
             
             .page-size-selector label {
-                font-size: 0.813rem;
+                font-size: 0.75rem;
                 color: #6b7280;
                 font-weight: 500;
                 white-space: nowrap;
             }
             
             .page-size-select {
-                padding: 0.25rem 0.5rem;
+                padding: 0.15rem 0.375rem;
                 border: 1px solid #d1d5db;
                 border-radius: 6px;
                 background: white;
-                font-size: 0.813rem;
+                font-size: 0.75rem;
                 color: #374151;
                 cursor: pointer;
                 transition: all 0.2s ease;
@@ -1008,7 +1274,7 @@ class BasePage {
         if (!tbody) return;
 
         if (!this.selectedCompanyId) {
-            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data">
+            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length}" class="no-data">
                 📋 Please select a company from the dropdown above to view ${this.config.entityNamePlural}
             </td></tr>`;
             return;
@@ -1040,7 +1306,7 @@ class BasePage {
             }
         } catch (error) {
             console.error(`❌ Error loading ${this.config.entityNamePlural}:`, error);
-            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data text-red-500">
+            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length}" class="no-data text-red-500">
                 Error loading ${this.config.entityNamePlural}: ${error.message}
             </td></tr>`;
             this.showError(`Failed to load ${this.config.entityNamePlural}: ${error.message}`);
@@ -1053,7 +1319,7 @@ class BasePage {
     showLoading() {
         const tbody = document.getElementById('dataTableBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data">
+            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length}" class="no-data">
                 <div class="flex items-center justify-center gap-2">
                     <div class="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                     <span>Loading ${this.config.entityNamePlural}...</span>
@@ -1070,7 +1336,7 @@ class BasePage {
         if (!tbody) return;
 
         if (!Array.isArray(this.filteredData) || this.filteredData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data">
+            tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length}" class="no-data">
                 No ${this.config.entityNamePlural} found for this company
             </td></tr>`;
             this.updatePaginationControls();
@@ -1089,13 +1355,13 @@ class BasePage {
         const pageData = this.filteredData.slice(startIndex, endIndex);
 
         tbody.innerHTML = pageData.map(item => this.renderTableRow(item)).join('');
-        
+
         // Update visible records info
         const visibleRecordsInfo = document.getElementById('visibleRecordsInfo');
         if (visibleRecordsInfo) {
             visibleRecordsInfo.textContent = pageData.length;
         }
-        
+
         this.attachRowHandlers();
         this.updatePaginationControls();
         this.updateColumnVisibility();
@@ -1112,12 +1378,6 @@ class BasePage {
                         ${this.formatCellValue(item, col)}
                     </td>
                 `).join('')}
-                <td class="text-center">
-                    <div class="flex gap-2 justify-center">
-                        <button class="action-btn edit-btn" data-id="${item.id || item[this.config.idField || 'id']}">✏️</button>
-                        <button class="action-btn delete-btn" data-id="${item.id || item[this.config.idField || 'id']}">🗑️</button>
-                    </div>
-                </td>
             </tr>
         `;
     }
@@ -1181,6 +1441,12 @@ class BasePage {
             addBtn.addEventListener('click', () => this.showAddModal());
         }
 
+        // Export button
+        const exportBtn = document.querySelector('.btn-export');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => this.exportToExcel());
+        }
+
         // Modal handlers
         this.setupModalHandlers();
     }
@@ -1215,12 +1481,23 @@ class BasePage {
      */
     filterData() {
         const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+        const headerSearch = this.headerSearch || {};
 
         this.filteredData = this.data.filter(item => {
-            return this.config.searchFields.some(field => {
+            // Global search (across configured fields)
+            const globalMatch = !searchTerm || this.config.searchFields.some(field => {
                 const value = item[field];
                 return value && value.toString().toLowerCase().includes(searchTerm);
             });
+
+            // Per-column header searches
+            const columnMatch = Object.entries(headerSearch).every(([field, term]) => {
+                if (!term) return true; // no filter for this field
+                const value = item[field];
+                return value && value.toString().toLowerCase().includes(term);
+            });
+
+            return globalMatch && columnMatch;
         });
 
         // Reset to first page when filtering
@@ -1238,7 +1515,7 @@ class BasePage {
             btn.addEventListener('click', async (e) => {
                 const id = e.target.closest('button').getAttribute('data-id');
                 const row = e.target.closest('tr');
-                
+
                 if (confirm(`Are you sure you want to delete this ${this.config.entityName}?`)) {
                     // Add visual feedback
                     row.style.opacity = '0.5';
@@ -1252,7 +1529,7 @@ class BasePage {
             btn.addEventListener('click', (e) => {
                 const id = e.target.closest('button').getAttribute('data-id');
                 const row = e.target.closest('tr');
-                
+
                 // Highlight row
                 row.classList.add('selected');
                 this.showEditModal(id);
@@ -1387,17 +1664,22 @@ class BasePage {
         document.querySelectorAll('.sortable-header').forEach(header => {
             const field = header.getAttribute('data-field');
             const icon = header.querySelector('.sort-icon');
-            
+
             if (!icon) return;
 
             if (field === this.sortField) {
                 icon.textContent = this.sortOrder === 'asc' ? '↑' : '↓';
                 icon.style.color = '#2563eb';
                 icon.style.fontWeight = 'bold';
+                // Add tooltip showing sort direction
+                icon.setAttribute('title', this.sortOrder === 'asc' ? 'Sorted: Ascending (Click icon to reverse)' : 'Sorted: Descending (Click icon to reverse)');
+                header.removeAttribute('title');
             } else {
                 icon.textContent = '⇅';
                 icon.style.color = '#9ca3af';
                 icon.style.fontWeight = 'normal';
+                icon.setAttribute('title', 'Click icon to sort');
+                header.removeAttribute('title');
             }
         });
     }
@@ -1407,7 +1689,7 @@ class BasePage {
      */
     updatePaginationControls() {
         const totalPages = Math.ceil(this.filteredData.length / this.pageSize);
-        
+
         // Update records info
         const recordsInfo = document.getElementById('recordsInfo');
         if (recordsInfo) {
@@ -1421,7 +1703,7 @@ class BasePage {
         // Update button states
         const prevBtn = document.getElementById('prevPageBtn');
         const nextBtn = document.getElementById('nextPageBtn');
-        
+
         if (prevBtn) {
             prevBtn.disabled = this.currentPage <= 1;
             prevBtn.style.opacity = this.currentPage <= 1 ? '0.5' : '1';
@@ -1461,12 +1743,32 @@ class BasePage {
     setupTableListeners() {
         // Sort header listeners
         document.querySelectorAll('.sortable-header').forEach(header => {
-            header.addEventListener('click', () => {
-                const field = header.getAttribute('data-field');
-                this.sortBy(field);
-            });
-            header.style.cursor = 'pointer';
+            const sortIcon = header.querySelector('.sort-icon');
+            if (sortIcon) {
+                sortIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const field = header.getAttribute('data-field');
+                    this.sortBy(field);
+                });
+                sortIcon.style.cursor = 'pointer';
+            }
+            header.style.cursor = 'default';
             header.style.userSelect = 'none';
+        });
+
+        // Header search inputs
+        this.headerSearch = this.headerSearch || {};
+        document.querySelectorAll('.header-search-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const field = e.target.getAttribute('data-field');
+                const val = (e.target.value || '').toLowerCase();
+                this.headerSearch[field] = val;
+                this.filterData();
+            });
+            // Allow input clicks but don't propagate
+            input.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
         });
 
         // Pagination button listeners
@@ -1564,46 +1866,50 @@ class BasePage {
     }
 
     /**
-     * Export table data to CSV
+     * Export table data to Excel (XLSX)
      */
-    exportToCSV() {
+    async exportToExcel() {
         try {
+            // Check if XLSX library is loaded
+            if (!window.XLSX) {
+                throw new Error('XLSX library not loaded. Please refresh the page.');
+            }
+
+            const XLSX = window.XLSX;
+
             // Get visible columns
             const visibleCols = this.config.tableColumns.filter(col => this.visibleColumns.has(col.field));
-            
-            // Create CSV header
-            const headers = visibleCols.map(col => `"${col.label}"`).join(',');
-            
-            // Create CSV rows
-            const rows = this.filteredData.map(item => {
-                return visibleCols.map(col => {
-                    let value = item[col.field] || '';
-                    // Escape quotes and wrap in quotes
-                    value = String(value).replace(/"/g, '""');
-                    return `"${value}"`;
-                }).join(',');
+
+            // Prepare data for export
+            const exportData = this.filteredData.map(item => {
+                const row = {};
+                visibleCols.forEach(col => {
+                    row[col.label] = item[col.field] || '';
+                });
+                return row;
             });
 
-            // Combine
-            const csv = [headers, ...rows].join('\n');
+            // Create worksheet from data
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-            // Download
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            
-            link.setAttribute('href', url);
-            link.setAttribute('download', `${this.config.entityNamePlural}_${new Date().toISOString().split('T')[0]}.csv`);
-            link.style.visibility = 'hidden';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            this.showSuccess(`✅ Exported ${this.filteredData.length} ${this.config.entityNamePlural} to CSV`);
+            // Create workbook
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, this.config.entityNamePlural);
+
+            // Generate filename with date format: entityname-YYYYMMDD
+            const now = new Date();
+            const dateStr = now.getFullYear() +
+                String(now.getMonth() + 1).padStart(2, '0') +
+                String(now.getDate()).padStart(2, '0');
+            const filename = `${this.config.entityNamePlural}-${dateStr}.xlsx`;
+
+            // Write file
+            XLSX.writeFile(workbook, filename);
+
+            this.showSuccess(`✅ Exported ${this.filteredData.length} ${this.config.entityNamePlural} to Excel`);
         } catch (error) {
             console.error('Export error:', error);
-            this.showError('Failed to export data');
+            this.showError('Failed to export data: ' + error.message);
         }
     }
 
@@ -1611,40 +1917,55 @@ class BasePage {
      * Setup scroll-aware header collapse
      */
     setupScrollCollapse() {
-        const tableContainer = document.querySelector('.data-table-container');
         const pageHeader = document.getElementById('pageHeader');
+        const tableHeaderToggleBtnOpened = document.getElementById('tableHeaderToggleBtnOpened');
         const filtersContainer = document.querySelector('.filters-sticky');
-        
-        if (!tableContainer || !pageHeader) {
+        const tableContainer = document.querySelector('.data-table-container');
+        const pageContainer = document.querySelector('.page-container-full-height');
+
+        if (!pageHeader || !tableHeaderToggleBtnOpened) {
             console.warn('⚠️ Scroll collapse elements not found');
             return;
         }
 
-        let lastScrollTop = 0;
-        let isCollapsed = false;
-
-        tableContainer.addEventListener('scroll', () => {
-            const scrollTop = tableContainer.scrollTop;
-            
-            // Scrolling down and past threshold
-            if (scrollTop > lastScrollTop && scrollTop > 50 && !isCollapsed) {
-                pageHeader.classList.add('header-collapsed');
-                if (filtersContainer) {
-                    filtersContainer.classList.add('scrolled');
-                }
-                isCollapsed = true;
+        // Toggle on button click
+        tableHeaderToggleBtnOpened.addEventListener('click', () => {
+            if (this.tableFullscreenLocked) {
+                this.exitTableFullscreenLock({ pageHeader, filtersContainer, pageContainer });
+                return;
             }
-            // Scrolling up and back to top
-            else if (scrollTop < lastScrollTop && scrollTop < 20 && isCollapsed) {
-                pageHeader.classList.remove('header-collapsed');
-                if (filtersContainer) {
+
+            const isCollapsed = pageHeader.classList.toggle('header-collapsed');
+            if (filtersContainer) {
+                if (isCollapsed) {
+                    filtersContainer.classList.add('scrolled');
+                } else {
                     filtersContainer.classList.remove('scrolled');
                 }
-                isCollapsed = false;
             }
             
-            lastScrollTop = scrollTop;
+            // Update app-level toggle button icon
+            if (window.app && typeof window.app.setTableHeaderToggleBtnVisibility === 'function') {
+                window.app.setTableHeaderToggleBtnVisibility(true, isCollapsed);
+            }
         });
+
+        // Auto-collapse on scroll down, restore on scroll up
+        if (tableContainer) {
+            let lastScrollTop = 0;
+            let scrollThreshold = 10; // Minimum scroll to trigger fullscreen lock
+
+            tableContainer.addEventListener('scroll', () => {
+                const scrollTop = tableContainer.scrollTop;
+                const isScrollingDown = scrollTop > lastScrollTop;
+
+                if (isScrollingDown && scrollTop > scrollThreshold && !this.tableFullscreenLocked) {
+                    this.enterTableFullscreenLock({ pageHeader, filtersContainer, pageContainer });
+                }
+
+                lastScrollTop = Math.max(0, scrollTop);
+            }, { passive: true });
+        }
     }
 
     /**

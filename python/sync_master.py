@@ -529,7 +529,7 @@ def main():
         cmp_id = int(sys.argv[2])
         user_id = int(sys.argv[3])
         tally_port = int(sys.argv[4])
-        backend_url = sys.argv[5] if len(sys.argv) > 5 else "http://localhost:8080"
+        backend_url = sys.argv[5] if len(sys.argv) > 5 else os.getenv("BACKEND_URL", "http://localhost:8080")
         auth_token = sys.argv[6] if len(sys.argv) > 6 else None
         device_token = sys.argv[7] if len(sys.argv) > 7 else None
         

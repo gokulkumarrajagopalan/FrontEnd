@@ -18,7 +18,7 @@
                     <span class="text-5xl">📊</span>
                 </div>
                 <h1 class="text-4xl font-bold mb-2" style="color: var(--text-primary);">
-                    Talli<span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">ffy</span>
+                    Talli<span class="text-transparent bg-clip-text bg-gradient-to-r" style="background: linear-gradient(to right, var(--primary-600), var(--primary-500));">ffy</span>
                 </h1>
                 <p class="text-sm" style="color: var(--text-tertiary);">Enterprise Resource Planning</p>
             </div>
@@ -30,14 +30,14 @@
                 </div>
 
                 <!-- Login Mode Toggle -->
-                <div class="mb-6 flex gap-4 p-2 bg-gray-100 rounded-xl">
+                <div class="mb-6 flex gap-4 p-2 rounded-xl" style="background: var(--bg-tertiary);">
                     <label class="flex-1 flex items-center justify-center gap-2 cursor-pointer">
-                        <input type="radio" name="loginMode" value="username" id="loginModeUsername" checked class="w-4 h-4 text-purple-600 focus:ring-purple-500">
-                        <span class="text-sm font-medium text-gray-700">Username</span>
+                        <input type="radio" name="loginMode" value="username" id="loginModeUsername" checked class="w-4 h-4" style="accent-color: var(--primary-600);">
+                        <span class="text-sm font-medium" style="color: var(--text-secondary);">Username</span>
                     </label>
                     <label class="flex-1 flex items-center justify-center gap-2 cursor-pointer">
-                        <input type="radio" name="loginMode" value="email" id="loginModeEmail" class="w-4 h-4 text-purple-600 focus:ring-purple-500">
-                        <span class="text-sm font-medium text-gray-700">Email + Licence</span>
+                        <input type="radio" name="loginMode" value="email" id="loginModeEmail" class="w-4 h-4" style="accent-color: var(--primary-600);">
+                        <span class="text-sm font-medium" style="color: var(--text-secondary);">Email + Licence</span>
                     </label>
                 </div>
 
@@ -63,7 +63,14 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">👤</span>
                                 </div>
-                                <input type="text" id="username" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Enter your username">
+                                <input type="text" id="username" class="w-full pr-4 py-3 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text); placeholder-color: var(--input-placeholder);" placeholder="Enter your username">
+                                <style>
+                                    #username:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
                             </div>
                         </div>
                     </div>
@@ -76,7 +83,14 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">📧</span>
                                 </div>
-                                <input type="email" id="loginEmail" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john@example.com">
+                                <input type="email" id="loginEmail" class="w-full pr-4 py-3 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" placeholder="john@example.com">
+                                <style>
+                                    #loginEmail:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
                             </div>
                         </div>
                         <div>
@@ -85,7 +99,14 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔑</span>
                                 </div>
-                                <input type="number" id="loginLicenceNo" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="1001" min="1">
+                                <input type="number" id="loginLicenceNo" class="w-full pr-4 py-3 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" placeholder="1001" min="1">
+                                <style>
+                                    #loginLicenceNo:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
                             </div>
                         </div>
                     </div>
@@ -97,34 +118,50 @@
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <span class="text-lg">🔐</span>
                             </div>
-                            <input type="password" id="password" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Enter your password" required>
+                            <input type="password" id="password" class="w-full pr-4 py-3 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" placeholder="Enter your password" required>
+                            <style>
+                                #password:focus {
+                                    border-color: var(--border-focus);
+                                    box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                    outline: none;
+                                }
+                            </style>
                         </div>
                     </div>
 
                     <div class="flex items-center justify-between pt-2">
                         <label class="flex items-center gap-2.5 cursor-pointer group">
-                            <input type="checkbox" id="rememberMe" class="w-5 h-5 rounded-lg border-2 border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer">
-                            <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Remember me</span>
+                            <input type="checkbox" id="rememberMe" class="w-5 h-5 rounded-lg border-2 cursor-pointer" style="border-color: var(--border-primary); accent-color: var(--primary-600);">
+                            <span class="text-sm font-medium group-hover:opacity-80" style="color: var(--text-secondary);">Remember me</span>
                         </label>
-                        <a href="#" class="text-sm font-bold text-purple-600 hover:text-purple-700 hover:underline">Forgot password?</a>
+                        <a href="#" class="text-sm font-bold hover:underline" style="color: var(--primary-600);">Forgot password?</a>
                     </div>
 
                     <div id="loadingSpinner" class="hidden text-center py-4">
                         <div class="inline-block">
-                            <div class="animate-spin rounded-full h-10 w-10 border-4 border-purple-200 border-t-purple-600"></div>
+                            <div class="animate-spin rounded-full h-10 w-10 border-4" style="border-color: rgba(94, 134, 186, 0.2); border-top-color: var(--primary-600);"></div>
                         </div>
                     </div>
 
-                    <button type="submit" id="loginBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm mt-6" style="background: #000000 !important;">
+                    <button type="submit" id="loginBtn" class="w-full font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm mt-6" style="background: var(--primary-600); color: white; border: none; cursor: pointer;">
                         <span class="text-lg">🚀</span>
                         <span>Sign In to Dashboard</span>
                     </button>
+                    <style>
+                        #loginBtn:hover {
+                            background: var(--primary-700);
+                        }
+                        #loginBtn:disabled {
+                            opacity: 0.5;
+                            cursor: not-allowed;
+                        }
+                    </style>
                 </form>
 
-                <div class="mt-6 pt-5 border-t border-gray-200">
-                    <p class="text-center text-xs text-gray-600">
+                <div class="mt-6 pt-5" style="border-top: 1px solid var(--border-primary);">
+                    <p class="text-center text-xs" style="color: var(--text-tertiary);">
                         Don't have an account?
-                        <a href="#" id="showSignup" class="font-bold text-purple-600 hover:text-purple-700 hover:underline ml-1" data-route="signup">Create Account</a>
+                        <a href="#" id="showSignup" class="font-bold hover:underline ml-1" style="color: var(--primary-600);" data-route="signup">Create Account</a>
                     </p>
                 </div>
             </div>
@@ -171,43 +208,59 @@
                     <div>
                         <label class="block text-xs font-bold mb-3 text-center" style="color: var(--text-primary);">Enter 6-Digit OTP Code</label>
                         <div class="flex gap-2 justify-center">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="0">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="1">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="2">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="3">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="4">
-                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all" data-index="5">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all" style="border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" data-index="0">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all" style="border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" data-index="1">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all" style="border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" data-index="2">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all" style="border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" data-index="3">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all" style="border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" data-index="4">
+                            <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all" style="border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" data-index="5">
                         </div>
+                        <style>
+                            .otp-input:focus {
+                                border-color: var(--border-focus) !important;
+                                box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                outline: none;
+                            }
+                        </style>
                     </div>
 
                     <div class="text-center">
                         <p class="text-sm font-medium" style="color: var(--text-secondary);">
-                            ⏱ Code expires in: <span id="otpTimer" class="font-bold text-purple-600">5:00</span>
+                            ⏱ Code expires in: <span id="otpTimer" class="font-bold" style="color: var(--primary-600);">5:00</span>
                         </p>
                     </div>
 
                     <div id="loadingSpinner" class="hidden text-center py-4">
                         <div class="inline-block">
-                            <div class="animate-spin rounded-full h-10 w-10 border-4 border-purple-200 border-t-purple-600"></div>
+                            <div class="animate-spin rounded-full h-10 w-10 border-4" style="border-color: rgba(94, 134, 186, 0.2); border-top-color: var(--primary-600);"></div>
                         </div>
                     </div>
 
-                    <button type="submit" id="verifyBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm" style="background: #000000 !important;">
+                    <button type="submit" id="verifyBtn" class="w-full font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm" style="background: var(--primary-600); color: white; border: none; cursor: pointer;">
                         <span class="text-lg">✅</span>
                         <span>Verify OTP</span>
                     </button>
+                    <style>
+                        #verifyBtn:hover {
+                            background: var(--primary-700);
+                        }
+                        #verifyBtn:disabled {
+                            opacity: 0.5;
+                            cursor: not-allowed;
+                        }
+                    </style>
                 </form>
 
-                <div class="mt-6 pt-5 border-t border-gray-200 text-center">
+                <div class="mt-6 pt-5" style="border-top: 1px solid var(--border-primary);">
                     <p class="text-xs mb-3" style="color: var(--text-secondary);">Didn't receive the code?</p>
-                    <button id="resendBtn" class="text-sm font-bold text-purple-600 hover:text-purple-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button id="resendBtn" class="text-sm font-bold hover:underline disabled:opacity-50 disabled:cursor-not-allowed" style="color: var(--primary-600); background: none; border: none; cursor: pointer;">
                         Resend OTP (<span id="remainingAttempts">3</span> attempts remaining)
                     </button>
                     <p id="resendTimer" class="text-xs mt-2 hidden" style="color: var(--text-tertiary);">Wait <span id="resendCountdown">60</span>s to resend</p>
                 </div>
 
                 <div class="mt-4 text-center">
-                    <a href="#" id="backToLogin" class="text-sm font-medium text-gray-600 hover:text-gray-800">← Back to Login</a>
+                    <a href="#" id="backToLogin" class="text-sm font-medium hover:opacity-80" style="color: var(--text-secondary);">← Back to Login</a>
                 </div>
             </div>
         </div>
@@ -248,7 +301,14 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">👤</span>
                                 </div>
-                                <input type="text" id="fullName" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="John Doe" required>
+                                <input type="text" id="fullName" class="w-full pr-4 py-2 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" placeholder="John Doe" required>
+                                <style>
+                                    #fullName:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
                             </div>
                         </div>
 
@@ -256,9 +316,16 @@
                             <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Username <span class="text-red-500">*</span></label>
                             <div class="relative group">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-lg text-purple-500">@</span>
+                                    <span class="text-lg" style="color: var(--primary-600);">@</span>
                                 </div>
-                                <input type="text" id="username" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john_company_a" required>
+                                <input type="text" id="signup-username" class="w-full pr-4 py-2 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" placeholder="john_company_a" required>
+                                <style>
+                                    #signup-username:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
                             </div>
                             <p class="text-xs mt-1" style="color: var(--text-tertiary);">Unique username for login</p>
                         </div>
@@ -269,7 +336,14 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">📧</span>
                                 </div>
-                                <input type="email" id="email" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john@example.com" required>
+                                <input type="email" id="signup-email" class="w-full pr-4 py-2 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" placeholder="john@example.com" required>
+                                <style>
+                                    #signup-email:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
                             </div>
                             <p class="text-xs mt-1" style="color: var(--text-tertiary);">Can be used for multiple companies</p>
                         </div>
@@ -280,7 +354,14 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔑</span>
                                 </div>
-                                <input type="number" id="licenceNo" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="1001" required min="1">
+                                <input type="number" id="signup-licenceNo" class="w-full pr-4 py-2 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" placeholder="1001" required min="1">
+                                <style>
+                                    #signup-licenceNo:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
                             </div>
                             <p class="text-xs mt-1" style="color: var(--text-tertiary);">Your company's licence number</p>
                         </div>
@@ -291,7 +372,14 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔐</span>
                                 </div>
-                                <input type="password" id="password" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Min 6 characters" required minlength="6">
+                                <input type="password" id="signup-password" class="w-full pr-4 py-2 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" placeholder="Min 6 characters" required minlength="6">
+                                <style>
+                                    #signup-password:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
                             </div>
                         </div>
 
@@ -301,34 +389,50 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔐</span>
                                 </div>
-                                <input type="password" id="confirmPassword" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Re-enter password" required minlength="6">
+                                <input type="password" id="signup-confirmPassword" class="w-full pr-4 py-2 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" placeholder="Re-enter password" required minlength="6">
+                                <style>
+                                    #signup-confirmPassword:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex items-start gap-3 p-4 rounded-xl border-2 bg-gray-50">
-                        <input type="checkbox" id="agreeTerms" class="w-4 h-4 mt-0.5 rounded border-2 cursor-pointer text-purple-600 focus:ring-purple-500" required>
+                    <div class="flex items-start gap-3 p-4 rounded-xl border-2" style="background: var(--bg-tertiary); border-color: var(--border-primary);">
+                        <input type="checkbox" id="agreeTerms" class="w-4 h-4 mt-0.5 rounded border-2 cursor-pointer" style="border-color: var(--border-primary); accent-color: var(--primary-600);" required>
                         <label for="agreeTerms" class="text-xs font-medium cursor-pointer" style="color: var(--text-primary);">
-                            I agree to the <a href="#" class="font-bold hover:underline text-purple-600">Terms of Service</a> and <a href="#" class="font-bold hover:underline text-purple-600">Privacy Policy</a>
+                            I agree to the <a href="#" class="font-bold hover:underline" style="color: var(--primary-600);">Terms of Service</a> and <a href="#" class="font-bold hover:underline" style="color: var(--primary-600);">Privacy Policy</a>
                         </label>
                     </div>
 
                     <div id="loadingSpinner" class="hidden text-center py-3">
                         <div class="inline-block">
-                            <div class="animate-spin rounded-full h-8 w-8 border-4 border-purple-200 border-t-purple-600"></div>
+                            <div class="animate-spin rounded-full h-8 w-8 border-4" style="border-color: rgba(94, 134, 186, 0.2); border-top-color: var(--primary-600);"></div>
                         </div>
                     </div>
 
-                    <button type="submit" id="signupBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm mt-6" style="background: #000000 !important;">
+                    <button type="submit" id="signupBtn" class="w-full font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm mt-6" style="background: var(--primary-600); color: white; border: none; cursor: pointer;">
                         <span class="text-lg">✨</span>
                         <span>Create My Account</span>
                     </button>
+                    <style>
+                        #signupBtn:hover {
+                            background: var(--primary-700);
+                        }
+                        #signupBtn:disabled {
+                            opacity: 0.5;
+                            cursor: not-allowed;
+                        }
+                    </style>
                 </form>
 
-                <div class="mt-6 pt-5 border-t border-gray-200">
+                <div class="mt-6 pt-5" style="border-top: 1px solid var(--border-primary);">
                     <p class="text-center text-xs" style="color: var(--text-secondary);">
                         Already have an account?
-                        <a href="#" id="showLogin" class="font-bold text-purple-600 hover:text-purple-700 hover:underline ml-1" data-route="login">Sign In</a>
+                        <a href="#" id="showLogin" class="font-bold hover:underline ml-1" style="color: var(--primary-600);" data-route="login">Sign In</a>
                     </p>
                 </div>
             </div>

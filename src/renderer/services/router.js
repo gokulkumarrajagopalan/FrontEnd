@@ -42,15 +42,20 @@ class Router {
             // Initialize the page
             await this.initializePage(route);
 
+            // Add fade-in animation to page content
+            if (content) {
+                content.classList.remove('fade-in');
+                void content.offsetWidth; // Trigger reflow
+                content.classList.add('fade-in');
+            }
+
             // Update Active Nav
             document.querySelectorAll('[data-route]').forEach(link => {
                 link.classList.remove('active');
-                link.style.backgroundColor = 'transparent';
-                link.style.color = '#d1d5db';
+                link.style.backgroundColor = '';
+                link.style.color = '';
                 if (link.getAttribute('data-route') === route) {
                     link.classList.add('active');
-                    link.style.backgroundColor = '#2563eb';
-                    link.style.color = 'white';
                 }
             });
 

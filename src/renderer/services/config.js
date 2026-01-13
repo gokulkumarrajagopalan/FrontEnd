@@ -11,7 +11,7 @@
  * - Electron IPC handlers
  */
 window.AppConfig = {
-    API_BASE_URL: 'http://localhost:8080',
+    API_BASE_URL: (window.electronAPI && window.electronAPI.backendUrl) || 'http://localhost:8080',
     APP_NAME: 'Tally Prime',
     VERSION: '1.0.0'
 };

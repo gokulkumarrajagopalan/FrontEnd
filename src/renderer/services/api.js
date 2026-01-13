@@ -6,13 +6,36 @@
 const API_BASE_URL = window.AppConfig.API_BASE_URL;
 
 class ApiService {
+    static requestCache = new Map();
+    static MAX_RETRIES = 3;
+    static TIMEOUT_MS = 10000;
+    static RETRY_DELAY_MS = 1000;
+
     /**
-     * Generic fetch wrapper
+     * Execute request with timeout
+     */
+    static async executeWithTimeout(url, options) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.TIMEOUT_MS);
+
+        try {
+            return await fetch(`${API_BASE_URL}${url}`, {
+                ...options,
+                signal: controller.signal
+            });
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
+    /**
+     * Generic fetch wrapper with retry logic
      * @param {string} url 
      * @param {object} options 
+     * @param {number} attempt 
      * @returns {Promise<object>}
      */
-    static async request(url, options = {}) {
+    static async request(url, options = {}, attempt = 1) {
         const defaultOptions = {
             headers: authService.getHeaders()
         };
@@ -22,18 +45,17 @@ class ApiService {
             ...options,
             headers: {
                 ...defaultOptions.headers,
-                ...options.headers
+                ...options.headers,
+                'Content-Type': 'application/json'
             }
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}${url}`, mergedOptions);
+            const response = await this.executeWithTimeout(url, mergedOptions);
 
-            // Handle 401 Unauthorized (Device token invalid - logged in from another device)
             if (response.status === 401) {
                 console.warn('⚠️ 401 Unauthorized - Device token may be invalid');
                 
-                // Show notification
                 if (window.notificationService) {
                     window.notificationService.warning(
                         'Your session has ended. You may have logged in from another device.',
@@ -42,8 +64,7 @@ class ApiService {
                     );
                 }
                 
-                // Clear tokens and redirect to login
-                localStorage.clear();
+                this.clearAuthData();
                 setTimeout(() => {
                     window.location.hash = '#login';
                     window.location.reload();
@@ -60,9 +81,53 @@ class ApiService {
 
             return { success: true, data };
         } catch (error) {
-            console.error('API Error:', error);
+            if (error.name === 'AbortError') {
+                error.message = `Request timeout after ${this.TIMEOUT_MS}ms`;
+            }
+
+            if (attempt < this.MAX_RETRIES && this.isRetryable(error)) {
+                const delay = this.RETRY_DELAY_MS * attempt;
+                console.warn(`🔄 Retry attempt ${attempt}/${this.MAX_RETRIES} for ${url} (waiting ${delay}ms)...`);
+                await new Promise(r => setTimeout(r, delay));
+                return this.request(url, options, attempt + 1);
+            }
+
+            console.error(`API Error (${url}):`, error);
             return { success: false, error: error.message };
         }
+    }
+
+    /**
+     * Determine if error is retryable
+     */
+    static isRetryable(error) {
+        const nonRetryableErrors = [
+            'Unauthorized',
+            'Forbidden',
+            'Not Found',
+            'Invalid request'
+        ];
+        return !nonRetryableErrors.some(e => error.message.includes(e));
+    }
+
+    /**
+     * Clear only auth-related data (not all localStorage)
+     */
+    static clearAuthData() {
+        const authKeysToRemove = [
+            'authToken',
+            'deviceToken',
+            'csrfToken',
+            'currentUser',
+            'loginTime'
+        ];
+        
+        authKeysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+        });
+        
+        console.log('✅ Auth data cleared');
     }
 
     /**
@@ -106,7 +171,10 @@ class ApiService {
      * @returns {Promise<object>}
      */
     static delete(url) {
-        return this.request(url, { method: 'DELETE' });
+        return this.request(url, { 
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 
     // ==================== GROUPS ====================

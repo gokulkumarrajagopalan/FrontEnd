@@ -12,6 +12,54 @@ class SyncService {
         this.BATCH_DELAY = 100;
     }
 
+    /**
+     * Validate user license against Tally license
+     * @returns {Promise<boolean>}
+     */
+    async validateUserLicense() {
+        try {
+            if (!window.LicenseValidator) {
+                console.warn('⚠️ LicenseValidator not available, skipping validation');
+                return true;
+            }
+
+            if (!window.authService || !window.authService.isAuthenticated()) {
+                console.warn('⚠️ User not authenticated');
+                return false;
+            }
+
+            const currentUser = window.authService.getCurrentUser();
+            const userLicense = currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
+            
+            if (!userLicense) {
+                console.warn('⚠️ User license number not found');
+                if (window.notificationService) {
+                    window.notificationService.error(
+                        'User license number not found. Please login again.',
+                        'License Validation Failed',
+                        5000
+                    );
+                }
+                return false;
+            }
+
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+
+            return await window.LicenseValidator.validateAndNotify(userLicense, tallyPort);
+        } catch (error) {
+            console.error('❌ License validation error:', error);
+            if (window.notificationService) {
+                window.notificationService.error(
+                    'License validation failed: ' + error.message,
+                    'Validation Error',
+                    5000
+                );
+            }
+            return false;
+        }
+    }
+
     async startSyncSystem() {
         console.log('🔄 Starting Sync System...');
         
@@ -26,6 +74,12 @@ class SyncService {
 
     async runInitialSync() {
         console.log('📥 Running Initial Sync...');
+        
+        // Validate license before sync
+        if (!await this.validateUserLicense()) {
+            console.error('❌ License validation failed - sync aborted');
+            return;
+        }
         
         if (this.syncInProgress) {
             console.warn('⚠️ Sync already in progress');

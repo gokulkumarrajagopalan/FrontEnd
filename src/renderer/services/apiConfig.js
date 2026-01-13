@@ -1,7 +1,10 @@
 // Support both module and non-module environments
 const apiConfig = {
     get BASE_URL() {
-        // No import.meta in non-module context - use direct URL
+        // Use exposed backend URL from main process if available, otherwise fallback
+        if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.backendUrl) {
+            return window.electronAPI.backendUrl;
+        }
         return 'http://localhost:8080';
     },
 
@@ -50,7 +53,7 @@ const apiConfig = {
         const base = this.BASE_URL;
         return `${base}${endpoint}`;
     },
-    
+
     /**
      * Get base URL (alias for BASE_URL)
      */

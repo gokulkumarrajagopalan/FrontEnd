@@ -26,15 +26,20 @@ class SessionManager {
      */
     getWebSocketUrl() {
         try {
-            const apiBaseUrl = window.apiConfig?.BASE_URL || 'http://localhost:8080';
-            // Convert http/https to ws/wss
+            const apiBaseUrl = window.apiConfig?.BASE_URL;
+            
+            if (!apiBaseUrl) {
+                console.error('❌ API config not initialized before SessionManager');
+                throw new Error('API configuration not available');
+            }
+            
             const wsUrl = apiBaseUrl
                 .replace(/^https:/, 'wss:')
                 .replace(/^http:/, 'ws:');
             return `${wsUrl}/session`;
         } catch (error) {
-            console.warn('⚠️ Error getting WebSocket URL:', error);
-            return 'ws://localhost:8080/session';
+            console.error('❌ Error getting WebSocket URL:', error);
+            throw error;
         }
     }
 
@@ -52,8 +57,6 @@ class SessionManager {
 
         console.log('🔄 SessionManager: Starting WebSocket session monitoring');
         console.log(`   WebSocket URL: ${this.wsUrl}`);
-        console.log(`   Token: ${token.substring(0, 30)}...`);
-        console.log(`   Device Token: ${deviceToken}`);
 
         this.isLoggedOut = false;
         this.reconnectAttempts = 0;
@@ -65,20 +68,24 @@ class SessionManager {
      */
     connectWebSocket() {
         try {
-            // Create WebSocket URL with authentication headers
             const token = sessionStorage.getItem('authToken');
             const deviceToken = sessionStorage.getItem('deviceToken');
             
-            // WebSocket URL with query parameters for authentication
-            const url = `${this.wsUrl}?token=${encodeURIComponent(token)}&deviceToken=${encodeURIComponent(deviceToken)}`;
+            if (!token || !deviceToken) {
+                console.error('❌ SessionManager: Missing auth tokens, cannot connect');
+                return;
+            }
             
             console.log('🔌 SessionManager: Connecting to WebSocket...');
-            this.ws = new WebSocket(url);
+            const encodedToken = encodeURIComponent(token);
+            const encodedDeviceToken = encodeURIComponent(deviceToken);
+            const wsUrlWithParams = `${this.wsUrl}?token=${encodedToken}&deviceToken=${encodedDeviceToken}`;
+            this.ws = new WebSocket(wsUrlWithParams);
 
             this.ws.onopen = () => {
                 console.log('✅ SessionManager: WebSocket connected successfully');
+                
                 this.reconnectAttempts = 0;
-                // Start heartbeat
                 this.startHeartbeat();
             };
 
@@ -345,8 +352,8 @@ class SessionManager {
      * Check if user is authenticated
      */
     isAuthenticated() {
-        const token = localStorage.getItem('authToken');
-        const deviceToken = localStorage.getItem('deviceToken');
+        const token = sessionStorage.getItem('authToken');
+        const deviceToken = sessionStorage.getItem('deviceToken');
         return !!(token && deviceToken);
     }
 

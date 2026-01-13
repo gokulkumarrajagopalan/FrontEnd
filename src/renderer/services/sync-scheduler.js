@@ -75,6 +75,20 @@ class SyncScheduler {
             console.log(`\n📊 Running incremental sync at ${new Date().toLocaleTimeString()}`);
             this.lastSyncTime = new Date();
 
+            // Validate license before sync
+            if (window.LicenseValidator) {
+                const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+                const userLicense = currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
+                const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+                const tallyPort = appSettings.tallyPort || 9000;
+
+                const isValid = await window.LicenseValidator.validateAndNotify(userLicense, tallyPort);
+                if (!isValid) {
+                    console.error('❌ License validation failed - sync aborted');
+                    return;
+                }
+            }
+
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
             const backendUrl = window.apiConfig?.baseURL || 'http://localhost:8080';

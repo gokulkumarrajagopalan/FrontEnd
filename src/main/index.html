@@ -9,6 +9,8 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http://localhost:* ws: wss: ws://localhost:*; object-src 'none'; upgrade-insecure-requests;">
     <!-- Tailwind CSS (compiled output) -->
     <link rel="stylesheet" href="../renderer/styles/output.css">
+    <!-- Dynamic Font Sizing System -->
+    <link rel="stylesheet" href="../renderer/styles/font-dynamics.css">
     <!-- Global Theme System -->
     <link rel="stylesheet" href="../renderer/styles/global-theme.css">
     <!-- Enhanced Theme CSS (Overrides global with premium styles) -->
@@ -736,6 +738,9 @@
     <!-- Notification Container -->
     <div id="notification-container"></div>
 
+    <!-- XLSX Library for Excel Export -->
+    <script src="../../node_modules/xlsx/dist/xlsx.full.min.js"></script>
+
     <!-- Upgrade Services - Load before app.js -->
     <script src="../renderer/services/logger.js"></script>
     <script src="../renderer/services/telemetry.js"></script>
@@ -753,6 +758,7 @@
     <script src="../renderer/services/session-manager.js"></script>
     <script src="../renderer/services/notification-service.js"></script>
     <script src="../renderer/services/notification-util.js"></script>
+    <script src="../renderer/services/license-validator.js"></script>
     <script src="../renderer/services/sync-state-manager.js"></script>
     <script src="../renderer/components/notification-center.js"></script>
     <script src="../renderer/services/sync-helper.js"></script>

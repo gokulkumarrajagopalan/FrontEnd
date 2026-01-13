@@ -48,7 +48,9 @@ Thumbs.db
 .idea/
 .vscode/
 *.iml
-
+.zencoder/
+.zenflow/
+.mcp-server/
 # Environment Files
 .env
 *.local

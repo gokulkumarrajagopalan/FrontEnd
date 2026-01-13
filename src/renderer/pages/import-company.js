@@ -13,10 +13,16 @@
                         <p class="text-4xl font-bold text-blue-600" id="tallyCompanyCount">0</p>
                         <p class="text-sm text-blue-500">Available</p>
                     </div>
-                    <button id="fetchCompaniesBtn" class="px-6 py-3 rounded-xl shadow-lg hover:shadow-xl border-2 transition-all duration-200 font-bold flex items-center gap-2" style="background: var(--text-primary); color: #ffffff !important; border-color: var(--text-primary);">
-                        <span style="color: #ffffff !important;">🔗</span>
-                        <span style="color: #ffffff !important;">Fetch from Tally</span>
+                    <button id="fetchCompaniesBtn" class="px-6 py-3 rounded-xl shadow-lg hover:shadow-xl border-2 transition-all duration-200 font-bold flex items-center gap-2" style="background: var(--primary-600); color: white; border-color: var(--primary-600);">
+                        <span>🔗</span>
+                        <span>Fetch from Tally</span>
                     </button>
+                    <style>
+                        #fetchCompaniesBtn:hover {
+                            background: var(--primary-700);
+                            border-color: var(--primary-700);
+                        }
+                    </style>
                 </div>
             </div>
         </div>
@@ -939,6 +945,14 @@
 
     window.initializeImportCompany = async function () {
         console.log('Initializing Import Company Page...');
+        
+        // Check license validation
+        if (window.LicenseValidator && !await window.LicenseValidator.validateAndNotify()) {
+            console.warn('⚠️ License validation failed - access denied');
+            window.router?.navigate('home');
+            return;
+        }
+        
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getTemplate();

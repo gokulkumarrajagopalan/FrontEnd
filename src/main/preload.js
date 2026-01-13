@@ -43,6 +43,9 @@ try {
         chromeVersion: process.versions.chrome,
         electronVersion: process.versions.electron,
 
+        // Configuration
+        backendUrl: ipcRenderer.sendSync('get-backend-url-sync'),
+
         // Sync API
         startSync: (config) => {
             ipcRenderer.send('start-sync', config);
@@ -121,7 +124,7 @@ try {
         syncStockCategories: (config) => ipcRenderer.invoke("sync-stock-categories", config),
         syncStockItems: (config) => ipcRenderer.invoke("sync-stock-items", config),
         syncGodowns: (config) => ipcRenderer.invoke("sync-godowns", config),
-        
+
         // Incremental sync API
         incrementalSync: (config) => {
             console.log('📡 Preload: Calling incremental-sync handler...');

@@ -1,0 +1,468 @@
+/* Dynamic Font Sizing System */
+/* Base font size reduced and made responsive */
+
+:root {
+  /* Base font size - reduced from 16px to 14px */
+  --base-font-size: 14px;
+  
+  /* Responsive font scale (mobile-first) */
+  --text-xs: 0.65rem;    /* Small labels, captions */
+  --text-sm: 0.8rem;     /* Small text, secondary info */
+  --text-base: 0.9rem;   /* Body text */
+  --text-lg: 1rem;       /* Larger body text, labels */
+  --text-xl: 1.1rem;     /* Headers, subheadings */
+  --text-2xl: 1.3rem;    /* Page titles */
+  --text-3xl: 1.5rem;    /* Main titles */
+  --text-4xl: 1.8rem;    /* Large titles */
+  --text-5xl: 2.1rem;    /* Extra large titles */
+  --text-6xl: 2.4rem;    /* Massive titles */
+
+  /* Line heights - adjusted for smaller fonts */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  --line-height-loose: 2;
+}
+
+/* Apply reduced base font size to body */
+html, body {
+  font-size: var(--base-font-size) !important;
+  line-height: var(--line-height-normal);
+}
+
+/* Text element sizing */
+.text-xs {
+  font-size: var(--text-xs) !important;
+  line-height: var(--line-height-tight);
+}
+
+.text-sm {
+  font-size: var(--text-sm) !important;
+  line-height: var(--line-height-normal);
+}
+
+.text-base {
+  font-size: var(--text-base) !important;
+  line-height: var(--line-height-normal);
+}
+
+.text-lg {
+  font-size: var(--text-lg) !important;
+  line-height: var(--line-height-normal);
+}
+
+.text-xl {
+  font-size: var(--text-xl) !important;
+  line-height: var(--line-height-relaxed);
+}
+
+.text-2xl {
+  font-size: var(--text-2xl) !important;
+  line-height: var(--line-height-relaxed);
+}
+
+.text-3xl {
+  font-size: var(--text-3xl) !important;
+  line-height: var(--line-height-relaxed);
+}
+
+.text-4xl {
+  font-size: var(--text-4xl) !important;
+  line-height: var(--line-height-loose);
+}
+
+.text-5xl {
+  font-size: var(--text-5xl) !important;
+  line-height: var(--line-height-loose);
+}
+
+.text-6xl {
+  font-size: var(--text-6xl) !important;
+  line-height: var(--line-height-loose);
+}
+
+/* Heading elements */
+h1, h2, h3, h4, h5, h6 {
+  line-height: var(--line-height-tight);
+}
+
+h1 {
+  font-size: var(--text-3xl) !important;
+}
+
+h2 {
+  font-size: var(--text-2xl) !important;
+}
+
+h3 {
+  font-size: var(--text-xl) !important;
+}
+
+h4, h5, h6 {
+  font-size: var(--text-lg) !important;
+}
+
+/* Paragraph text */
+p {
+  font-size: var(--text-base) !important;
+  line-height: var(--line-height-normal);
+}
+
+/* Button and input text */
+button, input, select, textarea, .btn {
+  font-size: var(--text-sm) !important;
+}
+
+/* Navigation and sidebar */
+.nav-link, .nav-section-header, .sidebar-item {
+  font-size: var(--text-xs) !important;
+  font-weight: 400 !important;
+}
+
+/* Table elements */
+table th {
+  font-size: var(--text-xs) !important;
+}
+
+table td {
+  font-size: var(--text-sm) !important;
+}
+
+/* Label and form elements */
+label {
+  font-size: var(--text-sm) !important;
+}
+
+.form-label, .input-label {
+  font-size: var(--text-sm) !important;
+}
+
+/* Responsive adjustments for larger screens */
+@media (min-width: 768px) {
+  :root {
+    /* Slightly larger on tablets */
+    --text-xs: 0.7rem;
+    --text-sm: 0.85rem;
+    --text-base: 0.95rem;
+    --text-lg: 1.05rem;
+    --text-xl: 1.15rem;
+    --text-2xl: 1.4rem;
+    --text-3xl: 1.65rem;
+    --text-4xl: 1.95rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    /* Larger on desktops */
+    --text-xs: 0.75rem;
+    --text-sm: 0.9rem;
+    --text-base: 1rem;
+    --text-lg: 1.1rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+    --text-4xl: 2.25rem;
+  }
+}
+
+/* Accessibility: respect user's font size preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Ensure text doesn't overflow with smaller sizes */
+body {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+/* Sidebar Collapse/Expand Animations */
+#mainSidebar {
+  transition: width 0.3s ease-in-out !important;
+  overflow: hidden;
+}
+
+#expandedHeader {
+  transition: opacity 0.3s ease-in-out !important;
+  opacity: 0;
+  display: none;
+}
+
+/* By default, hide text labels in collapsed state */
+#mainSidebar .nav-link span:not(.nav-icon) {
+  opacity: 0;
+  display: none;
+  max-width: 0;
+  transition: opacity 0.2s ease-in-out, display 0.2s ease-in-out !important;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#mainSidebar .nav-section-header span:not(.nav-icon) {
+  opacity: 1;
+  display: inline;
+  font-size: 0.75rem;
+  max-width: 70px;
+  transition: opacity 0.2s ease-in-out, font-size 0.2s ease-in-out !important;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#mainSidebar .nav-label {
+  display: none;
+  transition: display 0.2s ease-in-out !important;
+}
+
+/* Show text when sidebar is expanded */
+#mainSidebar[data-expanded="true"] .nav-link span:not(.nav-icon) {
+  opacity: 1;
+  display: inline;
+  max-width: 200px;
+}
+
+#mainSidebar[data-expanded="true"] .nav-section-header span:not(.nav-icon) {
+  opacity: 1;
+  display: inline;
+  font-size: 0.875rem;
+  max-width: 200px;
+}
+
+#mainSidebar[data-expanded="true"] .nav-label {
+  display: block;
+}
+
+/* Sidebar section titles: keep visible with small text when collapsed */
+#mainSidebar .sidebar-section-title {
+  display: block;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70px;
+  opacity: 0.8;
+  transition: font-size 0.2s ease-in-out, opacity 0.2s ease-in-out !important;
+}
+
+#mainSidebar[data-expanded="true"] .sidebar-section-title {
+  display: block;
+  font-size: 0.875rem;
+  opacity: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Sidebar navigation items styling */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out !important;
+  position: relative;
+}
+
+.nav-link:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.nav-icon {
+  min-width: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.5);
+  transition: display 0.2s ease-in-out !important;
+  margin-top: 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Sidebar section headers */
+.nav-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-section-header:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.nav-section-header .chevron {
+  font-size: 12px;
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Brand styles */
+:root {
+  --brand-blue: #1346A8; /* Talliffy brand blue for icon background */
+  --brand-accent: #5AB3FF; /* Accent bar color */
+}
+
+.brand-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-icon {
+  display: block;
+}
+
+.brand-title {
+  font-size: var(--text-xl) !important;
+  font-weight: 700;
+  color: var(--brand-blue);
+}
+
+.brand-subtitle {
+  font-size: var(--text-xs) !important;
+  color: #6b7280; /* gray-500 */
+  margin-top: 2px;
+}
+
+/* Image-based icon sizing */
+.brand-icon-image {
+  display: block;
+}
+.brand-icon-collapsed {
+  width: 28px;
+  height: 28px;
+}
+.brand-icon-expanded {
+  width: 22px;
+  height: 22px;
+}
+
+/* Header search icon + inline input */
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  position: relative;
+}
+
+.header-label-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  margin-right: 8px;
+}
+
+.header-label {
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  font-weight: 600;
+  color: #374151;
+}
+
+.header-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.header-search-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  opacity: 0.6;
+  color: #64748b;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.header-search-trigger:hover {
+  background: rgba(0, 0, 0, 0.05);
+  opacity: 1;
+}
+
+.sortable-header:hover .header-search-trigger {
+  color: var(--brand-blue);
+  opacity: 1;
+}
+
+.header-search-input.inline-search {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 24px;
+  opacity: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 5;
+  box-sizing: border-box;
+}
+
+.sortable-header:hover .header-label {
+  opacity: 0;
+  transform: translateX(-5px);
+}
+
+.sortable-header:hover .header-search-input.inline-search,
+.header-search-input.inline-search:focus {
+  width: 100%;
+  opacity: 1;
+  padding: 0 8px;
+  border-color: #cbd5e1;
+  pointer-events: auto;
+}
+
+.header-search-input.inline-search:focus {
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 0 2px rgba(41, 65, 96, 0.1);
+  outline: none;
+}
+
+.sort-icon {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+}
+
+.sortable-header:hover .sort-icon {
+  color: #475569;
+}

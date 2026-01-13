@@ -32,7 +32,7 @@ const UIComponents = {
         } = options;
 
         const inputClasses = `${width} px-4 py-3 ${icon ? 'pl-11' : ''} rounded-xl border-2 border-gray-200 
-            focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all 
+            focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all 
             text-gray-900 bg-white text-sm font-medium placeholder-gray-400
             disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`;
 
@@ -66,8 +66,8 @@ const UIComponents = {
             id = '',
             text = 'Button',
             icon = '',
-            variant = 'primary', // primary, secondary, success, danger, outline
-            size = 'md', // sm, md, lg
+            variant = 'primary',
+            size = 'md',
             fullWidth = false,
             disabled = false,
             type = 'button',
@@ -80,29 +80,46 @@ const UIComponents = {
             lg: 'px-8 py-4 text-base'
         };
 
-        const variantClasses = {
-            primary: 'bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 hover:from-purple-700 hover:via-blue-700 hover:to-purple-700 text-white',
-            secondary: 'bg-gray-600 hover:bg-gray-700 text-white',
-            success: 'bg-green-600 hover:bg-green-700 text-white',
-            danger: 'bg-red-600 hover:bg-red-700 text-white',
-            outline: 'bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50'
+        const variantStyles = {
+            primary: 'background: linear-gradient(135deg, #5e86ba 0%, #496da0 100%); color: white; border: none; box-shadow: 0 6px 20px rgba(94, 134, 186, 0.35);',
+            secondary: 'background: linear-gradient(135deg, #395984 0%, #2d4563 100%); color: white; border: none; box-shadow: 0 6px 20px rgba(57, 89, 132, 0.35);',
+            success: 'background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);',
+            danger: 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);',
+            purple: 'background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%); color: white; border: none; box-shadow: 0 6px 20px rgba(147, 51, 234, 0.35);',
+            outline: 'background: transparent; color: #5e86ba; border: 2px solid #5e86ba;'
         };
 
-        const baseClasses = `${fullWidth ? 'w-full' : ''} ${sizeClasses[size]} ${variantClasses[variant]} 
-            rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-[0.98] 
-            transition-all duration-200 flex items-center justify-center gap-2
-            disabled:opacity-50 disabled:cursor-not-allowed ${className}`;
+        const baseClasses = `${fullWidth ? 'w-full' : ''} ${sizeClasses[size]} rounded-xl font-bold shadow-lg transition-all duration-200 flex items-center justify-center gap-2 ${className}`;
 
         return `
             <button 
                 type="${type}" 
                 id="${id}" 
                 class="${baseClasses}"
+                style="${variantStyles[variant]} cursor: pointer;"
                 ${disabled ? 'disabled' : ''}
             >
                 ${icon ? `<span class="text-lg">${icon}</span>` : ''}
                 <span>${text}</span>
             </button>
+            <style>
+                #${id}:hover {
+                    ${variant === 'primary' ? 'background: linear-gradient(135deg, #496da0 0%, #37537b 100%); box-shadow: 0 12px 25px rgba(94, 134, 186, 0.5); transform: translateY(-2px);' : ''}
+                    ${variant === 'secondary' ? 'background: linear-gradient(135deg, #2d4563 0%, #1f2e42 100%); box-shadow: 0 12px 25px rgba(57, 89, 132, 0.5); transform: translateY(-2px);' : ''}
+                    ${variant === 'success' ? 'background: linear-gradient(135deg, #059669 0%, #047857 100%); box-shadow: 0 12px 25px rgba(16, 185, 129, 0.5); transform: translateY(-2px);' : ''}
+                    ${variant === 'danger' ? 'background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); box-shadow: 0 12px 25px rgba(239, 68, 68, 0.5); transform: translateY(-2px);' : ''}
+                    ${variant === 'purple' ? 'background: linear-gradient(135deg, #7e22ce 0%, #6b21a8 100%); box-shadow: 0 12px 25px rgba(147, 51, 234, 0.5); transform: translateY(-2px);' : ''}
+                    ${variant === 'outline' ? 'background: rgba(94, 134, 186, 0.1); border-color: #496da0;' : ''}
+                }
+                #${id}:active {
+                    transform: scale(0.98);
+                }
+                #${id}:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                    box-shadow: none;
+                }
+            </style>
         `;
     },
 
@@ -124,7 +141,7 @@ const UIComponents = {
         } = options;
 
         const selectClasses = `${width} px-4 py-3 rounded-xl border-2 border-gray-200 
-            focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all 
+            focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all 
             text-gray-900 bg-white text-sm font-medium
             disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`;
 
@@ -165,7 +182,7 @@ const UIComponents = {
         } = options;
 
         const textareaClasses = `w-full px-4 py-3 rounded-xl border-2 border-gray-200 
-            focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all 
+            focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all 
             text-gray-900 bg-white text-sm font-medium placeholder-gray-400
             disabled:bg-gray-100 disabled:cursor-not-allowed resize-none ${className}`;
 
@@ -222,18 +239,18 @@ const UIComponents = {
      */
     alert: (options = {}) => {
         const {
-            type = 'info', // success, warning, danger, info
+            type = 'info',
             message = '',
             icon = '',
             dismissible = false,
             id = ''
         } = options;
 
-        const typeClasses = {
-            success: 'bg-green-50 border-green-200 text-green-700',
-            warning: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-            danger: 'bg-red-50 border-red-200 text-red-700',
-            info: 'bg-blue-50 border-blue-200 text-blue-700'
+        const typeStyles = {
+            success: 'background: rgba(16, 185, 129, 0.1); border-color: #10b981; color: #059669;',
+            warning: 'background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #d97706;',
+            danger: 'background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #dc2626;',
+            info: 'background: rgba(59, 130, 246, 0.1); border-color: #3b82f6; color: #2563eb;'
         };
 
         const defaultIcons = {
@@ -246,10 +263,10 @@ const UIComponents = {
         const displayIcon = icon || defaultIcons[type];
 
         return `
-            <div id="${id}" class="p-4 rounded-2xl border ${typeClasses[type]} text-sm flex items-start gap-3">
+            <div id="${id}" class="p-4 rounded-2xl border text-sm flex items-start gap-3" style="${typeStyles[type]}">
                 <span class="text-lg">${displayIcon}</span>
                 <span class="flex-1">${message}</span>
-                ${dismissible ? '<button class="text-lg hover:opacity-70">×</button>' : ''}
+                ${dismissible ? '<button class="text-lg hover:opacity-70" style="background: none; border: none; cursor: pointer;">×</button>' : ''}
             </div>
         `;
     },
@@ -261,16 +278,17 @@ const UIComponents = {
     badge: (options = {}) => {
         const {
             text = '',
-            variant = 'primary', // primary, success, warning, danger, info
-            size = 'md' // sm, md, lg
+            variant = 'primary',
+            size = 'md'
         } = options;
 
-        const variantClasses = {
-            primary: 'bg-purple-100 text-purple-700',
-            success: 'bg-green-100 text-green-700',
-            warning: 'bg-yellow-100 text-yellow-700',
-            danger: 'bg-red-100 text-red-700',
-            info: 'bg-blue-100 text-blue-700'
+        const variantStyles = {
+            primary: 'background: rgba(94, 134, 186, 0.1); color: var(--primary-600);',
+            success: 'background: rgba(16, 185, 129, 0.1); color: #059669;',
+            warning: 'background: rgba(245, 158, 11, 0.1); color: #d97706;',
+            danger: 'background: rgba(239, 68, 68, 0.1); color: #dc2626;',
+            info: 'background: rgba(59, 130, 246, 0.1); color: #2563eb;',
+            purple: 'background: var(--accent-purple-light); color: var(--accent-purple);'
         };
 
         const sizeClasses = {
@@ -280,7 +298,7 @@ const UIComponents = {
         };
 
         return `
-            <span class="inline-flex items-center rounded-full font-semibold ${variantClasses[variant]} ${sizeClasses[size]}">
+            <span class="inline-flex items-center rounded-full font-semibold ${sizeClasses[size]}" style="${variantStyles[variant]}">
                 ${text}
             </span>
         `;
@@ -345,7 +363,7 @@ const UIComponents = {
 
         const spinner = `
             <div class="inline-flex flex-col items-center justify-center gap-3">
-                <div class="${sizeClasses[size]} border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+                <div class="${sizeClasses[size]} border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                 ${text ? `<p class="text-sm text-gray-600 font-medium">${text}</p>` : ''}
             </div>
         `;
@@ -429,7 +447,7 @@ const UIComponents = {
                     type="text" 
                     id="${id}" 
                     class="w-full pl-10 pr-4 py-2 rounded-xl border-2 border-gray-200 
-                           focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 
+                           focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 
                            transition-all text-gray-900 bg-white text-sm placeholder-gray-400"
                     placeholder="${placeholder}"
                 >
@@ -452,7 +470,7 @@ const UIComponents = {
             <div class="page-header flex justify-between items-center">
                 <div>
                     <h2 class="text-2xl font-bold text-white mb-1">${title}</h2>
-                    ${subtitle ? `<p class="text-sm text-purple-100">${subtitle}</p>` : ''}
+                    ${subtitle ? `<p class="text-sm text-blue-100">${subtitle}</p>` : ''}
                 </div>
                 ${actions ? `<div class="flex gap-3">${actions}</div>` : ''}
             </div>

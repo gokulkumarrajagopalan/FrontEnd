@@ -137,14 +137,38 @@ class ThemeManager {
         root.style.setProperty('--text-tertiary', '#94a3b8');
         root.style.setProperty('--text-disabled', '#64748b');
 
-        // Brand colors - Muted Blue highlight
+        // Brand colors - Keep consistent with light theme
+        root.style.setProperty('--primary-50', '#eff3f8');
+        root.style.setProperty('--primary-100', '#dce7f1');
+        root.style.setProperty('--primary-200', '#bbcee2');
+        root.style.setProperty('--primary-300', '#99b5d3');
+        root.style.setProperty('--primary-400', '#779cc4');
         root.style.setProperty('--primary-500', '#5E86BA');
-        root.style.setProperty('--primary-600', '#4a6da1');
+        root.style.setProperty('--primary-600', '#496da0');
+        root.style.setProperty('--primary-700', '#37537b');
+        root.style.setProperty('--primary-800', '#253956');
+        root.style.setProperty('--primary-900', '#131e31');
+
+        // Border colors
+        root.style.setProperty('--border-primary', '#334155');
+        root.style.setProperty('--border-secondary', '#475569');
+        root.style.setProperty('--border-focus', '#5E86BA');
+
+        // Input colors for dark mode
+        root.style.setProperty('--input-bg', '#1e293b');
+        root.style.setProperty('--input-border', '#334155');
+        root.style.setProperty('--input-text', '#f8fafc');
+        root.style.setProperty('--input-placeholder', '#94a3b8');
+
+        // Sidebar
         root.style.setProperty('--sidebar-bg', '#020617');
+        root.style.setProperty('--sidebar-text', '#ffffff');
         root.style.setProperty('--sidebar-hover', '#1e293b');
 
+        // Card
         root.style.setProperty('--card-bg', '#1e293b');
-        root.style.setProperty('--border-primary', '#334155');
+        root.style.setProperty('--card-border', '#334155');
+        root.style.setProperty('--card-shadow', 'rgba(15, 23, 42, 0.5)');
     }
 
     getTheme() {

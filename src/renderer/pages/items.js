@@ -33,7 +33,6 @@
                         <th>Unit</th>
                         <th>Stock</th>
                         <th>Rate</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>

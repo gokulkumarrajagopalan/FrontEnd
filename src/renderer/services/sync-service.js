@@ -15,6 +15,54 @@ class SyncService {
     }
 
     /**
+     * Validate user license against Tally license
+     * @returns {Promise<boolean>}
+     */
+    async validateUserLicense() {
+        try {
+            if (!window.LicenseValidator) {
+                console.warn('⚠️ LicenseValidator not available, skipping validation');
+                return true;
+            }
+
+            if (!window.authService || !window.authService.isAuthenticated()) {
+                console.warn('⚠️ User not authenticated');
+                return false;
+            }
+
+            const currentUser = window.authService.getCurrentUser();
+            const userLicense = currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
+            
+            if (!userLicense) {
+                console.warn('⚠️ User license number not found');
+                if (window.notificationService) {
+                    window.notificationService.error(
+                        'User license number not found. Please login again.',
+                        'License Validation Failed',
+                        5000
+                    );
+                }
+                return false;
+            }
+
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+
+            return await window.LicenseValidator.validateAndNotify(userLicense, tallyPort);
+        } catch (error) {
+            console.error('❌ License validation error:', error);
+            if (window.notificationService) {
+                window.notificationService.error(
+                    'License validation failed: ' + error.message,
+                    'Validation Error',
+                    5000
+                );
+            }
+            return false;
+        }
+    }
+
+    /**
      * Start sync system - runs initial sync and sets up recurring syncs
      */
     async startSyncSystem() {
@@ -39,6 +87,12 @@ class SyncService {
     async runInitialSync() {
         console.log('📥 Running Initial Sync...');
         
+        // Validate license before sync
+        if (!await this.validateUserLicense()) {
+            console.error('❌ License validation failed - sync aborted');
+            return;
+        }
+        
         // Check if sync is allowed using SyncStateManager
         const companies = await this.fetchImportedCompanies();
         console.log(`📊 Found ${companies.length} companies to sync`);
@@ -48,7 +102,11 @@ class SyncService {
             return;
         }
 
-        // Try to start sync through SyncStateManager
+        if (!window.syncStateManager) {
+            console.warn('⚠️ SyncStateManager not initialized');
+            return;
+        }
+
         if (!window.syncStateManager.startSync('full', companies.length)) {
             console.warn('⚠️ Sync already in progress - request queued');
             return;
@@ -141,26 +199,37 @@ class SyncService {
      * Fetch all imported companies from database
      */
     async fetchImportedCompanies() {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
         try {
             if (!window.authService || !window.authService.isAuthenticated()) {
                 return [];
             }
 
             const headers = window.authService.getHeaders();
-            const response = await fetch(window.apiConfig.getUrl('/companies'), {
+            const url = window.apiConfig.getUrl('/companies');
+            const response = await fetch(url, {
                 method: 'GET',
-                headers: headers
+                headers: headers,
+                signal: controller.signal
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`HTTP ${response.status} from ${url}`);
             }
 
             const result = await response.json();
             return result.success && Array.isArray(result.data) ? result.data : [];
         } catch (error) {
-            console.error('Error fetching companies:', error);
+            if (error.name === 'AbortError') {
+                console.error('❌ Fetch companies timeout (10s):', error);
+            } else {
+                console.error('❌ Error fetching companies:', error);
+            }
             return [];
+        } finally {
+            clearTimeout(timeoutId);
         }
     }
 
@@ -192,6 +261,9 @@ class SyncService {
      * Store master data in database
      */
     async storeMasterDataInDatabase(companyId, masterData, headers) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
         try {
             const payload = {
                 companyId,
@@ -199,17 +271,19 @@ class SyncService {
                 syncedAt: new Date().toISOString()
             };
 
-            const response = await fetch(window.apiConfig.getUrl('/sync/master-data'), {
+            const url = window.apiConfig.getUrl('/sync/master-data');
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     ...headers,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                signal: controller.signal
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`HTTP ${response.status} from ${url}`);
             }
 
             const result = await response.json();
@@ -219,8 +293,14 @@ class SyncService {
 
             return result;
         } catch (error) {
-            console.error('Error storing master data:', error);
+            if (error.name === 'AbortError') {
+                console.error('❌ Store master data timeout (15s):', error);
+            } else {
+                console.error('❌ Error storing master data:', error);
+            }
             throw error;
+        } finally {
+            clearTimeout(timeoutId);
         }
     }
 
@@ -228,30 +308,38 @@ class SyncService {
      * Update company sync status
      */
     async updateCompanySyncStatus(companyId, status, headers) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
         try {
-            const response = await fetch(
-                window.apiConfig.getUrl(`/companies/${companyId}/sync-status`),
-                {
-                    method: 'PATCH',
-                    headers: {
-                        ...headers,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        syncStatus: status,
-                        lastSyncDate: new Date().toISOString()
-                    })
-                }
-            );
+            const url = window.apiConfig.getUrl(`/companies/${companyId}/sync-status`);
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    ...headers,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    syncStatus: status,
+                    lastSyncDate: new Date().toISOString()
+                }),
+                signal: controller.signal
+            });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`HTTP ${response.status} from ${url}`);
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error updating sync status:', error);
+            if (error.name === 'AbortError') {
+                console.error(`❌ Update sync status timeout (10s) for company ${companyId}:`, error);
+            } else {
+                console.error(`❌ Error updating sync status for company ${companyId}:`, error);
+            }
             throw error;
+        } finally {
+            clearTimeout(timeoutId);
         }
     }
 
@@ -303,9 +391,10 @@ class SyncService {
             }
 
             const headers = window.authService.getHeaders();
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
 
-            // Fetch current data from Tally
-            const tallyData = await this.fetchMasterDataFromTally(company.name, 9000, false);
+            const tallyData = await this.fetchMasterDataFromTally(company.name, tallyPort, false);
 
             // Fetch current data from database
             const dbData = await this.fetchCompanyDataFromDatabase(company.id, headers);
@@ -328,24 +417,33 @@ class SyncService {
      * Fetch company data from database
      */
     async fetchCompanyDataFromDatabase(companyId, headers) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
         try {
-            const response = await fetch(
-                window.apiConfig.getUrl(`/companies/${companyId}/master-data`),
-                {
-                    method: 'GET',
-                    headers: headers
-                }
-            );
+            const url = window.apiConfig.getUrl(`/companies/${companyId}/master-data`);
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: headers,
+                signal: controller.signal
+            });
 
             if (!response.ok) {
+                console.warn(`⚠️ Failed to fetch company data: HTTP ${response.status}`);
                 return {};
             }
 
             const result = await response.json();
             return result.success && result.data ? result.data : {};
         } catch (error) {
-            console.error('Error fetching company data from database:', error);
+            if (error.name === 'AbortError') {
+                console.error(`❌ Fetch company data timeout (10s) for company ${companyId}:`, error);
+            } else {
+                console.error(`❌ Error fetching company data from database (${companyId}):`, error);
+            }
             return {};
+        } finally {
+            clearTimeout(timeoutId);
         }
     }
 

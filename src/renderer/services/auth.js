@@ -5,13 +5,9 @@
 
 class AuthService {
     constructor() {
-        this.token = sessionStorage.getItem('authToken');
-        this.deviceToken = sessionStorage.getItem('deviceToken');
-        this.csrfToken = sessionStorage.getItem('csrfToken');
-        this.user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+        this.loadAuthState();
         this.refreshInterval = null;
         
-        // Log initialization for debugging
         console.log('🔐 AuthService initialized:', {
             hasToken: !!this.token,
             hasDeviceToken: !!this.deviceToken,
@@ -19,6 +15,23 @@ class AuthService {
             hasUser: !!this.user,
             userId: this.user?.userId
         });
+    }
+
+    /**
+     * Load auth state from sessionStorage (consistent storage)
+     */
+    loadAuthState() {
+        this.token = sessionStorage.getItem('authToken');
+        this.deviceToken = sessionStorage.getItem('deviceToken');
+        this.csrfToken = sessionStorage.getItem('csrfToken');
+        
+        try {
+            this.user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+        } catch (error) {
+            console.error('⚠️ Corrupted user data in sessionStorage:', error);
+            this.user = null;
+            sessionStorage.removeItem('currentUser');
+        }
     }
 
     /**
@@ -54,7 +67,8 @@ class AuthService {
                 userId: data.userId,
                 username: data.username,
                 fullName: data.fullName,
-                role: data.role
+                role: data.role,
+                licenseNumber: data.licenceNo || data.licenseNumber
             };
 
             sessionStorage.setItem('authToken', data.token);
@@ -64,6 +78,11 @@ class AuthService {
             }
             sessionStorage.setItem('currentUser', JSON.stringify(this.user));
             sessionStorage.setItem('loginTime', new Date().toISOString());
+            
+            // Store license number separately for easy access during sync validation
+            if (this.user.licenseNumber) {
+                localStorage.setItem('userLicenseNumber', this.user.licenseNumber.toString());
+            }
 
             // Set token in all future requests
             this.setupTokenInterceptor();
@@ -158,6 +177,7 @@ class AuthService {
         sessionStorage.removeItem('csrfToken');
         sessionStorage.removeItem('currentUser');
         sessionStorage.removeItem('loginTime');
+        localStorage.removeItem('userLicenseNumber');
 
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
@@ -231,12 +251,17 @@ class AuthService {
      * @returns {object}
      */
     getHeaders() {
+        this.loadAuthState();
+        
         const headers = {
             'Content-Type': 'application/json'
         };
         
-        if (this.token) {
+        if (this.token && !this.isTokenExpired()) {
             headers['Authorization'] = `Bearer ${this.token}`;
+        } else if (this.token && this.isTokenExpired()) {
+            console.warn('⚠️ Token expired in getHeaders(), clearing...');
+            this.loadAuthState();
         }
         
         if (this.deviceToken) {
@@ -317,11 +342,46 @@ class AuthService {
     }
 
     /**
+     * Check if JWT token is expired (client-side check)
+     * @returns {boolean}
+     */
+    isTokenExpired() {
+        if (!this.token) return true;
+
+        try {
+            const parts = this.token.split('.');
+            if (parts.length !== 3) return true;
+
+            const decoded = JSON.parse(atob(parts[1]));
+            const exp = decoded.exp;
+            
+            if (!exp) return false;
+            
+            const now = Math.floor(Date.now() / 1000);
+            const isExpired = now >= exp;
+            
+            if (isExpired) {
+                console.warn('⚠️ Token is expired');
+            }
+            
+            return isExpired;
+        } catch (error) {
+            console.error('❌ Error decoding token:', error);
+            return true;
+        }
+    }
+
+    /**
      * Validate token
      * @returns {Promise<boolean>}
      */
     async validateToken() {
         if (!this.token) return false;
+
+        if (this.isTokenExpired()) {
+            console.warn('⚠️ Token is expired, attempting refresh...');
+            return await this.refreshToken();
+        }
 
         try {
             const response = await fetch(window.apiConfig.getNestedUrl('auth', 'validate'), {

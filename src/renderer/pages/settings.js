@@ -176,12 +176,12 @@
             if (lightThemeBtn && darkThemeBtn) {
                 if (currentTheme === 'light') {
                     lightThemeBtn.style.borderColor = 'var(--primary-600)';
-                    lightThemeBtn.style.background = 'rgba(168, 85, 247, 0.1)';
+                    lightThemeBtn.style.background = 'rgba(94, 134, 186, 0.1)';
                     darkThemeBtn.style.borderColor = 'var(--border-primary)';
                     darkThemeBtn.style.background = 'var(--card-bg)';
                 } else {
                     darkThemeBtn.style.borderColor = 'var(--primary-600)';
-                    darkThemeBtn.style.background = 'rgba(168, 85, 247, 0.1)';
+                    darkThemeBtn.style.background = 'rgba(94, 134, 186, 0.1)';
                     lightThemeBtn.style.borderColor = 'var(--border-primary)';
                     lightThemeBtn.style.background = 'var(--card-bg)';
                 }

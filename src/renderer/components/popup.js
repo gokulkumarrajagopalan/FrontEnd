@@ -15,29 +15,33 @@ const Popup = {
             message = 'Are you sure?',
             confirmText = 'Confirm',
             cancelText = 'Cancel',
-            icon = '❓',
+            showCancel = true,
+            icon = '',
             confirmVariant = 'danger' // primary, danger, success
         } = options;
 
         return new Promise((resolve) => {
             const popupId = 'confirmPopup_' + Date.now();
             
+            const footerClasses = showCancel && cancelText ? 'justify-end' : 'justify-center';
             const popupHtml = `
                 <div id="${popupId}" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-in">
                         <div class="p-6">
                             <div class="flex items-start gap-4">
-                                <div class="text-4xl">${icon}</div>
+                                ${icon ? `<div class="text-4xl">${icon}</div>` : ''}
                                 <div class="flex-1">
                                     <h3 class="text-xl font-bold text-gray-900 mb-2">${title}</h3>
-                                    <p class="text-gray-600">${message}</p>
+                                    <div class="text-gray-600">${message}</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="px-6 py-4 bg-gray-50 flex gap-3 justify-end">
+                        <div class="px-6 py-4 bg-gray-50 flex gap-3 ${footerClasses}">
+                            ${showCancel && cancelText ? `
                             <button id="${popupId}_cancel" class="px-6 py-3 text-sm bg-gray-200 border-2 border-gray-300 text-black rounded-xl font-bold hover:bg-gray-300 active:scale-[0.98] transition-all">
                                 ${cancelText}
                             </button>
+                            ` : ''}
                             <button id="${popupId}_confirm" class="px-6 py-3 text-sm ${Popup._getButtonClass(confirmVariant)} rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all">
                                 ${confirmText}
                             </button>
@@ -61,10 +65,12 @@ const Popup = {
                 resolve(true);
             });
 
-            cancelBtn.addEventListener('click', () => {
-                cleanup();
-                resolve(false);
-            });
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => {
+                    cleanup();
+                    resolve(false);
+                });
+            }
 
             // Close on backdrop click
             popup.addEventListener('click', (e) => {
@@ -73,6 +79,71 @@ const Popup = {
                     resolve(false);
                 }
             });
+        });
+    },
+
+    /**
+     * Show an alert popup (single button)
+     * @param {Object} options - Popup configuration
+     * @returns {Promise<void>} - Resolves when OK is clicked or dialog is closed
+     */
+    alert: (options = {}) => {
+        const {
+            title = 'Alert',
+            message = '',
+            okText = 'OK',
+            icon = '',
+            variant = 'primary',
+            closeOnBackdrop = true,
+            onClose = null
+        } = options;
+
+        return new Promise((resolve) => {
+            const popupId = 'alertPopup_' + Date.now();
+            const popupHtml = `
+                <div id="${popupId}" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-in">
+                        <div class="p-6">
+                            <div class="flex items-start gap-4">
+                                ${icon ? `<div class="text-4xl">${icon}</div>` : ''}
+                                <div class="flex-1">
+                                    <h3 class="text-xl font-bold text-gray-900 mb-2">${title}</h3>
+                                    <div class="text-gray-600">${message}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-6 py-4 bg-gray-50 flex gap-3 justify-center">
+                            <button id="${popupId}_ok" class="px-6 py-3 text-sm ${Popup._getButtonClass(variant)} rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all">
+                                ${okText}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', popupHtml);
+
+            const popup = document.getElementById(popupId);
+            const okBtn = document.getElementById(`${popupId}_ok`);
+
+            const cleanup = () => {
+                popup.remove();
+                if (onClose) onClose();
+            };
+
+            okBtn.addEventListener('click', () => {
+                cleanup();
+                resolve();
+            });
+
+            if (closeOnBackdrop) {
+                popup.addEventListener('click', (e) => {
+                    if (e.target === popup) {
+                        cleanup();
+                        resolve();
+                    }
+                });
+            }
         });
     },
 
@@ -88,7 +159,8 @@ const Popup = {
             footer = '',
             size = 'md', // sm, md, lg, xl
             closeable = true,
-            onClose = null
+            onClose = null,
+            buttons = null // [{ text, variant, onClick, dismissOnClick }]
         } = options;
 
         const sizeClasses = {
@@ -114,9 +186,14 @@ const Popup = {
                     <div class="px-6 py-4 overflow-y-auto flex-1">
                         ${content}
                     </div>
-                    ${footer ? `
-                        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
-                            ${footer}
+                    ${footer || buttons ? `
+                        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex ${buttons ? 'gap-3 justify-end' : ''}">
+                            ${footer ? footer : ''}
+                            ${buttons ? buttons.map((btn, idx) => `
+                                <button id="${id}_btn_${idx}" class="px-6 py-3 text-sm ${Popup._getButtonClass(btn.variant || 'primary')} rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all">
+                                    ${btn.text || 'Button'}
+                                </button>
+                            `).join('') : ''}
                         </div>
                     ` : ''}
                 </div>
@@ -145,6 +222,27 @@ const Popup = {
             });
         }
 
+        // Wire dynamic buttons if provided
+        if (buttons && Array.isArray(buttons)) {
+            buttons.forEach((btn, idx) => {
+                const el = document.getElementById(`${id}_btn_${idx}`);
+                if (el) {
+                    el.addEventListener('click', async () => {
+                        try {
+                            if (typeof btn.onClick === 'function') {
+                                await btn.onClick();
+                            }
+                        } finally {
+                            if (btn.dismissOnClick !== false) {
+                                Popup.close(id);
+                                if (onClose) onClose();
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
         return id;
     },
 
@@ -165,7 +263,7 @@ const Popup = {
      */
     _getButtonClass: (variant) => {
         const variants = {
-            primary: 'bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 hover:from-purple-700 hover:via-blue-700 hover:to-purple-700 text-white',
+            primary: 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 hover:from-blue-700 hover:via-blue-600 hover:to-blue-700 text-white',
             danger: 'bg-red-600 hover:bg-red-700 text-white',
             success: 'bg-green-600 hover:bg-green-700 text-white'
         };

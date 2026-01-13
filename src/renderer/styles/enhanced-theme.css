@@ -394,6 +394,83 @@ body {
     border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
 
+/* ==================== ANIMATIONS ==================== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* ==================== NAVIGATION LINKS ==================== */
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0.75rem 1rem;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.nav-link:hover {
+    background: var(--bg-tertiary);
+    color: var(--primary-600);
+}
+
+.nav-link.active {
+    background: var(--primary-50) !important;
+    color: var(--primary-600) !important;
+    font-weight: 600;
+}
+
+.nav-icon {
+    font-size: 1.1rem;
+    width: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+/* ==================== APP HEADER COMPONENTS ==================== */
+.header-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    background: transparent;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.header-toggle-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--primary-600);
+    border-color: var(--border-primary);
+}
+
+.header-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.global-company-selector {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem !important;
+}
+
 /* ==================== PAGE HEADER ==================== */
 .page-header {
     background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);

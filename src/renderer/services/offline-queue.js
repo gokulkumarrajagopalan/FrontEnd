@@ -85,28 +85,39 @@ class OfflineQueue {
             console.log(`🔄 Starting queue sync (${this.queue.length} items)...`);
 
             const successfulIds = [];
+            const failedIds = [];
 
             for (const item of this.queue) {
                 try {
                     await this.executeQueuedRequest(item);
                     successfulIds.push(item.id);
+                    console.log(`✅ Synced: ${item.config.url}`);
                 } catch (error) {
                     console.warn(`⚠️ Failed to sync ${item.id}:`, error.message);
                     item.lastError = error.message;
                     item.retries++;
 
                     if (item.retries >= this.retryAttempts) {
-                        console.error(`❌ Max retries exceeded for ${item.id}. Removing from queue.`);
-                        successfulIds.push(item.id); // Remove from queue
+                        console.error(`❌ Max retries exceeded for ${item.id}. Moving to failed.`);
+                        failedIds.push(item.id);
+                        
+                        if (window.notificationService) {
+                            window.notificationService.error(
+                                `Failed to sync: ${item.config.url} (${error.message})`,
+                                'Queue Sync Error',
+                                5000
+                            );
+                        }
                     }
                 }
             }
 
-            // Remove successful items
-            this.queue = this.queue.filter(item => !successfulIds.includes(item.id));
+            this.queue = this.queue.filter(item => 
+                !successfulIds.includes(item.id) && !failedIds.includes(item.id)
+            );
             this.saveQueue();
 
-            console.log(`✅ Queue sync complete. ${this.queue.length} items remaining.`);
+            console.log(`✅ Queue sync complete. Successful: ${successfulIds.length}, Failed: ${failedIds.length}, Remaining: ${this.queue.length}`);
         } catch (error) {
             console.error('❌ Queue sync failed:', error);
         } finally {
@@ -181,11 +192,20 @@ class OfflineQueue {
         try {
             const stored = localStorage.getItem('offlineQueue');
             if (stored) {
-                this.queue = JSON.parse(stored);
+                const parsed = JSON.parse(stored);
+                
+                if (!Array.isArray(parsed)) {
+                    console.error('❌ Corrupted queue data (not an array), clearing...');
+                    this.clearQueue();
+                    return;
+                }
+                
+                this.queue = parsed;
                 console.log(`📥 Loaded ${this.queue.length} queued items from storage`);
             }
         } catch (error) {
-            console.warn('Failed to load queue from storage:', error);
+            console.error('❌ Failed to load queue from storage - corrupted data:', error);
+            this.clearQueue();
         }
     }
 

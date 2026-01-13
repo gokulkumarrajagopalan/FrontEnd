@@ -15,7 +15,7 @@ function registerSyncHandler() {
                 cmpId,
                 userId,
                 tallyPort = 9000,
-                backendUrl = 'http://localhost:8080',
+                backendUrl = process.env.BACKEND_URL || 'http://localhost:8080',
                 authToken,
                 deviceToken
             } = params;
@@ -56,7 +56,7 @@ function registerSyncHandler() {
 
             python.on('close', (code) => {
                 console.log(`✅ Sync process exited with code: ${code}`);
-                
+
                 try {
                     const result = JSON.parse(stdout);
                     resolve({

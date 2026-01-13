@@ -3,6 +3,7 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const security = require("./security");
+require('dotenv').config();
 
 console.log("🔥 main.js loaded");
 
@@ -115,7 +116,7 @@ function startSyncWorker(config = {}) {
       tallyPort: config.tallyPort || 9000,
       syncInterval: config.syncInterval || 30
     };
-    
+
     try {
       security.validateSettings(settings);
     } catch (error) {
@@ -124,7 +125,7 @@ function startSyncWorker(config = {}) {
       syncWorker = null;
       return;
     }
-    
+
     syncWorker.stdin.write(JSON.stringify(settings) + '\n');
     syncWorker.stdin.end();
 
@@ -135,7 +136,7 @@ function startSyncWorker(config = {}) {
           const result = JSON.parse(output);
           const type = result.type || 'unknown';
           const timestamp = new Date().toLocaleTimeString();
-          
+
           if (type === 'worker_started') {
             console.log(`\n${'='.repeat(60)}`);
             console.log(`🚀 [${timestamp}] SYNC WORKER STARTED`);
@@ -156,7 +157,7 @@ function startSyncWorker(config = {}) {
             console.log(`\n⏹️  [${timestamp}] SYNC WORKER STOPPED`);
             console.log(`   Last Sync: ${result.data?.last_sync_time || 'Never'}\n`);
           }
-          
+
           if (mainWindow) {
             mainWindow.webContents.send("sync-update", result);
           }
@@ -347,6 +348,12 @@ console.log("🔥 Registering IPC handlers...");
 
 const { registerMasterDataHandler } = require('./master-data-handler');
 registerMasterDataHandler();
+
+// Provide backend URL to renderer synchronously
+ipcMain.on('get-backend-url-sync', (event) => {
+  event.returnValue = process.env.BACKEND_URL || 'http://localhost:8080';
+});
+
 console.log("✅ 'fetch-master-data' IPC handler registered");
 
 ipcMain.handle("fetch-companies", async (event, { tallyPort } = {}) => {
@@ -479,13 +486,13 @@ ipcMain.handle("incremental-sync", async (event, config) => {
   console.log('📡 Received incremental-sync IPC call');
   try {
     const { companyId, userId, tallyPort, backendUrl, authToken, deviceToken, entityType, maxAlterID } = config;
-    
+
     console.log(`\n${'='.repeat(60)}`);
     console.log(`🔄 INCREMENTAL SYNC STARTED: ${entityType.toUpperCase()}`);
     console.log(`   Company: ${companyId}`);
     console.log(`   Max AlterID: ${maxAlterID}`);
     console.log(`${'='.repeat(60)}`);
-    
+
     return new Promise((resolve) => {
       const pythonPath = process.platform === "win32" ? "python" : "python3";
       const scriptPath = path.join(__dirname, "../..", "python", "incremental_sync.py");
@@ -561,12 +568,12 @@ ipcMain.handle("reconcile-data", async (event, config) => {
   console.log('📡 Received reconcile-data IPC call');
   try {
     const { companyId, userId, tallyPort, backendUrl, authToken, deviceToken, entityType } = config;
-    
+
     console.log(`\n${'='.repeat(60)}`);
     console.log(`🔍 RECONCILIATION STARTED: ${entityType.toUpperCase()}`);
     console.log(`   Company: ${companyId}`);
     console.log(`${'='.repeat(60)}`);
-    
+
     return new Promise((resolve) => {
       const pythonPath = process.platform === "win32" ? "python" : "python3";
       const scriptPath = path.join(__dirname, "../..", "python", "reconciliation.py");
@@ -639,7 +646,7 @@ console.log("✅ 'reconcile-data' IPC handler registered successfully");
 function handleSync({ companyId, userId, authToken, deviceToken, tallyPort, backendUrl, companyName }, scriptName, displayName, entityType) {
   try {
     security.validateScriptPath(scriptName, path.join(__dirname, "../..", "python"));
-    
+
     console.log(`\n${'='.repeat(60)}`);
     console.log(`🔄 SYNC STARTED: ${displayName.toUpperCase()}`);
     console.log(`   Company: ${companyName || companyId}`);

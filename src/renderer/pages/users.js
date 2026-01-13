@@ -35,7 +35,6 @@
                         <th class="text-left p-3">Department</th>
                         <th class="text-left p-3">Last Login</th>
                         <th class="text-left p-3">Status</th>
-                        <th class="text-left p-3">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="usersTableBody">
