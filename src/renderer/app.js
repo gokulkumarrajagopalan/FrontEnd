@@ -563,24 +563,6 @@ class App {
             // Setup notification bell click handler
             this.setupNotificationBell();
 
-            // Setup table header toggle button click handler
-            const tableHeaderToggleBtn = document.getElementById('tableHeaderToggleBtnOpened');
-            if (tableHeaderToggleBtn) {
-                tableHeaderToggleBtn.addEventListener('click', () => {
-                    // This button is intended to toggle the header or exit fullscreen
-                    // We dispatch a custom event that BasePage can listen to, or directly call the active page's method
-                    if (window.currentPage && typeof window.currentPage.exitTableFullscreenLock === 'function') {
-                        window.currentPage.exitTableFullscreenLock();
-                    } else {
-                        // Fallback: manual toggle of the app header if no page is active
-                        const header = document.querySelector('header');
-                        if (header) {
-                            header.style.display = header.style.display === 'none' ? 'flex' : 'none';
-                        }
-                    }
-                });
-            }
-
             // Retry notification bell setup after a delay if notification center not ready
             setTimeout(() => {
                 if (!window.notificationCenter || !window.notificationCenter.initialized) {

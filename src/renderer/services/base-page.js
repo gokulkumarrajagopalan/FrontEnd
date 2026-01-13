@@ -380,17 +380,44 @@ class BasePage {
                 border-radius: 50%;
                 width: 28px;
                 height: 28px;
-                display: none !important;
+                display: none;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                 z-index: 100;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                transition: color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
                 color: #64748b;
-                opacity: 0;
-                pointer-events: none;
-                visibility: hidden;
+                opacity: 1;
+                pointer-events: auto;
+                visibility: visible;
+                box-sizing: border-box;
+                outline: none;
+            }
+
+            .header-toggle-btn:hover {
+                background: #f8fafc;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+                color: #4b5563;
+            }
+
+            /* Top nav header toggle button overrides */
+            #tableHeaderToggleBtnOpened.header-toggle-btn {
+                position: static;
+                left: auto;
+                top: auto;
+                transform: none;
+                box-shadow: none;
+                opacity: 1;
+                pointer-events: auto;
+                visibility: visible;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                align-self: center;
+                justify-self: center;
+                margin: 0 auto;
+                background: white;
             }
             
             /* Sticky filters */
