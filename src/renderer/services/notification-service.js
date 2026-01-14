@@ -14,7 +14,7 @@ class NotificationService {
         // Create notification container
         this.container = document.createElement('div');
         this.container.id = 'notification-container';
-        this.container.className = 'fixed top-4 right-4 z-50 space-y-3 max-w-sm';
+        this.container.className = 'fixed top-4 right-4 z-50 space-y-3 max-w-xs';
         document.body.appendChild(this.container);
 
         // Inject styles
@@ -31,7 +31,7 @@ class NotificationService {
                 display: flex;
                 align-items: flex-start;
                 gap: 0.75rem;
-                padding: 1rem 1.25rem;
+                padding: 0.75rem 1rem;
                 border-radius: 0.75rem;
                 box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
                 backdrop-filter: blur(8px);
@@ -41,8 +41,8 @@ class NotificationService {
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 position: relative;
                 overflow: hidden;
-                min-width: 320px;
-                max-width: 400px;
+                min-width: 260px;
+                max-width: 300px;
             }
 
             .notification.show {
@@ -91,7 +91,7 @@ class NotificationService {
             }
 
             .notification-icon {
-                font-size: 1.25rem;
+                font-size: 1.125rem;
                 line-height: 1;
                 flex-shrink: 0;
                 margin-top: 0.125rem;
@@ -104,13 +104,13 @@ class NotificationService {
 
             .notification-title {
                 font-weight: 600;
-                font-size: 0.875rem;
+                font-size: 0.8125rem;
                 line-height: 1.25;
                 margin-bottom: 0.25rem;
             }
 
             .notification-message {
-                font-size: 0.8125rem;
+                font-size: 0.75rem;
                 line-height: 1.4;
                 opacity: 0.95;
             }

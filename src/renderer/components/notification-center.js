@@ -134,7 +134,7 @@ class NotificationCenter {
             .notification-center-panel {
                 background: white;
                 box-shadow: -5px 0 30px rgba(0, 0, 0, 0.3);
-                width: 430px;
+                width: 330px;
                 height: 100vh;
                 display: flex;
                 flex-direction: column;
@@ -160,12 +160,12 @@ class NotificationCenter {
             }
 
             .notification-center-header {
-                padding: 20px;
+                padding: 10px;
                 border-bottom: 1px solid #e5e7eb;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: #1f2937;
                 color: white;
             }
 
@@ -173,25 +173,23 @@ class NotificationCenter {
                 font-size: 20px;
                 font-weight: bold;
                 margin: 0;
+                color: white;
             }
 
             .notification-center-close {
-                background: rgba(255, 255, 255, 0.2);
-                border: none;
-                color: white;
+                color: white !important;
                 cursor: pointer;
-                font-size: 24px;
+                font-size: 14px;
                 width: 40px;
                 height: 40px;
-                border-radius: 8px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                transition: background 0.3s ease;
+                transition: opacity 0.3s ease;
             }
 
             .notification-center-close:hover {
-                background: rgba(255, 255, 255, 0.3);
+                opacity: 0.7;
             }
 
             .notification-center-content {
@@ -451,7 +449,7 @@ class NotificationCenter {
                 <div class="notification-center-panel">
                     <div class="notification-center-header">
                         <h2 class="notification-center-title">📋 Notifications</h2>
-                        <button class="notification-center-close" id="notification-center-close">✕</button>
+                        <span class="notification-center-close" id="notification-center-close">✕</span>
                     </div>
                     
                     <div class="notification-center-content" id="notification-center-list">

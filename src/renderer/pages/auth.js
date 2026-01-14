@@ -63,7 +63,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">👤</span>
                                 </div>
-                                <input type="text" id="username" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Enter your username">
+                                <input type="text" id="username" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="Enter your username">
                             </div>
                         </div>
                     </div>
@@ -71,21 +71,21 @@
                     <!-- Email + Licence Mode Fields -->
                     <div id="emailFields" class="hidden space-y-4">
                         <div>
-                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Email Address</label>
+                            <label for="loginEmail" class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Email Address</label>
                             <div class="relative group">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">📧</span>
                                 </div>
-                                <input type="email" id="loginEmail" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john@example.com">
+                                <input type="email" id="loginEmail" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="john@example.com">
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Licence Number</label>
+                            <label for="loginLicenceNo" class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Licence Number</label>
                             <div class="relative group">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔑</span>
                                 </div>
-                                <input type="number" id="loginLicenceNo" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px); -moz-appearance: textfield;" placeholder="1001" min="1">
+                                <input type="number" id="loginLicenceNo" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem; -moz-appearance: textfield;" placeholder="1001" min="1">
                                 <style>
                                     #loginLicenceNo::-webkit-outer-spin-button,
                                     #loginLicenceNo::-webkit-inner-spin-button {
@@ -99,12 +99,13 @@
 
                     <!-- Password Field (Common) -->
                     <div>
-                        <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Password</label>
-                        <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <label for="password" class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Password</label>
+                        <div class="relative w-full" style="position: relative;">
+                            <div class="absolute flex items-center justify-center" style="position: absolute; left: 1rem; top: 0; bottom: 0; pointer-events: none; z-index: 10;">
                                 <span class="text-lg">🔐</span>
                             </div>
-                            <input type="password" id="password" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Enter your password" required>
+                            <input type="password" id="password" class="w-full py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem; padding-right: 3rem;" placeholder="Enter your password" required>
+                            <button type="button" id="toggleLoginPassword" aria-label="Show or hide password" class="absolute flex items-center justify-center text-gray-500 hover:text-gray-700" style="position: absolute; right: 0.75rem; top: 0; bottom: 0; background: none !important; border: none !important; padding: 0 !important; width: 32px !important; min-width: auto !important; box-shadow: none !important; transform: none !important; z-index: 10; cursor: pointer;">👁️</button>
                         </div>
                     </div>
 
@@ -144,7 +145,7 @@
     `;
 
     // ============= OTP VERIFICATION TEMPLATE =============
-    const getOtpVerificationTemplate = (email, licenceNo) => `
+    const getOtpVerificationTemplate = (username) => `
     <div class="auth-background flex items-center justify-center p-6 relative overflow-hidden" style="background: var(--bg-primary); min-height: 100vh;">
         <div class="w-full max-w-md relative z-10">
             <div class="auth-header mb-6 text-center">
@@ -157,8 +158,8 @@
 
             <div class="rounded-3xl p-8 shadow-2xl" style="background: var(--card-bg); border: 1px solid var(--card-border);">
                 <div class="mb-6 text-center">
-                    <p class="text-sm font-medium" style="color: var(--text-secondary);">${email}</p>
-                    <p class="text-xs" style="color: var(--text-tertiary);">Licence Number: ${licenceNo}</p>
+                    <p class="text-sm font-medium" style="color: var(--text-secondary);">Username: ${username}</p>
+                    <p class="text-xs" style="color: var(--text-tertiary);">Enter the 6-digit code sent to your email.</p>
                 </div>
 
                 <div id="errorMessage" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm hidden">
@@ -221,6 +222,91 @@
     </div>
     `;
 
+    // ============= MOBILE OTP VERIFICATION TEMPLATE =============
+    const getMobileOtpVerificationTemplate = (mobile, username) => `
+    <div class="flex items-center justify-center min-h-screen" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+        <div class="w-full max-w-md mx-4">
+            <div class="bg-white rounded-2xl shadow-2xl overflow-hidden text-gray-800">
+                <!-- Header -->
+                <div class="p-8 pb-6 text-center" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: #000000;">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-4 shadow-lg">
+                        <span class="text-4xl">📱</span>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-2" style="color: #000000;">Mobile Verification</h2>
+                    <p class="text-sm" style="color: #000000;">Enter the OTP sent to ${mobile.replace(/(.{3})(.{4})(.*)/, '$1$2****')}</p>
+                </div>
+
+                <!-- OTP Form -->
+                <div class="p-8" style="color: #1f2937;">
+                    <!-- Success Message -->
+                    <div id="mobile-otp-success" class="mb-4 p-4 rounded-lg" style="background-color: #DEF7EC; border: 1px solid #84E1BC; display: none;" role="alert" aria-live="polite">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">✅</span>
+                            <span class="text-sm font-medium" style="color: #03543F;"></span>
+                        </div>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div id="mobile-otp-error" class="mb-4 p-4 rounded-lg" style="background-color: #FDE8E8; border: 1px solid #F98080; display: none;" role="alert" aria-live="assertive">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">⚠️</span>
+                            <span class="text-sm font-medium" style="color: #9B1C1C;"></span>
+                        </div>
+                    </div>
+
+                    <!-- OTP Inputs -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-800 mb-3">Enter 6-digit OTP</label>
+                        <div class="flex gap-2 justify-center" id="mobile-otp-inputs-container">
+                            <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" inputmode="numeric" pattern="[0-9]" id="mobile-otp-1" />
+                            <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" inputmode="numeric" pattern="[0-9]" id="mobile-otp-2" />
+                            <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" inputmode="numeric" pattern="[0-9]" id="mobile-otp-3" />
+                            <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" inputmode="numeric" pattern="[0-9]" id="mobile-otp-4" />
+                            <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" inputmode="numeric" pattern="[0-9]" id="mobile-otp-5" />
+                            <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" inputmode="numeric" pattern="[0-9]" id="mobile-otp-6" />
+                        </div>
+                    </div>
+
+                    <!-- Timer -->
+                    <div class="mb-6 text-center">
+                        <div class="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 text-gray-800">
+                            <span class="text-2xl">⏱️</span>
+                            <span class="text-sm font-medium">Time remaining:</span>
+                            <span id="mobile-otp-timer" class="text-sm font-bold" style="color: var(--primary-color);">10:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Verify Button -->
+                    <button id="mobile-verify-otp-btn" class="w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 mb-4" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: #000000;">
+                        <span class="flex items-center justify-center gap-2">
+                            <span>🔓</span>
+                            <span id="mobile-verify-otp-text">Verify OTP</span>
+                        </span>
+                    </button>
+
+                    <!-- Resend OTP -->
+                    <div class="text-center mb-4">
+                        <button id="mobile-resend-otp-btn" class="text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" style="color: var(--primary-color);" disabled>
+                            <span id="mobile-resend-otp-text">Resend OTP in <span id="mobile-resend-countdown">60</span>s</span>
+                        </button>
+                        <div id="mobile-resend-attempts" class="text-xs text-gray-500 mt-1">3 attempts remaining</div>
+                    </div>
+
+                    <!-- Back to Login -->
+                    <div class="text-center">
+                        <a href="#login" class="text-sm font-medium transition-colors duration-200" style="color: var(--primary-color);" onclick="window.initializeLogin(); return false;">← Back to Login</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Text -->
+            <div class="mt-6 text-center">
+                <p class="text-white text-sm opacity-90">Didn't receive the code? Check your SMS or try resending.</p>
+            </div>
+        </div>
+    </div>
+    `;
+
     // ============= REGISTRATION TEMPLATE (UPDATED) =============
     const getSignupTemplate = () => `
     <div class="auth-background flex items-center justify-center p-6 py-8 relative overflow-hidden" style="background: var(--bg-primary); min-height: 100vh;">
@@ -234,60 +320,68 @@
             </div>
 
             <div class="rounded-3xl p-8 shadow-2xl" style="background: var(--card-bg); border: 1px solid var(--card-border); max-width: 700px; margin: 0 auto;">
-                <div id="errorMessage" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm hidden">
+                <div id="errorMessage" role="alert" aria-live="assertive" tabindex="-1" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm hidden">
                     <div class="flex items-start gap-3">
                         <span class="text-lg">⚠️</span>
                         <span class="flex-1"></span>
                     </div>
                 </div>
-                <div id="successMessage" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-2xl text-green-700 text-sm hidden">
+                <div id="successMessage" role="status" aria-live="polite" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-2xl text-green-700 text-sm hidden">
                     <div class="flex items-start gap-3">
                         <span class="text-lg">✅</span>
                         <span class="flex-1"></span>
                     </div>
                 </div>
 
-                <form id="signupForm" class="space-y-5">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Full Name <span class="text-red-500">*</span></label>
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-lg">👤</span>
-                                </div>
-                                <input type="text" id="fullName" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="John Doe" required>
+                <form id="signupForm" class="space-y-3">
+                    <!-- Full Name Row -->
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Full Name <span class="text-red-500">*</span></label>
+                        <div class="relative group flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="text-lg">👤</span>
                             </div>
+                            <input type="text" id="fullName" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="John Doe" required>
                         </div>
+                    </div>
 
-                        <div>
-                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Username <span class="text-red-500">*</span></label>
+                    <!-- Username Row -->
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Username <span class="text-red-500">*</span></label>
+                        <div class="flex-1">
                             <div class="relative group">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg text-blue-500">@</span>
                                 </div>
-                                <input type="text" id="username" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john_company_a" required>
+                                <input type="text" id="username" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="john_company_a" required>
                             </div>
-                            <p class="text-xs mt-1" style="color: var(--text-tertiary);">Unique username for login</p>
+                            <p id="usernameHelper" class="text-xs mt-1 ml-2" style="color: var(--text-tertiary);">Unique username for login</p>
                         </div>
+                    </div>
 
-                        <div>
-                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Email Address <span class="text-red-500">*</span></label>
+                    <!-- Email Address Row -->
+                    <div class="flex items-center gap-3">
+                        <label for="email" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Email Address <span class="text-red-500">*</span></label>
+                        <div class="flex-1">
                             <div class="relative group">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">📧</span>
                                 </div>
-                                <input type="email" id="email" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="john@example.com" required>
+                                <input type="email" id="email" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="john@example.com" required>
                             </div>
-                            <p class="text-xs mt-1" style="color: var(--text-tertiary);">Can be used for multiple companies</p>
+                            <p id="emailHelper" class="text-xs mt-1 ml-2" style="color: var(--text-tertiary);">Can be used for multiple companies</p>
                         </div>
+                    </div>
 
-                        <div>
-                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Licence Number <span class="text-red-500">*</span></label>
+                    <!-- Licence Number Row -->
+                    <div class="flex items-center gap-3">
+                        <label for="licenceNo" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Licence Number <span class="text-red-500">*</span></label>
+                        <div class="flex-1">
                             <div class="relative group">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-lg">🔑</span>
                                 </div>
-                                <input type="number" id="licenceNo" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px); -moz-appearance: textfield;" placeholder="1001" required min="1">
+                                <input type="number" id="licenceNo" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem; -moz-appearance: textfield;" placeholder="1001" required min="1">
                                 <style>
                                     #licenceNo::-webkit-outer-spin-button,
                                     #licenceNo::-webkit-inner-spin-button {
@@ -296,27 +390,89 @@
                                     }
                                 </style>
                             </div>
-                            <p class="text-xs mt-1" style="color: var(--text-tertiary);">Your company's licence number</p>
+                            <p id="licenceHelper" class="text-xs mt-1 ml-2" style="color: var(--text-tertiary);">Your company's licence number</p>
                         </div>
+                    </div>
 
-                        <div>
-                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Password <span class="text-red-500">*</span></label>
+                    <!-- Country Code Row -->
+                    <div class="flex items-center gap-3">
+                        <label for="countryCode" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Country Code <span class="text-red-500">*</span></label>
+                        <div class="flex-1">
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                                    <span class="text-lg">🌍</span>
+                                </div>
+                                <select id="countryCode" class="w-full pr-12 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400 appearance-none" style="padding-left: 3rem;" required>
+                                    <option value="+91" selected>+91 (India)</option>
+                                    <option value="+1">+1 (USA)</option>
+                                    <option value="+44">+44 (UK)</option>
+                                    <option value="+61">+61 (Australia)</option>
+                                    <option value="+27">+27 (South Africa)</option>
+                                    <option value="+86">+86 (China)</option>
+                                    <option value="+81">+81 (Japan)</option>
+                                    <option value="+33">+33 (France)</option>
+                                    <option value="+49">+49 (Germany)</option>
+                                    <option value="+39">+39 (Italy)</option>
+                                </select>
+                                <style>
+                                    #countryCode {
+                                        appearance: none;
+                                        padding-right: 2.5rem;
+                                        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+                                        background-repeat: no-repeat;
+                                        background-position: right 0.75rem center;
+                                        padding-right: 2rem;
+                                    }
+                                </style>
+                            </div>
+                            <p id="countryHelper" class="text-xs mt-1 ml-2" style="color: var(--text-tertiary);"></p>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Number Row -->
+                    <div class="flex items-center gap-3">
+                        <label for="mobile" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Mobile Number <span class="text-red-500">*</span></label>
+                        <div class="flex-1">
                             <div class="relative group">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <span class="text-lg">📱</span>
+                                </div>
+                                <input type="tel" id="mobile" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="1234567890" required pattern="[0-9]{7,15}" aria-describedby="mobileHelper">
+                            </div>
+                            <p id="mobileHelper" class="text-xs mt-1 ml-2" style="color: var(--text-tertiary);"></p>
+                        </div>
+                    </div>
+
+                    <!-- Password Row -->
+                    <div class="flex items-center gap-3">
+                        <label for="signupPassword" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Password <span class="text-red-500">*</span></label>
+                        <div class="flex-1">
+                            <div class="relative w-full" style="position: relative;">
+                                <div class="absolute flex items-center justify-center" style="position: absolute; left: 1rem; top: 0; bottom: 0; pointer-events: none; z-index: 10;">
                                     <span class="text-lg">🔐</span>
                                 </div>
-                                <input type="password" id="password" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Min 6 characters" required minlength="6">
+                                <input type="password" id="signupPassword" class="w-full py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem; padding-right: 3rem;" placeholder="Min 6 characters" required minlength="6" aria-describedby="passwordHelper">
+                                <button type="button" id="toggleSignupPassword" aria-label="Show or hide password" class="absolute flex items-center justify-center text-gray-500 hover:text-gray-700" style="position: absolute; right: 0.75rem; top: 0; bottom: 0; background: none !important; border: none !important; padding: 0 !important; width: 32px !important; min-width: auto !important; box-shadow: none !important; transform: none !important; z-index: 10; cursor: pointer;">👁️</button>
+                            </div>
+                            <p id="passwordHelper" class="text-[10px] mt-1 ml-2" style="color: var(--text-tertiary);"></p>
+                            <div id="passwordStrength" class="mt-1 ml-2 h-1 bg-gray-200 rounded overflow-hidden w-24">
+                                <div id="passwordStrengthBar" class="h-1 w-0 bg-red-500 transition-all duration-200"></div>
                             </div>
                         </div>
+                    </div>
 
-                        <div>
-                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Confirm Password <span class="text-red-500">*</span></label>
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <!-- Confirm Password Row -->
+                    <div class="flex items-center gap-3">
+                        <label for="confirmPassword" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Confirm Password <span class="text-red-500">*</span></label>
+                        <div class="flex-1">
+                            <div class="relative w-full" style="position: relative;">
+                                <div class="absolute flex items-center justify-center" style="position: absolute; left: 1rem; top: 0; bottom: 0; pointer-events: none; z-index: 10;">
                                     <span class="text-lg">🔐</span>
                                 </div>
-                                <input type="password" id="confirmPassword" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: calc(2.75rem + 5px);" placeholder="Re-enter password" required minlength="6">
+                                <input type="password" id="confirmPassword" class="w-full py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem; padding-right: 3rem;" placeholder="Re-enter password" required minlength="6" aria-describedby="confirmHelper">
+                                <button type="button" id="toggleSignupConfirmPassword" aria-label="Show or hide password" class="absolute flex items-center justify-center text-gray-500 hover:text-gray-700" style="position: absolute; right: 0.75rem; top: 0; bottom: 0; background: none !important; border: none !important; padding: 0 !important; width: 32px !important; min-width: auto !important; box-shadow: none !important; transform: none !important; z-index: 10; cursor: pointer;">👁️</button>
                             </div>
+                            <p id="confirmHelper" class="text-[10px] mt-1 ml-2" style="color: var(--text-tertiary);"></p>
                         </div>
                     </div>
 
@@ -334,8 +490,11 @@
                     </div>
 
                     <button type="submit" id="signupBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm mt-6" style="background: #000000 !important;">
-                        <span class="text-lg">✨</span>
-                        <span>Create My Account</span>
+                        <span class="text-lg" id="signupBtnIcon">✨</span>
+                        <span id="signupBtnText">Create My Account</span>
+                        <span id="signupBtnSpinner" class="hidden ml-2 inline-flex">
+                            <span class="animate-spin rounded-full h-5 w-5 border-2 border-blue-200 border-t-white"></span>
+                        </span>
                     </button>
                 </form>
 
@@ -362,10 +521,9 @@
         if (currentHash === 'signup') {
             window.initializeSignup();
         } else if (currentHash === 'verify-otp') {
-            const email = localStorage.getItem('pendingVerificationEmail');
-            const licenceNo = localStorage.getItem('pendingVerificationLicence');
-            if (email && licenceNo) {
-                window.initializeOtpVerification(email, licenceNo);
+            const username = localStorage.getItem('pendingVerificationUsername');
+            if (username) {
+                window.initializeOtpVerification(username);
             } else {
                 window.initializeLogin();
             }
@@ -472,10 +630,27 @@
     }
 
     window.initializeSignup = function () {
-        console.log('Initializing Signup Page...');
+        console.log('📝 Initializing Signup Page...');
         const pageContent = document.getElementById('page-content');
         const target = pageContent || document.body;
         target.innerHTML = getSignupTemplate();
+        
+        // Verify fields are in DOM
+        setTimeout(() => {
+            const countryCodeField = document.getElementById('countryCode');
+            const mobileField = document.getElementById('mobile');
+            
+            console.log('🌍 Country Code field visible:', !!countryCodeField);
+            console.log('📱 Mobile field visible:', !!mobileField);
+            
+            if (!countryCodeField) {
+                console.warn('⚠️ Country Code field not found in DOM');
+            }
+            if (!mobileField) {
+                console.warn('⚠️ Mobile field not found in DOM');
+            }
+        }, 100);
+        
         setupSignupForm();
 
         // Auto-fetch and populate Tally license number
@@ -543,18 +718,19 @@
         }
     }
 
-    window.initializeOtpVerification = function (email, licenceNo) {
+    window.initializeOtpVerification = function (username) {
         console.log('Initializing OTP Verification...');
         const pageContent = document.getElementById('page-content');
         const target = pageContent || document.body;
-        target.innerHTML = getOtpVerificationTemplate(email, licenceNo);
-        setupOtpForm(email, licenceNo);
+        target.innerHTML = getOtpVerificationTemplate(username);
+        setupOtpForm(username);
 
         // Handle back to login
         const backToLogin = document.getElementById('backToLogin');
         if (backToLogin) {
             backToLogin.addEventListener('click', (e) => {
                 e.preventDefault();
+                localStorage.removeItem('pendingVerificationUsername');
                 localStorage.removeItem('pendingVerificationEmail');
                 localStorage.removeItem('pendingVerificationLicence');
                 if (window.router) {
@@ -576,6 +752,18 @@
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
         const loadingSpinner = document.getElementById('loadingSpinner');
+
+        // Show/Hide password toggle
+        const toggleLoginPassword = document.getElementById('toggleLoginPassword');
+        if (toggleLoginPassword) {
+            toggleLoginPassword.addEventListener('click', () => {
+                const pwd = document.getElementById('password');
+                if (!pwd) return;
+                const isText = pwd.type === 'text';
+                pwd.type = isText ? 'password' : 'text';
+                toggleLoginPassword.textContent = isText ? '👁️' : '🙈';
+            });
+        }
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -623,18 +811,108 @@
 
                 const result = await response.json();
 
-                // Handle 403 - Email not verified
+                // Handle 403 - Verification required
                 if (response.status === 403) {
-                    errorMessage.querySelector('span:last-child').textContent = result.message || 'Email not verified. Redirecting to OTP verification...';
+                    const pendingUsername = result.username || payload.username || '';
+                    const pendingEmail = result.email || '';
+                    const pendingLicence = result.licenceNo || '';
+                    const pendingMobile = result.mobile || '';
+                    const countryCode = result.countryCode || localStorage.getItem('pendingVerificationCountryCode') || '+91';
+                    const fullMobile = pendingMobile && pendingMobile.startsWith('+') ? pendingMobile : `${countryCode}${pendingMobile}`;
+
+                    // Explicitly check verification flags from server response
+                    const emailVerified = result.emailVerified === true;
+                    const mobileVerified = result.mobileVerified === true;
+
+                    console.log('🔐 Login Verification Status:', {
+                        emailVerified,
+                        mobileVerified,
+                        message: result.message,
+                        username: pendingUsername
+                    });
+
+                    // Case 1: Email not verified - send to email OTP
+                    if (!emailVerified) {
+                        console.log('📧 Redirecting to Email OTP verification');
+                        errorMessage.querySelector('span:last-child').textContent = result.message || 'Email not verified. Sending verification code...';
+                        errorMessage.classList.remove('hidden');
+
+                        localStorage.setItem('pendingVerificationUsername', pendingUsername);
+                        localStorage.setItem('pendingVerificationEmail', pendingEmail);
+                        localStorage.setItem('pendingVerificationLicence', pendingLicence);
+                        if (pendingMobile) {
+                            localStorage.setItem('pendingVerificationMobile', pendingMobile);
+                            localStorage.setItem('pendingVerificationCountryCode', countryCode);
+                        }
+
+                        // Send email OTP explicitly
+                        try {
+                            const otpSendResponse = await fetch(`${window.API_BASE_URL}/auth/send-email-otp`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ username: pendingUsername })
+                            });
+
+                            const otpSendData = await otpSendResponse.json();
+                            if (!otpSendResponse.ok || otpSendData.success === false) {
+                                throw new Error(otpSendData.message || 'Failed to send email OTP');
+                            }
+                        } catch (otpError) {
+                            console.error('Send email OTP (login) error:', otpError);
+                        }
+
+                        setTimeout(() => {
+                            window.initializeOtpVerification(pendingUsername);
+                        }, 1500);
+                        return;
+                    }
+
+                    // Case 2: Email verified but mobile not verified - send to mobile OTP
+                    if (emailVerified && !mobileVerified) {
+                        console.log('📱 Redirecting to Mobile OTP verification');
+                        errorMessage.querySelector('span:last-child').textContent = result.message || 'Mobile not verified. Sending verification code...';
+                        errorMessage.classList.remove('hidden');
+
+                        localStorage.setItem('pendingVerificationUsername', pendingUsername);
+                        if (pendingMobile) {
+                            localStorage.setItem('pendingVerificationMobile', pendingMobile);
+                            localStorage.setItem('pendingVerificationCountryCode', countryCode);
+                        }
+
+                        // Send mobile OTP
+                        try {
+                            const mobileOtpResponse = await fetch(`${window.API_BASE_URL}/sns/send-mobile-otp`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ username: pendingUsername })
+                            });
+
+                            const mobileOtpData = await mobileOtpResponse.json();
+                            if (!mobileOtpResponse.ok || mobileOtpData.success === false) {
+                                throw new Error(mobileOtpData.message || 'Failed to send mobile OTP');
+                            }
+                        } catch (mobileOtpError) {
+                            console.error('Send mobile OTP (login) error:', mobileOtpError);
+                        }
+
+                        setTimeout(() => {
+                            window.initializeMobileOtpVerification(fullMobile || pendingMobile, pendingUsername);
+                        }, 1500);
+                        return;
+                    }
+
+                    // Case 3: Both verified (shouldn't reach here with 403, but handle it)
+                    if (emailVerified && mobileVerified) {
+                        console.log('✅ Both email and mobile verified - this shouldn\'t trigger 403');
+                        errorMessage.querySelector('span:last-child').textContent = 'All verifications complete. Please try logging in again.';
+                        errorMessage.classList.remove('hidden');
+                        return;
+                    }
+
+                    // Fallback
+                    console.log('⚠️ Unknown verification state');
+                    errorMessage.querySelector('span:last-child').textContent = result.message || 'Verification required.';
                     errorMessage.classList.remove('hidden');
-
-                    // Store credentials and redirect to OTP verification
-                    localStorage.setItem('pendingVerificationEmail', result.email);
-                    localStorage.setItem('pendingVerificationLicence', result.licenceNo);
-
-                    setTimeout(() => {
-                        window.initializeOtpVerification(result.email, result.licenceNo);
-                    }, 2000);
                     return;
                 }
 
@@ -722,6 +1000,186 @@
         const successMessage = document.getElementById('successMessage');
         const loadingSpinner = document.getElementById('loadingSpinner');
 
+        // Inline validation helpers
+        const emailInput = document.getElementById('email');
+        const emailHelper = document.getElementById('emailHelper');
+        const usernameInput = document.getElementById('username');
+        const usernameHelper = document.getElementById('usernameHelper');
+        const licenceInput = document.getElementById('licenceNo');
+        const licenceHelper = document.getElementById('licenceHelper');
+        const countrySelect = document.getElementById('countryCode');
+        const countryHelper = document.getElementById('countryHelper');
+        const mobileInput = document.getElementById('mobile');
+        const mobileHelper = document.getElementById('mobileHelper');
+        const signupPassword = document.getElementById('signupPassword');
+        const passwordHelper = document.getElementById('passwordHelper');
+        const passwordStrengthBar = document.getElementById('passwordStrengthBar');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const confirmHelper = document.getElementById('confirmHelper');
+        const toggleSignupPassword = document.getElementById('toggleSignupPassword');
+        const toggleSignupConfirmPassword = document.getElementById('toggleSignupConfirmPassword');
+
+        const setFieldState = (inputEl, isValid, helperEl, msg) => {
+            if (!inputEl) return;
+            inputEl.style.borderColor = isValid ? '#10b981' : '#ef4444';
+            inputEl.style.background = isValid ? '#f0fdf4' : '#fef2f2';
+            if (helperEl) {
+                helperEl.textContent = msg || '';
+                helperEl.style.color = isValid ? '#065f46' : '#991b1b';
+            }
+        };
+
+        if (toggleSignupPassword && signupPassword) {
+            toggleSignupPassword.addEventListener('click', () => {
+                const isText = signupPassword.type === 'text';
+                signupPassword.type = isText ? 'password' : 'text';
+                toggleSignupPassword.textContent = isText ? '👁️' : '🙈';
+            });
+        }
+        if (toggleSignupConfirmPassword && confirmPassword) {
+            toggleSignupConfirmPassword.addEventListener('click', () => {
+                const isText = confirmPassword.type === 'text';
+                confirmPassword.type = isText ? 'password' : 'text';
+                toggleSignupConfirmPassword.textContent = isText ? '👁️' : '🙈';
+            });
+        }
+
+        // Email validation
+        if (emailInput) {
+            emailInput.addEventListener('input', () => {
+                const val = emailInput.value.trim();
+                const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+                setFieldState(emailInput, ok, emailHelper, ok ? 'Looks good' : 'Invalid email address');
+            });
+        }
+
+        // Username validation (alphanumeric/underscore, min 3)
+        if (usernameInput) {
+            usernameInput.addEventListener('input', () => {
+                const val = usernameInput.value.trim();
+                const ok = /^[A-Za-z0-9_]{3,}$/.test(val);
+                setFieldState(usernameInput, ok, usernameHelper, ok ? 'Available format' : 'Min 3 chars, letters/numbers/_');
+            });
+        }
+
+        // Licence validation (positive integer)
+        if (licenceInput) {
+            const updateLicence = () => {
+                const n = parseInt(licenceInput.value, 10);
+                const ok = !isNaN(n) && n > 0;
+                setFieldState(licenceInput, ok, licenceHelper, ok ? 'Valid licence number' : 'Enter a positive number');
+            };
+            ['input','blur'].forEach(ev => licenceInput.addEventListener(ev, updateLicence));
+        }
+
+        // Country helper
+        if (countrySelect && countryHelper) {
+            countrySelect.addEventListener('change', () => {
+                countryHelper.textContent = `Selected ${countrySelect.value}`;
+            });
+        }
+
+        // Mobile validation + preview formatting
+        const validateMobileLive = () => {
+            if (!mobileInput) return;
+            const val = mobileInput.value.trim();
+            const cc = countrySelect ? countrySelect.value.trim() : '';
+            if (window.authService && typeof window.authService.validateMobileNumber === 'function') {
+                const res = window.authService.validateMobileNumber(val, cc);
+                setFieldState(mobileInput, !!res.isValid, mobileHelper, res.isValid ? `Format: ${res.e164 || res.formatted || val}` : (res.error || 'Invalid number'));
+            } else {
+                const plain = val.replace(/\D/g,'');
+                const ok = /^[0-9]{7,15}$/.test(plain);
+                setFieldState(mobileInput, ok, mobileHelper, ok ? 'Looks valid' : '7-15 digits required');
+            }
+        };
+        if (mobileInput) {
+            ['input','blur','change'].forEach(ev => mobileInput.addEventListener(ev, validateMobileLive));
+            if (countrySelect) countrySelect.addEventListener('change', validateMobileLive);
+        }
+
+        // Password strength
+        const scorePassword = (p) => {
+            let score = 0;
+            if (!p) return 0;
+            if (p.length >= 6) score++;
+            if (p.length >= 10) score++;
+            if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++;
+            if (/\d/.test(p) && /[^A-Za-z0-9]/.test(p)) score++;
+            return Math.min(score, 4);
+        };
+        if (signupPassword) {
+            signupPassword.addEventListener('input', () => {
+                const s = scorePassword(signupPassword.value);
+                const labels = ['Very weak','Weak','Okay','Strong','Very strong'];
+                const colors = ['#991b1b','#ef4444','#ca8a04','#16a34a','#065f46'];
+                setFieldState(signupPassword, s >= 2, passwordHelper, labels[s]);
+                if (passwordHelper) passwordHelper.style.color = colors[s];
+                if (passwordStrengthBar) {
+                    const widths = ['10%','25%','50%','75%','100%'];
+                    passwordStrengthBar.style.width = widths[s];
+                    passwordStrengthBar.style.backgroundColor = colors[s];
+                }
+            });
+        }
+
+        // Confirm password match
+        const updateConfirm = () => {
+            if (!confirmPassword || !signupPassword) return;
+            const ok = confirmPassword.value === signupPassword.value && confirmPassword.value.length >= 6;
+            setFieldState(confirmPassword, ok, confirmHelper, ok ? 'Passwords match' : 'Passwords do not match');
+        };
+        if (confirmPassword) {
+            ['input','blur'].forEach(ev => confirmPassword.addEventListener(ev, updateConfirm));
+            if (signupPassword) signupPassword.addEventListener('input', updateConfirm);
+        }
+
+        // CTA disabled until valid
+        const signupBtnEl = document.getElementById('signupBtn');
+        const agreeTermsEl = document.getElementById('agreeTerms');
+        const formIsValid = () => {
+            const nameOk = !!document.getElementById('fullName')?.value.trim();
+            const userOk = /^[A-Za-z0-9_]{3,}$/.test(usernameInput?.value.trim() || '');
+            const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput?.value.trim() || '');
+            const licStr = licenceInput?.value.trim() || '';
+            const licNum = parseInt(licStr, 10);
+            const licenceOk = !isNaN(licNum) && licNum > 0;
+            const cc = countrySelect?.value.trim() || '';
+            let mobileOk = false;
+            const mv = mobileInput?.value.trim() || '';
+            if (window.authService && typeof window.authService.validateMobileNumber === 'function') {
+                const res = window.authService.validateMobileNumber(mv, cc);
+                mobileOk = !!res.isValid;
+            } else {
+                mobileOk = /^[0-9]{7,15}$/.test((mv || '').replace(/\D/g,''));
+            }
+            const pwd = signupPassword?.value || '';
+            const pwdScore = scorePassword(pwd);
+            const pwdOk = pwd.length >= 6 && pwdScore >= 2;
+            const confirmOk = confirmPassword?.value === pwd && (confirmPassword?.value.length || 0) >= 6;
+            const termsOk = !!agreeTermsEl?.checked;
+            return nameOk && userOk && emailOk && licenceOk && mobileOk && pwdOk && confirmOk && termsOk;
+        };
+        const updateSignupCta = () => {
+            if (!signupBtnEl) return;
+            const ok = formIsValid();
+            signupBtnEl.disabled = !ok;
+            signupBtnEl.style.opacity = ok ? '1' : '0.6';
+            signupBtnEl.style.cursor = ok ? 'pointer' : 'not-allowed';
+        };
+        ['input','change','blur'].forEach(ev => {
+            emailInput && emailInput.addEventListener(ev, updateSignupCta);
+            usernameInput && usernameInput.addEventListener(ev, updateSignupCta);
+            licenceInput && licenceInput.addEventListener(ev, updateSignupCta);
+            countrySelect && countrySelect.addEventListener(ev, updateSignupCta);
+            mobileInput && mobileInput.addEventListener(ev, updateSignupCta);
+            signupPassword && signupPassword.addEventListener(ev, updateSignupCta);
+            confirmPassword && confirmPassword.addEventListener(ev, updateSignupCta);
+            agreeTermsEl && agreeTermsEl.addEventListener(ev, updateSignupCta);
+        });
+        // Initialize state
+        updateSignupCta();
+
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -729,7 +1187,9 @@
             const username = document.getElementById('username')?.value.trim();
             const email = document.getElementById('email')?.value.trim();
             const licenceNo = document.getElementById('licenceNo')?.value.trim();
-            const password = document.getElementById('password')?.value.trim();
+            const countryCode = document.getElementById('countryCode')?.value.trim();
+            const mobile = document.getElementById('mobile')?.value.trim();
+            const password = document.getElementById('signupPassword')?.value.trim();
             const confirmPassword = document.getElementById('confirmPassword')?.value.trim();
             const agreeTerms = document.getElementById('agreeTerms')?.checked;
 
@@ -737,7 +1197,7 @@
             successMessage.classList.add('hidden');
 
             // Validation
-            if (!fullName || !username || !email || !licenceNo || !password || !confirmPassword) {
+            if (!fullName || !username || !email || !licenceNo || !countryCode || !mobile || !password || !confirmPassword) {
                 errorMessage.querySelector('span:last-child').textContent = 'Please fill in all required fields';
                 errorMessage.classList.remove('hidden');
                 return;
@@ -768,8 +1228,32 @@
                 return;
             }
 
+            // Validate mobile number using authService
+            if (window.authService && typeof window.authService.validateMobileNumber === 'function') {
+                const mobileValidation = window.authService.validateMobileNumber(mobile, countryCode);
+                if (!mobileValidation.isValid) {
+                    errorMessage.querySelector('span:last-child').textContent = `Mobile validation failed: ${mobileValidation.error}`;
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+            } else {
+                // Basic validation if authService not available
+                if (!/^[0-9]{7,15}$/.test(mobile.replace(/\D/g, ''))) {
+                    errorMessage.querySelector('span:last-child').textContent = 'Please enter a valid mobile number';
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+            }
+
             loadingSpinner.classList.remove('hidden');
             signupBtn.disabled = true;
+            const signupBtnSpinner = document.getElementById('signupBtnSpinner');
+            const signupBtnIcon = document.getElementById('signupBtnIcon');
+            const signupBtnText = document.getElementById('signupBtnText');
+            if (signupBtnSpinner) signupBtnSpinner.classList.remove('hidden');
+            if (signupBtnIcon) signupBtnIcon.classList.add('hidden');
+            if (signupBtnText) signupBtnText.textContent = 'Creating...';
+            signupBtn.setAttribute('aria-busy', 'true');
 
             try {
                 const response = await fetch(`${window.API_BASE_URL}/auth/register`, {
@@ -780,7 +1264,9 @@
                         email,
                         licenceNo: licenceNumber,
                         password,
-                        fullName
+                        fullName,
+                        countryCode,
+                        mobile
                     })
                 });
 
@@ -790,30 +1276,54 @@
                     throw new Error(data.message || 'Registration failed');
                 }
 
-                successMessage.querySelector('span:last-child').textContent = '✅ Registration successful! Please check your email for OTP verification code.';
+                successMessage.querySelector('span:last-child').textContent = '✅ Registration successful! Sending email OTP...';
                 successMessage.classList.remove('hidden');
 
                 // Store credentials for OTP verification
+                localStorage.setItem('pendingVerificationUsername', username);
                 localStorage.setItem('pendingVerificationEmail', email);
                 localStorage.setItem('pendingVerificationLicence', licenceNumber);
+                localStorage.setItem('pendingVerificationMobile', mobile);
+                localStorage.setItem('pendingVerificationCountryCode', countryCode);
+
+                // Explicitly send email OTP using username
+                const emailOtpResponse = await fetch(`${window.API_BASE_URL}/auth/send-email-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+
+                const emailOtpData = await emailOtpResponse.json();
+                if (!emailOtpResponse.ok || emailOtpData.success === false) {
+                    throw new Error(emailOtpData.message || 'Failed to send email OTP');
+                }
+
+                successMessage.querySelector('span:last-child').textContent = '✅ Email OTP sent! Please verify.';
 
                 setTimeout(() => {
-                    window.initializeOtpVerification(email, licenceNumber);
-                }, 2000);
+                    window.initializeOtpVerification(username);
+                }, 1200);
 
             } catch (error) {
                 console.error('Signup error:', error);
                 errorMessage.querySelector('span:last-child').textContent = error.message || 'Registration failed';
                 errorMessage.classList.remove('hidden');
+                // Announce and scroll to error
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                errorMessage.focus();
             } finally {
                 loadingSpinner.classList.add('hidden');
                 signupBtn.disabled = false;
+                if (signupBtnSpinner) signupBtnSpinner.classList.add('hidden');
+                if (signupBtnIcon) signupBtnIcon.classList.remove('hidden');
+                if (signupBtnText) signupBtnText.textContent = 'Create My Account';
+                signupBtn.removeAttribute('aria-busy');
             }
         });
     }
 
     // ============= OTP FORM SETUP =============
-    function setupOtpForm(email, licenceNo) {
+    function setupOtpForm(username) {
         const otpForm = document.getElementById('otpForm');
         const otpInputs = document.querySelectorAll('.otp-input');
         const verifyBtn = document.getElementById('verifyBtn');
@@ -913,10 +1423,10 @@
             verifyBtn.disabled = true;
 
             try {
-                const response = await fetch(`${window.API_BASE_URL}/auth/verify-otp`, {
+                const response = await fetch(`${window.API_BASE_URL}/auth/verify-email-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, licenceNo: parseInt(licenceNo), otp })
+                    body: JSON.stringify({ username, otp })
                 });
 
                 const data = await response.json();
@@ -926,21 +1436,70 @@
                 }
 
                 clearInterval(timerInterval);
-                successMessage.querySelector('span:last-child').textContent = '✅ Email verified successfully! Redirecting to login...';
+                successMessage.querySelector('span:last-child').textContent = 'Email verified successfully! Verifying mobile...';
                 successMessage.classList.remove('hidden');
 
-                // Clear pending verification
+                // Clear email verification data
                 localStorage.removeItem('pendingVerificationEmail');
                 localStorage.removeItem('pendingVerificationLicence');
 
-                setTimeout(() => {
-                    if (window.router) {
-                        window.router.navigate('login');
-                    } else {
-                        window.location.hash = '#login';
-                        window.initializeLogin();
+                // Get mobile number for mobile OTP verification (for display)
+                const mobile = localStorage.getItem('pendingVerificationMobile');
+                const countryCode = localStorage.getItem('pendingVerificationCountryCode') || '+91';
+                const fullMobile = mobile && mobile.startsWith('+') ? mobile : `${countryCode}${mobile || ''}`;
+
+                if (!mobile) {
+                    errorMessage.querySelector('span:last-child').textContent = 'Mobile number not found. Please try again.';
+                    errorMessage.classList.remove('hidden');
+                    setTimeout(() => {
+                        if (window.router) {
+                            window.router.navigate('login');
+                        } else {
+                            window.location.hash = '#login';
+                            window.initializeLogin();
+                        }
+                    }, 3000);
+                    return;
+                }
+
+                // Trigger mobile OTP
+                setTimeout(async () => {
+                    try {
+                        const mobileOtpResponse = await fetch(`${window.API_BASE_URL}/sns/send-mobile-otp`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                username: username
+                            })
+                        });
+
+                        const mobileOtpData = await mobileOtpResponse.json();
+
+                        if (!mobileOtpResponse.ok || !mobileOtpData.success) {
+                            throw new Error(mobileOtpData.message || 'Failed to send mobile OTP');
+                        }
+
+                        // Initialize mobile OTP verification
+                        window.initializeMobileOtpVerification(fullMobile, username);
+
+                    } catch (error) {
+                        console.error('Mobile OTP error:', error);
+                        errorMessage.querySelector('span:last-child').textContent = error.message || 'Failed to send mobile OTP. Redirecting to login...';
+                        errorMessage.classList.remove('hidden');
+                        successMessage.classList.add('hidden');
+
+                        setTimeout(() => {
+                            if (window.router) {
+                                window.router.navigate('login');
+                            } else {
+                                window.location.hash = '#login';
+                                window.initializeLogin();
+                            }
+                        }, 3000);
                     }
-                }, 2000);
+                }, 1500);
 
             } catch (error) {
                 console.error('OTP verification error:', error);
@@ -963,10 +1522,10 @@
             resendBtn.disabled = true;
 
             try {
-                const response = await fetch(`${window.API_BASE_URL}/auth/resend-otp`, {
+                const response = await fetch(`${window.API_BASE_URL}/auth/send-email-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, licenceNo: parseInt(licenceNo) })
+                    body: JSON.stringify({ username })
                 });
 
                 const data = await response.json();
@@ -995,6 +1554,254 @@
                 errorMessage.classList.remove('hidden');
             } finally {
                 updateResendButton();
+            }
+        });
+
+        // Auto-focus first input
+        otpInputs[0].focus();
+    }
+
+    // ============= MOBILE OTP VERIFICATION INITIALIZATION =============
+    window.initializeMobileOtpVerification = (mobile, username) => {
+        const pageContent = document.getElementById('page-content');
+        const target = pageContent || document.body;
+        target.innerHTML = getMobileOtpVerificationTemplate(mobile, username);
+        setupMobileOtpForm(mobile, username);
+    };
+
+    // ============= MOBILE OTP FORM SETUP =============
+    function setupMobileOtpForm(mobile, username) {
+        const otpInputs = [
+            document.getElementById('mobile-otp-1'),
+            document.getElementById('mobile-otp-2'),
+            document.getElementById('mobile-otp-3'),
+            document.getElementById('mobile-otp-4'),
+            document.getElementById('mobile-otp-5'),
+            document.getElementById('mobile-otp-6')
+        ];
+
+        const verifyBtn = document.getElementById('mobile-verify-otp-btn');
+        const verifyText = document.getElementById('mobile-verify-otp-text');
+        const resendBtn = document.getElementById('mobile-resend-otp-btn');
+        const resendText = document.getElementById('mobile-resend-otp-text');
+        const resendCountdown = document.getElementById('mobile-resend-countdown');
+        const resendAttempts = document.getElementById('mobile-resend-attempts');
+        const timerDisplay = document.getElementById('mobile-otp-timer');
+        const successMessage = document.getElementById('mobile-otp-success');
+        const errorMessage = document.getElementById('mobile-otp-error');
+
+        let timeLeft = 600; // 10 minutes
+        let resendCooldown = 60;
+        let attemptsLeft = 3;
+        let timerInterval;
+        let resendInterval;
+
+        // Format time display
+        const formatTime = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        };
+
+        // Start countdown timer
+        const startTimer = () => {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = formatTime(timeLeft);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    errorMessage.querySelector('span:last-child').textContent = '⏰ OTP expired. Please request a new one.';
+                    errorMessage.classList.remove('hidden');
+                    verifyBtn.disabled = true;
+                    verifyBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            }, 1000);
+        };
+
+        // Start resend cooldown
+        const startResendCooldown = () => {
+            resendCooldown = 60;
+            resendBtn.disabled = true;
+            resendText.innerHTML = `Resend OTP in <span id="mobile-resend-countdown">${resendCooldown}</span>s`;
+
+            resendInterval = setInterval(() => {
+                resendCooldown--;
+                const countdown = document.getElementById('mobile-resend-countdown');
+                if (countdown) {
+                    countdown.textContent = resendCooldown;
+                }
+
+                if (resendCooldown <= 0) {
+                    clearInterval(resendInterval);
+                    resendBtn.disabled = false;
+                    resendText.textContent = '🔄 Resend OTP';
+                }
+            }, 1000);
+        };
+
+        // Start timer and cooldown
+        startTimer();
+        startResendCooldown();
+
+        // OTP Input handling
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+
+                // Only allow numbers
+                if (!/^[0-9]$/.test(value)) {
+                    e.target.value = '';
+                    return;
+                }
+
+                // Move to next input
+                if (value && index < otpInputs.length - 1) {
+                    otpInputs[index + 1].focus();
+                }
+
+                // Clear error when user starts typing
+                errorMessage.classList.add('hidden');
+            });
+
+            input.addEventListener('keydown', (e) => {
+                // Handle backspace
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    otpInputs[index - 1].focus();
+                }
+            });
+
+            // Handle paste
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').trim();
+
+                if (/^[0-9]{6}$/.test(pastedData)) {
+                    pastedData.split('').forEach((char, i) => {
+                        if (otpInputs[i]) {
+                            otpInputs[i].value = char;
+                        }
+                    });
+                    otpInputs[5].focus();
+                }
+            });
+        });
+
+        // Verify OTP
+        verifyBtn.addEventListener('click', async () => {
+            const otp = otpInputs.map(input => input.value).join('');
+
+            if (otp.length !== 6) {
+                errorMessage.querySelector('span:last-child').textContent = '⚠️ Please enter all 6 digits';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            // Disable button and show loading
+            verifyBtn.disabled = true;
+            verifyText.textContent = 'Verifying...';
+            successMessage.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/sns/verify-mobile-otp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        otp: otp
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Mobile OTP verification failed');
+                }
+
+                clearInterval(timerInterval);
+                successMessage.querySelector('span:last-child').textContent = '✅ Mobile verified successfully! Redirecting to login...';
+                successMessage.classList.remove('hidden');
+
+                // Clear all pending verification data
+                localStorage.removeItem('pendingVerificationMobile');
+                localStorage.removeItem('pendingVerificationCountryCode');
+                localStorage.removeItem('pendingVerificationUsername');
+
+                setTimeout(() => {
+                    if (window.router) {
+                        window.router.navigate('login');
+                    } else {
+                        window.location.hash = '#login';
+                        window.initializeLogin();
+                    }
+                }, 2000);
+
+            } catch (error) {
+                console.error('Mobile OTP verification error:', error);
+                errorMessage.querySelector('span:last-child').textContent = error.message || '❌ Verification failed. Please try again.';
+                errorMessage.classList.remove('hidden');
+                verifyBtn.disabled = false;
+                verifyText.textContent = 'Verify OTP';
+
+                // Clear inputs
+                otpInputs.forEach(input => input.value = '');
+                otpInputs[0].focus();
+            }
+        });
+
+        // Resend OTP
+        resendBtn.addEventListener('click', async () => {
+            if (attemptsLeft <= 0) {
+                errorMessage.querySelector('span:last-child').textContent = '❌ Maximum resend attempts reached';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            resendBtn.disabled = true;
+            successMessage.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/sns/send-mobile-otp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Failed to resend OTP');
+                }
+
+                attemptsLeft--;
+                resendAttempts.textContent = `${attemptsLeft} attempt${attemptsLeft !== 1 ? 's' : ''} remaining`;
+
+                // Clear inputs
+                otpInputs.forEach(input => input.value = '');
+                otpInputs[0].focus();
+
+                // Reset timer
+                timeLeft = 600;
+
+                // Start cooldown
+                startResendCooldown();
+
+                successMessage.querySelector('span:last-child').textContent = '✅ OTP has been resent to your mobile';
+                successMessage.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Resend OTP error:', error);
+                errorMessage.querySelector('span:last-child').textContent = error.message || '❌ Failed to resend OTP';
+                errorMessage.classList.remove('hidden');
+                resendBtn.disabled = false;
             }
         });
 

@@ -367,6 +367,60 @@
                         </div>
 
                         <div>
+                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Country Code <span class="text-red-500">*</span></label>
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                                    <span class="text-lg">🌍</span>
+                                </div>
+                                <select id="signup-countryCode" class="w-full pr-4 py-2 rounded-xl border-2 transition-all text-sm font-medium appearance-none" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" required>
+                                    <option value="+91" selected>+91 (India)</option>
+                                    <option value="+1">+1 (USA)</option>
+                                    <option value="+44">+44 (UK)</option>
+                                    <option value="+61">+61 (Australia)</option>
+                                    <option value="+27">+27 (South Africa)</option>
+                                    <option value="+86">+86 (China)</option>
+                                    <option value="+81">+81 (Japan)</option>
+                                    <option value="+33">+33 (France)</option>
+                                    <option value="+49">+49 (Germany)</option>
+                                    <option value="+39">+39 (Italy)</option>
+                                </select>
+                                <style>
+                                    #signup-countryCode {
+                                        appearance: none;
+                                        padding-right: 2.5rem;
+                                        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+                                        background-repeat: no-repeat;
+                                        background-position: right 0.75rem center;
+                                        padding-right: 2rem;
+                                    }
+                                    #signup-countryCode:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Mobile Number <span class="text-red-500">*</span></label>
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <span class="text-lg">📱</span>
+                                </div>
+                                <input type="tel" id="signup-mobile" class="w-full pr-4 py-2 rounded-xl border-2 transition-all text-sm font-medium" style="padding-left: calc(2.75rem + 5px); border-color: var(--border-primary); background: var(--input-bg); color: var(--input-text);" placeholder="0987654321" required pattern="[0-9]{7,15}">
+                                <style>
+                                    #signup-mobile:focus {
+                                        border-color: var(--border-focus);
+                                        box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.1);
+                                        outline: none;
+                                    }
+                                </style>
+                            </div>
+                            <p class="text-xs mt-1" style="color: var(--text-tertiary);">Mobile number for OTP verification</p>
+                        </div>
+
+                        <div>
                             <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Password <span class="text-red-500">*</span></label>
                             <div class="relative group">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -446,8 +500,9 @@
 
     // ============= INITIALIZATION FUNCTIONS =============
     window.initializeAuth = function () {
-        console.log('Initializing Auth Page...');
+        console.log('🔐 Initializing Auth Page...');
         const currentHash = window.location.hash.replace('#', '') || 'login';
+        console.log('📍 Current route:', currentHash);
         
         if (currentHash === 'signup') {
             window.initializeSignup();
@@ -507,10 +562,27 @@
     };
 
     window.initializeSignup = function () {
-        console.log('Initializing Signup Page...');
+        console.log('📝 Initializing Signup Page...');
         const pageContent = document.getElementById('page-content');
         const target = pageContent || document.body;
         target.innerHTML = getSignupTemplate();
+        
+        // Verify fields are in DOM
+        setTimeout(() => {
+            const countryCodeField = document.getElementById('signup-countryCode');
+            const mobileField = document.getElementById('signup-mobile');
+            
+            console.log('🌍 Country Code field visible:', !!countryCodeField);
+            console.log('📱 Mobile field visible:', !!mobileField);
+            
+            if (!countryCodeField) {
+                console.warn('⚠️ Country Code field not found in DOM');
+            }
+            if (!mobileField) {
+                console.warn('⚠️ Mobile field not found in DOM');
+            }
+        }, 100);
+        
         setupSignupForm();
 
         // Handle link to login
@@ -706,18 +778,20 @@
             e.preventDefault();
 
             const fullName = document.getElementById('fullName')?.value.trim();
-            const username = document.getElementById('username')?.value.trim();
-            const email = document.getElementById('email')?.value.trim();
-            const licenceNo = document.getElementById('licenceNo')?.value.trim();
-            const password = document.getElementById('password')?.value.trim();
-            const confirmPassword = document.getElementById('confirmPassword')?.value.trim();
+            const username = document.getElementById('signup-username')?.value.trim();
+            const email = document.getElementById('signup-email')?.value.trim();
+            const licenceNo = document.getElementById('signup-licenceNo')?.value.trim();
+            const countryCode = document.getElementById('signup-countryCode')?.value.trim();
+            const mobile = document.getElementById('signup-mobile')?.value.trim();
+            const password = document.getElementById('signup-password')?.value.trim();
+            const confirmPassword = document.getElementById('signup-confirmPassword')?.value.trim();
             const agreeTerms = document.getElementById('agreeTerms')?.checked;
 
             errorMessage.classList.add('hidden');
             successMessage.classList.add('hidden');
 
             // Validation
-            if (!fullName || !username || !email || !licenceNo || !password || !confirmPassword) {
+            if (!fullName || !username || !email || !licenceNo || !countryCode || !mobile || !password || !confirmPassword) {
                 errorMessage.querySelector('span:last-child').textContent = 'Please fill in all required fields';
                 errorMessage.classList.remove('hidden');
                 return;
@@ -748,6 +822,23 @@
                 return;
             }
 
+            // Validate mobile number using authService
+            if (window.authService && typeof window.authService.validateMobileNumber === 'function') {
+                const mobileValidation = window.authService.validateMobileNumber(mobile, countryCode);
+                if (!mobileValidation.isValid) {
+                    errorMessage.querySelector('span:last-child').textContent = `Mobile validation failed: ${mobileValidation.error}`;
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+            } else {
+                // Basic validation if authService not available
+                if (!/^[0-9]{7,15}$/.test(mobile.replace(/\D/g, ''))) {
+                    errorMessage.querySelector('span:last-child').textContent = 'Please enter a valid mobile number';
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+            }
+
             loadingSpinner.classList.remove('hidden');
             signupBtn.disabled = true;
 
@@ -760,7 +851,9 @@
                         email,
                         licenceNo: licenceNumber,
                         password,
-                        fullName
+                        fullName,
+                        countryCode,
+                        mobile
                     })
                 });
 
@@ -776,6 +869,8 @@
                 // Store credentials for OTP verification
                 localStorage.setItem('pendingVerificationEmail', email);
                 localStorage.setItem('pendingVerificationLicence', licenceNumber);
+                localStorage.setItem('pendingVerificationMobile', mobile);
+                localStorage.setItem('pendingVerificationCountryCode', countryCode);
 
                 setTimeout(() => {
                     window.initializeOtpVerification(email, licenceNumber);

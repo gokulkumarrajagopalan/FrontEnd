@@ -30,6 +30,13 @@ class Router {
         }
 
         console.log('Navigating to route:', route);
+
+        // Cleanup previous page if it exists
+        if (window.currentPage && typeof window.currentPage.cleanup === 'function') {
+            console.log('Cleaning up previous page:', this.currentRoute);
+            window.currentPage.cleanup();
+        }
+
         this.currentRoute = route;
 
         // Reset scroll position to top

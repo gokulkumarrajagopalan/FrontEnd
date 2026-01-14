@@ -509,8 +509,8 @@ class App {
                          onmouseleave="this.style.background='transparent'"></div>
                     
                     <!-- Logout Button at bottom of sidebar -->
-                    <div class="p-2 border-t border-gray-200 flex-shrink-0">
-                        <button id="logoutBtn" class="py-1.5 px-2 text-gray-600 text-sm font-normal hover:text-red-600 transition-colors cursor-pointer" style="background: none; border: none; width: auto;">
+                    <div class="p-2 border-t border-gray-200 flex-shrink-0 flex justify-center items-center">
+                        <button id="logoutBtn" class="py-2 px-4 text-white bg-red-500 text-sm font-semibold hover:bg-red-600 transition-colors cursor-pointer rounded-lg" style="border: none; width: auto;">
                             Logout
                         </button>
                     </div>

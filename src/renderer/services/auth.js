@@ -107,18 +107,117 @@ class AuthService {
     }
 
     /**
+     * Validate mobile number format using libphonenumber-js
+     * @param {string} mobile - Mobile number (without country code)
+     * @param {string} countryCode - Country code (e.g., '+91', 'IN')
+     * @returns {object} - { isValid: boolean, formatted: string, error: string }
+     */
+    validateMobileNumber(mobile, countryCode) {
+        try {
+            // Remove any special characters from mobile
+            const cleanMobile = mobile.replace(/\D/g, '');
+            
+            // Extract country code (remove '+' if present)
+            const cc = countryCode.replace('+', '');
+            
+            // Country code length validation
+            const countryCodeLengths = {
+                '91': { minLength: 10, maxLength: 10, country: 'India' },
+                '1': { minLength: 10, maxLength: 10, country: 'USA' },
+                '44': { minLength: 10, maxLength: 11, country: 'UK' },
+                '61': { minLength: 9, maxLength: 9, country: 'Australia' },
+                '27': { minLength: 9, maxLength: 9, country: 'South Africa' },
+                '86': { minLength: 11, maxLength: 11, country: 'China' },
+                '81': { minLength: 10, maxLength: 11, country: 'Japan' },
+                '33': { minLength: 9, maxLength: 9, country: 'France' },
+                '49': { minLength: 10, maxLength: 11, country: 'Germany' },
+                '39': { minLength: 10, maxLength: 10, country: 'Italy' },
+            };
+
+            const validation = countryCodeLengths[cc];
+            
+            if (!validation) {
+                return {
+                    isValid: false,
+                    formatted: null,
+                    error: `Unsupported country code: +${cc}`
+                };
+            }
+
+            // Check length
+            if (cleanMobile.length < validation.minLength || cleanMobile.length > validation.maxLength) {
+                return {
+                    isValid: false,
+                    formatted: null,
+                    error: `Invalid mobile number for ${validation.country}. Expected ${validation.minLength}-${validation.maxLength} digits, got ${cleanMobile.length}`
+                };
+            }
+
+            // Validate that it only contains digits
+            if (!/^\d+$/.test(cleanMobile)) {
+                return {
+                    isValid: false,
+                    formatted: null,
+                    error: 'Mobile number should only contain digits'
+                };
+            }
+
+            // Format as E.164
+            const e164 = `+${cc}${cleanMobile}`;
+            const international = `+${cc} ${cleanMobile.slice(0, validation.minLength === 10 ? 5 : 6)} ${cleanMobile.slice(validation.minLength === 10 ? 5 : 6)}`;
+
+            return {
+                isValid: true,
+                formatted: international,
+                e164: e164,
+                national: cleanMobile,
+                country: validation.country,
+                error: null
+            };
+        } catch (error) {
+            console.error('❌ Mobile validation error:', error);
+            return {
+                isValid: false,
+                formatted: null,
+                error: error.message
+            };
+        }
+    }
+
+    /**
      * Register new user
-     * @param {object} userData 
+     * @param {object} userData - Should include username, email, password, licenceNo, fullName, countryCode, mobile
      * @returns {Promise<object>}
      */
     async register(userData) {
         try {
+            // Validate mobile number
+            const mobileValidation = this.validateMobileNumber(userData.mobile, userData.countryCode || '+91');
+            
+            if (!mobileValidation.isValid) {
+                return {
+                    success: false,
+                    message: `Mobile validation failed: ${mobileValidation.error}`
+                };
+            }
+
+            const registrationPayload = {
+                username: userData.username,
+                email: userData.email,
+                password: userData.password,
+                licenceNo: userData.licenceNo,
+                fullName: userData.fullName,
+                countryCode: userData.countryCode || '+91',
+                mobile: mobileValidation.e164,  // Use E.164 format for backend
+                mobileFormatted: mobileValidation.formatted
+            };
+
             const response = await fetch(window.apiConfig.getNestedUrl('auth', 'register'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(userData)
+                body: JSON.stringify(registrationPayload)
             });
 
             const data = await response.json();
@@ -133,10 +232,107 @@ class AuthService {
             return {
                 success: true,
                 message: 'Registration successful. Please login.',
-                user: data.user
+                user: data.user,
+                mobile: mobileValidation.e164,
+                licenceNo: userData.licenceNo
             };
         } catch (error) {
             console.error('Registration error:', error);
+            return {
+                success: false,
+                message: 'Connection error: ' + error.message
+            };
+        }
+    }
+
+    /**
+     * Request mobile OTP after email verification
+     * @param {string} mobile - Mobile number
+     * @param {string} licenceNo - License number
+     * @returns {Promise<object>}
+     */
+    async requestMobileOTP(mobile, licenceNo) {
+        try {
+            const response = await fetch('http://localhost:8080/sns/mobile-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    mobile: mobile,
+                    licenceNo: licenceNo
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error('❌ Mobile OTP request failed:', data);
+                return {
+                    success: false,
+                    message: data.message || 'Failed to send mobile OTP'
+                };
+            }
+
+            console.log('✅ Mobile OTP sent successfully to:', mobile);
+            return {
+                success: true,
+                message: 'OTP sent to mobile',
+                data: data
+            };
+        } catch (error) {
+            console.error('❌ Mobile OTP request error:', error);
+            return {
+                success: false,
+                message: 'Connection error: ' + error.message
+            };
+        }
+    }
+
+    /**
+     * Verify email and trigger mobile OTP
+     * @param {string} email - Email to verify
+     * @param {string} verificationCode - Email verification code
+     * @param {string} mobile - Mobile number for OTP
+     * @param {string} licenceNo - License number
+     * @returns {Promise<object>}
+     */
+    async verifyEmailAndSendMobileOTP(email, verificationCode, mobile, licenceNo) {
+        try {
+            // First verify email with backend
+            const verifyResponse = await fetch(window.apiConfig.getNestedUrl('auth', 'verify-email'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    verificationCode: verificationCode
+                })
+            });
+
+            const verifyData = await verifyResponse.json();
+
+            if (!verifyResponse.ok) {
+                return {
+                    success: false,
+                    message: verifyData.message || 'Email verification failed'
+                };
+            }
+
+            console.log('✅ Email verified successfully');
+
+            // After email verification, send mobile OTP
+            const otpResult = await this.requestMobileOTP(mobile, licenceNo);
+            
+            return {
+                success: true,
+                message: 'Email verified. OTP sent to mobile.',
+                emailVerified: true,
+                otpSent: otpResult.success
+            };
+        } catch (error) {
+            console.error('❌ Email verification error:', error);
             return {
                 success: false,
                 message: 'Connection error: ' + error.message

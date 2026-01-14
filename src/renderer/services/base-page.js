@@ -121,6 +121,15 @@ class BasePage {
             // Check authentication
             if (!this.checkAuth()) return;
 
+            // Reset fullscreen state from previous page
+            this.tableFullscreenLocked = false;
+            document.body.classList.remove('table-fullscreen-mode');
+
+            // Hide the top-nav toggle button initially
+            if (window.app && typeof window.app.setTableHeaderToggleBtnVisibility === 'function') {
+                window.app.setTableHeaderToggleBtnVisibility(false);
+            }
+
             // Render page template
             this.render();
 
@@ -157,6 +166,32 @@ class BasePage {
     }
 
     /**
+     * Cleanup method called when navigating away from page
+     */
+    cleanup() {
+        // Exit fullscreen if active
+        if (this.tableFullscreenLocked) {
+            this.exitTableFullscreenLock();
+        }
+
+        // Remove event listeners
+        if (this._fsResizeHandler) {
+            window.removeEventListener('resize', this._fsResizeHandler);
+            this._fsResizeHandler = null;
+        }
+
+        // Hide button
+        if (window.app && typeof window.app.setTableHeaderToggleBtnVisibility === 'function') {
+            window.app.setTableHeaderToggleBtnVisibility(false);
+        }
+
+        // Remove body class
+        document.body.classList.remove('table-fullscreen-mode');
+
+        console.log(`🧹 ${this.config.pageName} page cleaned up`);
+    }
+
+    /**
      * Render page template
      */
     render() {
@@ -189,19 +224,21 @@ class BasePage {
      */
     getPageHeader() {
         return `
-            <div id="pageHeader" class="page-header page-header-collapsible flex justify-between items-center relative">
-                <div>
-                    <h2>${this.config.pageName}</h2>
-                    <p>Manage ${this.config.entityNamePlural}</p>
-                </div>
-                <div class="flex gap-3">
-                    <button id="sync${this.config.pageName}Btn" class="btn-sync">
-                        <span>🔄</span>
-                        <span>Sync From Tally</span>
-                    </button>
-                    <button id="add${this.config.pageName}Btn" class="btn-erp">
-                        + Add ${this.config.entityName}
-                    </button>
+            <div id="pageHeader" class="page-header page-header-collapsible">
+                <div class="page-header-content">
+                    <div class="page-header-text">
+                        <h2>${this.config.pageName}</h2>
+                        <p>Manage ${this.config.entityNamePlural}</p>
+                    </div>
+                    <div class="page-header-actions">
+                        <button id="sync${this.config.pageName}Btn" class="btn-sync">
+                            <span>🔄</span>
+                            <span>Sync From Tally</span>
+                        </button>
+                        <button id="add${this.config.pageName}Btn" class="btn-erp">
+                            + Add ${this.config.entityName}
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -349,15 +386,41 @@ class BasePage {
                 padding-bottom: 0.5rem;
             }
 
+            .page-header-content {
+                display: flex;
+                align-items: center;
+                justify-content: space-between; /* dynamic spacing */
+                gap: 1rem;
+                flex-wrap: wrap;
+                width: 100%;
+            }
+
+            .page-header-text {
+                flex: 1 1 auto; /* grow to take available space */
+                min-width: 200px;
+               padding-right: clamp(0.5rem, 3vw, 4rem);
+                text-align: left;
+            }
+
             .page-header-collapsible h2 {
                 margin: 0;
                 font-size: 1.25rem;
+                font-weight: 700;
+                color: #1f2937;
             }
 
             .page-header-collapsible p {
-                margin: 0;
-                font-size: 0.813rem;
-                color: #64748b;
+                margin: 0.25rem 0 0 0;
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+
+            .page-header-actions {
+                display: flex;
+                gap: 0.75rem;
+                flex-wrap: wrap;
+                align-items: center;
+                /* stays on the right via space-between; min gap managed by text padding */
             }
             
             .page-header-collapsible.header-collapsed {
@@ -1610,13 +1673,24 @@ class BasePage {
      */
     showAddModal() {
         if (!this.selectedCompanyId) {
-            this.showError('Please select a company first');
+            window.Popup.alert({
+                title: 'Company Not Selected',
+                message: 'Please select a company first before adding a new record.',
+                icon: '⚠️',
+                okText: 'OK',
+                variant: 'primary'
+            });
             return;
         }
 
-        document.getElementById('modalTitle').textContent = `Add ${this.config.entityName}`;
-        document.getElementById('dataForm').reset();
-        this.showModal();
+        // Feature in development popup
+        window.Popup.alert({
+            title: 'Feature In Development',
+            message: 'This feature is currently in development. Please check back in a future update.',
+            icon: '🚧',
+            okText: 'Got it',
+            variant: 'primary'
+        });
     }
 
     /**
@@ -1624,7 +1698,17 @@ class BasePage {
      */
     showEditModal(id) {
         // To be implemented by child classes
-        this.showInfo('Edit functionality coming soon');
+        if (window.Popup) {
+            window.Popup.alert({
+                title: 'Feature In Development',
+                message: 'This feature is currently in development. Please check back in a future update.',
+                icon: '🚧',
+                okText: 'Got it',
+                variant: 'primary'
+            });
+        } else {
+            this.showInfo('This feature is currently in development. Please check back in a future update.');
+        }
     }
 
     /**
@@ -1970,7 +2054,7 @@ class BasePage {
                     filtersContainer.classList.remove('scrolled');
                 }
             }
-            
+
             // Update app-level toggle button icon
             if (window.app && typeof window.app.setTableHeaderToggleBtnVisibility === 'function') {
                 window.app.setTableHeaderToggleBtnVisibility(true, isCollapsed);
