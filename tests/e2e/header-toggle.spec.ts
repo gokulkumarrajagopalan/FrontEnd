@@ -14,7 +14,7 @@ test.describe('Header Toggle and UI Enhancements', () => {
         send: () => {},
         on: () => {},
         removeListener: () => {},
-        backendUrl: 'http://localhost:8080'
+        backendUrl: process.env.BACKEND_URL || 'http://3.80.124.37:8080'
       };
 
       sessionStorage.setItem('authToken', 'mock-token');

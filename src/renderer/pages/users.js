@@ -127,7 +127,7 @@
     `;
 
     if (!window.API_BASE_URL) {
-        window.API_BASE_URL = window.AppConfig ? window.AppConfig.API_BASE_URL : 'http://localhost:8080';
+        window.API_BASE_URL = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
     }
 
     class UserManagementPage {

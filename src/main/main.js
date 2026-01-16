@@ -3,9 +3,12 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const security = require("./security");
-require('dotenv').config();
+
+// Load environment variables from .env file in project root
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 console.log("🔥 main.js loaded");
+console.log("🔧 BACKEND_URL from .env:", process.env.BACKEND_URL);
 
 let mainWindow;
 let syncWorker = null;
@@ -351,7 +354,12 @@ registerMasterDataHandler();
 
 // Provide backend URL to renderer synchronously
 ipcMain.on('get-backend-url-sync', (event) => {
-  event.returnValue = process.env.BACKEND_URL || 'http://localhost:8080';
+  const backendUrl = process.env.BACKEND_URL;
+  if (!backendUrl) {
+    console.error('❌ BACKEND_URL not set in .env file!');
+    console.error('Please create a .env file in the project root with: BACKEND_URL=http://your-backend-url:8080');
+  }
+  event.returnValue = backendUrl;
 });
 
 console.log("✅ 'fetch-master-data' IPC handler registered");

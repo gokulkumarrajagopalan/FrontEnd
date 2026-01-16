@@ -91,7 +91,7 @@ class SyncScheduler {
 
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            const backendUrl = window.apiConfig?.baseURL || 'http://localhost:8080';
+            const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
             const authToken = sessionStorage.getItem('authToken');
             const deviceToken = sessionStorage.getItem('deviceToken');
             const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
@@ -226,7 +226,7 @@ class SyncScheduler {
                         companyId: company.id,
                         userId: userId,
                         tallyPort: appSettings.tallyPort || 9000,
-                        backendUrl: appSettings.backendUrl || window.apiConfig?.baseURL || 'http://localhost:8080',
+                        backendUrl: appSettings.backendUrl || window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL,
                         authToken: authToken,
                         deviceToken: deviceToken,
                         entityType: 'all'

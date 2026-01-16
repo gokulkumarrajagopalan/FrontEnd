@@ -153,7 +153,7 @@
             const deviceToken = localStorage.getItem('deviceToken');
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
+            const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
             // Get company name for verification
             const companies = JSON.parse(localStorage.getItem('importedCompanies') || '[]');
             const company = companies.find(c => c.id == selectedCompanyId);

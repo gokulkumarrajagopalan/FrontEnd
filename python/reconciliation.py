@@ -522,7 +522,7 @@ def main():
         company_id = int(sys.argv[1]) if len(sys.argv) > 1 else 1
         user_id = int(sys.argv[2]) if len(sys.argv) > 2 else 1
         tally_port = int(sys.argv[3]) if len(sys.argv) > 3 else 9000
-        backend_url = sys.argv[4] if len(sys.argv) > 4 else os.getenv('BACKEND_URL', 'http://localhost:8080')
+        backend_url = sys.argv[4] if len(sys.argv) > 4 else os.getenv('BACKEND_URL')
         auth_token = sys.argv[5] if len(sys.argv) > 5 else ''
         device_token = sys.argv[6] if len(sys.argv) > 6 else ''
         entity_type = sys.argv[7] if len(sys.argv) > 7 else 'all'  # 'all' or specific entity

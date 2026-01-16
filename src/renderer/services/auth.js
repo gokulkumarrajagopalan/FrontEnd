@@ -253,7 +253,7 @@ class AuthService {
      */
     async requestMobileOTP(mobile, licenceNo) {
         try {
-            const response = await fetch('http://localhost:8080/sns/mobile-otp', {
+            const response = await fetch(`${window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL}/sns/mobile-otp`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -59,7 +59,8 @@ const userActions = {
     fetchUser: (userId) => async (dispatch, getState) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8080/users/${userId}`, {
+            const baseUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
+            const response = await fetch(`${baseUrl}/users/${userId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const user = await response.json();
@@ -86,7 +87,8 @@ const userActions = {
     updateProfile: (userData) => async (dispatch, getState) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/users/profile', {
+            const baseUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
+            const response = await fetch(`${baseUrl}/users/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

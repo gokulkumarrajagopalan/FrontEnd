@@ -162,7 +162,7 @@ class SyncDiagnostics {
 
         const authToken = sessionStorage.getItem('authToken');
         const deviceToken = sessionStorage.getItem('deviceToken');
-        const baseUrl = window.apiConfig?.BASE_URL || 'http://localhost:8080';
+        const baseUrl = window.apiConfig?.BASE_URL || window.AppConfig?.API_BASE_URL;
 
         if (!authToken || !deviceToken) {
             console.log('❌ Cannot test - Missing authentication tokens');

@@ -32,7 +32,7 @@ def get_common_args():
     if args.tally_port is None:
         args.tally_port = 9000
     if args.backend_url is None:
-        args.backend_url = os.getenv("BACKEND_URL", "http://localhost:8080")
+        args.backend_url = os.getenv("BACKEND_URL")
     
     # If positional arguments are provided, map them to named arguments if they are missing
     if args.pos_args:
@@ -50,7 +50,7 @@ def get_common_args():
         if len(args.pos_args) >= 5 and (args.tally_port == 9000 or args.tally_port is None):
             try: args.tally_port = int(args.pos_args[4])
             except ValueError: pass
-        if len(args.pos_args) >= 6 and (args.backend_url == os.getenv("BACKEND_URL", "http://localhost:8080") or args.backend_url is None):
+        if len(args.pos_args) >= 6 and (args.backend_url == os.getenv("BACKEND_URL") or args.backend_url is None):
             args.backend_url = args.pos_args[5]
             
     return args

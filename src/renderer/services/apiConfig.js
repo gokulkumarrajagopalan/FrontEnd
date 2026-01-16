@@ -1,11 +1,25 @@
 // Support both module and non-module environments
 const apiConfig = {
     get BASE_URL() {
-        // Use exposed backend URL from main process if available, otherwise fallback
+        // Use exposed backend URL from main process
         if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.backendUrl) {
             return window.electronAPI.backendUrl;
         }
-        return 'http://localhost:8080';
+        // Fallback to AppConfig from config.js
+        if (typeof window !== 'undefined' && window.AppConfig && window.AppConfig.API_BASE_URL) {
+            return window.AppConfig.API_BASE_URL;
+        }
+        
+        // Provide detailed error message
+        console.error('❌ Backend URL not configured!');
+        console.error('window.electronAPI.backendUrl:', typeof window !== 'undefined' && window.electronAPI ? window.electronAPI.backendUrl : 'undefined');
+        console.error('window.AppConfig.API_BASE_URL:', typeof window !== 'undefined' && window.AppConfig ? window.AppConfig.API_BASE_URL : 'undefined');
+        console.error('Please ensure:');
+        console.error('1. .env file exists in project root');
+        console.error('2. BACKEND_URL is set in .env file (e.g., BACKEND_URL=http://3.80.124.37:8080)');
+        console.error('3. Application has been restarted after .env changes');
+        
+        throw new Error('Backend URL not configured. Please set BACKEND_URL in .env file');
     },
 
     endpoints: {

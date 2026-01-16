@@ -15,7 +15,7 @@ function registerSyncHandler() {
                 cmpId,
                 userId,
                 tallyPort = 9000,
-                backendUrl = process.env.BACKEND_URL || 'http://localhost:8080',
+                backendUrl = process.env.BACKEND_URL,
                 authToken,
                 deviceToken
             } = params;

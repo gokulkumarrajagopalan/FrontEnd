@@ -45,7 +45,8 @@ const mastersActions = {
         dispatch({ type: MASTERS_ACTIONS.FETCH_ACCOUNTS_REQUEST });
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/masters/accounts', {
+            const baseUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
+            const response = await fetch(`${baseUrl}/masters/accounts`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -64,7 +65,8 @@ const mastersActions = {
     addAccount: (account) => async (dispatch, getState) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/masters/accounts', {
+            const baseUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
+            const response = await fetch(`${baseUrl}/masters/accounts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -86,7 +88,8 @@ const mastersActions = {
     updateAccount: (id, account) => async (dispatch, getState) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8080/masters/accounts/${id}`, {
+            const baseUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
+            const response = await fetch(`${baseUrl}/masters/accounts/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -108,7 +111,8 @@ const mastersActions = {
     deleteAccount: (id) => async (dispatch, getState) => {
         try {
             const token = localStorage.getItem('token');
-            await fetch(`http://localhost:8080/masters/accounts/${id}`, {
+            const baseUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
+            await fetch(`${baseUrl}/masters/accounts/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -127,7 +131,8 @@ const mastersActions = {
         dispatch({ type: MASTERS_ACTIONS.FETCH_COST_CENTERS_REQUEST });
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/masters/cost-centers', {
+            const baseUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
+            const response = await fetch(`${baseUrl}/masters/cost-centers`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -148,7 +153,8 @@ const mastersActions = {
         dispatch({ type: MASTERS_ACTIONS.FETCH_CATEGORIES_REQUEST });
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/masters/categories', {
+            const baseUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
+            const response = await fetch(`${baseUrl}/masters/categories`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -169,7 +175,8 @@ const mastersActions = {
         dispatch({ type: MASTERS_ACTIONS.FETCH_UNITS_REQUEST });
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/masters/units', {
+            const baseUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
+            const response = await fetch(`${baseUrl}/masters/units`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();

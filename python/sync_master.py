@@ -55,7 +55,7 @@ class SyncManager:
         self.company_name = company_name
         self.tally_port = tally_port
         self.tally_url = f"http://localhost:{tally_port}"
-        self.backend_url = backend_url or "http://localhost:8080"
+        self.backend_url = backend_url or os.getenv('BACKEND_URL')
         self.auth_token = auth_token
         self.device_token = device_token
         
@@ -529,7 +529,7 @@ def main():
         cmp_id = int(sys.argv[2])
         user_id = int(sys.argv[3])
         tally_port = int(sys.argv[4])
-        backend_url = sys.argv[5] if len(sys.argv) > 5 else os.getenv("BACKEND_URL", "http://localhost:8080")
+        backend_url = sys.argv[5] if len(sys.argv) > 5 else os.getenv("BACKEND_URL")
         auth_token = sys.argv[6] if len(sys.argv) > 6 else None
         device_token = sys.argv[7] if len(sys.argv) > 7 else None
         

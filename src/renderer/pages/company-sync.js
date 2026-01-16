@@ -496,7 +496,7 @@
             // Get settings for Tally port and backend URL
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-            const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL || 'http://localhost:8080';
+            const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
 
             const syncSteps = [
                 { name: 'Units', api: window.electronAPI.syncUnits },

@@ -114,7 +114,7 @@
                     authToken: localStorage.getItem('authToken'),
                     deviceToken: localStorage.getItem('deviceToken'),
                     tallyPort: appSettings.tallyPort || 9000,
-                    backendUrl: window.apiConfig?.baseURL || 'http://localhost:8080',
+                    backendUrl: window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL,
                     companyName: company?.name
                 });
 

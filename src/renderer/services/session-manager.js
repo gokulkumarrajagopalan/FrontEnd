@@ -383,7 +383,7 @@ window.addEventListener('forceLogout', (event) => {
 });
 
 console.log('✅ SessionManager loaded (WebSocket Version)');
-console.log('   Connection: Real-time WebSocket to ws://localhost:8080/ws/session');
+console.log(`   Connection: Real-time WebSocket to ${window.AppConfig?.API_BASE_URL?.replace('http', 'ws')}/ws/session`);
 console.log('   Auto-detects: Single-device login enforcement');
 console.log('   Behavior: Instant logout on device conflict');
 console.log('');
