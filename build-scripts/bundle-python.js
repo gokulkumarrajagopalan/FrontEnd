@@ -10,9 +10,9 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
-const PYTHON_SOURCE = path.join(PROJECT_ROOT, 'sync_worker.py');
+// Fixed: Python source is in 'python' directory
+const PYTHON_SOURCE = path.join(PROJECT_ROOT, 'python', 'sync_worker.py');
 const BUNDLE_DIR = path.join(PROJECT_ROOT, 'resources', 'python');
-const SPEC_FILE = path.join(PROJECT_ROOT, 'build-scripts', 'sync_worker.spec');
 
 console.log('🐍 Python Bundling Script');
 console.log('='.repeat(50));
@@ -29,16 +29,30 @@ try {
 
 // Step 2: Check if PyInstaller is installed
 console.log('\n📦 Step 2: Checking PyInstaller...');
+let pyInstallerFound = false;
 try {
-    execSync('pyinstaller --version', { encoding: 'utf-8' });
-    console.log('✅ PyInstaller found');
-} catch (e) {
+    // Try python -m first (more reliable on Windows)
+    execSync('python -m PyInstaller --version', { encoding: 'utf-8' });
+    console.log('✅ PyInstaller found (via python module)');
+    pyInstallerFound = true;
+} catch (e1) {
+    try {
+        // Fallback to global command
+        execSync('pyinstaller --version', { encoding: 'utf-8' });
+        console.log('✅ PyInstaller found (via system command)');
+        pyInstallerFound = true;
+    } catch (e2) {
+        pyInstallerFound = false;
+    }
+}
+
+if (!pyInstallerFound) {
     console.log('⚠️  PyInstaller not found. Installing...');
     try {
-        execSync('pip install pyinstaller', { stdio: 'inherit' });
+        execSync('python -m pip install pyinstaller', { stdio: 'inherit' });
         console.log('✅ PyInstaller installed');
     } catch (installError) {
-        console.error('❌ Failed to install PyInstaller');
+        console.error('❌ Failed to install PyInstaller:', installError.message);
         process.exit(1);
     }
 }
@@ -63,8 +77,9 @@ console.log(`✅ Source file found: ${PYTHON_SOURCE}`);
 // Step 5: Run PyInstaller
 console.log('\n⚙️  Step 5: Running PyInstaller...');
 try {
-    const command = `pyinstaller --onefile --distpath "${path.join(BUNDLE_DIR, 'dist')}" --buildpath "${path.join(BUNDLE_DIR, 'build')}" --specpath "${BUNDLE_DIR}" "${PYTHON_SOURCE}"`;
-    
+    // Using python -m PyInstaller to be safe
+    const command = `python -m PyInstaller --onefile --distpath "${path.join(BUNDLE_DIR, 'dist')}" --workpath "${path.join(BUNDLE_DIR, 'build')}" --specpath "${BUNDLE_DIR}" --name "sync_worker" "${PYTHON_SOURCE}"`;
+
     console.log(`Executing: ${command}`);
     execSync(command, { stdio: 'inherit' });
     console.log('✅ PyInstaller completed successfully');
@@ -103,7 +118,7 @@ try {
     const source = fs.existsSync(outputExe) ? outputExe : outputUnix;
     const filename = path.basename(source);
     const destination = path.join(resourcesDest, filename);
-    
+
     // Copy file
     fs.copyFileSync(source, destination);
     console.log(`✅ Copied to: ${destination}`);

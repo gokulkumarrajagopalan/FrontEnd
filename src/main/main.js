@@ -3,6 +3,7 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const security = require("./security");
+const { findPython } = require("./python-finder");
 
 // Load environment variables from .env file in project root
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
@@ -253,7 +254,7 @@ ipcMain.handle("fetch-license", async (event, { tallyPort } = {}) => {
     console.log(`📥 fetch-license IPC called on port ${port}`);
 
     return new Promise((resolve, reject) => {
-      const pythonPath = process.platform === "win32" ? "python.exe" : "python";
+      const pythonPath = findPython();
       const pythonDir = path.join(__dirname, "../..", "python").replace(/\\/g, '\\\\');
 
       const script = `
@@ -353,12 +354,34 @@ const { registerMasterDataHandler } = require('./master-data-handler');
 registerMasterDataHandler();
 
 // Provide backend URL to renderer synchronously
+// Provide backend URL to renderer synchronously
 ipcMain.on('get-backend-url-sync', (event) => {
-  const backendUrl = process.env.BACKEND_URL;
+  let backendUrl = process.env.BACKEND_URL;
+
+  if (!backendUrl) {
+    console.warn('⚠️ BACKEND_URL not found in process.env, attempting to reload .env...');
+    try {
+      const envPath = path.join(__dirname, '../../.env');
+      if (fs.existsSync(envPath)) {
+        const envConfig = require('dotenv').parse(fs.readFileSync(envPath));
+        if (envConfig.BACKEND_URL) {
+          backendUrl = envConfig.BACKEND_URL;
+          process.env.BACKEND_URL = backendUrl;
+          console.log('✅ BACKEND_URL loaded from .env re-read:', backendUrl);
+        }
+      }
+    } catch (e) {
+      console.error('❌ Failed to reload .env:', e);
+    }
+  }
+
   if (!backendUrl) {
     console.error('❌ BACKEND_URL not set in .env file!');
     console.error('Please create a .env file in the project root with: BACKEND_URL=http://your-backend-url:8080');
+  } else {
+    console.log('✅ Sending BACKEND_URL to renderer:', backendUrl);
   }
+
   event.returnValue = backendUrl;
 });
 
@@ -370,7 +393,7 @@ ipcMain.handle("fetch-companies", async (event, { tallyPort } = {}) => {
     console.log(`Fetching companies from Tally on port ${port}...`);
 
     return new Promise((resolve, reject) => {
-      const pythonPath = process.platform === "win32" ? "python.exe" : "python";
+      const pythonPath = findPython();
       const pythonDir = path.join(__dirname, "../..", "python").replace(/\\/g, '\\\\');
 
       const script = `

@@ -10,7 +10,7 @@
     "start": "electron .",
     "dev": "electron . --dev",
     "build": "npm run bundle-python && electron-builder",
-    "build-exe": "electron-packager . Tallify --platform=win32 --arch=x64 --out=dist --overwrite --icon=assets/icon.ico",
+    "build-exe": "electron-packager . Tallify --platform=win32 --arch=x64 --out=dist --overwrite",
     "pack": "npm run bundle-python && electron-builder --dir",
     "dist": "npm run bundle-python && electron-builder",
     "bundle-python": "node build-scripts/bundle-python.js",
@@ -45,16 +45,26 @@
   "build": {
     "appId": "com.tallify.desktop",
     "productName": "Tallify",
+    "removePackageScripts": true,
     "files": [
       "src/**/*",
       "python/**/*",
       "assets/**/*",
-      "node_modules/**/*"
+      ".env"
     ],
     "directories": {
       "buildResources": "assets",
       "output": "dist"
     },
+    "extraResources": [
+      {
+        "from": "resources/bin",
+        "to": "bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "win": {
       "target": [
         {
@@ -76,10 +86,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Tallify",
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico",
-      "installerHeaderIcon": "assets/icon.ico"
+      "shortcutName": "Tallify"
     },
     "portable": {
       "artifactName": "Tallify-${version}.exe"
