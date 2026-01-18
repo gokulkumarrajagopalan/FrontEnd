@@ -702,7 +702,7 @@
                     </span>
                 </td>
                 <td class="px-6 py-5">
-                    <button class="sync-company-btn px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 rounded-xl shadow-md hover:shadow-lg transition-all font-semibold text-sm" data-id="${company.id}">🔄 Sync</button>
+                    <button class="sync-company-btn px-4 py-2 text-white rounded-xl shadow-md hover:shadow-lg transition-all font-semibold text-sm" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);" data-id="${company.id}">🔄 Sync</button>
                 </td>
             </tr>
         `;

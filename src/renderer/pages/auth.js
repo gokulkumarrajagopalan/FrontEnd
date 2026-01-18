@@ -10,150 +10,303 @@
 
     // ============= DUAL-MODE LOGIN TEMPLATE =============
     const getLoginTemplate = () => `
-    <div class="auth-background flex items-center justify-center p-6 relative overflow-hidden" style="background: var(--bg-primary); min-height: 100vh;">
-        <div class="w-full max-w-md relative z-10">
-            <!-- Logo and Brand -->
-            <div class="auth-header mb-6 text-center">
-                <div class="auth-logo inline-flex mb-3 transform hover:rotate-6 transition-transform duration-300">
-                    <span class="text-5xl">📊</span>
+    <div class="auth-background flex" style="min-height: 100vh;">
+        <!-- Left Side - Branding Panel -->
+        <div class="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 relative" style="background: linear-gradient(135deg, #1346A8 0%, #0f3a8a 50%, #0a2d6e 100%);">
+            <!-- Background Pattern -->
+            <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.4\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+            
+            <div class="relative z-10 text-center max-w-md">
+                <!-- Logo -->
+                <div class="mb-8">
+                    <img src="assets/brand/talliffy-icon.png" alt="Talliffy" style="width: 100px; height: 100px; border-radius: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); margin: 0 auto;" />
                 </div>
-                <h1 class="text-4xl font-bold mb-2" style="color: var(--text-primary);">
-                    Talli<span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-600">ffy</span>
+                
+                <!-- Brand Name -->
+                <h1 class="text-5xl font-bold text-white mb-4">
+                    Talli<span style="color: #5AB3FF;">ffy</span>
                 </h1>
-                <p class="text-sm" style="color: var(--text-tertiary);">Enterprise Resource Planning</p>
-            </div>
+                
+                <!-- Tagline -->
+                <p class="text-2xl font-semibold text-white mb-2">
+                    Enterprise Tally Platform
+                </p>
+                <p class="text-xl text-blue-200 mb-12">
+                    Sync Automatically • Access Anywhere
+                </p>
 
-            <div class="rounded-3xl p-8 shadow-2xl" style="background: var(--card-bg); border: 1px solid var(--card-border);">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary);">Welcome Back</h2>
-                    <p class="text-xs" style="color: var(--text-tertiary);">Sign in to continue to your account</p>
-                </div>
-
-                <!-- Login Mode Toggle -->
-                <div class="mb-6 flex gap-4 p-2 bg-gray-100 rounded-xl">
-                    <label class="flex-1 flex items-center justify-center gap-2 cursor-pointer">
-                        <input type="radio" name="loginMode" value="username" id="loginModeUsername" checked class="w-4 h-4 text-blue-600 focus:ring-blue-500">
-                        <span class="text-sm font-medium text-gray-700">Username</span>
-                    </label>
-                    <label class="flex-1 flex items-center justify-center gap-2 cursor-pointer">
-                        <input type="radio" name="loginMode" value="email" id="loginModeEmail" class="w-4 h-4 text-blue-600 focus:ring-blue-500">
-                        <span class="text-sm font-medium text-gray-700">Email + Licence</span>
-                    </label>
-                </div>
-
-                <div id="errorMessage" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm hidden">
-                    <div class="flex items-start gap-3">
-                        <span class="text-lg">⚠️</span>
-                        <span class="flex-1"></span>
-                    </div>
-                </div>
-                <div id="successMessage" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-2xl text-green-700 text-sm hidden">
-                    <div class="flex items-start gap-3">
-                        <span class="text-lg">✅</span>
-                        <span class="flex-1"></span>
-                    </div>
-                </div>
-
-                <form id="loginForm" class="space-y-5">
-                    <!-- Username Mode Fields -->
-                    <div id="usernameFields">
-                        <div>
-                            <label class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Username</label>
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-lg">👤</span>
-                                </div>
-                                <input type="text" id="username" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="Enter your username">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Email + Licence Mode Fields -->
-                    <div id="emailFields" class="hidden space-y-4">
-                        <div>
-                            <label for="loginEmail" class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Email Address</label>
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-lg">📧</span>
-                                </div>
-                                <input type="email" id="loginEmail" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="john@example.com">
-                            </div>
+                <!-- Feature Highlights -->
+                <div class="space-y-6 text-left">
+                    <div class="flex items-center gap-4 p-4 rounded-2xl" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+                        <div class="w-14 h-14 rounded-xl flex items-center justify-center text-3xl" style="background: linear-gradient(135deg, #5AB3FF 0%, #1346A8 100%);">
+                            🔄
                         </div>
                         <div>
-                            <label for="loginLicenceNo" class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Licence Number</label>
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-lg">🔑</span>
-                                </div>
-                                <input type="number" id="loginLicenceNo" class="w-full pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem; -moz-appearance: textfield;" placeholder="1001" min="1">
-                                <style>
-                                    #loginLicenceNo::-webkit-outer-spin-button,
-                                    #loginLicenceNo::-webkit-inner-spin-button {
-                                        -webkit-appearance: none;
-                                        margin: 0;
-                                    }
-                                </style>
-                            </div>
+                            <h3 class="text-white font-bold text-lg">Auto Sync</h3>
+                            <p class="text-blue-200 text-sm">Real-time synchronization with Tally</p>
                         </div>
                     </div>
-
-                    <!-- Password Field (Common) -->
-                    <div>
-                        <label for="password" class="block text-xs font-bold mb-2" style="color: var(--text-primary);">Password</label>
-                        <div class="relative w-full" style="position: relative;">
-                            <div class="absolute flex items-center justify-center" style="position: absolute; left: 1rem; top: 0; bottom: 0; pointer-events: none; z-index: 10;">
-                                <span class="text-lg">🔐</span>
-                            </div>
-                            <input type="password" id="password" class="w-full py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem; padding-right: 3rem;" placeholder="Enter your password" required>
-                            <button type="button" id="toggleLoginPassword" aria-label="Show or hide password" class="absolute flex items-center justify-center text-gray-500 hover:text-gray-700" style="position: absolute; right: 0.75rem; top: 0; bottom: 0; background: none !important; border: none !important; padding: 0 !important; width: 32px !important; min-width: auto !important; box-shadow: none !important; transform: none !important; z-index: 10; cursor: pointer;">👁️</button>
+                    <div class="flex items-center gap-4 p-4 rounded-2xl" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+                        <div class="w-14 h-14 rounded-xl flex items-center justify-center text-3xl" style="background: linear-gradient(135deg, #5AB3FF 0%, #1346A8 100%);">
+                            ☁️
+                        </div>
+                        <div>
+                            <h3 class="text-white font-bold text-lg">Cloud Connected</h3>
+                            <p class="text-blue-200 text-sm">Access your data from anywhere</p>
                         </div>
                     </div>
-
-                    <div class="flex items-center justify-between pt-2">
-                        <label class="flex items-center gap-2.5 cursor-pointer group">
-                            <input type="checkbox" id="rememberMe" class="w-5 h-5 rounded-lg border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                            <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Remember me</span>
-                        </label>
-                        <a href="#" class="text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline">Forgot password?</a>
-                    </div>
-
-                    <div id="loadingSpinner" class="hidden text-center py-4">
-                        <div class="inline-block">
-                            <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600"></div>
+                    <div class="flex items-center gap-4 p-4 rounded-2xl" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+                        <div class="w-14 h-14 rounded-xl flex items-center justify-center text-3xl" style="background: linear-gradient(135deg, #5AB3FF 0%, #1346A8 100%);">
+                            🔒
+                        </div>
+                        <div>
+                            <h3 class="text-white font-bold text-lg">Secure & Reliable</h3>
+                            <p class="text-blue-200 text-sm">Enterprise-grade security</p>
                         </div>
                     </div>
+                </div>
 
-                    <button type="submit" id="loginBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm mt-6" style="background: #000000 !important;">
-                        <span class="text-lg">🚀</span>
-                        <span>Sign In to Dashboard</span>
-                    </button>
-                </form>
-
-                <div class="mt-6 pt-5 border-t border-gray-200">
-                    <p class="text-center text-xs text-gray-600">
-                        Don't have an account?
-                        <a href="#" id="showSignup" class="font-bold text-blue-600 hover:text-blue-700 hover:underline ml-1" data-route="signup">Create Account</a>
-                    </p>
+                <!-- Footer -->
+                <div class="mt-12 text-blue-300 text-sm">
+                    © 2024 Talliffy. All rights reserved.
                 </div>
             </div>
+        </div>
 
-            <div class="text-center mt-6">
-                <p class="text-xs" style="color: var(--text-tertiary);">© 2024 Talliffy. All rights reserved.</p>
+        <!-- Right Side - Auth Forms -->
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12" style="background: #f8fafc;">
+            <div class="w-full max-w-md">
+                <!-- Mobile Logo -->
+                <div class="lg:hidden text-center mb-8">
+                    <img src="assets/brand/talliffy-icon.png" alt="Talliffy" style="width: 60px; height: 60px; border-radius: 12px; margin: 0 auto 12px;" />
+                    <h1 class="text-2xl font-bold" style="color: #1346A8;">Talli<span style="color: #5AB3FF;">ffy</span></h1>
+                    <p class="text-sm text-gray-500">Enterprise Tally Platform</p>
+                </div>
+
+                <!-- Auth Card -->
+                <div class="bg-white rounded-2xl shadow-xl p-8" style="border: 1px solid #e2e8f0; min-width: 480px;">
+                    <!-- Tab Switcher -->
+                    <div class="flex mb-6 p-1.5 rounded-xl" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
+                        <button id="signinTab" class="auth-tab flex-1 py-3 text-sm font-semibold rounded-lg transition-all" style="outline: none; cursor: pointer;">
+                            Sign In
+                        </button>
+                        <button id="signupTab" class="auth-tab flex-1 py-3 text-sm font-semibold rounded-lg transition-all" style="outline: none; cursor: pointer;">
+                            Sign Up
+                        </button>
+                    </div>
+
+                    <!-- Sign In Form -->
+                    <div id="signinForm">
+                        <div class="mb-5">
+                            <h2 class="text-xl font-bold text-gray-800">Welcome Back!</h2>
+                            <p class="text-sm text-gray-500">Sign in to continue</p>
+                        </div>
+
+                        <!-- Login Mode Toggle -->
+                        <div class="mb-5 flex gap-2 p-1 rounded-lg" style="background: #f8fafc;">
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="loginMode" value="username" id="loginModeUsername" checked class="sr-only peer">
+                                <div class="text-center py-2 px-2 rounded-md text-xs font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">
+                                    Username
+                                </div>
+                            </label>
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="loginMode" value="email" id="loginModeEmail" class="sr-only peer">
+                                <div class="text-center py-2 px-2 rounded-md text-xs font-medium text-gray-500 peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm transition-all">
+                                    Email + Licence
+                                </div>
+                            </label>
+                        </div>
+
+                        <div id="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm hidden">
+                            <div class="flex items-center gap-2">
+                                <span>⚠️</span>
+                                <span class="flex-1"></span>
+                            </div>
+                        </div>
+                        <div id="successMessage" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm hidden">
+                            <div class="flex items-center gap-2">
+                                <span>✅</span>
+                                <span class="flex-1"></span>
+                            </div>
+                        </div>
+
+                        <form id="loginForm" class="space-y-4">
+                            <!-- Username Fields -->
+                            <div id="usernameFields">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">Username</label>
+                                <div style="position: relative;">
+                                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; pointer-events: none;">👤</span>
+                                    <input type="text" id="username" class="w-full py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" style="padding-left: 38px; padding-right: 16px;" placeholder="Enter username">
+                                </div>
+                            </div>
+
+                            <!-- Email Fields -->
+                            <div id="emailFields" class="hidden space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Email</label>
+                                    <div style="position: relative;">
+                                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; pointer-events: none;">📧</span>
+                                        <input type="email" id="loginEmail" class="w-full py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" style="padding-left: 38px; padding-right: 16px;" placeholder="john@example.com">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Licence Number</label>
+                                    <div style="position: relative;">
+                                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; pointer-events: none;">🔑</span>
+                                        <input type="number" id="loginLicenceNo" class="w-full py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" style="padding-left: 38px; padding-right: 16px; -moz-appearance: textfield;" placeholder="1001" min="1">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1.5">Password</label>
+                                <div style="position: relative;">
+                                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; pointer-events: none;">🔐</span>
+                                    <input type="password" id="password" class="w-full py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" style="padding-left: 38px; padding-right: 42px;" placeholder="Enter password" required>
+                                    <span id="toggleLoginPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 16px; opacity: 0.5; user-select: none;">👁️</span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="rememberMe" class="w-4 h-4 rounded border-gray-300 text-blue-600">
+                                    <span class="text-xs text-gray-600">Remember me</span>
+                                </label>
+                                <a href="#" class="text-xs font-semibold text-blue-600 hover:underline">Forgot password?</a>
+                            </div>
+
+                            <div id="loadingSpinner" class="hidden text-center py-3">
+                                <div class="animate-spin rounded-full h-8 w-8 border-3 border-blue-200 border-t-blue-600 mx-auto"></div>
+                            </div>
+
+                            <button type="submit" id="loginBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
+                                <span>🚀</span>
+                                <span>Sign In</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Sign Up Form (Initially Hidden) -->
+                    <div id="signupFormContainer" class="hidden">
+                        <div class="mb-5">
+                            <h2 class="text-xl font-bold text-gray-800">Create Account</h2>
+                            <p class="text-sm text-gray-500">Get started with Talliffy</p>
+                        </div>
+
+                        <div id="signupErrorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm hidden">
+                            <div class="flex items-center gap-2">
+                                <span>⚠️</span>
+                                <span class="flex-1"></span>
+                            </div>
+                        </div>
+
+                        <form id="signupForm" class="space-y-3">
+                            <!-- Name & Username -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Full Name *</label>
+                                    <input type="text" id="fullName" class="w-full px-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500" style="font-size: 11px;" placeholder="John Doe" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Username *</label>
+                                    <input type="text" id="signupUsername" class="w-full px-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500" style="font-size: 11px;" placeholder="john_doe" required>
+                                </div>
+                            </div>
+
+                            <!-- Email & Licence -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Email *</label>
+                                    <input type="email" id="email" class="w-full px-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500" style="font-size: 11px;" placeholder="john@example.com" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Licence No *</label>
+                                    <input type="number" id="licenceNo" class="w-full px-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500" style="font-size: 11px;" placeholder="1001" required min="1">
+                                </div>
+                            </div>
+
+                            <!-- Country & Mobile -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Country *</label>
+                                    <select id="countryCode" class="w-full px-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 bg-white" style="font-size: 11px;" required>
+                                        <option value="+91">+91 India</option>
+                                        <option value="+1">+1 USA</option>
+                                        <option value="+44">+44 UK</option>
+                                        <option value="+61">+61 Australia</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Mobile *</label>
+                                    <input type="tel" id="mobile" class="w-full px-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500" style="font-size: 11px;" placeholder="1234567890" required>
+                                </div>
+                            </div>
+
+                            <!-- Passwords -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Password *</label>
+                                    <div style="position: relative;">
+                                        <input type="password" id="signupPassword" class="w-full py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500" style="padding-left: 12px; padding-right: 36px; font-size: 11px;" placeholder="Min 6 chars" required minlength="6">
+                                        <span id="toggleSignupPassword" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 14px; opacity: 0.5; user-select: none;">👁️</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Confirm *</label>
+                                    <div style="position: relative;">
+                                        <input type="password" id="confirmPassword" class="w-full py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500" style="padding-left: 12px; padding-right: 36px; font-size: 11px;" placeholder="Re-enter" required minlength="6">
+                                        <span id="toggleSignupConfirmPassword" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 14px; opacity: 0.5; user-select: none;">👁️</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terms -->
+                            <div class="flex items-start gap-2 p-3 rounded-lg bg-gray-50">
+                                <input type="checkbox" id="agreeTerms" class="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-600" required>
+                                <label for="agreeTerms" class="text-xs text-gray-600">
+                                    I agree to <a href="#" class="text-blue-600 font-semibold">Terms</a> & <a href="#" class="text-blue-600 font-semibold">Privacy</a>
+                                </label>
+                            </div>
+
+                            <button type="submit" id="signupBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
+                                <span>✨</span>
+                                <span id="signupBtnText">Create Account</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Mobile Footer -->
+                <div class="lg:hidden text-center mt-6 text-xs text-gray-500">
+                    © 2024 Talliffy. All rights reserved.
+                </div>
             </div>
         </div>
     </div>
+    
+    <style>
+        #loginLicenceNo::-webkit-outer-spin-button,
+        #loginLicenceNo::-webkit-inner-spin-button,
+        #licenceNo::-webkit-outer-spin-button,
+        #licenceNo::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
     `;
 
     // ============= OTP VERIFICATION TEMPLATE =============
     const getOtpVerificationTemplate = (username) => `
-    <div class="auth-background flex items-center justify-center p-6 relative overflow-hidden" style="background: var(--bg-primary); min-height: 100vh;">
+    <div class="auth-background flex items-center justify-center p-6 relative overflow-hidden" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%); min-height: 100vh;">
         <div class="w-full max-w-md relative z-10">
             <div class="auth-header mb-6 text-center">
                 <div class="auth-logo inline-flex mb-3">
-                    <span class="text-5xl">📧</span>
+                    <img src="assets/brand/talliffy-icon.png" style="width: 64px; height: 64px; border-radius: 12px; box-shadow: 0 4px 12px rgba(19, 70, 168, 0.3);" />
                 </div>
-                <h1 class="text-3xl font-bold mb-2" style="color: var(--text-primary);">Verify Your Email</h1>
-                <p class="text-sm" style="color: var(--text-tertiary);">We sent a 6-digit code to your email</p>
+                <h1 class="text-3xl font-bold mb-2" style="color: #1346A8;">Talli<span style="color: #5AB3FF;">ffy</span></h1>
+                <p class="text-sm" style="color: #64748b;">Verify Your Email - We sent a 6-digit code</p>
             </div>
 
             <div class="rounded-3xl p-8 shadow-2xl" style="background: var(--card-bg); border: 1px solid var(--card-border);">
@@ -200,7 +353,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" id="verifyBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm" style="background: #000000 !important;">
+                    <button type="submit" id="verifyBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%) !important;">
                         <span class="text-lg">✅</span>
                         <span>Verify OTP</span>
                     </button>
@@ -309,205 +462,231 @@
 
     // ============= REGISTRATION TEMPLATE (UPDATED) =============
     const getSignupTemplate = () => `
-    <div class="auth-background flex items-center justify-center p-6 py-8 relative overflow-hidden" style="background: var(--bg-primary); min-height: 100vh;">
-        <div class="w-full max-w-3xl relative z-10 mx-auto">
-            <div class="auth-header mb-6 text-center">
-                <div class="auth-logo inline-flex mb-3">
-                    <span class="text-5xl">📊</span>
+    <div class="auth-background flex" style="min-height: 100vh;">
+        <!-- Left Side - Branding Panel -->
+        <div class="hidden lg:flex lg:w-2/5 flex-col justify-between p-10" style="background: linear-gradient(135deg, #1346A8 0%, #0f3a8a 50%, #0a2d6e 100%);">
+            <div>
+                <div class="flex items-center gap-3 mb-12">
+                    <img src="assets/brand/talliffy-icon.png" alt="Talliffy" style="width: 48px; height: 48px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);" />
+                    <h1 class="text-2xl font-bold text-white">
+                        Talli<span style="color: #5AB3FF;">ffy</span>
+                    </h1>
                 </div>
-                <h1 class="text-3xl font-bold mb-2" style="color: var(--text-primary);">Create Your Account</h1>
-                <p class="text-sm" style="color: var(--text-tertiary);">Join Talliffy - Enterprise Resource Planning</p>
-            </div>
-
-            <div class="rounded-3xl p-8 shadow-2xl" style="background: var(--card-bg); border: 1px solid var(--card-border); max-width: 700px; margin: 0 auto;">
-                <div id="errorMessage" role="alert" aria-live="assertive" tabindex="-1" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm hidden">
-                    <div class="flex items-start gap-3">
-                        <span class="text-lg">⚠️</span>
-                        <span class="flex-1"></span>
-                    </div>
-                </div>
-                <div id="successMessage" role="status" aria-live="polite" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-2xl text-green-700 text-sm hidden">
-                    <div class="flex items-start gap-3">
-                        <span class="text-lg">✅</span>
-                        <span class="flex-1"></span>
-                    </div>
-                </div>
-
-                <form id="signupForm" class="space-y-3">
-                    <!-- Full Name Row -->
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Full Name <span class="text-red-500">*</span></label>
-                        <div class="relative group flex-1">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <span class="text-lg">👤</span>
-                            </div>
-                            <input type="text" id="fullName" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="John Doe" required>
-                        </div>
-                    </div>
-
-                    <!-- Username Row -->
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Username <span class="text-red-500">*</span></label>
-                        <div class="flex-1">
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-lg text-blue-500">@</span>
-                                </div>
-                                <input type="text" id="username" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="john_company_a" required>
-                            </div>
-                            <p id="usernameHelper" class="text-xs mt-1 ml-2" style="color: var(--text-tertiary);">Unique username for login</p>
-                        </div>
-                    </div>
-
-                    <!-- Email Address Row -->
-                    <div class="flex items-center gap-3">
-                        <label for="email" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Email Address <span class="text-red-500">*</span></label>
-                        <div class="flex-1">
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-lg">📧</span>
-                                </div>
-                                <input type="email" id="email" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="john@example.com" required>
-                            </div>
-                            <p id="emailHelper" class="text-xs mt-1 ml-2" style="color: var(--text-tertiary);">Can be used for multiple companies</p>
-                        </div>
-                    </div>
-
-                    <!-- Licence Number Row -->
-                    <div class="flex items-center gap-3">
-                        <label for="licenceNo" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Licence Number <span class="text-red-500">*</span></label>
-                        <div class="flex-1">
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-lg">🔑</span>
-                                </div>
-                                <input type="number" id="licenceNo" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem; -moz-appearance: textfield;" placeholder="1001" required min="1">
-                                <style>
-                                    #licenceNo::-webkit-outer-spin-button,
-                                    #licenceNo::-webkit-inner-spin-button {
-                                        -webkit-appearance: none;
-                                        margin: 0;
-                                    }
-                                </style>
-                            </div>
-                            <p id="licenceHelper" class="text-xs mt-1 ml-2" style="color: var(--text-tertiary);">Your company's licence number</p>
-                        </div>
-                    </div>
-
-                    <!-- Country Code Row -->
-                    <div class="flex items-center gap-3">
-                        <label for="countryCode" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Country Code <span class="text-red-500">*</span></label>
-                        <div class="flex-1">
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-                                    <span class="text-lg">🌍</span>
-                                </div>
-                                <select id="countryCode" class="w-full pr-12 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400 appearance-none" style="padding-left: 3rem;" required>
-                                    <option value="+91" selected>+91 (India)</option>
-                                    <option value="+1">+1 (USA)</option>
-                                    <option value="+44">+44 (UK)</option>
-                                    <option value="+61">+61 (Australia)</option>
-                                    <option value="+27">+27 (South Africa)</option>
-                                    <option value="+86">+86 (China)</option>
-                                    <option value="+81">+81 (Japan)</option>
-                                    <option value="+33">+33 (France)</option>
-                                    <option value="+49">+49 (Germany)</option>
-                                    <option value="+39">+39 (Italy)</option>
-                                </select>
-                                <style>
-                                    #countryCode {
-                                        appearance: none;
-                                        padding-right: 2.5rem;
-                                        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-                                        background-repeat: no-repeat;
-                                        background-position: right 0.75rem center;
-                                        padding-right: 2rem;
-                                    }
-                                </style>
-                            </div>
-                            <p id="countryHelper" class="text-xs mt-1 ml-2" style="color: var(--text-tertiary);"></p>
-                        </div>
-                    </div>
-
-                    <!-- Mobile Number Row -->
-                    <div class="flex items-center gap-3">
-                        <label for="mobile" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Mobile Number <span class="text-red-500">*</span></label>
-                        <div class="flex-1">
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-lg">📱</span>
-                                </div>
-                                <input type="tel" id="mobile" class="w-full pr-4 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem;" placeholder="1234567890" required pattern="[0-9]{7,15}" aria-describedby="mobileHelper">
-                            </div>
-                            <p id="mobileHelper" class="text-xs mt-1 ml-2" style="color: var(--text-tertiary);"></p>
-                        </div>
-                    </div>
-
-                    <!-- Password Row -->
-                    <div class="flex items-center gap-3">
-                        <label for="signupPassword" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Password <span class="text-red-500">*</span></label>
-                        <div class="flex-1">
-                            <div class="relative w-full" style="position: relative;">
-                                <div class="absolute flex items-center justify-center" style="position: absolute; left: 1rem; top: 0; bottom: 0; pointer-events: none; z-index: 10;">
-                                    <span class="text-lg">🔐</span>
-                                </div>
-                                <input type="password" id="signupPassword" class="w-full py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem; padding-right: 3rem;" placeholder="Min 6 characters" required minlength="6" aria-describedby="passwordHelper">
-                                <button type="button" id="toggleSignupPassword" aria-label="Show or hide password" class="absolute flex items-center justify-center text-gray-500 hover:text-gray-700" style="position: absolute; right: 0.75rem; top: 0; bottom: 0; background: none !important; border: none !important; padding: 0 !important; width: 32px !important; min-width: auto !important; box-shadow: none !important; transform: none !important; z-index: 10; cursor: pointer;">👁️</button>
-                            </div>
-                            <p id="passwordHelper" class="text-[10px] mt-1 ml-2" style="color: var(--text-tertiary);"></p>
-                            <div id="passwordStrength" class="mt-1 ml-2 h-1 bg-gray-200 rounded overflow-hidden w-24">
-                                <div id="passwordStrengthBar" class="h-1 w-0 bg-red-500 transition-all duration-200"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Confirm Password Row -->
-                    <div class="flex items-center gap-3">
-                        <label for="confirmPassword" class="text-xs font-bold whitespace-nowrap" style="color: var(--text-primary); min-width: 100px;">Confirm Password <span class="text-red-500">*</span></label>
-                        <div class="flex-1">
-                            <div class="relative w-full" style="position: relative;">
-                                <div class="absolute flex items-center justify-center" style="position: absolute; left: 1rem; top: 0; bottom: 0; pointer-events: none; z-index: 10;">
-                                    <span class="text-lg">🔐</span>
-                                </div>
-                                <input type="password" id="confirmPassword" class="w-full py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all text-gray-900 bg-white text-sm font-medium placeholder-gray-400" style="padding-left: 3rem; padding-right: 3rem;" placeholder="Re-enter password" required minlength="6" aria-describedby="confirmHelper">
-                                <button type="button" id="toggleSignupConfirmPassword" aria-label="Show or hide password" class="absolute flex items-center justify-center text-gray-500 hover:text-gray-700" style="position: absolute; right: 0.75rem; top: 0; bottom: 0; background: none !important; border: none !important; padding: 0 !important; width: 32px !important; min-width: auto !important; box-shadow: none !important; transform: none !important; z-index: 10; cursor: pointer;">👁️</button>
-                            </div>
-                            <p id="confirmHelper" class="text-[10px] mt-1 ml-2" style="color: var(--text-tertiary);"></p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-3 p-4 rounded-xl border-2 bg-gray-50">
-                        <input type="checkbox" id="agreeTerms" class="w-4 h-4 mt-0.5 rounded border-2 cursor-pointer text-blue-600 focus:ring-blue-500" required>
-                        <label for="agreeTerms" class="text-xs font-medium cursor-pointer" style="color: var(--text-primary);">
-                            I agree to the <a href="#" class="font-bold hover:underline text-blue-600">Terms of Service</a> and <a href="#" class="font-bold hover:underline text-blue-600">Privacy Policy</a>
-                        </label>
-                    </div>
-
-                    <div id="loadingSpinner" class="hidden text-center py-3">
-                        <div class="inline-block">
-                            <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600"></div>
-                        </div>
-                    </div>
-
-                    <button type="submit" id="signupBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm mt-6" style="background: #000000 !important;">
-                        <span class="text-lg" id="signupBtnIcon">✨</span>
-                        <span id="signupBtnText">Create My Account</span>
-                        <span id="signupBtnSpinner" class="hidden ml-2 inline-flex">
-                            <span class="animate-spin rounded-full h-5 w-5 border-2 border-blue-200 border-t-white"></span>
-                        </span>
-                    </button>
-                </form>
-
-                <div class="mt-6 pt-5 border-t border-gray-200">
-                    <p class="text-center text-xs" style="color: var(--text-secondary);">
-                        Already have an account?
-                        <a href="#" id="showLogin" class="font-bold text-blue-600 hover:text-blue-700 hover:underline ml-1" data-route="login">Sign In</a>
+                
+                <div class="space-y-6">
+                    <h2 class="text-3xl font-bold text-white leading-tight">
+                        Join Thousands<br/>of Businesses
+                    </h2>
+                    <p class="text-base text-blue-200">
+                        Start syncing your Tally data in minutes. No complex setup required.
                     </p>
                 </div>
+
+                <!-- Feature Cards -->
+                <div class="mt-10 space-y-3">
+                    <div class="flex items-center gap-3 p-3 rounded-xl" style="background: rgba(255, 255, 255, 0.1);">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-xl" style="background: rgba(90, 179, 255, 0.3);">
+                            ⚡
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold text-sm">Quick Setup</h3>
+                            <p class="text-blue-200 text-xs">Get started in under 5 minutes</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 rounded-xl" style="background: rgba(255, 255, 255, 0.1);">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-xl" style="background: rgba(90, 179, 255, 0.3);">
+                            🔄
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold text-sm">Auto Sync</h3>
+                            <p class="text-blue-200 text-xs">Real-time data synchronization</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 rounded-xl" style="background: rgba(255, 255, 255, 0.1);">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-xl" style="background: rgba(90, 179, 255, 0.3);">
+                            📊
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold text-sm">Smart Analytics</h3>
+                            <p class="text-blue-200 text-xs">Insights at your fingertips</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="text-center mt-6">
-                <p class="text-xs" style="color: var(--text-tertiary);">© 2024 Talliffy. All rights reserved.</p>
+            <div class="text-blue-200 text-sm">
+                © 2024 <span class="text-white font-semibold">Talliffy</span>. All rights reserved.
+            </div>
+        </div>
+
+        <!-- Right Side - Signup Form -->
+        <div class="w-full lg:w-3/5 flex items-center justify-center p-6 lg:p-8 overflow-y-auto" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); max-height: 100vh;">
+            <div class="w-full max-w-xl">
+                <!-- Mobile Logo -->
+                <div class="lg:hidden text-center mb-6">
+                    <div class="inline-flex items-center gap-3 mb-3">
+                        <img src="assets/brand/talliffy-icon.png" alt="Talliffy" style="width: 40px; height: 40px; border-radius: 8px;" />
+                        <h1 class="text-xl font-bold" style="color: #1346A8;">
+                            Talli<span style="color: #5AB3FF;">ffy</span>
+                        </h1>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl p-6 shadow-xl bg-white" style="border: 1px solid #e2e8f0;">
+                    <div class="mb-5">
+                        <h2 class="text-xl font-bold" style="color: #1e293b;">Create Your Account</h2>
+                        <p class="text-sm" style="color: #64748b;">Fill in your details to get started</p>
+                    </div>
+
+                    <div id="errorMessage" role="alert" aria-live="assertive" tabindex="-1" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm hidden">
+                        <div class="flex items-start gap-2">
+                            <span>⚠️</span>
+                            <span class="flex-1"></span>
+                        </div>
+                    </div>
+                    <div id="successMessage" role="status" aria-live="polite" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm hidden">
+                        <div class="flex items-start gap-2">
+                            <span>✅</span>
+                            <span class="flex-1"></span>
+                        </div>
+                    </div>
+
+                    <form id="signupForm" class="space-y-3">
+                        <!-- Two Column Layout for Name and Username -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold mb-1.5" style="color: #374151;">Full Name <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2">👤</span>
+                                    <input type="text" id="fullName" class="w-full pl-10 pr-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" placeholder="John Doe" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1.5" style="color: #374151;">Username <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500">@</span>
+                                    <input type="text" id="username" class="w-full pl-10 pr-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" placeholder="john_company" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Email and Licence -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold mb-1.5" style="color: #374151;">Email <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2">📧</span>
+                                    <input type="email" id="email" class="w-full pl-10 pr-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" placeholder="john@example.com" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1.5" style="color: #374151;">Licence Number <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2">🔑</span>
+                                    <input type="number" id="licenceNo" class="w-full pl-10 pr-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" style="-moz-appearance: textfield;" placeholder="1001" required min="1">
+                                    <style>
+                                        #licenceNo::-webkit-outer-spin-button,
+                                        #licenceNo::-webkit-inner-spin-button {
+                                            -webkit-appearance: none;
+                                            margin: 0;
+                                        }
+                                    </style>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Country and Mobile -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold mb-1.5" style="color: #374151;">Country Code <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 z-10">🌍</span>
+                                    <select id="countryCode" class="w-full pl-10 pr-8 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm appearance-none bg-white" required>
+                                        <option value="+91" selected>+91 (India)</option>
+                                        <option value="+1">+1 (USA)</option>
+                                        <option value="+44">+44 (UK)</option>
+                                        <option value="+61">+61 (Australia)</option>
+                                        <option value="+27">+27 (South Africa)</option>
+                                        <option value="+86">+86 (China)</option>
+                                        <option value="+81">+81 (Japan)</option>
+                                        <option value="+33">+33 (France)</option>
+                                        <option value="+49">+49 (Germany)</option>
+                                        <option value="+39">+39 (Italy)</option>
+                                    </select>
+                                    <style>
+                                        #countryCode {
+                                            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+                                            background-repeat: no-repeat;
+                                            background-position: right 0.75rem center;
+                                        }
+                                    </style>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1.5" style="color: #374151;">Mobile <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2">📱</span>
+                                    <input type="tel" id="mobile" class="w-full pl-10 pr-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" placeholder="1234567890" required pattern="[0-9]{7,15}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Passwords -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold mb-1.5" style="color: #374151;">Password <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2">🔐</span>
+                                    <input type="password" id="signupPassword" class="w-full pl-10 pr-10 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" placeholder="Min 6 chars" required minlength="6">
+                                    <button type="button" id="toggleSignupPassword" class="absolute right-3 top-1/2 -translate-y-1/2" style="background: none; border: none; cursor: pointer;">👁️</button>
+                                </div>
+                                <div id="passwordStrength" class="mt-1 h-1 bg-gray-200 rounded overflow-hidden">
+                                    <div id="passwordStrengthBar" class="h-1 w-0 bg-red-500 transition-all duration-200"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1.5" style="color: #374151;">Confirm Password <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2">🔐</span>
+                                    <input type="password" id="confirmPassword" class="w-full pl-10 pr-10 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm" placeholder="Re-enter" required minlength="6">
+                                    <button type="button" id="toggleSignupConfirmPassword" class="absolute right-3 top-1/2 -translate-y-1/2" style="background: none; border: none; cursor: pointer;">👁️</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Terms -->
+                        <div class="flex items-start gap-2 p-3 rounded-lg bg-gray-50 border">
+                            <input type="checkbox" id="agreeTerms" class="w-4 h-4 mt-0.5 rounded border-2 text-blue-600" required>
+                            <label for="agreeTerms" class="text-xs" style="color: #374151;">
+                                I agree to the <a href="#" class="font-bold text-blue-600 hover:underline">Terms</a> and <a href="#" class="font-bold text-blue-600 hover:underline">Privacy Policy</a>
+                            </label>
+                        </div>
+
+                        <div id="loadingSpinner" class="hidden text-center py-2">
+                            <div class="animate-spin rounded-full h-6 w-6 border-3 border-blue-200 border-t-blue-600 mx-auto"></div>
+                        </div>
+
+                        <button type="submit" id="signupBtn" class="w-full text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%) !important;">
+                            <span id="signupBtnIcon">✨</span>
+                            <span id="signupBtnText">Create My Account</span>
+                            <span id="signupBtnSpinner" class="hidden ml-2">
+                                <span class="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white inline-block"></span>
+                            </span>
+                        </button>
+                    </form>
+
+                    <div class="mt-5 pt-4 border-t border-gray-200 text-center">
+                        <p class="text-sm text-gray-600">
+                            Already have an account?
+                            <a href="#" id="showLogin" class="font-bold text-blue-600 hover:underline ml-1" data-route="login">Sign In</a>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Mobile Footer -->
+                <div class="lg:hidden text-center mt-4">
+                    <p class="text-xs" style="color: #64748b;">© 2024 <span style="color: #1346A8; font-weight: 600;">Talliffy</span></p>
+                </div>
             </div>
         </div>
     </div>
@@ -538,18 +717,43 @@
         const target = pageContent || document.body;
         target.innerHTML = getLoginTemplate();
         setupLoginForm();
+        setupSignupFormInline(); // Setup inline signup form
 
-        // Handle link to signup
-        const showSignup = document.getElementById('showSignup');
-        if (showSignup) {
-            showSignup.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (window.router) {
-                    window.router.navigate('signup');
-                } else {
-                    window.location.hash = '#signup';
-                    window.initializeSignup();
-                }
+        // Tab switching between Sign In and Sign Up
+        const signinTab = document.getElementById('signinTab');
+        const signupTab = document.getElementById('signupTab');
+        const signinForm = document.getElementById('signinForm');
+        const signupFormContainer = document.getElementById('signupFormContainer');
+
+        // Helper function to set active tab styling
+        function setActiveTab(activeTab, inactiveTab) {
+            // Active tab styles
+            activeTab.style.background = 'white';
+            activeTab.style.color = '#1346A8';
+            activeTab.style.boxShadow = '0 2px 8px rgba(19, 70, 168, 0.15)';
+            activeTab.style.border = '1px solid #e2e8f0';
+            
+            // Inactive tab styles
+            inactiveTab.style.background = 'transparent';
+            inactiveTab.style.color = '#64748b';
+            inactiveTab.style.boxShadow = 'none';
+            inactiveTab.style.border = '1px solid transparent';
+        }
+
+        if (signinTab && signupTab) {
+            // Set initial active state - Sign In is active by default
+            setActiveTab(signinTab, signupTab);
+
+            signinTab.addEventListener('click', () => {
+                setActiveTab(signinTab, signupTab);
+                signinForm.classList.remove('hidden');
+                signupFormContainer.classList.add('hidden');
+            });
+
+            signupTab.addEventListener('click', () => {
+                setActiveTab(signupTab, signinTab);
+                signinForm.classList.add('hidden');
+                signupFormContainer.classList.remove('hidden');
             });
         }
 
@@ -634,15 +838,15 @@
         const pageContent = document.getElementById('page-content');
         const target = pageContent || document.body;
         target.innerHTML = getSignupTemplate();
-        
+
         // Verify fields are in DOM
         setTimeout(() => {
             const countryCodeField = document.getElementById('countryCode');
             const mobileField = document.getElementById('mobile');
-            
+
             console.log('🌍 Country Code field visible:', !!countryCodeField);
             console.log('📱 Mobile field visible:', !!mobileField);
-            
+
             if (!countryCodeField) {
                 console.warn('⚠️ Country Code field not found in DOM');
             }
@@ -650,7 +854,7 @@
                 console.warn('⚠️ Mobile field not found in DOM');
             }
         }, 100);
-        
+
         setupSignupForm();
 
         // Auto-fetch and populate Tally license number
@@ -939,7 +1143,7 @@
                     role: data.role
                 }));
                 sessionStorage.setItem('loginTime', new Date().toISOString());
-                
+
                 // Extract CSRF token from response if available
                 if (data.csrfToken) {
                     sessionStorage.setItem('csrfToken', data.csrfToken);
@@ -986,6 +1190,145 @@
             } finally {
                 loadingSpinner.classList.add('hidden');
                 loginBtn.disabled = false;
+            }
+        });
+    }
+
+    // ============= INLINE SIGNUP FORM SETUP (for combined auth page) =============
+    function setupSignupFormInline() {
+        const signupForm = document.getElementById('signupForm');
+        if (!signupForm) return;
+
+        const signupBtn = document.getElementById('signupBtn');
+        const errorMessage = document.getElementById('signupErrorMessage');
+
+        // Password toggle handlers
+        const toggleSignupPassword = document.getElementById('toggleSignupPassword');
+        const toggleSignupConfirmPassword = document.getElementById('toggleSignupConfirmPassword');
+        const signupPassword = document.getElementById('signupPassword');
+        const confirmPassword = document.getElementById('confirmPassword');
+
+        if (toggleSignupPassword && signupPassword) {
+            toggleSignupPassword.addEventListener('click', () => {
+                const isText = signupPassword.type === 'text';
+                signupPassword.type = isText ? 'password' : 'text';
+                toggleSignupPassword.textContent = isText ? '👁️' : '🙈';
+            });
+        }
+        if (toggleSignupConfirmPassword && confirmPassword) {
+            toggleSignupConfirmPassword.addEventListener('click', () => {
+                const isText = confirmPassword.type === 'text';
+                confirmPassword.type = isText ? 'password' : 'text';
+                toggleSignupConfirmPassword.textContent = isText ? '👁️' : '🙈';
+            });
+        }
+
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fullName = document.getElementById('fullName')?.value.trim();
+            const username = document.getElementById('signupUsername')?.value.trim();
+            const email = document.getElementById('email')?.value.trim();
+            const licenceNo = document.getElementById('licenceNo')?.value.trim();
+            const countryCode = document.getElementById('countryCode')?.value.trim() || '+91';
+            const mobile = document.getElementById('mobile')?.value.trim();
+            const password = document.getElementById('signupPassword')?.value;
+            const confirmPwd = document.getElementById('confirmPassword')?.value;
+            const agreeTerms = document.getElementById('agreeTerms')?.checked;
+
+            // Reset error
+            if (errorMessage) {
+                errorMessage.classList.add('hidden');
+                errorMessage.querySelector('span:last-child').textContent = '';
+            }
+
+            // Validation
+            if (!fullName || !username || !email || !licenceNo || !mobile || !password || !confirmPwd) {
+                if (errorMessage) {
+                    errorMessage.querySelector('span:last-child').textContent = 'Please fill in all required fields';
+                    errorMessage.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (password !== confirmPwd) {
+                if (errorMessage) {
+                    errorMessage.querySelector('span:last-child').textContent = 'Passwords do not match';
+                    errorMessage.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (password.length < 6) {
+                if (errorMessage) {
+                    errorMessage.querySelector('span:last-child').textContent = 'Password must be at least 6 characters';
+                    errorMessage.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (!agreeTerms) {
+                if (errorMessage) {
+                    errorMessage.querySelector('span:last-child').textContent = 'Please agree to Terms and Privacy Policy';
+                    errorMessage.classList.remove('hidden');
+                }
+                return;
+            }
+
+            signupBtn.disabled = true;
+            const btnText = document.getElementById('signupBtnText');
+            if (btnText) btnText.textContent = 'Creating...';
+
+            try {
+                const payload = {
+                    fullName,
+                    username,
+                    email,
+                    licenceNo: parseInt(licenceNo),
+                    countryCode,
+                    mobile: mobile.replace(/\D/g, ''),
+                    password
+                };
+
+                const response = await fetch(`${window.API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Store for verification
+                    localStorage.setItem('pendingVerificationUsername', username);
+                    localStorage.setItem('pendingVerificationEmail', email);
+                    localStorage.setItem('pendingVerificationLicence', licenceNo);
+                    localStorage.setItem('pendingVerificationCountryCode', countryCode);
+                    localStorage.setItem('pendingVerificationMobile', mobile);
+
+                    // Redirect to OTP verification
+                    if (window.router) {
+                        window.router.navigate('verify-otp');
+                    } else {
+                        window.location.hash = '#verify-otp';
+                        window.initializeOtpVerification(username);
+                    }
+                } else {
+                    if (errorMessage) {
+                        errorMessage.querySelector('span:last-child').textContent = result.message || 'Registration failed';
+                        errorMessage.classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                if (errorMessage) {
+                    errorMessage.querySelector('span:last-child').textContent = error.message || 'Registration failed';
+                    errorMessage.classList.remove('hidden');
+                }
+            } finally {
+                signupBtn.disabled = false;
+                const btnText = document.getElementById('signupBtnText');
+                if (btnText) btnText.textContent = 'Create Account';
             }
         });
     }
@@ -1069,7 +1412,7 @@
                 const ok = !isNaN(n) && n > 0;
                 setFieldState(licenceInput, ok, licenceHelper, ok ? 'Valid licence number' : 'Enter a positive number');
             };
-            ['input','blur'].forEach(ev => licenceInput.addEventListener(ev, updateLicence));
+            ['input', 'blur'].forEach(ev => licenceInput.addEventListener(ev, updateLicence));
         }
 
         // Country helper
@@ -1088,13 +1431,13 @@
                 const res = window.authService.validateMobileNumber(val, cc);
                 setFieldState(mobileInput, !!res.isValid, mobileHelper, res.isValid ? `Format: ${res.e164 || res.formatted || val}` : (res.error || 'Invalid number'));
             } else {
-                const plain = val.replace(/\D/g,'');
+                const plain = val.replace(/\D/g, '');
                 const ok = /^[0-9]{7,15}$/.test(plain);
                 setFieldState(mobileInput, ok, mobileHelper, ok ? 'Looks valid' : '7-15 digits required');
             }
         };
         if (mobileInput) {
-            ['input','blur','change'].forEach(ev => mobileInput.addEventListener(ev, validateMobileLive));
+            ['input', 'blur', 'change'].forEach(ev => mobileInput.addEventListener(ev, validateMobileLive));
             if (countrySelect) countrySelect.addEventListener('change', validateMobileLive);
         }
 
@@ -1111,12 +1454,12 @@
         if (signupPassword) {
             signupPassword.addEventListener('input', () => {
                 const s = scorePassword(signupPassword.value);
-                const labels = ['Very weak','Weak','Okay','Strong','Very strong'];
-                const colors = ['#991b1b','#ef4444','#ca8a04','#16a34a','#065f46'];
+                const labels = ['Very weak', 'Weak', 'Okay', 'Strong', 'Very strong'];
+                const colors = ['#991b1b', '#ef4444', '#ca8a04', '#16a34a', '#065f46'];
                 setFieldState(signupPassword, s >= 2, passwordHelper, labels[s]);
                 if (passwordHelper) passwordHelper.style.color = colors[s];
                 if (passwordStrengthBar) {
-                    const widths = ['10%','25%','50%','75%','100%'];
+                    const widths = ['10%', '25%', '50%', '75%', '100%'];
                     passwordStrengthBar.style.width = widths[s];
                     passwordStrengthBar.style.backgroundColor = colors[s];
                 }
@@ -1130,7 +1473,7 @@
             setFieldState(confirmPassword, ok, confirmHelper, ok ? 'Passwords match' : 'Passwords do not match');
         };
         if (confirmPassword) {
-            ['input','blur'].forEach(ev => confirmPassword.addEventListener(ev, updateConfirm));
+            ['input', 'blur'].forEach(ev => confirmPassword.addEventListener(ev, updateConfirm));
             if (signupPassword) signupPassword.addEventListener('input', updateConfirm);
         }
 
@@ -1151,7 +1494,7 @@
                 const res = window.authService.validateMobileNumber(mv, cc);
                 mobileOk = !!res.isValid;
             } else {
-                mobileOk = /^[0-9]{7,15}$/.test((mv || '').replace(/\D/g,''));
+                mobileOk = /^[0-9]{7,15}$/.test((mv || '').replace(/\D/g, ''));
             }
             const pwd = signupPassword?.value || '';
             const pwdScore = scorePassword(pwd);
@@ -1167,7 +1510,7 @@
             signupBtnEl.style.opacity = ok ? '1' : '0.6';
             signupBtnEl.style.cursor = ok ? 'pointer' : 'not-allowed';
         };
-        ['input','change','blur'].forEach(ev => {
+        ['input', 'change', 'blur'].forEach(ev => {
             emailInput && emailInput.addEventListener(ev, updateSignupCta);
             usernameInput && usernameInput.addEventListener(ev, updateSignupCta);
             licenceInput && licenceInput.addEventListener(ev, updateSignupCta);

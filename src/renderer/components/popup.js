@@ -42,7 +42,7 @@ const Popup = {
                                 ${cancelText}
                             </button>
                             ` : ''}
-                            <button id="${popupId}_confirm" class="px-6 py-3 text-sm ${Popup._getButtonClass(confirmVariant)} rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all">
+                            <button id="${popupId}_confirm" class="px-6 py-3 text-sm ${Popup._getButtonClass(confirmVariant)} rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all" style="${Popup._getButtonStyle(confirmVariant)}">
                                 ${confirmText}
                             </button>
                         </div>
@@ -113,7 +113,7 @@ const Popup = {
                             </div>
                         </div>
                         <div class="px-6 py-4 bg-gray-50 flex gap-3 justify-center">
-                            <button id="${popupId}_ok" class="px-6 py-3 text-sm ${Popup._getButtonClass(variant)} rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all">
+                            <button id="${popupId}_ok" class="px-6 py-3 text-sm ${Popup._getButtonClass(variant)} rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all" style="${Popup._getButtonStyle(variant)}">
                                 ${okText}
                             </button>
                         </div>
@@ -190,7 +190,7 @@ const Popup = {
                         <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex ${buttons ? 'gap-3 justify-end' : ''}">
                             ${footer ? footer : ''}
                             ${buttons ? buttons.map((btn, idx) => `
-                                <button id="${id}_btn_${idx}" class="px-6 py-3 text-sm ${Popup._getButtonClass(btn.variant || 'primary')} rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all">
+                                <button id="${id}_btn_${idx}" class="px-6 py-3 text-sm ${Popup._getButtonClass(btn.variant || 'primary')} rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-[0.98] transition-all" style="${Popup._getButtonStyle(btn.variant || 'primary')}">
                                     ${btn.text || 'Button'}
                                 </button>
                             `).join('') : ''}
@@ -263,11 +263,22 @@ const Popup = {
      */
     _getButtonClass: (variant) => {
         const variants = {
-            primary: 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 hover:from-blue-700 hover:via-blue-600 hover:to-blue-700 text-white',
+            primary: 'text-white',
             danger: 'bg-red-600 hover:bg-red-700 text-white',
-            success: 'bg-green-600 hover:bg-green-700 text-white'
+            success: 'text-white'
         };
         return variants[variant] || variants.primary;
+    },
+    
+    /**
+     * Get button style based on variant
+     * @private
+     */
+    _getButtonStyle: (variant) => {
+        if (variant === 'primary' || variant === 'success') {
+            return 'background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);';
+        }
+        return '';
     }
 };
 

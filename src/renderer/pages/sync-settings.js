@@ -129,15 +129,15 @@
                 </div>
 
                 <div class="flex gap-3 flex-wrap">
-                    <button id="testTallyBtn" class="flex-1 min-w-[200px] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2">
+                    <button id="testTallyBtn" class="flex-1 min-w-[200px] px-4 py-3 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
                         <span>🔗</span>
                         <span>Test Tally Connection</span>
                     </button>
-                    <button id="testInternetBtn" class="flex-1 min-w-[200px] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2">
+                    <button id="testInternetBtn" class="flex-1 min-w-[200px] px-4 py-3 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
                         <span>🌐</span>
                         <span>Test Internet</span>
                     </button>
-                    <button id="fetchLicenseBtn" class="flex-1 min-w-[200px] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2">
+                    <button id="fetchLicenseBtn" class="flex-1 min-w-[200px] px-4 py-3 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
                         <span>📜</span>
                         <span>Fetch License</span>
                     </button>

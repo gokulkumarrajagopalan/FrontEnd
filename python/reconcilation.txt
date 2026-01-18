@@ -1,0 +1,3084 @@
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:03
+Company ID: 3
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     0
+   Missing in DB:  114
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - Abdumalik Kayumov Visa Expenses (ID: 7624, AlterID: 17779)
+   - Accrud Expenses Payables (ID: 12641, AlterID: 17712)
+   - Ahmad Farooq Malik Maqsood Ahmad - Visa Expenses (ID: 3889, AlterID: 9443)
+   - Ahror Bobojonov - Visa Expenses (ID: 7625, AlterID: 17617)
+   - Amber Connect Subscription (ID: 3765, AlterID: 9883)
+   - Amber Group (ID: 903, AlterID: 16573)
+   - Audit & Accounting Charges (ID: 625, AlterID: 10539)
+   - Azaruddin Ali Mohamed Ali Visa Expenses (ID: 3699, AlterID: 9263)
+   - Bank Accounts (ID: 22, AlterID: 10123)
+   - Bank OD A/c (ID: 11, AlterID: 9071)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:03
+Company ID: 3
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:04
+Company ID: 3
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:04
+Company ID: 3
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:05
+Company ID: 3
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:06
+Company ID: 3
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     0
+   Missing in DB:  1
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - Primary Cost Category (ID: 96, AlterID: 10913)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:07
+Company ID: 3
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     0
+   Missing in DB:  8
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - 04-5462870 (ID: 363, AlterID: 10914)
+   - +971549955795 (ID: 365, AlterID: 486)
+   - +9715499955794 (ID: 366, AlterID: 487)
+   - Abdumalik Kayumov (ID: 361, AlterID: 14193)
+   - Ahror Bobojonov (ID: 12613, AlterID: 17606)
+   - EB 2046035844 (ID: 372, AlterID: 498)
+   - Fleet Business and Secure Subscription (ID: 394, AlterID: 549)
+   - Management Consultation Charges (ID: 8314, AlterID: 10919)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:08
+Company ID: 3
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:09
+Company ID: 3
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:10
+Company ID: 3
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     0
+   Missing in DB:  1
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - Default Tax Unit (ID: 98, AlterID: 99)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:13
+Company ID: 3
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:21:24
+Company ID: 3
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:13
+Company ID: 3
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     0
+   Missing in DB:  114
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - Abdumalik Kayumov Visa Expenses (ID: 7624, AlterID: 17779)
+   - Accrud Expenses Payables (ID: 12641, AlterID: 17712)
+   - Ahmad Farooq Malik Maqsood Ahmad - Visa Expenses (ID: 3889, AlterID: 9443)
+   - Ahror Bobojonov - Visa Expenses (ID: 7625, AlterID: 17617)
+   - Amber Connect Subscription (ID: 3765, AlterID: 9883)
+   - Amber Group (ID: 903, AlterID: 16573)
+   - Audit & Accounting Charges (ID: 625, AlterID: 10539)
+   - Azaruddin Ali Mohamed Ali Visa Expenses (ID: 3699, AlterID: 9263)
+   - Bank Accounts (ID: 22, AlterID: 10123)
+   - Bank OD A/c (ID: 11, AlterID: 9071)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:14
+Company ID: 3
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:14
+Company ID: 3
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:15
+Company ID: 3
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:16
+Company ID: 3
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:17
+Company ID: 3
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     0
+   Missing in DB:  1
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - Primary Cost Category (ID: 96, AlterID: 10913)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:18
+Company ID: 3
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     0
+   Missing in DB:  8
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - 04-5462870 (ID: 363, AlterID: 10914)
+   - +971549955795 (ID: 365, AlterID: 486)
+   - +9715499955794 (ID: 366, AlterID: 487)
+   - Abdumalik Kayumov (ID: 361, AlterID: 14193)
+   - Ahror Bobojonov (ID: 12613, AlterID: 17606)
+   - EB 2046035844 (ID: 372, AlterID: 498)
+   - Fleet Business and Secure Subscription (ID: 394, AlterID: 549)
+   - Management Consultation Charges (ID: 8314, AlterID: 10919)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:19
+Company ID: 3
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:19
+Company ID: 3
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:20
+Company ID: 3
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     0
+   Missing in DB:  1
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - Default Tax Unit (ID: 98, AlterID: 99)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:26
+Company ID: 3
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:23:37
+Company ID: 3
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:01
+Company ID: 3
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     0
+   Missing in DB:  114
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - Abdumalik Kayumov Visa Expenses (ID: 7624, AlterID: 17779)
+   - Accrud Expenses Payables (ID: 12641, AlterID: 17712)
+   - Ahmad Farooq Malik Maqsood Ahmad - Visa Expenses (ID: 3889, AlterID: 9443)
+   - Ahror Bobojonov - Visa Expenses (ID: 7625, AlterID: 17617)
+   - Amber Connect Subscription (ID: 3765, AlterID: 9883)
+   - Amber Group (ID: 903, AlterID: 16573)
+   - Audit & Accounting Charges (ID: 625, AlterID: 10539)
+   - Azaruddin Ali Mohamed Ali Visa Expenses (ID: 3699, AlterID: 9263)
+   - Bank Accounts (ID: 22, AlterID: 10123)
+   - Bank OD A/c (ID: 11, AlterID: 9071)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:02
+Company ID: 3
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:02
+Company ID: 3
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:03
+Company ID: 3
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:03
+Company ID: 3
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:04
+Company ID: 3
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     0
+   Missing in DB:  1
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - Primary Cost Category (ID: 96, AlterID: 10913)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:06
+Company ID: 3
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     0
+   Missing in DB:  8
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - 04-5462870 (ID: 363, AlterID: 10914)
+   - +971549955795 (ID: 365, AlterID: 486)
+   - +9715499955794 (ID: 366, AlterID: 487)
+   - Abdumalik Kayumov (ID: 361, AlterID: 14193)
+   - Ahror Bobojonov (ID: 12613, AlterID: 17606)
+   - EB 2046035844 (ID: 372, AlterID: 498)
+   - Fleet Business and Secure Subscription (ID: 394, AlterID: 549)
+   - Management Consultation Charges (ID: 8314, AlterID: 10919)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:06
+Company ID: 3
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:07
+Company ID: 3
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:08
+Company ID: 3
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     0
+   Missing in DB:  1
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - Default Tax Unit (ID: 98, AlterID: 99)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:12
+Company ID: 3
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:25:23
+Company ID: 3
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:49
+Company ID: 3
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:49
+Company ID: 3
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:50
+Company ID: 3
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:51
+Company ID: 3
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:51
+Company ID: 3
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:52
+Company ID: 3
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:53
+Company ID: 3
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:53
+Company ID: 3
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:54
+Company ID: 3
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:54
+Company ID: 3
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:35:58
+Company ID: 3
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:09
+Company ID: 3
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:42
+Company ID: 3
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:42
+Company ID: 3
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:43
+Company ID: 3
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:43
+Company ID: 3
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:44
+Company ID: 3
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:45
+Company ID: 3
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:45
+Company ID: 3
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:46
+Company ID: 3
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:47
+Company ID: 3
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:47
+Company ID: 3
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:36:51
+Company ID: 3
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:37:01
+Company ID: 3
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:50
+Company ID: 3
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:50
+Company ID: 3
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:51
+Company ID: 3
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:51
+Company ID: 3
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:52
+Company ID: 3
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:53
+Company ID: 3
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:53
+Company ID: 3
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:54
+Company ID: 3
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:55
+Company ID: 3
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:55
+Company ID: 3
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:38:59
+Company ID: 3
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 10:39:11
+Company ID: 3
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:34:59
+Company ID: 4
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:35:00
+Company ID: 4
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:35:01
+Company ID: 4
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:35:02
+Company ID: 4
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:35:02
+Company ID: 4
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:35:03
+Company ID: 4
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:35:04
+Company ID: 4
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:35:05
+Company ID: 4
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:35:06
+Company ID: 4
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:35:07
+Company ID: 4
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:36:13
+Company ID: 4
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:38:44
+Company ID: 4
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     0
+   Missing in DB:  11354
+   Needs Update:   0
+   Synced:         0
+
+📝 MISSING IN DB (First 10):
+   - 0000000002840360-PGPS - AMBSIG5 (ID: 502, AlterID: 751)
+   - 000000000284039C-PGPS - AMBSIG5 (ID: 503, AlterID: 752)
+   - 0861652050000088-JM-VL04L (ID: 501, AlterID: 1158)
+   - 0862476053152400 (ID: 549, AlterID: 811)
+   - 0862476053173463-WGPS - ACC410 (ID: 676, AlterID: 1149)
+   - 0862476053176797-WGPS - ACC410-E/LA (ID: 504, AlterID: 753)
+   - 0862476053194691-ACC410-E (ID: 682, AlterID: 1159)
+   - 0862476453194691 - ACC 410 -E (ID: 514, AlterID: 764)
+   - 0869066060030971-WGPS - ACC412 (ID: 675, AlterID: 1148)
+   - 0869066060032431-WGPS - ACC411-LA (ID: 505, AlterID: 754)
+
+⚠️ Reconciliation completed with differences
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:09
+Company ID: 4
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:11
+Company ID: 4
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:12
+Company ID: 4
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:12
+Company ID: 4
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:13
+Company ID: 4
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:14
+Company ID: 4
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:15
+Company ID: 4
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:15
+Company ID: 4
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:16
+Company ID: 4
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:17
+Company ID: 4
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:45:57
+Company ID: 4
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:46:13
+Company ID: 4
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:49:32
+Company ID: 4
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:49:33
+Company ID: 4
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:49:33
+Company ID: 4
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:49:34
+Company ID: 4
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:49:35
+Company ID: 4
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:49:35
+Company ID: 4
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:49:36
+Company ID: 4
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:49:37
+Company ID: 4
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:49:38
+Company ID: 4
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:49:38
+Company ID: 4
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:50:17
+Company ID: 4
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:10
+Company ID: 4
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:13
+Company ID: 4
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:20
+Company ID: 4
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:21
+Company ID: 4
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:22
+Company ID: 4
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:23
+Company ID: 4
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:24
+Company ID: 4
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:27
+Company ID: 4
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:28
+Company ID: 4
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:29
+Company ID: 4
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:55:47
+Company ID: 4
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 21:56:19
+Company ID: 4
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:00:34
+Company ID: 4
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:32:13
+Company ID: 4
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:32:14
+Company ID: 4
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:32:15
+Company ID: 4
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:32:15
+Company ID: 4
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:32:16
+Company ID: 4
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:32:17
+Company ID: 4
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:32:21
+Company ID: 4
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:32:22
+Company ID: 4
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:32:24
+Company ID: 4
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:32:25
+Company ID: 4
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:35:00
+Company ID: 4
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:36:58
+Company ID: 4
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:00
+Company ID: 4
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:01
+Company ID: 4
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:02
+Company ID: 4
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:03
+Company ID: 4
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:04
+Company ID: 4
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:07
+Company ID: 4
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:08
+Company ID: 4
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:09
+Company ID: 4
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:10
+Company ID: 4
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:39
+Company ID: 4
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:52
+Company ID: 4
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:54
+Company ID: 4
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:55
+Company ID: 4
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:56
+Company ID: 4
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:56
+Company ID: 4
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:57
+Company ID: 4
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:59
+Company ID: 4
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:37:59
+Company ID: 4
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:38:00
+Company ID: 4
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:38:01
+Company ID: 4
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:38:23
+Company ID: 4
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:39:52
+Company ID: 4
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:28
+Company ID: 4
+Entity Type: Group
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  114
+   DB Records:     114
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:29
+Company ID: 4
+Entity Type: Currency
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:30
+Company ID: 4
+Entity Type: Unit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  2
+   DB Records:     2
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:30
+Company ID: 4
+Entity Type: StockGroup
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:31
+Company ID: 4
+Entity Type: StockCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:32
+Company ID: 4
+Entity Type: CostCategory
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:33
+Company ID: 4
+Entity Type: CostCenter
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  8
+   DB Records:     8
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:33
+Company ID: 4
+Entity Type: Godown
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:34
+Company ID: 4
+Entity Type: VoucherType
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  25
+   DB Records:     25
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:35
+Company ID: 4
+Entity Type: TaxUnit
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  1
+   DB Records:     1
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:41
+Company ID: 4
+Entity Type: StockItem
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  11354
+   DB Records:     11354
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================
+
+================================================================================
+RECONCILIATION LOG
+Timestamp: 2026-01-18 22:41:47
+Company ID: 4
+Entity Type: Ledger
+--------------------------------------------------------------------------------
+Status: ✅ SUCCESS
+
+📊 COUNTS:
+   Tally Records:  978
+   DB Records:     978
+   Missing in DB:  0
+   Needs Update:   0
+   Synced:         0
+
+✅ All records in sync!
+================================================================================

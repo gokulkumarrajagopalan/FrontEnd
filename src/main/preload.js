@@ -1,21 +1,18 @@
-/**
- * Preload Script for Electron
- * Provides secure bridge between renderer and main process
- */
+const isDev = process.argv.includes('--dev');
 
-console.log('🔥 Preload script starting...');
+if (isDev) console.log('🔥 Preload script starting...');
 
 let contextBridgeReady = false;
 let ipcRendererReady = false;
 
 try {
-    console.log('🔥 Attempting to require Electron modules...');
+    if (isDev) console.log('🔥 Attempting to require Electron modules...');
     const { contextBridge, ipcRenderer } = require('electron');
-    console.log('🔥 Successfully required contextBridge and ipcRenderer');
+    if (isDev) console.log('🔥 Successfully required contextBridge and ipcRenderer');
     contextBridgeReady = true;
     ipcRendererReady = true;
 
-    console.log('🔥 About to expose API to renderer...');
+    if (isDev) console.log('🔥 About to expose API to renderer...');
     contextBridge.exposeInMainWorld('electronAPI', {
         // Send message to main process
         send: (channel, data) => {
@@ -127,20 +124,22 @@ try {
 
         // Incremental sync API
         incrementalSync: (config) => {
-            console.log('📡 Preload: Calling incremental-sync handler...');
+            if (isDev) console.log('📡 Preload: Calling incremental-sync handler...');
             return ipcRenderer.invoke('incremental-sync', config);
         },
 
         // Reconciliation API
         reconcileData: (config) => {
-            console.log('📡 Preload: Calling reconcile-data handler...');
+            if (isDev) console.log('📡 Preload: Calling reconcile-data handler...');
             return ipcRenderer.invoke('reconcile-data', config);
         }
     });
-    console.log('✅ Preload: electronAPI exposed successfully');
+    if (isDev) console.log('✅ Preload: electronAPI exposed successfully');
 } catch (error) {
-    console.error('❌ Preload error during expose:', error);
-    console.error('   contextBridgeReady:', contextBridgeReady);
-    console.error('   ipcRendererReady:', ipcRendererReady);
-    console.error('   Stack:', error.stack);
+    if (isDev) {
+        console.error('❌ Preload error during expose:', error);
+        console.error('   contextBridgeReady:', contextBridgeReady);
+        console.error('   ipcRendererReady:', ipcRendererReady);
+        console.error('   Stack:', error.stack);
+    }
 }

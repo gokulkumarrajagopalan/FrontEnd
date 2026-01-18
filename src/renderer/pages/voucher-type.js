@@ -13,7 +13,7 @@
                 <p>Manage voucher types fetched from Tally</p>
             </div>
             <div class="flex gap-3">
-                <button id="syncVoucherTypesBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold flex items-center gap-2 uppercase">
+                <button id="syncVoucherTypesBtn" class="px-4 py-2 text-white rounded-lg font-semibold flex items-center gap-2 uppercase" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
                     <span>🔄</span>
                     <span>Sync From Tally</span>
                 </button>

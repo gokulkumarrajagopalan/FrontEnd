@@ -237,14 +237,26 @@
 
                     console.log('✅ Settings saved');
 
+                    // Show success message
                     if (window.notificationService) {
-                        let message = `✅ Settings saved: Port ${tallyPort}`;
-                        if (syncInterval > 0) {
-                            message += `, Auto-sync every ${syncInterval} minutes`;
-                        } else {
-                            message += `, Auto-sync disabled`;
-                        }
-                        window.notificationService.success(message);
+                        window.notificationService.success('Settings saved successfully!');
+                    }
+                    
+                    // Also show inline success message
+                    const connectionStatus = document.getElementById('connectionStatus');
+                    if (connectionStatus) {
+                        connectionStatus.innerHTML = `
+                            <div class="mt-4 p-3 rounded-xl text-sm flex items-center gap-2" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%); border: 1px solid rgba(16, 185, 129, 0.3); color: #059669;">
+                                <span style="font-size: 18px;">✅</span>
+                                <span class="font-semibold">Settings saved successfully!</span>
+                            </div>
+                        `;
+                        connectionStatus.classList.remove('hidden');
+                        
+                        // Auto-hide after 3 seconds
+                        setTimeout(() => {
+                            connectionStatus.classList.add('hidden');
+                        }, 3000);
                     }
 
                     if (window.electronAPI && window.electronAPI.send) {
@@ -259,6 +271,18 @@
                     console.error('❌ Settings validation error:', error.message);
                     if (window.notificationService) {
                         window.notificationService.error('❌ ' + error.message);
+                    }
+                    
+                    // Show inline error message
+                    const connectionStatus = document.getElementById('connectionStatus');
+                    if (connectionStatus) {
+                        connectionStatus.innerHTML = `
+                            <div class="mt-4 p-3 rounded-xl text-sm flex items-center gap-2" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%); border: 1px solid rgba(239, 68, 68, 0.3); color: #dc2626;">
+                                <span style="font-size: 18px;">❌</span>
+                                <span class="font-semibold">${error.message}</span>
+                            </div>
+                        `;
+                        connectionStatus.classList.remove('hidden');
                     }
                 }
             });
