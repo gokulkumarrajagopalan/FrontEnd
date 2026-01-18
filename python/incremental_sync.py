@@ -345,8 +345,27 @@ class IncrementalSyncManager:
             elif entity_type == 'Unit':
                 record.update({
                     'originalName': get_text('ORIGINALNAME'),
+                    'decimalPlaces': int(get_text('NUMBEROFDECIMALS') or 0),
                     'simpleUnit': get_text('ISSIMPLEUNIT') == 'Yes',
                     'reservedName': elem.get('RESERVEDNAME', ''),
+                })
+            elif entity_type == 'Godown':
+                record.update({
+                    'parent': get_text('PARENT'),
+                    'address': get_text('ADDRESS'),
+                    'reservedName': elem.get('RESERVEDNAME', ''),
+                })
+            elif entity_type == 'TaxUnit':
+                record.update({
+                    'originalName': get_text('ORIGINALNAME'),
+                    'reservedName': elem.get('RESERVEDNAME', ''),
+                })
+            elif entity_type == 'Currency':
+                record.update({
+                    'symbol': get_text('SYMBOL'),
+                    'formalName': get_text('FORMALNAME'),
+                    'decimalPlaces': int(get_text('DECIMALPLACES') or 0),
+                    'decimalSymbol': get_text('DECIMALSYMBOL'),
                 })
             elif entity_type == 'StockGroup':
                 record.update({
@@ -455,6 +474,7 @@ class IncrementalSyncManager:
                     'alterId': record.get('alterID'),
                     'unitName': record.get('name'),
                     'originalName': record.get('originalName'),
+                    'decimalPlaces': record.get('decimalPlaces', 0),
                     'simpleUnit': record.get('simpleUnit', False),
                     'reservedName': record.get('reservedName', '')
                 })
@@ -609,6 +629,11 @@ class IncrementalSyncManager:
             if VERBOSE_MODE:
                 logger.debug(f"Posting {len(records)} records to {url}")
             
+            # Log exact payload being sent to help debug 500 errors
+            # Only log first 2 records to avoid massive log files
+            sample_size = min(len(records), 2)
+            logger.info(f"📤 Sending batch of {len(records)} records to {endpoint}. Sample: {json.dumps(records[:sample_size], indent=2)}")
+            
             response = requests.post(url, json=records, headers=self.headers, timeout=30)
             
             if response.status_code in [200, 201]:
@@ -619,7 +644,10 @@ class IncrementalSyncManager:
                     logger.debug(f"Saved {count} records")
                 return True, count
             else:
-                logger.error(f"Database error: HTTP {response.status_code} - {response.text[:200]}")
+                # Log full response body on error
+                logger.error(f"❌ Database error: HTTP {response.status_code}")
+                logger.error(f"   Payload sent to {url}")
+                logger.error(f"   Response from server: {response.text}")
                 return False, 0
         except Exception as e:
             logger.error(f"Error saving batch: {e}")
@@ -649,7 +677,7 @@ class IncrementalSyncManager:
             return {'success': False, 'message': str(e)}
     
     def sync_incremental(self, company_id: int, user_id: int, tally_port: int, 
-                        entity_type: str = 'Ledger', endpoint: str = '/api/ledgers',
+                        entity_type: str = 'Ledger', endpoint: str = None,
                         is_first_sync: bool = False, last_alter_id: int = None, 
                         company_name: str = None) -> Dict:
         """Execute incremental sync with optional reconciliation
@@ -657,7 +685,26 @@ class IncrementalSyncManager:
         Args:
             last_alter_id: If provided, use this as the starting point instead of fetching from backend
             company_name: Tally company name to switch context
+            endpoint: Optional endpoint override. If not provided, derived from entity_type
         """
+        
+        # Map entity type to correct backend endpoint (same as reconciliation)
+        if endpoint is None:
+            endpoint_map = {
+                'Group': '/groups',
+                'Currency': '/currencies',
+                'Unit': '/units',
+                'StockGroup': '/stock-groups',
+                'StockCategory': '/stock-categories',
+                'CostCategory': '/cost-categories',
+                'CostCenter': '/cost-centers',
+                'Godown': '/godowns',
+                'VoucherType': '/voucher-types',
+                'TaxUnit': '/tax-units',
+                'Ledger': '/ledgers',
+                'StockItem': '/stock-items',
+            }
+            endpoint = endpoint_map.get(entity_type, '/ledgers')
         
         sync_type = 'FIRST-TIME' if is_first_sync else 'incremental'
         if VERBOSE_MODE:
