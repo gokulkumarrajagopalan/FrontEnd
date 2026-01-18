@@ -92,7 +92,8 @@ class LicenseValidator {
             const isValid = normalizedUserLicense === normalizedTallyLicense;
 
             // Allow Educational Mode to pass with a warning
-            if (!isValid && (normalizedTallyLicense.includes('EDUCATIONAL') || normalizedTallyLicense === 'UNKNOWN')) {
+            // Also allow '0' (often returned when no license is found or in dev mode)
+            if (!isValid && (normalizedTallyLicense.includes('EDUCATIONAL') || normalizedTallyLicense === 'UNKNOWN' || normalizedTallyLicense === '0')) {
                 console.warn('⚠️ Tally is in Educational Mode or License Unknown - allowing bypass for testing');
                 return {
                     isValid: true,

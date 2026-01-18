@@ -12,11 +12,12 @@ from typing import Dict, List, Optional
 LOG_LEVEL = os.getenv('SYNC_LOG_LEVEL', 'INFO')
 VERBOSE_MODE = os.getenv('SYNC_VERBOSE', 'false').lower() == 'true'
 
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL),
-    format='%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=getattr(logging, LOG_LEVEL),
+        format='%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 logger = logging.getLogger(__name__)
 
 # Reconciliation log file
@@ -353,7 +354,10 @@ class ReconciliationManager:
         try:
             logger.info(f"   🔄 Triggering sync for {entity_type}...")
             
-            # Import incremental sync modules
+            # Import incremental sync manager
+            # Note: We import here to avoid circular dependency if moved to top, 
+            # but since we are refactoring, we rely on the class structure.
+            # However, for now, local import is safe.
             from incremental_sync import IncrementalSyncManager
             
             # Initialize sync manager

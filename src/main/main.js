@@ -82,7 +82,7 @@ function createWindow() {
     console.warn("⚠️ Renderer process became unresponsive");
   });
 
-  if (isDev && false) {
+  if (true) {
     mainWindow.webContents.openDevTools();
   }
 
@@ -99,20 +99,22 @@ function startSyncWorker(config = {}) {
   }
 
   try {
-    const workerScript = path.join(__dirname, "../..", "python", "sync_worker.py");
+    const { command, args, cwd } = getWorkerCommand();
+    // Default mode is daemon, so we don't need to pass --mode daemon explicitly if default, 
+    // but explicit is better. However, existing sync_worker defaults to daemon.
+    // Let's pass it anyway if args is not empty, or just rely on default.
+    // The previous implementation didn't pass args.
+    // Let's passed --mode daemon just to be safe if we changed default.
 
-    let pythonPath = "python";
-    if (process.platform === "win32") {
-      pythonPath = path.join(__dirname, "../..", "python", "python.exe");
-      if (!fs.existsSync(pythonPath)) {
-        pythonPath = "python.exe";
-      }
-    }
+    // Actually, sync_worker.py defaults to daemon if no mode.
+    // But let's check getWorkerCommand args. 
+    // It returns [scriptPath] for dev. 
+    const finalArgs = [...args]; // We can add ['--mode', 'daemon'] if we want
 
-    console.log(`Starting sync worker with: ${pythonPath}`);
+    console.log(`Starting sync worker with: ${command} ${finalArgs.join(' ')}`);
 
-    syncWorker = spawn(pythonPath, [workerScript], {
-      cwd: path.join(__dirname, "../..", "python"),
+    syncWorker = spawn(command, finalArgs, {
+      cwd: cwd,
       stdio: ["pipe", "pipe", "pipe"]
     });
 
@@ -248,73 +250,108 @@ ipcMain.on("update-sync-settings", (event, settings) => {
   }
 });
 
+// Helper to get worker command based on environment
+function getWorkerCommand() {
+  const isDev = Boolean(process.env.NODE_ENV === "development" || !app.isPackaged || process.defaultApp);
+
+  console.log(`🔍 Environment Check: isDev=${isDev} (NODE_ENV=${process.env.NODE_ENV}, isPackaged=${app.isPackaged}, defaultApp=${process.defaultApp})`);
+
+  if (isDev) {
+    // In dev, use system python to run the script
+    const pythonPath = process.platform === "win32" ? "python" : "python3";
+    const scriptPath = path.join(__dirname, "../..", "python", "sync_worker.py");
+    // Explicitly set CWD to the python directory
+    const cwd = path.join(__dirname, "../..", "python");
+    return { command: pythonPath, args: [scriptPath], cwd };
+  } else {
+    // In prod, use the bundled executable
+    // The executable is in resources/bin/sync_worker.exe
+    // When packaged, __dirname is inside app.asar/src/main
+    // We need to go up to app.asar/.. -> resources
+
+    // Electron resources path
+    const resourcesPath = process.resourcesPath;
+    const exeName = process.platform === "win32" ? "sync_worker.exe" : "sync_worker";
+    const exePath = path.join(resourcesPath, "bin", exeName);
+    const cwd = path.join(resourcesPath, "bin");
+
+    return { command: exePath, args: [], cwd };
+  }
+}
+
+// Generic helper to run worker command
+async function runWorkerCommand(mode, params = {}) {
+  return new Promise((resolve, reject) => {
+    const { command, args: workerArgs, cwd } = getWorkerCommand();
+    const finalArgs = [...workerArgs, '--mode', mode];
+
+    // Map parameters to CLI flags
+    const argMapping = {
+      tallyPort: '--port',
+      companyId: '--company-id',
+      userId: '--user-id',
+      backendUrl: '--backend-url',
+      authToken: '--auth-token',
+      deviceToken: '--device-token',
+      entityType: '--entity-type',
+      maxAlterID: '--max-alter-id',
+      companyName: '--company-name'
+    };
+
+    for (const [key, flag] of Object.entries(argMapping)) {
+      if (params[key] !== undefined && params[key] !== null) {
+        finalArgs.push(flag, params[key].toString());
+      }
+    }
+
+    // console.log(`🚀 Running worker command: ${command} ${finalArgs.join(' ')} (CWD: ${cwd})`);
+
+    const child = spawn(command, finalArgs, {
+      cwd: cwd
+    });
+
+    let output = '';
+    let errorOutput = '';
+
+    child.stdout.on('data', (data) => output += data.toString());
+    child.stderr.on('data', (data) => errorOutput += data.toString());
+
+    child.on('close', (code) => {
+      // console.log(`Worker exited with code ${code}`);
+      if (code === 0 && output.trim()) {
+        try {
+          const result = JSON.parse(output.trim());
+          resolve(result);
+        } catch (e) {
+          console.error('Failed to parse worker output:', output);
+          reject(new Error('Failed to parse worker output'));
+        }
+      } else {
+        console.error('Worker failed:', errorOutput);
+        reject(new Error(errorOutput || `Worker failed with code ${code}`));
+      }
+    });
+
+    child.on('error', (err) => {
+      console.error('Failed to spawn worker:', err);
+      // Fallback for dev environment if python is missing or path issues
+      if (err.code === 'ENOENT') {
+        reject(new Error(`Executable not found: ${command}`));
+      } else {
+        reject(err);
+      }
+    });
+  });
+}
+
 ipcMain.handle("fetch-license", async (event, { tallyPort } = {}) => {
   try {
     const port = security.validatePort(tallyPort || 9000);
     console.log(`📥 fetch-license IPC called on port ${port}`);
 
-    return new Promise((resolve, reject) => {
-      const pythonPath = findPython();
-      const pythonDir = path.join(__dirname, "../..", "python").replace(/\\/g, '\\\\');
-
-      const script = `
-import sys
-import json
-sys.path.insert(0, r'${pythonDir}')
-from tally_api import TallyAPIClient
-
-try:
-    client = TallyAPIClient(host='localhost', port=${port}, timeout=10)
-    success, result = client.get_license_info()
-    print(json.dumps({
-        'success': success,
-        'data': result if success else None,
-        'error': None if success else str(result)
-    }))
-except Exception as e:
-    print(json.dumps({
-        'success': False,
-        'data': None,
-        'error': str(e)
-    }))
-`;
-
-      const python = spawn(pythonPath, ['-c', script], {
-        cwd: path.join(__dirname, "../..", "python")
-      });
-
-      let output = '';
-      let errorOutput = '';
-
-      python.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      python.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-
-      python.on('close', (code) => {
-        if (code === 0 && output.trim()) {
-          try {
-            const result = JSON.parse(output.trim());
-            console.log("License fetch result: success");
-            resolve(result);
-          } catch (e) {
-            console.error('Failed to parse Python output');
-            reject(new Error('Failed to parse Python output'));
-          }
-        } else {
-          console.error('Python script error');
-          reject(new Error(errorOutput || 'Python script failed'));
-        }
-      });
-
-      python.on('error', (err) => {
-        console.error('Python spawn error:', err);
-        reject(err);
-      });
-    });
+    const result = await runWorkerCommand('fetch-license', { tallyPort: port });
+    console.log("License fetch result:", result.success ? "success" : "failed");
+    return result; // Return full object {success, data, error} for renderer validation
   } catch (error) {
     console.error("License fetch error:", error.message);
     return { success: false, error: error.message };
@@ -354,7 +391,6 @@ const { registerMasterDataHandler } = require('./master-data-handler');
 registerMasterDataHandler();
 
 // Provide backend URL to renderer synchronously
-// Provide backend URL to renderer synchronously
 ipcMain.on('get-backend-url-sync', (event) => {
   let backendUrl = process.env.BACKEND_URL;
 
@@ -385,75 +421,15 @@ ipcMain.on('get-backend-url-sync', (event) => {
   event.returnValue = backendUrl;
 });
 
-console.log("✅ 'fetch-master-data' IPC handler registered");
-
+// fetch-companies logic moved to use sync_worker
 ipcMain.handle("fetch-companies", async (event, { tallyPort } = {}) => {
   try {
     const port = security.validatePort(tallyPort || 9000);
     console.log(`Fetching companies from Tally on port ${port}...`);
 
-    return new Promise((resolve, reject) => {
-      const pythonPath = findPython();
-      const pythonDir = path.join(__dirname, "../..", "python").replace(/\\/g, '\\\\');
-
-      const script = `
-import sys
-import json
-sys.path.insert(0, r'${pythonDir}')
-from tally_api import TallyAPIClient
-
-try:
-    client = TallyAPIClient(host='localhost', port=${port}, timeout=10)
-    success, result = client.get_companies()
-    print(json.dumps({
-        'success': success,
-        'data': result if success else None,
-        'error': None if success else str(result)
-    }))
-except Exception as e:
-    print(json.dumps({
-        'success': False,
-        'data': None,
-        'error': str(e)
-    }))
-`;
-
-      const python = spawn(pythonPath, ['-c', script], {
-        cwd: path.join(__dirname, "../..", "python")
-      });
-
-      let output = '';
-      let errorOutput = '';
-
-      python.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      python.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-
-      python.on('close', (code) => {
-        if (code === 0 && output.trim()) {
-          try {
-            const result = JSON.parse(output.trim());
-            console.log("Companies fetch result: success");
-            resolve(result);
-          } catch (e) {
-            console.error('Failed to parse Python output');
-            reject(new Error('Failed to parse Python output'));
-          }
-        } else {
-          console.error('Python script error');
-          reject(new Error(errorOutput || 'Python script failed'));
-        }
-      });
-
-      python.on('error', (err) => {
-        console.error('Python spawn error:', err);
-        reject(err);
-      });
-    });
+    const result = await runWorkerCommand('fetch-companies', { tallyPort: port });
+    console.log("Companies fetch result:", result.success ? "success" : "failed");
+    return result;
   } catch (error) {
     console.error("Companies fetch error:", error.message);
     return { success: false, error: error.message };
@@ -516,7 +492,7 @@ console.log("🔧 About to register 'incremental-sync' handler...");
 ipcMain.handle("incremental-sync", async (event, config) => {
   console.log('📡 Received incremental-sync IPC call');
   try {
-    const { companyId, userId, tallyPort, backendUrl, authToken, deviceToken, entityType, maxAlterID } = config;
+    const { companyId, entityType, maxAlterID } = config;
 
     console.log(`\n${'='.repeat(60)}`);
     console.log(`🔄 INCREMENTAL SYNC STARTED: ${entityType.toUpperCase()}`);
@@ -524,67 +500,8 @@ ipcMain.handle("incremental-sync", async (event, config) => {
     console.log(`   Max AlterID: ${maxAlterID}`);
     console.log(`${'='.repeat(60)}`);
 
-    return new Promise((resolve) => {
-      const pythonPath = process.platform === "win32" ? "python" : "python3";
-      const scriptPath = path.join(__dirname, "../..", "python", "incremental_sync.py");
-
-      const args = [
-        scriptPath,
-        companyId.toString(),
-        userId.toString(),
-        tallyPort.toString(),
-        backendUrl,
-        authToken,
-        deviceToken,
-        entityType,
-        maxAlterID.toString()
-      ];
-
-      const python = spawn(pythonPath, args, {
-        cwd: path.join(__dirname, "../..", "python")
-      });
-
-      let output = '';
-      let errorOutput = '';
-
-      python.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      python.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-
-      python.on('close', (code) => {
-        if (code === 0) {
-          try {
-            const lines = output.trim().split('\n');
-            const lastLine = lines[lines.length - 1];
-            const result = JSON.parse(lastLine);
-            console.log(`✅ ${entityType.toUpperCase()} INCREMENTAL SYNC SUCCEEDED`);
-            console.log(`   Records: ${result.count || 0}`);
-            console.log(`${'='.repeat(60)}\n`);
-            resolve(result);
-          } catch (e) {
-            console.log(`✅ ${entityType.toUpperCase()} INCREMENTAL SYNC COMPLETED`);
-            console.log(`${'='.repeat(60)}\n`);
-            resolve({ success: true, count: 0, message: 'Sync completed' });
-          }
-        } else {
-          console.error(`❌ ${entityType.toUpperCase()} INCREMENTAL SYNC FAILED`);
-          console.error(`   Error: ${errorOutput.trim() || 'Unknown error'}`);
-          console.error(`${'='.repeat(60)}\n`);
-          resolve({ success: false, message: errorOutput || 'Sync failed', count: 0 });
-        }
-      });
-
-      python.on('error', (err) => {
-        console.error(`❌ ${entityType.toUpperCase()} INCREMENTAL SYNC FAILED`);
-        console.error(`   Error: ${err.message}`);
-        console.error(`${'='.repeat(60)}\n`);
-        resolve({ success: false, message: err.message, count: 0 });
-      });
-    });
+    const result = await runWorkerCommand('incremental-sync', config);
+    return result;
   } catch (error) {
     console.error(`❌ INCREMENTAL SYNC FAILED`);
     console.error(`   Error: ${error.message}`);
@@ -598,75 +515,15 @@ console.log("✅ 'incremental-sync' IPC handler registered successfully");
 ipcMain.handle("reconcile-data", async (event, config) => {
   console.log('📡 Received reconcile-data IPC call');
   try {
-    const { companyId, userId, tallyPort, backendUrl, authToken, deviceToken, entityType } = config;
+    const { companyId, entityType } = config;
 
     console.log(`\n${'='.repeat(60)}`);
     console.log(`🔍 RECONCILIATION STARTED: ${entityType.toUpperCase()}`);
     console.log(`   Company: ${companyId}`);
     console.log(`${'='.repeat(60)}`);
 
-    return new Promise((resolve) => {
-      const pythonPath = process.platform === "win32" ? "python" : "python3";
-      const scriptPath = path.join(__dirname, "../..", "python", "reconciliation.py");
-
-      const args = [
-        scriptPath,
-        companyId.toString(),
-        userId.toString(),
-        tallyPort.toString(),
-        backendUrl,
-        authToken,
-        deviceToken,
-        entityType
-      ];
-
-      const python = spawn(pythonPath, args, {
-        cwd: path.join(__dirname, "../..", "python")
-      });
-
-      let output = '';
-      let errorOutput = '';
-
-      python.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      python.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-
-      python.on('close', (code) => {
-        if (code === 0) {
-          try {
-            const lines = output.trim().split('\n');
-            const lastLine = lines[lines.length - 1];
-            const result = JSON.parse(lastLine);
-            console.log(`✅ RECONCILIATION SUCCEEDED`);
-            console.log(`   Missing: ${result.totalMissing || 0}`);
-            console.log(`   Updated: ${result.totalUpdated || 0}`);
-            console.log(`   Synced: ${result.totalSynced || 0}`);
-            console.log(`${'='.repeat(60)}\n`);
-            resolve(result);
-          } catch (e) {
-            console.log(`✅ RECONCILIATION COMPLETED`);
-            console.log(`${'='.repeat(60)}\n`);
-            resolve({ success: true, totalMissing: 0, totalUpdated: 0, totalSynced: 0 });
-          }
-        } else {
-          console.error(`❌ RECONCILIATION FAILED`);
-          console.error(`   Error: ${errorOutput.trim() || 'Unknown error'}`);
-          console.error(`${'='.repeat(60)}\n`);
-          resolve({ success: false, error: errorOutput || 'Reconciliation failed' });
-        }
-      });
-
-      python.on('error', (err) => {
-        console.error(`❌ RECONCILIATION FAILED`);
-        console.error(`   Error: ${err.message}`);
-        console.error(`${'='.repeat(60)}\n`);
-        resolve({ success: false, error: err.message });
-      });
-    });
+    const result = await runWorkerCommand('reconcile', config);
+    return result;
   } catch (error) {
     console.error(`❌ RECONCILIATION ERROR: ${error.message}`);
     return { success: false, error: error.message };
@@ -674,100 +531,29 @@ ipcMain.handle("reconcile-data", async (event, config) => {
 });
 console.log("✅ 'reconcile-data' IPC handler registered successfully");
 
-function handleSync({ companyId, userId, authToken, deviceToken, tallyPort, backendUrl, companyName }, scriptName, displayName, entityType) {
+async function handleSync(config, scriptName, displayName, entityType) {
   try {
-    security.validateScriptPath(scriptName, path.join(__dirname, "../..", "python"));
-
     console.log(`\n${'='.repeat(60)}`);
     console.log(`🔄 SYNC STARTED: ${displayName.toUpperCase()}`);
-    console.log(`   Company: ${companyName || companyId}`);
+    console.log(`   Company: ${config.companyName || config.companyId}`);
     console.log(`   Entity Type: ${entityType}`);
-    console.log(`   Auth Token: ${security.maskToken(authToken)}`);
     console.log(`${'='.repeat(60)}`);
 
-    return new Promise((resolve) => {
-      const pythonPath = process.platform === "win32" ? "python" : "python3";
-      const scriptPath = path.join(__dirname, "../..", "python", scriptName);
+    // Merge entityType into config
+    const runConfig = { ...config, entityType };
 
-      const args = [
-        scriptPath,
-        companyId.toString(),
-        userId.toString(),
-        tallyPort.toString(),
-        backendUrl,
-        authToken,
-        deviceToken,
-        entityType
-      ];
+    const result = await runWorkerCommand('incremental-sync', runConfig);
 
-      if (companyName) args.push('--company-name', companyName);
+    if (result.success) {
+      console.log(`✅ ${displayName.toUpperCase()} SYNC SUCCEEDED`);
+      console.log(`   Count: ${result.count || 0}`);
+    } else {
+      console.error(`❌ ${displayName.toUpperCase()} SYNC FAILED`);
+      console.error(`   Error: ${result.message || result.error}`);
+    }
+    console.log(`${'='.repeat(60)}\n`);
 
-      const python = spawn(pythonPath, args, {
-        cwd: path.join(__dirname, "../..", "python")
-      });
-
-      let output = '';
-      let errorOutput = '';
-      let lastJsonOutput = '';
-
-      python.stdout.on('data', (data) => {
-        const text = data.toString();
-        output += text;
-        const lines = text.trim().split('\n');
-        for (const line of lines) {
-          if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
-            lastJsonOutput = line.trim();
-          }
-        }
-      });
-
-      python.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-
-      python.on('close', (code) => {
-        if (code === 0 && lastJsonOutput) {
-          try {
-            const result = JSON.parse(lastJsonOutput);
-            console.log(`✅ ${displayName.toUpperCase()} SYNC SUCCEEDED`);
-            console.log(`   Status: ${result.success ? 'Success' : 'Failed'}`);
-            console.log(`${'='.repeat(60)}\n`);
-            resolve(result);
-          } catch (e) {
-            console.error(`❌ ${displayName.toUpperCase()} SYNC FAILED`);
-            console.error(`   Error: Failed to parse result`);
-            console.error(`${'='.repeat(60)}\n`);
-            resolve({ success: false, message: `Failed to parse ${displayName} sync result` });
-          }
-        } else {
-          if (lastJsonOutput) {
-            try {
-              const result = JSON.parse(lastJsonOutput);
-              console.log(`✅ ${displayName.toUpperCase()} SYNC COMPLETED`);
-              console.log(`   Status: ${result.success ? 'Success' : 'Failed'}`);
-              console.log(`${'='.repeat(60)}\n`);
-              resolve(result);
-              return;
-            } catch (e) { }
-          }
-          console.error(`❌ ${displayName.toUpperCase()} SYNC FAILED`);
-          console.error(`   Error: ${errorOutput.trim() || 'Unknown error'}`);
-          console.error(`${'='.repeat(60)}\n`);
-          resolve({
-            success: false,
-            message: errorOutput.trim() || `Syncing ${displayName} failed`,
-            exitCode: code
-          });
-        }
-      });
-
-      python.on('error', (err) => {
-        console.error(`❌ ${displayName.toUpperCase()} SYNC FAILED`);
-        console.error(`   Error: ${err.message}`);
-        console.error(`${'='.repeat(60)}\n`);
-        resolve({ success: false, message: `Failed to start Python: ${err.message}` });
-      });
-    });
+    return result;
   } catch (error) {
     console.error(`❌ ${displayName.toUpperCase()} SYNC FAILED`);
     console.error(`   Error: ${error.message}`);

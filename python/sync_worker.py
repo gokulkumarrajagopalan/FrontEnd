@@ -29,6 +29,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+import argparse
+from tally_api import TallyAPIClient
+from incremental_sync import IncrementalSyncManager
+from reconciliation import ReconciliationManager
+
 class SyncWorker:
     """Manages periodic sync operations"""
     
@@ -62,8 +67,20 @@ class SyncWorker:
                 'data': data or {}
             }
             print(json.dumps(message), flush=True)
+        except (OSError, IOError) as e:
+            # If stdout is broken/closed, we can't communicate with Electron.
+            # Most likely Invalid Argument (22) or Broken Pipe (32).
+            # We must stop the worker to prevent infinite error loops.
+            logger.error(f"Stdout pipe broken/closed ({e}), stopping worker...")
+            self.running = False
         except Exception as e:
-            logger.error(f"Error sending status: {e}")
+            # Catch generalized OSError [Errno 22] or similar pipe errors
+            error_str = str(e)
+            if "Invalid argument" in error_str or "[Errno 22]" in error_str:
+                logger.error(f"Stdout pipe invalid (likely closed): {e}")
+                self.running = False
+            else:
+                logger.error(f"Error sending status: {e}")
     
     def run_sync(self):
         """Execute sync operation"""
@@ -151,6 +168,143 @@ class SyncWorker:
         })
 
 
+def fetch_license(port):
+    try:
+        client = TallyAPIClient(host='localhost', port=port, timeout=10)
+        success, result = client.get_license_info()
+        print(json.dumps({
+            'success': success,
+            'data': result if success else None,
+            'error': None if success else str(result)
+        }))
+    except OSError:
+        pass # Parent closed pipe
+    except Exception as e:
+        try:
+            print(json.dumps({
+                'success': False,
+                'data': None,
+                'error': str(e)
+            }))
+        except OSError:
+            pass
+
+def fetch_companies(port):
+    try:
+        client = TallyAPIClient(host='localhost', port=port, timeout=10)
+        success, result = client.get_companies()
+        print(json.dumps({
+            'success': success,
+            'data': result if success else None,
+            'error': None if success else str(result)
+        }))
+    except OSError:
+        pass # Parent closed pipe
+    except Exception as e:
+        try:
+            print(json.dumps({
+                'success': False,
+                'data': None,
+                'error': str(e)
+            }))
+        except OSError:
+            pass
+
+def run_incremental_sync(args):
+    try:
+        manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token)
+        
+        # If max_alter_id is not provided (0), usage depends on logic inside sync_incremental
+        # It will fetch from backend if 0/None
+        
+        result = manager.sync_incremental(
+            company_id=int(args.company_id),
+            user_id=args.user_id,
+            tally_port=args.port,
+            entity_type=args.entity_type,
+            # endpoint map logic is inside manager or we can pass default
+            # simplified: let manager handle defaults based on entity_type
+            last_alter_id=args.max_alter_id if args.max_alter_id > 0 else None,
+            company_name=args.company_name
+        )
+        print(json.dumps(result))
+    except Exception as e:
+        logger.error(f"Incremental sync error: {e}")
+        print(json.dumps({'success': False, 'message': str(e), 'count': 0}))
+
+def run_reconciliation(args):
+    try:
+        manager = ReconciliationManager(args.backend_url, args.auth_token, args.device_token)
+        
+        if args.entity_type.lower() == 'all':
+            # Reconcile all entities
+            ALL_ENTITIES = [
+                'Group', 'Currency', 'Unit', 'StockGroup', 'StockCategory',
+                'CostCategory', 'CostCenter', 'Godown', 'VoucherType',
+                'TaxUnit', 'Ledger', 'StockItem'
+            ]
+            results = []
+            for entity in ALL_ENTITIES:
+                res = manager.reconcile_entity(
+                    company_id=int(args.company_id),
+                    user_id=args.user_id,
+                    entity_type=entity,
+                    tally_port=args.port,
+                    company_name=args.company_name
+                )
+                results.append(res)
+            
+            total_missing = sum(r.get('missing', 0) for r in results if r.get('success'))
+            total_updated = sum(r.get('updated', 0) for r in results if r.get('success'))
+            total_synced = sum(r.get('synced', 0) for r in results if r.get('success'))
+            
+            print(json.dumps({
+                'success': True,
+                'totalMissing': total_missing,
+                'totalUpdated': total_updated,
+                'totalSynced': total_synced,
+                'details': results
+            }))
+        else:
+            result = manager.reconcile_entity(
+                company_id=int(args.company_id),
+                user_id=args.user_id,
+                entity_type=args.entity_type,
+                tally_port=args.port,
+                company_name=args.company_name
+            )
+            print(json.dumps(result))
+            
+    except Exception as e:
+        logger.error(f"Reconciliation error: {e}")
+        print(json.dumps({'success': False, 'error': str(e)}))
+
 if __name__ == '__main__':
-    worker = SyncWorker()
-    worker.start()
+    parser = argparse.ArgumentParser(description='Tallify Sync Worker')
+    parser.add_argument('--mode', choices=['daemon', 'fetch-license', 'fetch-companies', 'incremental-sync', 'reconcile'], default='daemon', help='Operation mode')
+    parser.add_argument('--port', type=int, default=9000, help='Tally port number')
+    
+    # Arguments for sync/reconciliation
+    parser.add_argument('--company-id', help='Company ID')
+    parser.add_argument('--user-id', type=int, help='User ID')
+    parser.add_argument('--backend-url', help='Backend URL')
+    parser.add_argument('--auth-token', help='Auth Token')
+    parser.add_argument('--device-token', help='Device Token')
+    parser.add_argument('--entity-type', default='Ledger', help='Entity Type')
+    parser.add_argument('--max-alter-id', type=int, default=0, help='Max Alter ID')
+    parser.add_argument('--company-name', help='Company Name')
+
+    args = parser.parse_args()
+    
+    if args.mode == 'fetch-license':
+        fetch_license(args.port)
+    elif args.mode == 'fetch-companies':
+        fetch_companies(args.port)
+    elif args.mode == 'incremental-sync':
+        run_incremental_sync(args)
+    elif args.mode == 'reconcile':
+        run_reconciliation(args)
+    else:
+        # Default daemon mode
+        worker = SyncWorker()
+        worker.start()

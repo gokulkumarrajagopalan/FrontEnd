@@ -11,8 +11,8 @@ class SessionManager {
         this.maxReconnectAttempts = 5;
         this.reconnectDelay = 3000; // 3 seconds
         this.isLoggedOut = false;
-        // Dynamic WebSocket URL based on current location
-        this.wsUrl = this.getWebSocketUrl();
+        // Dynamic WebSocket URL based on current location - initialized lazily
+        this.wsUrl = null;
         this.pollingInterval = null;
         this.isChecking = false;
         this.POLL_INTERVAL = 60000; // 60 seconds fallback polling
@@ -27,19 +27,19 @@ class SessionManager {
     getWebSocketUrl() {
         try {
             const apiBaseUrl = window.apiConfig?.BASE_URL;
-            
+
             if (!apiBaseUrl) {
-                console.error('❌ API config not initialized before SessionManager');
-                throw new Error('API configuration not available');
+                console.warn('⚠️ API config not initialized yet');
+                return null;
             }
-            
+
             const wsUrl = apiBaseUrl
                 .replace(/^https:/, 'wss:')
                 .replace(/^http:/, 'ws:');
             return `${wsUrl}/session`;
         } catch (error) {
             console.error('❌ Error getting WebSocket URL:', error);
-            throw error;
+            return null;
         }
     }
 
@@ -56,6 +56,17 @@ class SessionManager {
         }
 
         console.log('🔄 SessionManager: Starting WebSocket session monitoring');
+
+        // Initialize WS URL if not set
+        if (!this.wsUrl) {
+            this.wsUrl = this.getWebSocketUrl();
+        }
+
+        if (!this.wsUrl) {
+            console.error('❌ Cannot start SessionManager: WebSocket URL could not be determined');
+            return;
+        }
+
         console.log(`   WebSocket URL: ${this.wsUrl}`);
 
         this.isLoggedOut = false;
@@ -70,12 +81,12 @@ class SessionManager {
         try {
             const token = sessionStorage.getItem('authToken');
             const deviceToken = sessionStorage.getItem('deviceToken');
-            
+
             if (!token || !deviceToken) {
                 console.error('❌ SessionManager: Missing auth tokens, cannot connect');
                 return;
             }
-            
+
             console.log('🔌 SessionManager: Connecting to WebSocket...');
             const encodedToken = encodeURIComponent(token);
             const encodedDeviceToken = encodeURIComponent(deviceToken);
@@ -84,7 +95,7 @@ class SessionManager {
 
             this.ws.onopen = () => {
                 console.log('✅ SessionManager: WebSocket connected successfully');
-                
+
                 this.reconnectAttempts = 0;
                 this.startHeartbeat();
             };
@@ -93,7 +104,7 @@ class SessionManager {
                 console.log('📨 SessionManager: Received message from server:', event.data);
                 try {
                     const message = JSON.parse(event.data);
-                    
+
                     if (message.type === 'SESSION_INVALIDATED' || message.type === 'DEVICE_CONFLICT') {
                         console.log('⚠️ SessionManager: ' + (message.message || message.reason || 'Session invalidated'));
                         this.handleSessionInvalidated(message.message || message.reason || 'You have been logged in from another device');
@@ -115,7 +126,7 @@ class SessionManager {
 
             this.ws.onclose = () => {
                 console.log('❌ SessionManager: WebSocket disconnected');
-                
+
                 // If we haven't hit max reconnect attempts, try again
                 if (!this.isLoggedOut && this.reconnectAttempts < this.maxReconnectAttempts) {
                     this.reconnectAttempts++;
@@ -147,16 +158,16 @@ class SessionManager {
         console.log('========================================');
         console.log('Reason:', reason);
         console.log('');
-        
+
         this.isLoggedOut = true;
-        
+
         try {
             this.stopHeartbeat();
             console.log('🧹 Step 1: Stopped heartbeat');
         } catch (error) {
             console.error('   Error stopping heartbeat:', error);
         }
-        
+
         try {
             this.stop();
             console.log('🧹 Step 2: Stopped WebSocket connection');
@@ -180,7 +191,7 @@ class SessionManager {
 
         // Step 3: Clear localStorage data
         console.log('🧹 Step 4: Clearing localStorage...');
-        
+
         // Clear ALL localStorage data
         const keysToRemove = [
             'authToken',
@@ -199,14 +210,14 @@ class SessionManager {
             'lastSync',
             'syncStatus'
         ];
-        
+
         keysToRemove.forEach(key => {
             if (localStorage.getItem(key)) {
                 localStorage.removeItem(key);
                 console.log(`   ✓ Removed: ${key}`);
             }
         });
-        
+
         console.log('✅ Step 5: All authentication data cleared');
         console.log('');
 
@@ -217,7 +228,7 @@ class SessionManager {
 
         console.log('🔄 Step 6: Triggering logout...');
         console.log('');
-        
+
         // ✅ Multiple ways to trigger logout in Electron app
         this.triggerLogout();
     }
@@ -230,8 +241,8 @@ class SessionManager {
         if (window.notificationService && typeof window.notificationService.show === 'function') {
             try {
                 window.notificationService.show(
-                    message, 
-                    'error', 
+                    message,
+                    'error',
                     5000 // 5 second duration
                 );
                 console.log('   ✓ Shown via NotificationService');
@@ -286,8 +297,8 @@ class SessionManager {
 
         // Method 4: Dispatch logout event
         console.log('   → Dispatching logout event');
-        window.dispatchEvent(new CustomEvent('forceLogout', { 
-            detail: { reason: 'session_invalidated' } 
+        window.dispatchEvent(new CustomEvent('forceLogout', {
+            detail: { reason: 'session_invalidated' }
         }));
 
         // Method 5: Reload page (fallback)
@@ -322,9 +333,9 @@ class SessionManager {
         if (this.heartbeatInterval) {
             clearInterval(this.heartbeatInterval);
         }
-        
+
         console.log('❤️ SessionManager: Starting heartbeat (every 30 seconds)');
-        
+
         this.heartbeatInterval = setInterval(() => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                 try {

@@ -18,11 +18,12 @@ import os
 LOG_LEVEL = os.getenv('SYNC_LOG_LEVEL', 'INFO')
 VERBOSE_MODE = os.getenv('SYNC_VERBOSE', 'false').lower() == 'true'
 
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL),
-    format='%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=getattr(logging, LOG_LEVEL),
+        format='%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 logger = logging.getLogger(__name__)
 
 
