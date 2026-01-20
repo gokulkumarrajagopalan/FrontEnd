@@ -832,6 +832,7 @@
                             try {
                                 const reconResult = await window.electronAPI.reconcileData({
                                     companyId: backendResponse.backendId,
+                                    companyName: company.name,
                                     userId: currentUser.userId,
                                     tallyPort: appSettings.tallyPort || 9000,
                                     backendUrl: window.apiConfig.baseURL,
@@ -901,10 +902,37 @@
             selectedCompanies = [];
             document.querySelectorAll('.company-checkbox').forEach(cb => cb.checked = false);
 
-            // Show success message and clear after 2 seconds
+            // Refresh company data in the app
+            if (importedCount > 0) {
+                addImportLog(`🔄 Refreshing company data...`, 'info');
+                
+                // Refresh companies in sidebar/dropdown
+                if (window.refreshCompanyList) {
+                    await window.refreshCompanyList();
+                    addImportLog(`✅ Company list refreshed`, 'success');
+                }
+                
+                // Refresh dashboard if function exists
+                if (window.refreshDashboard) {
+                    await window.refreshDashboard();
+                }
+                
+                // Dispatch event to notify other components
+                window.dispatchEvent(new CustomEvent('companies-updated', { 
+                    detail: { importedCount, skippedCount } 
+                }));
+            }
+
+            // Show success message and navigate after 2 seconds
             setTimeout(() => {
                 document.getElementById('importProgress').style.display = 'none';
-                window.router.navigate('groups');
+                
+                // Show notification before navigation
+                if (window.notificationService) {
+                    window.notificationService.success(`${importedCount} company/companies imported successfully!`);
+                }
+                
+                window.router.navigate('company-sync');
             }, 2000);
 
         } catch (error) {

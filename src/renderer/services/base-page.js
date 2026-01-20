@@ -969,52 +969,39 @@ class BasePage {
                 box-sizing: border-box;
             }
             
-            .btn-sync {
+            .btn-sync,
+            .btn-erp {
                 display: flex;
                 align-items: center;
+                justify-content: center;
                 gap: 0.5rem;
-                padding: 0.5rem 1.25rem;
-                background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);
+                padding: 0.625rem 1.5rem;
+                background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
                 color: white;
                 border: none;
                 border-radius: 10px;
                 font-weight: 600;
-                font-size: 0.813rem;
+                font-size: 0.875rem;
                 cursor: pointer;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 0 4px 10px rgba(19, 70, 168, 0.2);
+                box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
             }
 
-            .btn-sync:hover:not(:disabled) {
-                background: linear-gradient(135deg, #0f3a8a 0%, #4aa3ef 100%);
+            .btn-sync:hover:not(:disabled),
+            .btn-erp:hover:not(:disabled) {
+                background: linear-gradient(135deg, #059669 0%, #10b981 100%);
                 transform: translateY(-1px);
-                box-shadow: 0 6px 15px rgba(19, 70, 168, 0.3);
-            }
-
-            .btn-erp {
-                padding: 0.5rem 1.25rem;
-                background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);
-                color: white;
-                border: none;
-                border-radius: 10px;
-                font-weight: 600;
-                font-size: 0.813rem;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-
-            .btn-erp:hover {
-                background: linear-gradient(135deg, #0f3a8a 0%, #4aa3ef 100%);
-                transform: translateY(-1px);
-                box-shadow: 0 4px 10px rgba(19, 70, 168, 0.2);
+                box-shadow: 0 6px 15px rgba(16, 185, 129, 0.35);
             }
             
-            .btn-sync:active:not(:disabled) {
+            .btn-sync:active:not(:disabled),
+            .btn-erp:active:not(:disabled) {
                 transform: translateY(0);
-                box-shadow: 0 2px 8px rgba(19, 70, 168, 0.2);
+                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
             }
             
-            .btn-sync:disabled {
+            .btn-sync:disabled,
+            .btn-erp:disabled {
                 opacity: 0.6;
                 cursor: not-allowed;
                 transform: none;

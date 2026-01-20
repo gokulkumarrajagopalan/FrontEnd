@@ -99,6 +99,11 @@ class ReconciliationManager:
         """Fetch data from Tally Prime"""
         try:
             url = f"http://localhost:{tally_port}"
+            
+            # Log the XML request being sent
+            # logger.info(f"📤 Sending XML request to Tally on port {tally_port}")
+            # logger.info(f"📋 XML Request:\n{tdl}")
+            
             response = requests.post(
                 url,
                 data=tdl,

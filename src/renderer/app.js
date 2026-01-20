@@ -1104,6 +1104,17 @@ console.log('✅ Creating window.app...');
 window.app = new App();
 console.log('✅ window.app created');
 
+// Expose refreshCompanyList globally for use after import
+window.refreshCompanyList = async function() {
+    console.log('🔄 Refreshing company list...');
+    if (window.app && window.app.loadGlobalCompanies) {
+        await window.app.loadGlobalCompanies();
+        console.log('✅ Company list refreshed');
+    } else {
+        console.warn('⚠️ App not ready for company refresh');
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ DOMContentLoaded fired');
     window.app.init();

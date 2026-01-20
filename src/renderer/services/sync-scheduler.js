@@ -132,6 +132,7 @@ class SyncScheduler {
                 try {
                     const syncResult = await this.syncCompany(
                         company.id,
+                        company.name,
                         currentUser.userId || 1,
                         tallyPort,
                         backendUrl,
@@ -224,6 +225,7 @@ class SyncScheduler {
                 try {
                     const result = await window.electronAPI.reconcileData({
                         companyId: company.id,
+                        companyName: company.name,
                         userId: userId,
                         tallyPort: appSettings.tallyPort || 9000,
                         backendUrl: appSettings.backendUrl || window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL,
@@ -319,11 +321,11 @@ class SyncScheduler {
      * Sync single company incrementally
      * Returns object with success flag and error details
      */
-    async syncCompany(companyId, userId, tallyPort, backendUrl, authToken, deviceToken) {
+    async syncCompany(companyId, companyName, userId, tallyPort, backendUrl, authToken, deviceToken) {
         const result = { success: true, errors: [] };
         
         try {
-            console.log(`\n📋 Syncing company ${companyId}...`);
+            console.log(`\n📋 Syncing company ${companyId} (${companyName})...`);
 
             // Fetch master mapping once for all entities (efficient single call)
             const masterMapping = await this.getMasterMapping(companyId, backendUrl, authToken, deviceToken);
@@ -348,6 +350,7 @@ class SyncScheduler {
                 const maxAlterID = masterMapping[entity.key] || 0;
                 const entityResult = await this.syncEntity(
                     companyId,
+                    companyName,
                     userId,
                     entity.type,
                     maxAlterID,
@@ -382,7 +385,7 @@ class SyncScheduler {
      * Sync single entity incrementally
      * Returns object with success flag and message
      */
-    async syncEntity(companyId, userId, entityType, maxAlterID, tallyPort, backendUrl, authToken, deviceToken) {
+    async syncEntity(companyId, companyName, userId, entityType, maxAlterID, tallyPort, backendUrl, authToken, deviceToken) {
         try {
             const isFirstSync = maxAlterID === 0;
 
@@ -391,6 +394,7 @@ class SyncScheduler {
             // Call Python incremental sync - it will fetch only records with alterID > maxAlterID
             const result = await this.callIncrementalSync(
                 companyId,
+                companyName,
                 userId,
                 tallyPort,
                 backendUrl,
@@ -542,7 +546,7 @@ class SyncScheduler {
     /**
      * Call Python incremental sync script
      */
-    async callIncrementalSync(companyId, userId, tallyPort, backendUrl, authToken, deviceToken, entityType, maxAlterID = 0) {
+    async callIncrementalSync(companyId, companyName, userId, tallyPort, backendUrl, authToken, deviceToken, entityType, maxAlterID = 0) {
         try {
             console.log(`🔍 Checking window.electronAPI:`, window.electronAPI);
             console.log(`🔍 Checking incrementalSync method:`, window.electronAPI?.incrementalSync);
@@ -557,6 +561,7 @@ class SyncScheduler {
             console.log(`📡 Calling incremental-sync for ${entityType}...`);
             const result = await window.electronAPI.incrementalSync({
                 companyId,
+                companyName,
                 userId,
                 tallyPort,
                 backendUrl,

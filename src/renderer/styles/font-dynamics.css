@@ -348,12 +348,12 @@ body {
   display: block;
 }
 .brand-icon-collapsed {
-  width: 28px;
-  height: 28px;
+  width: 48px;
+  height: 48px;
 }
 .brand-icon-expanded {
-  width: 22px;
-  height: 22px;
+  width: 42px;
+  height: 42px;
 }
 
 /* Header search icon + inline input */

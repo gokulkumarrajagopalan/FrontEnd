@@ -351,6 +351,7 @@ class AppInitializer {
                     
                     const result = await window.electronAPI.reconcileData({
                         companyId: company.id,
+                        companyName: company.name,
                         userId: currentUser.userId,
                         tallyPort: appSettings.tallyPort || 9000,
                         backendUrl: window.apiConfig.baseURL,
