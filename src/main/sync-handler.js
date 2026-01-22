@@ -3,9 +3,11 @@
  * Spawns Python process to sync data from Tally to Backend
  */
 
-const { ipcMain } = require('electron');
+const { ipcMain, app } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+const { findPython } = require('./python-finder');
 
 function registerSyncHandler() {
     ipcMain.handle('sync-master-data', async (event, params) => {
@@ -20,24 +22,59 @@ function registerSyncHandler() {
                 deviceToken
             } = params;
 
-            const pythonScript = path.join(__dirname, '../python/sync_master.py');
+            // Determine if we're in development or production
+            const isDev = !app.isPackaged;
+            let pythonExe, pythonScript, args;
 
-            const args = [
-                pythonScript,
-                companyName,
-                cmpId.toString(),
-                userId.toString(),
-                tallyPort.toString(),
-                backendUrl,
-                authToken || '',
-                deviceToken || ''
-            ];
+            if (isDev) {
+                // Development: Use python command with .py script
+                pythonExe = findPython();
+                pythonScript = path.join(__dirname, '../../python/sync_master.py');
+                args = [
+                    pythonScript,
+                    companyName,
+                    cmpId.toString(),
+                    userId.toString(),
+                    tallyPort.toString(),
+                    backendUrl,
+                    authToken || '',
+                    deviceToken || ''
+                ];
+            } else {
+                // Production: Use bundled Python executable
+                pythonExe = findPython();
+                pythonScript = path.join(process.resourcesPath, 'python/sync_master.py');
+                args = [
+                    pythonScript,
+                    companyName,
+                    cmpId.toString(),
+                    userId.toString(),
+                    tallyPort.toString(),
+                    backendUrl,
+                    authToken || '',
+                    deviceToken || ''
+                ];
+            }
 
             console.log(`🔄 Starting sync for company: ${companyName}`);
-            console.log(`   Python: ${pythonScript}`);
+            console.log(`   Mode: ${isDev ? 'Development' : 'Production'}`);
+            console.log(`   Python: ${pythonExe}`);
+            console.log(`   Script: ${pythonScript}`);
+            console.log(`   Backend URL: ${backendUrl}`);
             console.log(`   Args: ${args.join(' ')}`);
 
-            const python = spawn('python', args);
+            // Verify script exists
+            if (!fs.existsSync(pythonScript)) {
+                console.error(`❌ Python script not found: ${pythonScript}`);
+                resolve({
+                    success: false,
+                    error: `Python script not found: ${pythonScript}`,
+                    exitCode: -1
+                });
+                return;
+            }
+
+            const python = spawn(pythonExe, args);
 
             let stdout = '';
             let stderr = '';

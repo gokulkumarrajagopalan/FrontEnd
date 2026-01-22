@@ -140,13 +140,7 @@ class IncrementalSyncManager:
             return False
     
     def update_company_sync_status(self, company_id: int, sync_status: str = 'synced', success: bool = True) -> bool:
-        """Update company sync status in database after sync completion
-        
-        Args:
-            company_id: Company ID to update
-            sync_status: Status to set ('synced', 'pending', 'in-progress', 'failed')
-            success: Whether sync was successful
-        """
+
         try:
             url = f"{self.backend_url}/companies/{company_id}/sync-status"
             

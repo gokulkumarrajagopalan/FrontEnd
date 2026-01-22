@@ -92,6 +92,15 @@ class BackgroundSyncScheduler {
             // Sync each company
             for (const company of companies) {
                 try {
+                    // Show sync started notification
+                    if (window.notificationService) {
+                        window.notificationService.show({
+                            type: 'info',
+                            message: `🔄 ${company.name} - Sync started`,
+                            duration: 3000
+                        });
+                    }
+                    
                     const result = await window.electronAPI.incrementalSync({
                         companyId: company.id,
                         companyName: company.name,
@@ -113,6 +122,15 @@ class BackgroundSyncScheduler {
                             });
                         }
                         console.log(`✅ ${company.name}: Synced ${result.totalCount || 0} records`);
+                        
+                        // Show sync completed notification
+                        if (window.notificationService) {
+                            window.notificationService.show({
+                                type: 'success',
+                                message: `✅ ${company.name} - Sync completed (${result.totalCount || 0} records)`,
+                                duration: 4000
+                            });
+                        }
                         
                         // Update notification center status
                         if (window.notificationCenter) {

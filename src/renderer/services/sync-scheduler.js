@@ -124,9 +124,9 @@ class SyncScheduler {
             for (let i = 0; i < companies.length; i++) {
                 const company = companies[i];
                 
-                // Update progress in SyncStateManager
+                // Update progress in SyncStateManager (i+1 because we're starting the sync for this company)
                 if (window.syncStateManager) {
-                    window.syncStateManager.updateProgress(i, company.name);
+                    window.syncStateManager.updateProgress(i + 1, company.name);
                 }
 
                 try {

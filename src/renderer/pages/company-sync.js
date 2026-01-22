@@ -135,12 +135,11 @@
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">State</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Sync Status</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Last Sync</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Status</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="companiesTableBody">
-                        <tr><td colspan="7" class="px-6 py-12 text-center">
+                        <tr><td colspan="6" class="px-6 py-12 text-center">
                             <div class="flex flex-col items-center gap-3">
                                 <span class="text-6xl">📦</span>
                                 <p class="text-gray-400 text-lg font-semibold">No companies imported yet</p>
@@ -480,6 +479,15 @@
         // Update all button states
         updateSyncButtonStates();
 
+        // Show sync started notification
+        if (window.notificationService) {
+            window.notificationService.show({
+                type: 'info',
+                message: `🔄 ${company.name} - Sync started`,
+                duration: 3000
+            });
+        }
+
         try {
 
             console.log(`🔄 Starting Full Master Sync for company: ${company.name} (ID: ${company.id})`);
@@ -695,11 +703,6 @@
                 </td>
                 <td class="px-6 py-5">
                     <span class="text-sm text-gray-900 font-medium">${company.lastSyncDate ? new Date(company.lastSyncDate).toLocaleString() : '--'}</span>
-                </td>
-                <td class="px-6 py-5">
-                    <span class="text-sm font-semibold ${isActive ? 'text-blue-700' : 'text-gray-500'}">
-                        ${isActive ? 'Active' : 'Inactive'}
-                    </span>
                 </td>
                 <td class="px-6 py-5">
                     <button class="sync-company-btn px-4 py-2 text-white rounded-xl shadow-md hover:shadow-lg transition-all font-semibold text-sm" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);" data-id="${company.id}">🔄 Sync</button>

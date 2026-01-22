@@ -3,9 +3,11 @@
  * Handles both single entity sync and full sync of all entities
  */
 
-const { ipcMain } = require('electron');
+const { ipcMain, app } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+const { findPython } = require('./python-finder');
 
 /**
  * Sync all entity types in correct dependency order
@@ -67,7 +69,11 @@ function syncSingleEntity(params) {
             companyName = null
         } = params;
 
-        const pythonScript = path.join(__dirname, '../../python/incremental_sync.py');
+        const isDev = !app.isPackaged;
+        const pythonExe = findPython();
+        const pythonScript = isDev 
+            ? path.join(__dirname, '../../python/incremental_sync.py')
+            : path.join(process.resourcesPath, 'python/incremental_sync.py');
 
         const args = [
             pythonScript,
@@ -86,7 +92,17 @@ function syncSingleEntity(params) {
             args.push(companyName);
         }
 
-        const python = spawn('python', args);
+        if (!fs.existsSync(pythonScript)) {
+            resolve({
+                success: false,
+                message: `Python script not found: ${pythonScript}`,
+                count: 0,
+                exitCode: -1
+            });
+            return;
+        }
+
+        const python = spawn(pythonExe, args);
 
         let stdout = '';
         let stderr = '';

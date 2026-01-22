@@ -286,7 +286,7 @@ function getWorkerCommand() {
 
   if (isDev) {
     // In dev, use system python to run the script
-    const pythonPath = process.platform === "win32" ? "python" : "python3";
+    const pythonPath = findPython();
     const scriptPath = path.join(__dirname, "../..", "python", "sync_worker.py");
     // Explicitly set CWD to the python directory
     const cwd = path.join(__dirname, "../..", "python");

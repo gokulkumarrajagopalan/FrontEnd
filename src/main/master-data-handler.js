@@ -3,9 +3,11 @@
  * Add this to your main Electron process (main.js)
  */
 
-const { ipcMain } = require('electron');
+const { ipcMain, app } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+const { findPython } = require('./python-finder');
 
 /**
  * Register master data fetch handler
@@ -19,9 +21,23 @@ function registerMasterDataHandler() {
                 isFirstSync = false
             } = params;
 
-            const pythonScript = path.join(__dirname, '../python/fetch_master_data.py');
+            const isDev = !app.isPackaged;
+            const pythonExe = findPython();
+            const pythonScript = isDev 
+                ? path.join(__dirname, '../../python/fetch_master_data.py')
+                : path.join(process.resourcesPath, 'python/fetch_master_data.py');
 
-            const python = spawn('python', [
+            if (!fs.existsSync(pythonScript)) {
+                resolve({
+                    success: false,
+                    data: {},
+                    message: `Python script not found: ${pythonScript}`,
+                    exitCode: -1
+                });
+                return;
+            }
+
+            const python = spawn(pythonExe, [
                 pythonScript,
                 companyName,
                 tallyPort.toString(),

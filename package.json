@@ -63,6 +63,13 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "python",
+        "to": "python",
+        "filter": [
+          "**/*.py"
+        ]
       }
     ],
     "win": {

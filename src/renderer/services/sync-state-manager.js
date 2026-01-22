@@ -243,7 +243,11 @@ class SyncStateManager {
                 this.hideSyncNotification();
             }
 
-            const message = `${this.syncType === 'full' ? 'Full' : this.syncType === 'incremental' ? 'Incremental' : 'Company'} Sync Started`;
+            const syncTypeLabel = this.syncType === 'full' ? 'Full' : this.syncType === 'incremental' ? 'Incremental' : 'Company';
+            const message = this.totalCount > 0 
+                ? `${syncTypeLabel} Sync Started - Syncing ${this.totalCount} companies...`
+                : `${syncTypeLabel} Sync Started`;
+            
             const elem = window.notificationService.show(message, 'info', '🔄 Sync in Progress', 0); // 0 = no auto-dismiss
             this.notificationId = elem.id || 'sync-notification';
         }
@@ -263,8 +267,8 @@ class SyncStateManager {
             ? `Syncing: ${this.currentSyncCompany} (${progressMsg})`
             : progressMsg;
 
-        // Update notification message
-        const notif = document.getElementById(this.notificationId);
+        // Update notification message using data-id selector
+        const notif = document.querySelector(`[data-id="${this.notificationId}"]`);
         if (notif) {
             const msgElem = notif.querySelector('.notification-message');
             if (msgElem) {

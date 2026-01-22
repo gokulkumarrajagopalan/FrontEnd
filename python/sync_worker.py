@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""
-Sync Worker - Runs sync scripts at specified intervals
-Reads settings from Electron app via stdin and manages periodic sync operations
-"""
 
 import json
 import sys
@@ -16,13 +12,13 @@ import os
 log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
 os.makedirs(log_dir, exist_ok=True)
 
-log_file = os.path.join(log_dir, f'sync_worker_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+log_file = os.path.join(log_dir, 'sync_worker.log')
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(log_file, encoding='utf-8'),
+        logging.FileHandler(log_file, encoding='utf-8', mode='w'),  # 'w' overwrites the file each time
         logging.StreamHandler()
     ]
 )
@@ -227,6 +223,14 @@ def run_incremental_sync(args):
             last_alter_id=args.max_alter_id if args.max_alter_id > 0 else None,
             company_name=args.company_name
         )
+        
+        # Update company sync status after incremental sync
+        manager.update_company_sync_status(
+            int(args.company_id),
+            'synced' if result.get('success') else 'failed',
+            result.get('success', False)
+        )
+        
         print(json.dumps(result))
     except Exception as e:
         logger.error(f"Incremental sync error: {e}")
@@ -235,6 +239,9 @@ def run_incremental_sync(args):
 def run_reconciliation(args):
     try:
         manager = ReconciliationManager(args.backend_url, args.auth_token, args.device_token)
+        
+        # Create sync manager for updating company status
+        sync_manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token)
         
         if args.entity_type.lower() == 'all':
             # Reconcile all entities
@@ -258,6 +265,14 @@ def run_reconciliation(args):
             total_updated = sum(r.get('updated', 0) for r in results if r.get('success'))
             total_synced = sum(r.get('synced', 0) for r in results if r.get('success'))
             
+            # Update company sync status after reconciliation
+            all_success = all(r.get('success', False) for r in results)
+            sync_manager.update_company_sync_status(
+                int(args.company_id),
+                'synced' if all_success else 'failed',
+                all_success
+            )
+            
             print(json.dumps({
                 'success': True,
                 'totalMissing': total_missing,
@@ -273,6 +288,14 @@ def run_reconciliation(args):
                 tally_port=args.port,
                 company_name=args.company_name
             )
+            
+            # Update company sync status after reconciliation
+            sync_manager.update_company_sync_status(
+                int(args.company_id),
+                'synced' if result.get('success') else 'failed',
+                result.get('success', False)
+            )
+            
             print(json.dumps(result))
             
     except Exception as e:

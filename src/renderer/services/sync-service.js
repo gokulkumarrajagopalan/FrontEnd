@@ -119,8 +119,8 @@ class SyncService {
                 console.log(`\n[${i + 1}/${companies.length}] Syncing: ${company.name}`);
 
                 try {
-                    // Update progress in SyncStateManager
-                    window.syncStateManager.updateProgress(i, company.name);
+                    // Update progress in SyncStateManager (i+1 because we're starting the sync for this company)
+                    window.syncStateManager.updateProgress(i + 1, company.name);
 
                     // Check if company needs initial sync
                     if (!company.lastSyncDate || company.syncStatus === 'pending') {
