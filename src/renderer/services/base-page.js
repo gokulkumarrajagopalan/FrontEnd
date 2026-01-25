@@ -1,8 +1,3 @@
-/**
- * Base Page Class - Eliminates code duplication across pages
- * Provides common functionality for all data management pages
- */
-
 class BasePage {
     constructor(config) {
         this.config = {
@@ -20,14 +15,26 @@ class BasePage {
         this.selectedCompanyId = null;
         this.isLoading = false;
         this.isSyncing = false;
-        this.selectedR
+        this.selectedRow = null;
+        
         // Grid features
         this.sortField = null;
         this.sortOrder = 'asc'; // 'asc' or 'desc'
         this.currentPage = 1;
-        this.pageSize = 25;
+        this.pageSize = 50;
         this.visibleColumns = new Set(this.config.tableColumns.map(col => col.field));
         this.tableFullscreenLocked = false;
+        
+        // Server-side pagination
+        this.useServerPagination = this.config.useServerPagination !== false; // Default true
+        this.totalItems = 0;
+        this.totalPages = 0;
+        this.searchQuery = '';
+        this.headerSearch = {};
+        
+        // Debounce settings for server-side search
+        this._searchDebounceTimer = null;
+        this._searchDebounceDelay = 400; // 400ms delay before server search
     }
 
     /**
@@ -314,8 +321,8 @@ class BasePage {
                     <div class="page-size-selector">
                         <label for="pageSizeSelect">Rows per page:</label>
                         <select id="pageSizeSelect" class="page-size-select">
-                            <option value="25" selected>25</option>
-                            <option value="50">50</option>
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
                             <option value="100">100</option>
                             <option value="200">200</option>
                         </select>
@@ -1343,7 +1350,7 @@ class BasePage {
     }
 
     /**
-     * Load data from API
+     * Load data from API with server-side pagination
      */
     async loadData() {
         console.log(`📊 Loading ${this.config.entityNamePlural} for company:`, this.selectedCompanyId);
@@ -1361,7 +1368,27 @@ class BasePage {
         try {
             this.showLoading();
 
-            const url = window.apiConfig.getUrl(`${this.config.apiEndpoint}/company/${this.selectedCompanyId}`);
+            // Build URL with pagination parameters
+            let url = window.apiConfig.getUrl(`${this.config.apiEndpoint}/company/${this.selectedCompanyId}`);
+            
+            if (this.useServerPagination) {
+                // Server expects 0-based page index
+                const pageIndex = this.currentPage - 1;
+                url += `?page=${pageIndex}&size=${this.pageSize}`;
+                
+                // Add global search query if present
+                if (this.searchQuery && this.searchQuery.trim()) {
+                    url += `&search=${encodeURIComponent(this.searchQuery.trim())}`;
+                }
+            } else {
+                // Non-paginated: still support search
+                if (this.searchQuery && this.searchQuery.trim()) {
+                    url += `?search=${encodeURIComponent(this.searchQuery.trim())}`;
+                }
+            }
+
+            console.log(`🌐 Fetching URL: ${url}`);
+
             const response = await fetch(url, {
                 method: 'GET',
                 headers: window.authService.getHeaders()
@@ -1376,7 +1403,19 @@ class BasePage {
             if (result.success) {
                 this.data = result.data || [];
                 this.filteredData = [...this.data];
-                console.log(`✅ Loaded ${this.data.length} ${this.config.entityNamePlural}`);
+                
+                // Update pagination info from server response
+                if (this.useServerPagination && result.totalItems !== undefined) {
+                    this.totalItems = result.totalItems;
+                    this.totalPages = result.totalPages || Math.ceil(result.totalItems / this.pageSize);
+                    console.log(`✅ Loaded page ${this.currentPage}/${this.totalPages} (${this.data.length} of ${this.totalItems} ${this.config.entityNamePlural})`);
+                } else {
+                    // Fallback for non-paginated responses
+                    this.totalItems = this.data.length;
+                    this.totalPages = Math.ceil(this.data.length / this.pageSize);
+                    console.log(`✅ Loaded ${this.data.length} ${this.config.entityNamePlural}`);
+                }
+                
                 this.renderTable();
                 this.setupTableListeners();
             } else {
@@ -1422,15 +1461,22 @@ class BasePage {
             return;
         }
 
-        // Calculate pagination
-        const totalPages = Math.ceil(this.filteredData.length / this.pageSize);
-        if (this.currentPage > totalPages) {
-            this.currentPage = Math.max(1, totalPages);
-        }
+        let pageData;
+        
+        if (this.useServerPagination) {
+            // Data is already paginated from server, use as-is
+            pageData = this.filteredData;
+        } else {
+            // Client-side pagination: calculate page slice
+            const totalPages = Math.ceil(this.filteredData.length / this.pageSize);
+            if (this.currentPage > totalPages) {
+                this.currentPage = Math.max(1, totalPages);
+            }
 
-        const startIndex = (this.currentPage - 1) * this.pageSize;
-        const endIndex = startIndex + this.pageSize;
-        const pageData = this.filteredData.slice(startIndex, endIndex);
+            const startIndex = (this.currentPage - 1) * this.pageSize;
+            const endIndex = startIndex + this.pageSize;
+            pageData = this.filteredData.slice(startIndex, endIndex);
+        }
 
         tbody.innerHTML = pageData.map(item => this.renderTableRow(item)).join('');
 
@@ -1501,10 +1547,12 @@ class BasePage {
      * Setup event listeners
      */
     setupEventListeners() {
-        // Search functionality
+        // Search functionality - use debounced server search
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
-            searchInput.addEventListener('input', () => this.filterData());
+            searchInput.addEventListener('input', (e) => {
+                this.debouncedSearch(e.target.value);
+            });
         }
 
         // Sync button
@@ -1555,9 +1603,88 @@ class BasePage {
     }
 
     /**
+     * Debounced search - waits for user to stop typing before calling server
+     */
+    debouncedSearch(searchTerm) {
+        // Clear any existing timer
+        if (this._searchDebounceTimer) {
+            clearTimeout(this._searchDebounceTimer);
+        }
+
+        // Set new timer
+        this._searchDebounceTimer = setTimeout(async () => {
+            this.searchQuery = searchTerm.trim();
+            this.currentPage = 1; // Reset to first page on new search
+            
+            console.log(`🔍 Server search: "${this.searchQuery}"`);
+            await this.loadData();
+        }, this._searchDebounceDelay);
+    }
+
+    /**
+     * Debounced header search - combines column filters for server search
+     */
+    debouncedHeaderSearch() {
+        // Clear any existing timer
+        if (this._searchDebounceTimer) {
+            clearTimeout(this._searchDebounceTimer);
+        }
+
+        // Set new timer
+        this._searchDebounceTimer = setTimeout(async () => {
+            // Combine all non-empty header search values
+            const searchTerms = Object.entries(this.headerSearch)
+                .filter(([_, val]) => val && val.trim())
+                .map(([field, val]) => val.trim());
+            
+            // Use combined search terms as the search query
+            this.searchQuery = searchTerms.join(' ');
+            this.currentPage = 1;
+            
+            console.log(`🔍 Header search: "${this.searchQuery}" from fields:`, this.headerSearch);
+            await this.loadData();
+        }, this._searchDebounceDelay);
+    }
+
+    /**
+     * Clear search and reload data
+     */
+    async clearSearch() {
+        if (this._searchDebounceTimer) {
+            clearTimeout(this._searchDebounceTimer);
+        }
+        
+        this.searchQuery = '';
+        this.headerSearch = {};
+        this.currentPage = 1;
+        
+        // Clear search input
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        
+        // Clear header search inputs
+        document.querySelectorAll('.header-search-input').forEach(input => {
+            input.value = '';
+        });
+        
+        await this.loadData();
+    }
+
+    /**
      * Filter data based on search input
+     * Note: With server-side search, this delegates to server
      */
     filterData() {
+        // If using server-side pagination, trigger server search instead
+        if (this.useServerPagination) {
+            const searchTerm = document.getElementById('searchInput')?.value || '';
+            this.debouncedSearch(searchTerm);
+            return;
+        }
+
+        // Client-side filtering (fallback for non-server-pagination)
         const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
         const headerSearch = this.headerSearch || {};
 
@@ -1787,17 +1914,28 @@ class BasePage {
      * Update pagination controls
      */
     updatePaginationControls() {
-        const totalPages = Math.ceil(this.filteredData.length / this.pageSize);
+        // Use server-side pagination info if available
+        const totalPages = this.useServerPagination ? this.totalPages : Math.ceil(this.filteredData.length / this.pageSize);
+        const totalItems = this.useServerPagination ? this.totalItems : this.filteredData.length;
 
         // Update records info
         const recordsInfo = document.getElementById('recordsInfo');
         if (recordsInfo) {
-            recordsInfo.textContent = `${this.filteredData.length} records`;
+            if (this.useServerPagination) {
+                const start = ((this.currentPage - 1) * this.pageSize) + 1;
+                const end = Math.min(this.currentPage * this.pageSize, totalItems);
+                recordsInfo.textContent = `${start}-${end} of ${totalItems} records`;
+            } else {
+                recordsInfo.textContent = `${totalItems} records`;
+            }
         }
 
         // Update page numbers
-        document.getElementById('currentPageNum').textContent = this.currentPage;
-        document.getElementById('totalPages').textContent = totalPages;
+        const currentPageNum = document.getElementById('currentPageNum');
+        const totalPagesEl = document.getElementById('totalPages');
+        
+        if (currentPageNum) currentPageNum.textContent = this.currentPage;
+        if (totalPagesEl) totalPagesEl.textContent = totalPages || 1;
 
         // Update button states
         const prevBtn = document.getElementById('prevPageBtn');
@@ -1819,21 +1957,33 @@ class BasePage {
     /**
      * Go to specific page
      */
-    goToPage(pageNum) {
-        const totalPages = Math.ceil(this.filteredData.length / this.pageSize);
+    async goToPage(pageNum) {
+        const totalPages = this.useServerPagination ? this.totalPages : Math.ceil(this.filteredData.length / this.pageSize);
         if (pageNum >= 1 && pageNum <= totalPages) {
             this.currentPage = pageNum;
-            this.renderTable();
+            
+            if (this.useServerPagination) {
+                // Reload data from server for new page
+                await this.loadData();
+            } else {
+                this.renderTable();
+            }
         }
     }
 
     /**
      * Change page size
      */
-    changePageSize(newSize) {
+    async changePageSize(newSize) {
         this.pageSize = parseInt(newSize, 10);
         this.currentPage = 1;
-        this.renderTable();
+        
+        if (this.useServerPagination) {
+            // Reload data from server with new page size
+            await this.loadData();
+        } else {
+            this.renderTable();
+        }
     }
 
     /**
@@ -1855,46 +2005,71 @@ class BasePage {
             header.style.userSelect = 'none';
         });
 
-        // Header search inputs
+        // Header search inputs - use debounced search for server-side
         this.headerSearch = this.headerSearch || {};
         document.querySelectorAll('.header-search-input').forEach(input => {
-            input.addEventListener('input', (e) => {
+            // Clone and replace to remove existing listeners
+            const newInput = input.cloneNode(true);
+            input.parentNode.replaceChild(newInput, input);
+            
+            newInput.addEventListener('input', (e) => {
                 const field = e.target.getAttribute('data-field');
-                const val = (e.target.value || '').toLowerCase();
+                const val = (e.target.value || '').trim();
                 this.headerSearch[field] = val;
-                this.filterData();
+                
+                // For server-side search, use debounced header search
+                if (this.useServerPagination) {
+                    this.debouncedHeaderSearch();
+                } else {
+                    // Client-side filtering
+                    this.filterData();
+                }
             });
+            
             // Allow input clicks but don't propagate
-            input.addEventListener('click', (e) => {
+            newInput.addEventListener('click', (e) => {
                 e.stopPropagation();
             });
         });
 
-        // Pagination button listeners
+        // Pagination button listeners - remove old listeners first to prevent duplicates
         const prevBtn = document.getElementById('prevPageBtn');
         const nextBtn = document.getElementById('nextPageBtn');
         const pageSizeSelect = document.getElementById('pageSizeSelect');
 
         if (prevBtn) {
-            prevBtn.addEventListener('click', () => {
+            // Clone and replace to remove all existing listeners
+            const newPrevBtn = prevBtn.cloneNode(true);
+            prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+            newPrevBtn.addEventListener('click', async () => {
                 if (this.currentPage > 1) {
-                    this.goToPage(this.currentPage - 1);
+                    await this.goToPage(this.currentPage - 1);
                 }
             });
         }
 
         if (nextBtn) {
-            nextBtn.addEventListener('click', () => {
-                const totalPages = Math.ceil(this.filteredData.length / this.pageSize);
+            // Clone and replace to remove all existing listeners
+            const newNextBtn = nextBtn.cloneNode(true);
+            nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+            newNextBtn.addEventListener('click', async () => {
+                const totalPages = this.useServerPagination ? this.totalPages : Math.ceil(this.filteredData.length / this.pageSize);
                 if (this.currentPage < totalPages) {
-                    this.goToPage(this.currentPage + 1);
+                    await this.goToPage(this.currentPage + 1);
                 }
             });
         }
 
         if (pageSizeSelect) {
-            pageSizeSelect.addEventListener('change', (e) => {
-                this.changePageSize(e.target.value);
+            // Clone and replace to remove all existing listeners
+            const newPageSizeSelect = pageSizeSelect.cloneNode(true);
+            pageSizeSelect.parentNode.replaceChild(newPageSizeSelect, pageSizeSelect);
+            
+            // Sync dropdown value with current pageSize
+            newPageSizeSelect.value = this.pageSize.toString();
+            
+            newPageSizeSelect.addEventListener('change', async (e) => {
+                await this.changePageSize(e.target.value);
             });
         }
 

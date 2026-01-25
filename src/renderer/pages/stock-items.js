@@ -50,31 +50,7 @@
             `;
         }
 
-        async loadData() {
-            console.log(`📊 Loading ${this.config.entityNamePlural} for company:`, this.selectedCompanyId);
-            const tbody = document.getElementById('dataTableBody');
-            if (!tbody) return;
-            if (!this.selectedCompanyId) {
-                tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data">📋 Please select a company from the dropdown above to view ${this.config.entityNamePlural}</td></tr>`;
-                return;
-            }
-            try {
-                this.showLoading();
-                const url = window.apiConfig.getUrl(`${this.config.apiEndpoint}/company/${this.selectedCompanyId}`);
-                const response = await fetch(url, { method: 'GET', headers: window.authService.getHeaders() });
-                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                const result = await response.json();
-                this.data = Array.isArray(result) ? result : (result.data || []);
-                this.filteredData = [...this.data];
-                console.log(`✅ Loaded ${this.data.length} ${this.config.entityNamePlural}`);
-                this.renderTable();
-                this.setupTableListeners();
-            } catch (error) {
-                console.error(`❌ Error loading ${this.config.entityNamePlural}:`, error);
-                tbody.innerHTML = `<tr><td colspan="${this.config.tableColumns.length + 1}" class="no-data text-red-500">Error loading ${this.config.entityNamePlural}: ${error.message}</td></tr>`;
-                this.showError(`Failed to load ${this.config.entityNamePlural}: ${error.message}`);
-            }
-        }
+        // Use base class loadData() with server-side pagination
 
         async syncFromTally() {
             if (!this.selectedCompanyId) {

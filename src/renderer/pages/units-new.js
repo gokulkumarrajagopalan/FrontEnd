@@ -104,37 +104,7 @@
             `;
         }
 
-        async loadData() {
-            if (!this.selectedCompanyId) {
-                const tbody = document.getElementById('dataTableBody');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="no-data">📋 Please select a company to view units</td></tr>';
-                return;
-            }
-
-            try {
-                this.showLoading();
-                const response = await fetch(window.apiConfig.getUrl('/units'), {
-                    method: 'GET',
-                    headers: window.authService.getHeaders()
-                });
-
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                const result = await response.json();
-                if (result.success || result.sucess) {
-                    let allUnits = result.data || [];
-                    this.data = allUnits.filter(u => u.cmpId === this.selectedCompanyId);
-                    this.filteredData = [...this.data];
-                    this.renderTable();
-                } else {
-                    throw new Error(result.message || 'Failed to load units');
-                }
-            } catch (error) {
-                console.error('Error loading units:', error);
-                const tbody = document.getElementById('dataTableBody');
-                if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="no-data text-red-500">Error: ${error.message}</td></tr>`;
-            }
-        }
+        // Use base class loadData() with server-side pagination
 
         setupEventListeners() {
             super.setupEventListeners();

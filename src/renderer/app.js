@@ -533,9 +533,10 @@ class App {
                                     <option value="">Select Companies</option>
                                 </select>
                             </div>
-                            <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
+                            <div id="userProfileBtn" class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors" onclick="window.app.showUserProfile()" title="View Profile">
                                 <span style="font-size: 16px;">👤</span>
                                 <span class="text-sm font-medium text-gray-700" id="headerUsername">User</span>
+                                <span style="font-size: 10px; color: #9ca3af;">▼</span>
                             </div>
                             <span id="notificationBell" style="font-size: 24px; cursor: pointer; opacity: 0.8; transition: opacity 0.2s;" title="Open Notifications" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
                                 🔔
@@ -615,6 +616,26 @@ class App {
             }
         } catch (e) {
             console.error('❌ Error updating user info:', e);
+        }
+    }
+
+    /**
+     * Show user profile popup with user details
+     * Delegates to UserProfileService
+     */
+    async showUserProfile() {
+        if (window.userProfileService) {
+            await window.userProfileService.showProfile();
+        } else {
+            console.error('❌ UserProfileService not available');
+            if (window.Popup) {
+                window.Popup.alert({
+                    title: 'Error',
+                    message: 'Profile service not loaded. Please refresh the page.',
+                    icon: '❌',
+                    variant: 'danger'
+                });
+            }
         }
     }
 
