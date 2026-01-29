@@ -76,6 +76,10 @@ class App {
         try {
             console.log('🚀 App initialization started...');
 
+<<<<<<< HEAD
+=======
+            // Check Auth - Use sessionStorage (migrated from localStorage for security)
+>>>>>>> b730e34e0a80a7374987b7b416a882891f368180
             const token = localStorage.getItem('authToken');
             if (!token) {
                 console.log('⚠️ No auth token found - rendering login');
@@ -408,6 +412,8 @@ class App {
             }
 
             const licenseMatches = true;
+
+
 
 
 
@@ -1072,6 +1078,10 @@ console.log('✅ Creating window.app...');
 window.app = new App();
 console.log('✅ window.app created');
 
+<<<<<<< HEAD
+=======
+// Expose refreshCompanyList globally for use after import
+>>>>>>> b730e34e0a80a7374987b7b416a882891f368180
 window.refreshCompanyList = async function () {
     console.log('🔄 Refreshing company list...');
     if (window.app && window.app.loadGlobalCompanies) {
