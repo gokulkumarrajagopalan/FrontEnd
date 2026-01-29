@@ -114,13 +114,9 @@ class NotificationCenter {
 
             .notification-center-modal {
                 position: fixed !important;
-                top: 0 !important;
-                right: 0 !important;
-                bottom: 0 !important;
-                left: auto !important;
+                inset: 0 !important;          /* 🔥 FULL SCREEN */
                 background: transparent !important;
                 z-index: 999999 !important;
-                display: block !important;
                 opacity: 0;
                 pointer-events: none;
                 transition: opacity 0.3s ease;
@@ -149,6 +145,13 @@ class NotificationCenter {
             .notification-center-modal.active .notification-center-panel {
                 transform: translateX(0);
             }
+
+            .notification-center-backdrop {
+                position: absolute;
+                inset: 0;
+                background: transparent;
+            }
+
 
             @keyframes slideInRight {
                 from {
@@ -446,19 +449,25 @@ class NotificationCenter {
             modal.id = 'notification-center-modal';
             modal.className = 'notification-center-modal';
             modal.innerHTML = `
-                <div class="notification-center-panel">
-                    <div class="notification-center-header">
-                        <h2 class="notification-center-title">📋 Notifications</h2>
-                        <span class="notification-center-close" id="notification-center-close">✕</span>
-                    </div>
-                    
-                    <div class="notification-center-content" id="notification-center-list">
-                        <div class="notification-center-empty">No notifications yet</div>
-                    </div>
-                    <div class="notification-center-footer">
-                        <button class="notification-center-btn notification-center-btn-clear" id="clear-notifications">Clear All</button>
+                <div class="notification-center-backdrop">
+                    <div class="notification-center-panel">
+                        <div class="notification-center-header">
+                            <h2 class="notification-center-title">📋 Notifications</h2>
+                            <span class="notification-center-close" id="notification-center-close">✕</span>
+                        </div>
+
+                        <div class="notification-center-content" id="notification-center-list">
+                            <div class="notification-center-empty">No notifications yet</div>
+                        </div>
+
+                        <div class="notification-center-footer">
+                            <button class="notification-center-btn notification-center-btn-clear" id="clear-notifications">
+                                Clear All
+                            </button>
+                        </div>
                     </div>
                 </div>
+
             `;
             document.body.appendChild(modal);
             console.log('   ✅ Modal created and added to body');
@@ -478,9 +487,19 @@ class NotificationCenter {
                 console.log('   ✅ Clear button listener attached');
             }
             
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) this.close();
-            });
+            const backdrop = modal.querySelector('.notification-center-backdrop');
+            const panel = modal.querySelector('.notification-center-panel');
+
+            if (backdrop && panel) {
+                backdrop.addEventListener('click', (e) => {
+                    // Only close if clicking outside the panel
+                    if (!panel.contains(e.target)) {
+                        this.close();
+                    }
+                });
+            }
+
+
             console.log('   ✅ Modal backdrop listener attached');
         } else {
             console.log('   Modal already exists');

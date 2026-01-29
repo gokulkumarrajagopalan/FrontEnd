@@ -1570,9 +1570,14 @@ header.h-16 {
 }
 
 .dark-theme .page-size-select {
-    background: #0f172a !important;
+    background-color: #0f172a !important;
     color: #e2e8f0 !important;
-    border-color: #334155 !important;
+    border: 1px solid #334155 !important;
+}
+
+.dark-theme .page-size-select option {
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
 }
 
 .dark-theme .header-search-input,

@@ -688,7 +688,6 @@ class BasePage {
             /* Fullscreen lock state for table */
             .page-container-full-height.table-fullscreen-locked {
                 padding: 0 0.5rem;
-                background: white;
                 gap: 0;
             }
 
