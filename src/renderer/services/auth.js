@@ -7,7 +7,7 @@ class AuthService {
     constructor() {
         this.loadAuthState();
         this.refreshInterval = null;
-        
+
         console.log('🔐 AuthService initialized:', {
             hasToken: !!this.token,
             hasDeviceToken: !!this.deviceToken,
@@ -18,20 +18,46 @@ class AuthService {
     }
 
     /**
-     * Load auth state from sessionStorage (consistent storage)
+     * Load auth state from localStorage (consistent storage)
      */
     loadAuthState() {
-        this.token = sessionStorage.getItem('authToken');
-        this.deviceToken = sessionStorage.getItem('deviceToken');
-        this.csrfToken = sessionStorage.getItem('csrfToken');
-        
-        try {
-            this.user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
-        } catch (error) {
-            console.error('⚠️ Corrupted user data in sessionStorage:', error);
-            this.user = null;
-            sessionStorage.removeItem('currentUser');
+        // Check if session has expired (7 days)
+        const sessionExpiry = localStorage.getItem('sessionExpiry');
+        if (sessionExpiry && new Date().getTime() > parseInt(sessionExpiry)) {
+            console.warn('⚠️ Session expired, logging out...');
+            this.clearLocalData();
+            return;
         }
+
+        this.token = localStorage.getItem('authToken');
+        this.deviceToken = localStorage.getItem('deviceToken');
+        this.csrfToken = localStorage.getItem('csrfToken');
+
+        try {
+            this.user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        } catch (error) {
+            console.error('⚠️ Corrupted user data in localStorage:', error);
+            this.user = null;
+            localStorage.removeItem('currentUser');
+        }
+    }
+
+    /**
+     * Clear all local authentication data
+     */
+    clearLocalData() {
+        this.token = null;
+        this.deviceToken = null;
+        this.csrfToken = null;
+        this.user = null;
+
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('deviceToken');
+        localStorage.removeItem('csrfToken');
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('loginTime');
+        localStorage.removeItem('sessionExpiry');
+        localStorage.removeItem('userLicenseNumber');
     }
 
     /**
@@ -71,14 +97,18 @@ class AuthService {
                 licenseNumber: data.licenceNo || data.licenseNumber
             };
 
-            sessionStorage.setItem('authToken', data.token);
-            sessionStorage.setItem('deviceToken', data.deviceToken);
+            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('deviceToken', data.deviceToken);
             if (this.csrfToken) {
-                sessionStorage.setItem('csrfToken', this.csrfToken);
+                localStorage.setItem('csrfToken', this.csrfToken);
             }
-            sessionStorage.setItem('currentUser', JSON.stringify(this.user));
-            sessionStorage.setItem('loginTime', new Date().toISOString());
-            
+            localStorage.setItem('currentUser', JSON.stringify(this.user));
+            localStorage.setItem('loginTime', new Date().toISOString());
+
+            // Set session expiry to 7 days from now
+            const expiry = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
+            localStorage.setItem('sessionExpiry', expiry.toString());
+
             // Store license number separately for easy access during sync validation
             if (this.user.licenseNumber) {
                 localStorage.setItem('userLicenseNumber', this.user.licenseNumber.toString());
@@ -116,10 +146,10 @@ class AuthService {
         try {
             // Remove any special characters from mobile
             const cleanMobile = mobile.replace(/\D/g, '');
-            
+
             // Extract country code (remove '+' if present)
             const cc = countryCode.replace('+', '');
-            
+
             // Country code length validation
             const countryCodeLengths = {
                 '91': { minLength: 10, maxLength: 10, country: 'India' },
@@ -135,7 +165,7 @@ class AuthService {
             };
 
             const validation = countryCodeLengths[cc];
-            
+
             if (!validation) {
                 return {
                     isValid: false,
@@ -193,7 +223,7 @@ class AuthService {
         try {
             // Validate mobile number
             const mobileValidation = this.validateMobileNumber(userData.mobile, userData.countryCode || '+91');
-            
+
             if (!mobileValidation.isValid) {
                 return {
                     success: false,
@@ -324,7 +354,7 @@ class AuthService {
 
             // After email verification, send mobile OTP
             const otpResult = await this.requestMobileOTP(mobile, licenceNo);
-            
+
             return {
                 success: true,
                 message: 'Email verified. OTP sent to mobile.',
@@ -363,17 +393,7 @@ class AuthService {
             console.error('Logout API error:', error);
         }
 
-        this.token = null;
-        this.deviceToken = null;
-        this.csrfToken = null;
-        this.user = null;
-
-        sessionStorage.removeItem('authToken');
-        sessionStorage.removeItem('deviceToken');
-        sessionStorage.removeItem('csrfToken');
-        sessionStorage.removeItem('currentUser');
-        sessionStorage.removeItem('loginTime');
-        localStorage.removeItem('userLicenseNumber');
+        this.clearLocalData();
 
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
@@ -413,7 +433,7 @@ class AuthService {
 
             if (response.ok) {
                 this.token = data.token;
-                sessionStorage.setItem('authToken', data.token);
+                localStorage.setItem('authToken', data.token);
                 return true;
             }
 
@@ -448,18 +468,18 @@ class AuthService {
      */
     getHeaders() {
         this.loadAuthState();
-        
+
         const headers = {
             'Content-Type': 'application/json'
         };
-        
+
         if (this.token && !this.isTokenExpired()) {
             headers['Authorization'] = `Bearer ${this.token}`;
         } else if (this.token && this.isTokenExpired()) {
             console.warn('⚠️ Token expired in getHeaders(), clearing...');
             this.loadAuthState();
         }
-        
+
         if (this.deviceToken) {
             headers['X-Device-Token'] = this.deviceToken;
         }
@@ -467,7 +487,7 @@ class AuthService {
         if (this.csrfToken) {
             headers['X-CSRF-Token'] = this.csrfToken;
         }
-        
+
         return headers;
     }
 
@@ -486,7 +506,7 @@ class AuthService {
     initializeSyncAfterLogin() {
         try {
             console.log('🔄 Initializing sync system after login...');
-            
+
             // Verify we have valid auth credentials
             if (!this.token || !this.deviceToken || !this.user) {
                 console.warn('⚠️ Missing auth credentials, cannot initialize sync');
@@ -518,6 +538,7 @@ class AuthService {
      * @returns {object|null}
      */
     getCurrentUser() {
+        if (!this.user) this.loadAuthState();
         return this.user;
     }
 
@@ -550,16 +571,16 @@ class AuthService {
 
             const decoded = JSON.parse(atob(parts[1]));
             const exp = decoded.exp;
-            
+
             if (!exp) return false;
-            
+
             const now = Math.floor(Date.now() / 1000);
             const isExpired = now >= exp;
-            
+
             if (isExpired) {
                 console.warn('⚠️ Token is expired');
             }
-            
+
             return isExpired;
         } catch (error) {
             console.error('❌ Error decoding token:', error);

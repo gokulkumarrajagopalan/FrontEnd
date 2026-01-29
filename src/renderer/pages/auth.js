@@ -732,7 +732,7 @@
             activeTab.style.color = '#1346A8';
             activeTab.style.boxShadow = '0 2px 8px rgba(19, 70, 168, 0.15)';
             activeTab.style.border = '1px solid #e2e8f0';
-            
+
             // Inactive tab styles
             inactiveTab.style.background = 'transparent';
             inactiveTab.style.color = '#64748b';
@@ -1131,10 +1131,10 @@
                     throw new Error('No authentication token received');
                 }
 
-                // Success - Store credentials in sessionStorage (secure, cleared on app close)
-                sessionStorage.setItem('authToken', data.token);
-                sessionStorage.setItem('deviceToken', data.deviceToken);
-                sessionStorage.setItem('currentUser', JSON.stringify({
+                // Success - Store credentials in localStorage (persistent for 7 days)
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('deviceToken', data.deviceToken);
+                localStorage.setItem('currentUser', JSON.stringify({
                     username: data.username,
                     userId: data.userId,
                     fullName: data.fullName,
@@ -1142,11 +1142,15 @@
                     licenceNo: data.licenceNo,
                     role: data.role
                 }));
-                sessionStorage.setItem('loginTime', new Date().toISOString());
+                localStorage.setItem('loginTime', new Date().toISOString());
+
+                // Set session expiry (7 days)
+                const expiryTime = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
+                localStorage.setItem('sessionExpiry', expiryTime.toString());
 
                 // Extract CSRF token from response if available
                 if (data.csrfToken) {
-                    sessionStorage.setItem('csrfToken', data.csrfToken);
+                    localStorage.setItem('csrfToken', data.csrfToken);
                 }
 
                 console.log('✅ Login successful:', {

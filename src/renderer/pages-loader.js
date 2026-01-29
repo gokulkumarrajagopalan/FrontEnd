@@ -13,20 +13,11 @@ class PageLoader {
             'dashboard': 'initializeDashboard',
             'login': 'initializeAuth',
             'signup': 'initializeAuth',
-            'groups': 'initializeGroups',
-            'ledgers': 'initializeLedgers',
-            'items': 'initializeItems',
             'settings': 'initializeSettings',
             'users': 'initializeUsers',
             'sync-settings': 'initializeSyncSettings',
             'import-company': 'initializeImportCompany',
-            'company-sync': 'initializeCompanySync',
-            'units': 'initializeUnits',
-            'stock-groups': 'initializeStockGroups',
-            'stock-categories': 'initializeStockCategories',
-            'stock-items': 'initializeStockItems',
-            'godowns': 'initializeGodowns',
-            'voucher-type': 'initializeVoucherType'
+            'company-sync': 'initializeCompanySync'
         };
 
         for (const [route, initName] of Object.entries(pageInitializers)) {

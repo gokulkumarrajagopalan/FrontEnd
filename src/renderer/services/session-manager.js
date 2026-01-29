@@ -47,8 +47,8 @@ class SessionManager {
      * Start WebSocket session monitoring
      */
     start() {
-        const token = sessionStorage.getItem('authToken');
-        const deviceToken = sessionStorage.getItem('deviceToken');
+        const token = localStorage.getItem('authToken');
+        const deviceToken = localStorage.getItem('deviceToken');
 
         if (!token || !deviceToken) {
             console.warn('⚠️ Cannot start SessionManager: No tokens found');
@@ -79,8 +79,8 @@ class SessionManager {
      */
     connectWebSocket() {
         try {
-            const token = sessionStorage.getItem('authToken');
-            const deviceToken = sessionStorage.getItem('deviceToken');
+            const token = localStorage.getItem('authToken');
+            const deviceToken = localStorage.getItem('deviceToken');
 
             if (!token || !deviceToken) {
                 console.error('❌ SessionManager: Missing auth tokens, cannot connect');
@@ -363,8 +363,8 @@ class SessionManager {
      * Check if user is authenticated
      */
     isAuthenticated() {
-        const token = sessionStorage.getItem('authToken');
-        const deviceToken = sessionStorage.getItem('deviceToken');
+        const token = localStorage.getItem('authToken');
+        const deviceToken = localStorage.getItem('deviceToken');
         return !!(token && deviceToken);
     }
 
