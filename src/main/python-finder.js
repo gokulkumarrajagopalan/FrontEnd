@@ -2,6 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Resolve once to avoid repeating path math
+const projectRoot = path.join(__dirname, '..', '..');
+const venvPython = path.join(projectRoot, '.venv', 'Scripts', 'python.exe');
+
 function findPython() {
     // 1. Try 'python' command first (simplest and most reliable if in PATH)
     try {
@@ -12,27 +16,30 @@ function findPython() {
         console.log("python command not found, checking alternatives...");
     }
 
-    // 2. Try 'where python' to find actual path
+    // 2. Try 'where python' to find actual path (and verify it runs)
     try {
         const result = execSync('where python', { encoding: 'utf8' });
         const lines = result.split('\n').map(l => l.trim()).filter(Boolean);
-        if (lines.length > 0) {
-            const pythonPath = lines[0];
-            // Verify it's not a Windows Store zero-byte redirector (App execution alias)
+        for (const pythonPath of lines) {
             try {
                 const stats = fs.statSync(pythonPath);
                 if (stats.size > 0) {
+                    // Ensure this executable actually works
+                    execSync(`"${pythonPath}" --version`, { stdio: 'ignore' });
                     console.log(`Found Python via where: ${pythonPath}`);
                     return pythonPath;
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.log(`Skipping unusable python from where: ${pythonPath}`);
+            }
         }
     } catch (e) {
         console.log('Python not found via where command');
     }
 
-    // 3. Fallback to common locations
+    // 3. Fallback to common locations (prioritize local venv if present)
     const possiblePaths = [
+        venvPython,
         path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WindowsApps', 'python.exe'),
         'python3',
         'C:\\Python313\\python.exe',
@@ -52,7 +59,9 @@ function findPython() {
                     execSync(`"${p}" --version`, { stdio: 'ignore' });
                     console.log(`Found working Python at: ${p}`);
                     return p;
-                } catch (e) { }
+                } catch (e) {
+                    console.log(`Skipping unusable fallback python: ${p}`);
+                }
             }
         } catch (e) { }
     }

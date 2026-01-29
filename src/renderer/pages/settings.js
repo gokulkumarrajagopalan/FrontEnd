@@ -103,42 +103,103 @@
         });
 
         const themeCard = window.UIComponents.card({
-            title: '🎨 Appearance',
-            content: `
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold mb-3" style="color: var(--text-primary);">Theme Mode</label>
-                        <div class="flex gap-3">
-                            <button type="button" id="lightThemeBtn" class="flex-1 px-4 py-3 rounded-xl border-2 transition-all theme-btn" style="border-color: var(--border-primary); background: var(--card-bg);">
-                                <div class="text-2xl mb-1">☀️</div>
-                                <div class="text-sm font-semibold" style="color: var(--text-primary);">Light</div>
-                            </button>
-                            <button type="button" id="darkThemeBtn" class="flex-1 px-4 py-3 rounded-xl border-2 transition-all theme-btn" style="border-color: var(--border-primary); background: var(--card-bg);">
-                                <div class="text-2xl mb-1">🌙</div>
-                                <div class="text-sm font-semibold" style="color: var(--text-primary);">Dark</div>
-                            </button>
-                        </div>
-                        <p class="text-xs mt-2" style="color: var(--text-tertiary);">Choose your preferred theme. Changes apply instantly across the entire app.</p>
-                    </div>
+    title: '🎨 Appearance',
+    content: `
+        <div class="space-y-4 text-sm">
+
+            <!-- THEME -->
+            <div class="flex items-center justify-between">
+                <span class="font-semibold" style="color: var(--text-primary);">
+                    Theme
+                </span>
+                <div class="flex gap-2">
+                    <button type="button" id="lightThemeBtn"
+                        class="px-3 py-1 rounded-md border text-sm theme-btn">
+                        ☀️ Light
+                    </button>
+
+                    <button type="button" id="darkThemeBtn"
+                        class="px-3 py-1 rounded-md border text-sm theme-btn">
+                        🌙 Dark
+                    </button>
                 </div>
-            `
-        });
+            </div>
+
+            <!-- FONT SIZE (INLINE) -->
+            <!-- FONT SIZE (SLIDER STYLE) -->
+<div>
+    <div class="flex justify-between mb-2">
+        <span class="font-semibold" style="color: var(--text-primary);">
+            Font Size
+        </span>
+        <span id="fontSizeValue" class="text-xs text-gray-600">
+            15 px
+        </span>
+    </div>
+
+    <input
+        id="fontSizeSlider"
+        type="range"
+        min="10"
+        max="20"
+        step="5"
+        value="15"
+        style="width: 100%;"
+    />
+
+    <div class="flex justify-between text-xs mt-1 text-gray-500">
+        <span>10</span>
+        <span>15</span>
+        <span>20</span>
+    </div>
+</div>
+
+
+        </div>
+    `
+});
+
 
         return window.Layout.page({
-            title: 'Settings',
-            subtitle: 'Configure Tally connection and application preferences',
-            content: `
-                <div style="padding: 1rem; box-sizing: border-box;">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        ${tallyConnectionCard}
-                        ${themeCard}
-                    </div>
-                    <div class="mt-6">
-                        ${aboutCard}
-                    </div>
+    title: 'Settings',
+    subtitle: 'Configure Tally connection and application preferences',
+    content: `
+        <div style="
+            padding: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            box-sizing: border-box;
+        ">
+
+            <!-- FORCE TWO COLUMNS -->
+            <div style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 24px;
+                align-items: stretch;
+            ">
+
+                <!-- LEFT -->
+                <div style="min-width: 0;">
+                    ${tallyConnectionCard}
                 </div>
-            `
-        });
+
+                <!-- RIGHT -->
+                <div style="min-width: 0;">
+                    ${themeCard}
+                </div>
+
+            </div>
+
+            <!-- ABOUT FULL WIDTH -->
+            <div style="margin-top: 24px;">
+                ${aboutCard}
+            </div>
+
+        </div>
+    `
+});
+
     };
 
     if (!window.API_BASE_URL) {
@@ -169,24 +230,58 @@
     function setupEventListeners() {
         const lightThemeBtn = document.getElementById('lightThemeBtn');
         const darkThemeBtn = document.getElementById('darkThemeBtn');
+        const fontSlider = document.getElementById('fontSizeSlider');
+const fontValue = document.getElementById('fontSizeValue');
+
+function applyFontSize(px) {
+    document.documentElement.style.fontSize = px + 'px';
+    localStorage.setItem('appFontSize', px);
+
+    if (fontValue) {
+        fontValue.textContent = px + ' px';
+    }
+}
+
+// Load saved font size
+const savedFontSize = localStorage.getItem('appFontSize') || '15';
+applyFontSize(savedFontSize);
+
+if (fontSlider) {
+    fontSlider.value = savedFontSize;
+
+    fontSlider.addEventListener('input', (e) => {
+        const size = e.target.value;
+        applyFontSize(size);
+        window.notificationService?.success(`Font size set to ${size}px`);
+    });
+}
+
 
         function updateThemeButtons() {
-            const currentTheme = window.themeManager ? window.themeManager.getTheme() : 'light';
+    const currentTheme = window.themeManager
+        ? window.themeManager.getTheme()
+        : 'light';
 
-            if (lightThemeBtn && darkThemeBtn) {
-                if (currentTheme === 'light') {
-                    lightThemeBtn.style.borderColor = 'var(--primary-600)';
-                    lightThemeBtn.style.background = 'rgba(94, 134, 186, 0.1)';
-                    darkThemeBtn.style.borderColor = 'var(--border-primary)';
-                    darkThemeBtn.style.background = 'var(--card-bg)';
-                } else {
-                    darkThemeBtn.style.borderColor = 'var(--primary-600)';
-                    darkThemeBtn.style.background = 'rgba(94, 134, 186, 0.1)';
-                    lightThemeBtn.style.borderColor = 'var(--border-primary)';
-                    lightThemeBtn.style.background = 'var(--card-bg)';
-                }
-            }
-        }
+    if (!lightThemeBtn || !darkThemeBtn) return;
+
+    // RESET
+    [lightThemeBtn, darkThemeBtn].forEach(btn => {
+        btn.style.borderColor = 'var(--border-primary)';
+        btn.style.background = 'var(--card-bg)';
+        btn.style.color = 'var(--text-primary)';
+    });
+
+    // ACTIVE STATE
+    if (currentTheme === 'light') {
+        lightThemeBtn.style.borderColor = 'var(--primary-600)';
+        lightThemeBtn.style.background = 'rgba(94, 134, 186, 0.12)';
+        lightThemeBtn.style.color = 'var(--primary-700)';
+    } else {
+        darkThemeBtn.style.borderColor = 'var(--primary-600)';
+        darkThemeBtn.style.background = 'rgba(94, 134, 186, 0.12)';
+        darkThemeBtn.style.color = 'var(--primary-700)';
+    }
+}
 
         if (lightThemeBtn) {
             lightThemeBtn.addEventListener('click', () => {

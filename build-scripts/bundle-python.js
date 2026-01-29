@@ -13,17 +13,75 @@ const PROJECT_ROOT = path.resolve(__dirname, '..');
 // Fixed: Python source is in 'python' directory
 const PYTHON_SOURCE = path.join(PROJECT_ROOT, 'python', 'sync_worker.py');
 const BUNDLE_DIR = path.join(PROJECT_ROOT, 'resources', 'python');
+const RESOURCES_BIN = path.join(PROJECT_ROOT, 'resources', 'bin');
+const DIST_EXE = path.join(BUNDLE_DIR, 'dist', 'sync_worker.exe');
+const DIST_UNIX = path.join(BUNDLE_DIR, 'dist', 'sync_worker');
+const BIN_EXE = path.join(RESOURCES_BIN, 'sync_worker.exe');
+const BIN_UNIX = path.join(RESOURCES_BIN, 'sync_worker');
+
+function resolvePython() {
+    const candidates = [];
+
+    // 1) Active virtualenv (if any)
+    if (process.env.VIRTUAL_ENV) {
+        candidates.push(path.join(process.env.VIRTUAL_ENV, 'Scripts', 'python.exe'));
+    }
+
+    // 2) Local project venv
+    candidates.push(path.join(PROJECT_ROOT, '.venv', 'Scripts', 'python.exe'));
+
+    // 3) System PATH
+    candidates.push('python');
+
+    for (const c of candidates) {
+        try {
+            if (c === 'python') {
+                execSync('python --version', { stdio: 'ignore' });
+                return 'python';
+            }
+            if (fs.existsSync(c)) {
+                execSync(`"${c}" --version`, { stdio: 'ignore' });
+                return c;
+            }
+        } catch (_) {
+            // try next candidate
+        }
+    }
+
+    return null;
+}
 
 console.log('🐍 Python Bundling Script');
 console.log('='.repeat(50));
 
+// Step 0: If a bundled executable already exists, skip Python entirely
+console.log('\n📦 Step 0: Checking for existing bundled worker...');
+if (fs.existsSync(BIN_EXE) || fs.existsSync(BIN_UNIX)) {
+    console.log(`✅ Found existing worker in resources/bin. Skipping Python bundling.`);
+    process.exit(0);
+}
+
+// If dist output exists, copy it into resources/bin and exit
+if (fs.existsSync(DIST_EXE) || fs.existsSync(DIST_UNIX)) {
+    if (!fs.existsSync(RESOURCES_BIN)) {
+        fs.mkdirSync(RESOURCES_BIN, { recursive: true });
+    }
+    const source = fs.existsSync(DIST_EXE) ? DIST_EXE : DIST_UNIX;
+    const destination = path.join(RESOURCES_BIN, path.basename(source));
+    fs.copyFileSync(source, destination);
+    console.log(`✅ Copied existing worker to: ${destination}`);
+    process.exit(0);
+}
+
 // Step 1: Check if Python is available
 console.log('\n📋 Step 1: Checking Python installation...');
+const pythonCmd = resolvePython();
 try {
-    const pythonVersion = execSync('python --version', { encoding: 'utf-8' });
+    if (!pythonCmd) throw new Error('Python not found');
+    const pythonVersion = execSync(`"${pythonCmd}" --version`, { encoding: 'utf-8' });
     console.log(`✅ Python found: ${pythonVersion.trim()}`);
 } catch (e) {
-    console.error('❌ Python not found. Please install Python 3.8+');
+    console.error('❌ Python not found. Please create/activate the project venv or install Python 3.8+');
     process.exit(1);
 }
 
@@ -32,7 +90,7 @@ console.log('\n📦 Step 2: Checking PyInstaller...');
 let pyInstallerFound = false;
 try {
     // Try python -m first (more reliable on Windows)
-    execSync('python -m PyInstaller --version', { encoding: 'utf-8' });
+    execSync(`"${pythonCmd}" -m PyInstaller --version`, { encoding: 'utf-8' });
     console.log('✅ PyInstaller found (via python module)');
     pyInstallerFound = true;
 } catch (e1) {
@@ -49,7 +107,7 @@ try {
 if (!pyInstallerFound) {
     console.log('⚠️  PyInstaller not found. Installing...');
     try {
-        execSync('python -m pip install pyinstaller', { stdio: 'inherit' });
+        execSync(`"${pythonCmd}" -m pip install pyinstaller`, { stdio: 'inherit' });
         console.log('✅ PyInstaller installed');
     } catch (installError) {
         console.error('❌ Failed to install PyInstaller:', installError.message);
@@ -78,7 +136,7 @@ console.log(`✅ Source file found: ${PYTHON_SOURCE}`);
 console.log('\n⚙️  Step 5: Running PyInstaller...');
 try {
     // Using python -m PyInstaller to be safe
-    const command = `python -m PyInstaller --onefile --distpath "${path.join(BUNDLE_DIR, 'dist')}" --workpath "${path.join(BUNDLE_DIR, 'build')}" --specpath "${BUNDLE_DIR}" --name "sync_worker" "${PYTHON_SOURCE}"`;
+    const command = `"${pythonCmd}" -m PyInstaller --onefile --distpath "${path.join(BUNDLE_DIR, 'dist')}" --workpath "${path.join(BUNDLE_DIR, 'build')}" --specpath "${BUNDLE_DIR}" --name "sync_worker" "${PYTHON_SOURCE}"`;
 
     console.log(`Executing: ${command}`);
     execSync(command, { stdio: 'inherit' });

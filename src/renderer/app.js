@@ -49,7 +49,7 @@ class App {
         const btn = document.getElementById('tableHeaderToggleBtnOpened');
         if (btn) {
             btn.style.display = visible ? 'flex' : 'none';
-            
+
             // Update icon based on state
             const svg = btn.querySelector('svg');
             if (svg) {
@@ -76,8 +76,7 @@ class App {
         try {
             console.log('🚀 App initialization started...');
 
-            // Check Auth - Use sessionStorage (migrated from localStorage for security)
-            const token = sessionStorage.getItem('authToken');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 console.log('⚠️ No auth token found - rendering login');
                 this.renderLogin();
@@ -85,7 +84,6 @@ class App {
                 console.log('✅ Auth token found - rendering app layout');
                 this.renderAppLayout();
 
-                // Initialize Tally connection on app startup
                 console.log('🔄 Initializing Tally data on startup...');
                 this.initializeTallyData();
             }
@@ -106,20 +104,13 @@ class App {
         console.log('='.repeat(80));
 
         try {
-            // STEP 1: Check Tally Connection
             await this.checkTallyConnection();
 
-            // STEP 2: Fetch License Info
             await this.fetchTallyLicense();
 
-            // STEP 3: Fetch Companies
             await this.fetchTallyCompanies();
 
-            // STEP 4: Initialize new sync system (app-start + background)
-            // NOTE: Sync system will be initialized after login, not here
-            // await this.initializeNewSyncSystem();
 
-            // STEP 5: Initialize legacy sync scheduler (if configured)
             this.initializeSyncScheduler();
 
             console.log('✅ Tally initialization complete');
@@ -129,11 +120,7 @@ class App {
         }
     }
 
-    /**
-     * Initialize new sync system (Scenario 2 & 3)
-     * - App-start incremental sync
-     * - Background sync every 2 hours
-     */
+
     async initializeNewSyncSystem() {
         try {
             console.log('\n[4] INITIALIZING NEW SYNC SYSTEM');
@@ -152,7 +139,6 @@ class App {
 
     async checkTallyConnection() {
         try {
-            // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
 
@@ -421,8 +407,9 @@ class App {
                 console.log('✅ Session monitoring started');
             }
 
-            // Check license match
-            const licenseMatches = this.checkLicenseMatch();
+            const licenseMatches = true;
+
+
 
             document.body.className = 'h-screen overflow-hidden flex bg-gray-50';
             document.body.innerHTML = `
@@ -449,58 +436,19 @@ class App {
                     
                     <!-- Resizable Navigation Area -->
                     <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-1 transition-all duration-300" id="sidebarNav">
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide sidebar-section-title" ${!licenseMatches ? 'style="display: none;"' : ''}>Main</div>
-                        <a class="nav-link active" data-route="import-company" ${!licenseMatches ? 'style="display: none;"' : ''}>
-                            <span class="nav-icon">📥</span> <span>Import Company</span>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide sidebar-section-title">Main</div>
+                        <a class="nav-link active" data-route="import-company">
+                            <span class="nav-icon">📥</span> <span>Add Company</span>
                         </a>
-                        <a class="nav-link" data-route="company-sync" ${!licenseMatches ? 'style="display: none;"' : ''}>
-                            <span class="nav-icon">🏢</span> <span>Company Sync</span>
+                        <a class="nav-link" data-route="company-sync">
+                            <span class="nav-icon">🏢</span> <span>My Company</span>
                         </a>
-                        <a class="nav-link" data-route="sync-settings" ${!licenseMatches ? 'style="display: none;"' : ''}>
+                        <a class="nav-link" data-route="sync-settings">
                             <span class="nav-icon">📡</span> <span>Tally Sync</span>
                         </a>
-                        <a class="nav-link" data-route="settings" ${!licenseMatches ? 'style="display: none;"' : ''}>
+                        <a class="nav-link" data-route="settings">
                             <span class="nav-icon">⚙️</span> <span>Settings</span>
                         </a>
-
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide mt-4 sidebar-section-title">Masters</div>
-                        
-                        <!-- Finance Masters Section -->
-                        <div class="nav-section-header" onclick="window.app.toggleSection('finance-section')">
-                            <span>Finance Masters</span>
-                            <span class="chevron">▼</span>
-                        </div>
-                        <div id="finance-section" class="nav-collapse-container">
-                            <a class="nav-link nested" data-route="groups">
-                                <span class="nav-icon">📁</span> <span>Groups</span>
-                            </a>
-                            <a class="nav-link nested" data-route="ledgers">
-                                <span class="nav-icon">📒</span> <span>Ledgers</span>
-                            </a>
-                        </div>
-
-                        <!-- Inventory Masters Section -->
-                        <div class="nav-section-header" onclick="window.app.toggleSection('inventory-section')">
-                            <span>Inventory masters</span>
-                            <span class="chevron">▼</span>
-                        </div>
-                        <div id="inventory-section" class="nav-collapse-container">
-                            <a class="nav-link nested" data-route="stock-groups">
-                                <span class="nav-icon">📦</span> <span>Stock Groups</span>
-                            </a>
-                            <a class="nav-link nested" data-route="stock-categories">
-                                <span class="nav-icon">🏷️</span> <span>Stock Categories</span>
-                            </a>
-                            <a class="nav-link nested" data-route="stock-items">
-                                <span class="nav-icon">🍎</span> <span>Stock Items</span>
-                            </a>
-                            <a class="nav-link nested" data-route="units">
-                                 <span class="nav-icon">📏</span> <span>Units</span>
-                            </a>
-                            <a class="nav-link nested" data-route="godowns">
-                                <span class="nav-icon">🏬</span> <span>Godowns</span>
-                            </a>
-                        </div>
                     </nav>
                     
                     <!-- Resize Handle - Only on nav/logout area (starts below header) -->
@@ -588,7 +536,7 @@ class App {
 
     updateUserInfo() {
         try {
-            const user = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
             console.log('✅ User info updated:', user.fullName || user.username);
 
             // Update header username display
@@ -662,7 +610,7 @@ class App {
             }
 
             // Get current user from session storage
-            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             const userId = currentUser.userId;
 
             console.log('🏢 Loading companies for user:', userId);
@@ -930,22 +878,22 @@ class App {
             console.error('❌ Notification bell element NOT FOUND in DOM');
         }
     }
-    
+
     expandSidebar() {
         const sidebar = document.getElementById('mainSidebar');
         const expandedHeader = document.getElementById('expandedHeader');
         const collapsedHeader = document.getElementById('collapsedHeader');
         const sidebarNav = document.getElementById('sidebarNav');
-        
+
         if (!sidebar) return;
-        
+
         // Set expanded state attribute
         sidebar.setAttribute('data-expanded', 'true');
-        
+
         // Expand sidebar
         sidebar.style.width = '250px';
         sidebar.style.transition = 'width 0.3s ease-in-out';
-        
+
         // Show expanded header content
         if (expandedHeader) {
             expandedHeader.style.display = 'block';
@@ -959,21 +907,21 @@ class App {
             collapsedHeader.style.display = 'none';
         }
     }
-    
+
     collapseSidebar() {
         const sidebar = document.getElementById('mainSidebar');
         const expandedHeader = document.getElementById('expandedHeader');
         const collapsedHeader = document.getElementById('collapsedHeader');
-        
+
         if (!sidebar) return;
-        
+
         // Remove expanded state attribute
         sidebar.setAttribute('data-expanded', 'false');
-        
+
         // Collapse sidebar
         sidebar.style.width = '80px';
         sidebar.style.transition = 'width 0.3s ease-in-out';
-        
+
         // Hide expanded header content
         if (expandedHeader) {
             expandedHeader.style.opacity = '0';
@@ -1120,13 +1068,11 @@ class App {
     }
 }
 
-// Initialize
 console.log('✅ Creating window.app...');
 window.app = new App();
 console.log('✅ window.app created');
 
-// Expose refreshCompanyList globally for use after import
-window.refreshCompanyList = async function() {
+window.refreshCompanyList = async function () {
     console.log('🔄 Refreshing company list...');
     if (window.app && window.app.loadGlobalCompanies) {
         await window.app.loadGlobalCompanies();

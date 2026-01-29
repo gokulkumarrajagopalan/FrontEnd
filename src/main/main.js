@@ -285,7 +285,21 @@ function getWorkerCommand() {
   if (isDev) console.log(`🔍 Environment Check: isDev=${isDev} (NODE_ENV=${process.env.NODE_ENV}, isPackaged=${app.isPackaged}, defaultApp=${process.defaultApp})`);
 
   if (isDev) {
-    // In dev, use system python to run the script
+    // In dev, prefer bundled executable if available (no Python install needed)
+    const devExeCandidates = [
+      path.join(__dirname, "../..", "resources", "bin", "sync_worker.exe"),
+      path.join(__dirname, "../..", "resources", "python", "dist", "sync_worker.exe")
+    ];
+
+    for (const exePath of devExeCandidates) {
+      if (fs.existsSync(exePath)) {
+        const cwd = path.dirname(exePath);
+        if (isDev) console.log(`✅ Using bundled sync_worker: ${exePath}`);
+        return { command: exePath, args: [], cwd };
+      }
+    }
+
+    // Fallback to system python only if no exe is available
     const pythonPath = findPython();
     const scriptPath = path.join(__dirname, "../..", "python", "sync_worker.py");
     // Explicitly set CWD to the python directory
