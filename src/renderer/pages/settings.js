@@ -124,37 +124,6 @@
                     </button>
                 </div>
             </div>
-
-            <!-- FONT SIZE (INLINE) -->
-            <!-- FONT SIZE (SLIDER STYLE) -->
-<div>
-    <div class="flex justify-between mb-2">
-        <span class="font-semibold" style="color: var(--text-primary);">
-            Font Size
-        </span>
-        <span id="fontSizeValue" class="text-xs text-gray-600">
-            15 px
-        </span>
-    </div>
-
-    <input
-        id="fontSizeSlider"
-        type="range"
-        min="10"
-        max="20"
-        step="5"
-        value="15"
-        style="width: 100%;"
-    />
-
-    <div class="flex justify-between text-xs mt-1 text-gray-500">
-        <span>10</span>
-        <span>15</span>
-        <span>20</span>
-    </div>
-</div>
-
-
         </div>
     `
 });

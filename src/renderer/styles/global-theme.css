@@ -903,7 +903,6 @@ button:not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master
 
 /* ==================== PREMIUM SIDEBAR STYLING ==================== */
 #mainSidebar {
-    background: linear-gradient(180deg, #131e31 0%, #1e293b 50%, #131e31 100%) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
     box-shadow: 4px 0 30px rgba(0, 0, 0, 0.3) !important;
 }
@@ -921,7 +920,6 @@ button:not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master
 /* Sidebar Section Headers */
 #mainSidebar .text-gray-500,
 #mainSidebar .text-gray-400 {
-    color: rgba(148, 163, 184, 0.7) !important;
     font-size: 0.65rem !important;
     letter-spacing: 0.15em !important;
     margin-top: 1rem !important;
@@ -971,7 +969,7 @@ button:not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master
 /* Ensure all text inside nav links is white */
 #mainSidebar .nav-link span,
 #mainSidebar [data-route] span {
-    color: #ffffff !important;
+    color: #000000 !important;
 }
 
 /* Logout button text white */

@@ -477,22 +477,6 @@ class App {
                             <div class="h-8 w-px bg-gray-300"></div>
                             <h2 class="text-lg font-semibold text-gray-800" id="page-title">Home</h2>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <div class="flex items-center gap-2">
-                                <span style="font-size: 16px;">🏢</span>
-                                <select id="globalCompanySelector" class="global-company-selector px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 cursor-pointer hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
-                                    <option value="">Select Companies</option>
-                                </select>
-                            </div>
-                            <div id="userProfileBtn" class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors" onclick="window.app.showUserProfile()" title="View Profile">
-                                <span style="font-size: 16px;">👤</span>
-                                <span class="text-sm font-medium text-gray-700" id="headerUsername">User</span>
-                                <span style="font-size: 10px; color: #9ca3af;">▼</span>
-                            </div>
-                            <span id="notificationBell" style="font-size: 24px; cursor: pointer; opacity: 0.8; transition: opacity 0.2s;" title="Open Notifications" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
-                                🔔
-                            </span>
-                        </div>
                     </header>
                     <div id="page-content" class="flex-1 overflow-y-auto bg-gray-50" style="height: 100%; min-height: 0;">Loading...</div>
                 </main>

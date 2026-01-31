@@ -25,81 +25,7 @@
         }
     </style>
     <div id="companySyncPageContainer" class="space-y-6" style="padding: 1rem; box-sizing: border-box;">
-        <!-- Hero & Snapshot -->
-        <div class="grid gap-4 xl:grid-cols-3">
-            <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 xl:col-span-2">
-                <div class="flex flex-col lg:flex-row items-start justify-between gap-6">
-                    <div class="flex-1">
-                        <p class="text-xs uppercase tracking-[0.3em] text-gray-400 mb-2">Operations</p>
-                        <h2 class="text-3xl font-extrabold text-gray-900 mb-3">Company Sync Control Center</h2>
-                        <p class="text-gray-600 text-sm leading-relaxed mb-4 max-w-xl">Keep every imported company in perfect alignment with Tally. Track sync health, triage issues, and trigger new imports from a single cockpit.</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">Live Monitoring</span>
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">Auto Refresh</span>
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700" style="background: var(--accent-purple-light); color: var(--accent-purple);">Smart Alerts</span>
-                        </div>
-                    </div>
-                    <div class="flex flex-col items-end gap-4 lg:min-w-[240px]">
-                        <div class="text-right">
-                            <p class="text-xs uppercase text-gray-400 mb-1">Last Sync Pulse</p>
-                            <p class="text-lg font-semibold text-gray-900 mb-1">Just now</p>
-                            <p class="text-sm text-emerald-600 flex items-center gap-1 justify-end">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span>Healthy</span>
-                            </p>
-                        </div>
-
-                        <!-- Global Sync Loader (hidden by default) -->
-                        <div id="companySyncGlobalLoader" class="hidden mt-3 text-right" aria-live="polite" style="display:none">
-                            <div class="inline-flex items-center gap-2 text-sm text-gray-800">
-                                <svg class="sync-spinner" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
-                                    <path d="M22 12a10 10 0 0 1-10 10" stroke-linecap="round"></path>
-                                </svg>
-                                <span id="companySyncGlobalLoaderText">Sync in progress</span>
-                                <span id="companySyncQueueCount" class="text-xs text-gray-500"></span>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col sm:flex-row gap-3 w-full">
-                            <button id="importMoreBtn" class="px-8 py-2.5 btn-purple text-white rounded-xl shadow-sm transition-all duration-200 font-semibold flex items-center justify-center gap-2 text-sm whitespace-nowrap min-w-[140px]" style="border: none;">
-                                <span class="text-lg">➕</span>
-                                <span>Import More</span>
-                            </button>
-                            <button class="px-8 py-2.5 border border-gray-300 hover:border-gray-400 rounded-xl text-gray-800 font-semibold flex items-center justify-center gap-2 transition-all text-sm whitespace-nowrap min-w-[140px]">
-                                <span class="text-lg">📤</span>
-                                <span>Export Report</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 text-white rounded-2xl shadow-lg p-6 flex flex-col justify-between">
-                <div>
-                    <p class="text-xs uppercase text-blue-100">Sync Health Score</p>
-                    <h3 class="text-4xl font-bold mt-1" id="companySyncHealthScore">98%</h3>
-                    <p class="text-sm text-blue-100 mt-1">Measured across the last 24 hours</p>
-                </div>
-                <div class="grid grid-cols-2 gap-4 mt-6">
-                    <div class="bg-white/15 rounded-xl p-3">
-                        <p class="text-xs text-blue-100">Avg. Duration</p>
-                        <p class="text-xl font-bold" id="companySyncAvgDuration">02m 14s</p>
-                        <p class="text-[11px] text-blue-100 mt-1">Per company</p>
-                    </div>
-                    <div class="bg-white/15 rounded-xl p-3">
-                        <p class="text-xs text-blue-100">Queue Size</p>
-                        <p class="text-xl font-bold" id="companySyncQueueSize">6 Pending</p>
-                        <p class="text-[11px] text-blue-100 mt-1">Awaiting sync</p>
-                    </div>
-                </div>
-                <div class="mt-6 text-xs text-blue-100 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-300" id="companySyncAnomalyIndicator"></span>
-                    <span id="companySyncAnomalyStatus">Live anomaly detection enabled</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Combined Search & Table Section -->
+               <!-- Combined Search & Table Section -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <!-- Header -->
             <div class="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b border-blue-100">
@@ -148,55 +74,6 @@
                         </td></tr>
                     </tbody>
                 </table>
-            </div>
-        </div>
-
-        <!-- Key Metrics -->
-        <div class="grid grid-cols-4 gap-4">
-            <div class="bg-white border border-gray-200 rounded-2xl shadow-sm">
-                <div class="flex flex-col items-center justify-center metric-card-spacing text-center">
-                    <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-2">🏢</div>
-                    <p class="text-3xl font-bold text-gray-900" id="totalCompanies">0</p>
-                    <p class="text-xs uppercase font-semibold tracking-wide text-gray-500 mt-1">Total Companies</p>
-                    <p class="text-xs text-gray-500 mt-1">All imported</p>
-                </div>
-            </div>
-            <div class="bg-white border border-gray-200 rounded-2xl shadow-sm">
-                <div class="flex flex-col items-center justify-center metric-card-spacing text-center">
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl mb-2">✓</div>
-                    <p class="text-3xl font-bold text-gray-900" id="syncedCount">0</p>
-                    <p class="text-xs uppercase font-semibold tracking-wide text-gray-500 mt-1">Synced</p>
-                    <p class="text-xs text-gray-500 mt-1">Successfully synced</p>
-                </div>
-            </div>
-            <div class="bg-white border border-gray-200 rounded-2xl shadow-sm">
-                <div class="flex flex-col items-center justify-center metric-card-spacing text-center">
-                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-2">⏳</div>
-                    <p class="text-3xl font-bold text-gray-900" id="pendingCount">0</p>
-                    <p class="text-xs uppercase font-semibold tracking-wide text-gray-500 mt-1">Pending</p>
-                    <p class="text-xs text-gray-500 mt-1">Awaiting sync</p>
-                </div>
-            </div>
-            <div class="bg-white border border-gray-200 rounded-2xl shadow-sm">
-                <div class="flex flex-col items-center justify-center metric-card-spacing text-center">
-                    <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl mb-2">⚠</div>
-                    <p class="text-3xl font-bold text-gray-900" id="errorCount">0</p>
-                    <p class="text-xs uppercase font-semibold tracking-wide text-gray-500 mt-1">Errors</p>
-                    <p class="text-xs text-gray-500 mt-1">Failed syncs</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sync Details Modal -->
-        <div id="syncDetailsModal" style="display: none;" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-xl shadow-lg max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
-                <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-gray-900">Company Sync Details</h3>
-                    <button id="closeModalBtn" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
-                </div>
-                <div id="modalContent" class="p-6 space-y-4">
-                    <!-- Details will be populated here -->
-                </div>
             </div>
         </div>
     </div>
@@ -402,7 +279,6 @@
                 console.warn('   Session manager will log you out in ~1 minute');
                 companies = [];
                 renderTable();
-                updateStatistics();
                 return;
             }
 
@@ -424,19 +300,6 @@
             console.error('Error loading companies from database:', error);
         }
         renderTable();
-        updateStatistics();
-    }
-
-    function updateStatistics() {
-        const total = companies.length;
-        const synced = companies.filter(c => c.syncStatus === 'synced').length;
-        const pending = companies.filter(c => c.syncStatus === 'pending').length;
-        const error = companies.filter(c => c.syncStatus === 'error').length;
-
-        document.getElementById('totalCompanies').textContent = total;
-        document.getElementById('syncedCount').textContent = synced;
-        document.getElementById('pendingCount').textContent = pending;
-        document.getElementById('errorCount').textContent = error;
     }
 
     async function syncCompanyGroups(company, button) {
@@ -962,7 +825,7 @@
     }
 
     window.initializeCompanySync = async function () {
-        console.log('Initializing Company Sync Page...');
+        console.log('Initializing My Company Page...');
         
         // Check license validation
         if (window.LicenseValidator && !await window.LicenseValidator.validateAndNotify()) {
