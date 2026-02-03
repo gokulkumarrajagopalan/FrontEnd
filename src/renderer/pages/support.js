@@ -9,23 +9,42 @@
                 
                 <div style="padding: 2rem;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-                        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 1.5rem; border-radius: 12px; color: white;">
+                        <div style="
+                            padding: 1.5rem;
+                            border-radius: 12px;
+                            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
+                            color: #111827;
+                            background: #ffffff;
+                        ">
                             <div style="font-size: 1.875rem; margin-bottom: 0.75rem;">📞</div>
-                            <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Call Us</div>
+                            <div style="font-size: 0.875rem; opacity: 0.8; margin-bottom: 0.5rem;">Call Us</div>
                             <div style="font-size: 1.25rem; font-weight: 700;">+1 (555) 123-4567</div>
                         </div>
-                        
-                        <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 1.5rem; border-radius: 12px; color: white;">
+
+                        <div style="
+                            padding: 1.5rem;
+                            border-radius: 12px;
+                            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+                            color: #111827;
+                            background: #ffffff;
+                        ">
                             <div style="font-size: 1.875rem; margin-bottom: 0.75rem;">✉️</div>
-                            <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Email Us</div>
+                            <div style="font-size: 0.875rem; opacity: 0.8; margin-bottom: 0.5rem;">Email Us</div>
                             <div style="font-size: 1.25rem; font-weight: 700;">support@talliffy.com</div>
                         </div>
-                        
-                        <div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); padding: 1.5rem; border-radius: 12px; color: white;">
+
+                        <div style="
+                            padding: 1.5rem;
+                            border-radius: 12px;
+                            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
+                            color: #111827;
+                            background: #ffffff;
+                        ">
                             <div style="font-size: 1.875rem; margin-bottom: 0.75rem;">💬</div>
-                            <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Live Chat</div>
+                            <div style="font-size: 0.875rem; opacity: 0.8; margin-bottom: 0.5rem;">Live Chat</div>
                             <div style="font-size: 1.25rem; font-weight: 700;">Available 24/7</div>
                         </div>
+
                     </div>
 
                     <div style="background: #f8f9fb; padding: 2rem; border-radius: 12px;">

@@ -467,8 +467,8 @@ class App {
                     <!-- Fixed Header -->
                     <div id="expandedHeader" style="padding: 1.5rem 1rem; border-bottom: 1px solid #e2e8f0; background: #ffffff;">
                         <div class="flex items-center gap-3" style="white-space: nowrap;">
-                            <div class="brand-icon-wrapper" onclick="window.router.navigate('home')" aria-label="Talliffy Home" title="Talliffy Home" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image brand-icon-expanded" style="width: 32px; height: 32px;" />
+                            <div class="brand-icon-wrapper" onclick="window.router.navigate('home')" aria-label="Talliffy Home" title="Talliffy Home" style="padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image brand-icon-expanded" style="width: 42px; height: 42px;" />
                             </div>
                             <div style="display: flex; flex-direction: column;">
                                 <h1 class="brand-title" style="cursor: pointer; margin: 0; font-size: 1.25rem; font-weight: 700; color: #1e293b !important; letter-spacing: -0.02em; display: block !important;" onclick="window.router.navigate('home')">Talliffy</h1>
