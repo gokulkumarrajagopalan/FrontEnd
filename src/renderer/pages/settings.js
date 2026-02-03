@@ -133,12 +133,7 @@
     title: 'Settings',
     subtitle: 'Configure Tally connection and application preferences',
     content: `
-        <div style="
-            padding: 1rem;
-            max-width: 1200px;
-            margin: 0 auto;
-            box-sizing: border-box;
-        ">
+        <div>
 
             <!-- FORCE TWO COLUMNS -->
             <div style="

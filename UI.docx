@@ -1,0 +1,83 @@
+
+4. Primary Screen Modules
+I. My Companies (Dashboard)
+Displays a list of all synced companies.
+•	Columns: Company Name, Sync Status (Progress bar/Icon), Subscription Details.
+•	Action: A "Go to Online" button/column that redirects the user to the Talliffy web portal for advanced data access.
+ 
+
+
+
+
+
+
+II. Add Company
+Used to link Tally data to the cloud.
+•	Action: Clicking "Add" triggers the local-to-server sync function to fetch and upload data.
+
+ 
+
+
+
+
+
+
+
+
+
+III. Settings (Tabbed Interface)
+•	Tally Tab: Configure the Tally Connection Port.
+•	Sync Tab: Configure Sync Interval Timings (e.g., every 30 mins, hourly).
+
+ 
+•	 
+•	 
+
+
+
+IV. User Profile & Subscription
+•	Displays user details (Name, Email, Phone, ect).
+•	Displays Subscription Plan details.
+•	Subscription Page: A link/button redirecting to the external Payment Gateway.
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+V. System Info (Tabbed Interface)
+•	Computer Tab: Captures and displays local system hardware/OS properties.
+•	Tally Tab: Displays Tally-specific metadata: Release version, Serial Number, and Tally.net ID.
+ 
+
+
+
+VI. Support & Knowledge Base (KB)
+•	Tab 1 (Support): Contact details for the assigned Partner and Talliffy Corporate Support.
+•	Tab 2 (Tutorials): Direct link to the Talliffy Knowledge Base (KB) articles.
+
+
+
+5. Developer Action Items
+1.	UI: Implement the rounded-edge container style using the provided color reference.
+2.	Logic: Build the "Email Check" redirect logic (Sign-up vs. Sign-in).
+3.	Sync: Develop the background service that communicates with the Tally Port to push data to the server.
+4.	Auth: Integrate SMS and Email OTP gateways.
+
+
+6. Background Service & System Tray Integration
+To ensure uninterrupted data synchronization, the application must remain active even when the main window is not visible.
+•	Background Execution: Closing ($\times$) or minimizing ($-$) the application window should not terminate the process. Instead, the app must continue running as a background service.
+•	System Tray (Taskbar) Icon: * When minimized/closed, a Talliffy icon must remain active in the system tray.
+o	Tooltip: Hovering over the icon should display the current sync status (e.g., "Talliffy: Syncing..." or "Talliffy: Up to date").
+o	Restore Function: Double-clicking the tray icon or right-clicking and selecting "Open" must restore the application to its fixed-size window.
+o	Context Menu: A right-click menu should provide quick options: Open Talliffy, Sync Now, and Exit.

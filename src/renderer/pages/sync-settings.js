@@ -1,6 +1,6 @@
 (function () {
     const getSyncSettingsTemplate = () => `
-    <div id="syncSettingsPageContainer" class="space-y-6" style="padding: 1rem; box-sizing: border-box;">
+    <div id="syncSettingsPageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
         <div class="page-header">
             <h2>Tally Sync Dashboard</h2>
             <p>Monitor Tally connection and synchronization status in real-time.</p>
@@ -98,95 +98,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Detailed Status Timeline -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Connection History</h3>
-            <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar" id="statusTimeline">
-                <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div class="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
-                    <div class="text-sm text-gray-600">
-                        <span class="font-medium">Initializing</span>
-                        <span class="text-gray-400 text-xs ml-2">Just now</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Control Panel -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Controls</h3>
-            <div class="space-y-4">
-                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                        <p class="font-medium text-gray-800">Auto Sync Monitoring</p>
-                        <p class="text-sm text-gray-500">Check connection every 10 seconds</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="autoSyncToggle" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                    </label>
-                </div>
-
-                <div class="flex gap-3 flex-wrap">
-                    <button id="testTallyBtn" class="flex-1 min-w-[200px] px-4 py-3 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
-                        <span>🔗</span>
-                        <span>Test Tally Connection</span>
-                    </button>
-                    <button id="testInternetBtn" class="flex-1 min-w-[200px] px-4 py-3 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
-                        <span>🌐</span>
-                        <span>Test Internet</span>
-                    </button>
-                    <button id="fetchLicenseBtn" class="flex-1 min-w-[200px] px-4 py-3 text-white rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
-                        <span>📜</span>
-                        <span>Fetch License</span>
-                    </button>
-                    <button id="clearHistoryBtn" class="flex-1 min-w-[200px] px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl shadow-sm transition-all font-semibold flex items-center justify-center gap-2">
-                        <span>🗑️</span>
-                        <span>Clear History</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statistics -->
-        <div class="grid grid-cols-2 gap-6">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 class="text-lg font-bold text-gray-800 mb-4">Tally Statistics</h3>
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span class="text-sm text-gray-600">Connected</span>
-                        <span class="text-lg font-bold text-green-600" id="tallyConnectedCount">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span class="text-sm text-gray-600">Disconnected</span>
-                        <span class="text-lg font-bold text-red-600" id="tallyDisconnectedCount">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span class="text-sm text-gray-600">Success Rate</span>
-                        <span class="text-lg font-bold text-blue-600" id="tallySuccessRate">0%</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 class="text-lg font-bold text-gray-800 mb-4">Internet Statistics</h3>
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span class="text-sm text-gray-600">Connected</span>
-                        <span class="text-lg font-bold text-green-600" id="internetConnectedCount">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span class="text-sm text-gray-600">Disconnected</span>
-                        <span class="text-lg font-bold text-red-600" id="internetDisconnectedCount">0</span>
-                    </div>
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span class="text-sm text-gray-600">Success Rate</span>
-                        <span class="text-lg font-bold text-blue-600" id="internetSuccessRate">0%</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
     `;
 
@@ -206,7 +117,6 @@
         },
         autoSync: true,
         checkInterval: null,
-        history: [],
         licenseInfo: {
             licenseNumber: '--',
             productVersion: '--',
@@ -290,12 +200,6 @@
         // Update Overall Sync Status
         const syncConnected = tallyConnected && internetConnected;
         updateStatusCard('sync', syncConnected, timeStr);
-
-        // Update Statistics
-        updateStatistics();
-
-        // Update Timeline
-        addTimelineEntry();
     }
 
     function updateStatusCard(type, connected, timeStr) {
@@ -322,36 +226,6 @@
         }
     }
 
-    function updateStatistics() {
-        // Tally Statistics
-        const tallyConnected = document.getElementById('tallyConnectedCount');
-        const tallyDisconnected = document.getElementById('tallyDisconnectedCount');
-        const tallyRate = document.getElementById('tallySuccessRate');
-
-        if (tallyConnected) tallyConnected.textContent = syncState.tally.successCount;
-        if (tallyDisconnected) tallyDisconnected.textContent = syncState.tally.totalCount - syncState.tally.successCount;
-        if (tallyRate) {
-            const rate = syncState.tally.totalCount > 0
-                ? Math.round((syncState.tally.successCount / syncState.tally.totalCount) * 100)
-                : 0;
-            tallyRate.textContent = rate + '%';
-        }
-
-        // Internet Statistics
-        const internetConnected = document.getElementById('internetConnectedCount');
-        const internetDisconnected = document.getElementById('internetDisconnectedCount');
-        const internetRate = document.getElementById('internetSuccessRate');
-
-        if (internetConnected) internetConnected.textContent = syncState.internet.successCount;
-        if (internetDisconnected) internetDisconnected.textContent = syncState.internet.totalCount - syncState.internet.successCount;
-        if (internetRate) {
-            const rate = syncState.internet.totalCount > 0
-                ? Math.round((syncState.internet.successCount / syncState.internet.totalCount) * 100)
-                : 0;
-            internetRate.textContent = rate + '%';
-        }
-    }
-
     function updateLicenseInfo(licenseData) {
         if (!licenseData) return;
 
@@ -374,11 +248,10 @@
             licenseStatus.style.color = syncState.licenseInfo.status === 'active' ? '#16a34a' : '#dc2626';
         }
         if (licenseUpdated) licenseUpdated.textContent = syncState.licenseInfo.lastUpdated;
-
-        addTimelineEntry(`License fetched - ${syncState.licenseInfo.licenseNumber}`);
     }
 
-    function addTimelineEntry(customMessage) {
+    // Add status entry to timeline
+    function addStatusEntry(customMessage = null) {
         const timeline = document.getElementById('statusTimeline');
         if (!timeline) return;
 
@@ -500,13 +373,6 @@
     window.initializeSyncSettings = async function () {
         console.log('Initializing Sync Settings Page...');
         
-        // Check license validation
-        if (window.LicenseValidator && !await window.LicenseValidator.validateAndNotify()) {
-            console.warn('⚠️ License validation failed - access denied');
-            window.router?.navigate('home');
-            return;
-        }
-        
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getSyncSettingsTemplate();
@@ -517,100 +383,6 @@
             const tallyPortDisplay = document.getElementById('tallyPortDisplay');
             if (tallyPortDisplay) {
                 tallyPortDisplay.textContent = tallyPort;
-            }
-
-            // Setup event listeners
-            const autoSyncToggle = document.getElementById('autoSyncToggle');
-            if (autoSyncToggle) {
-                autoSyncToggle.addEventListener('change', (e) => {
-                    syncState.autoSync = e.target.checked;
-                    if (syncState.autoSync) {
-                        startPeriodicChecks();
-                    } else {
-                        stopPeriodicChecks();
-                    }
-                });
-            }
-
-            const testTallyBtn = document.getElementById('testTallyBtn');
-            if (testTallyBtn) {
-                testTallyBtn.addEventListener('click', () => {
-                    testTallyBtn.disabled = true;
-                    testTallyBtn.textContent = '⏳ Testing...';
-                    checkTallyConnection().then(result => {
-                        syncState.tally.connected = result;
-                        syncState.tally.lastCheck = new Date();
-                        syncState.tally.totalCount++;
-                        if (result) syncState.tally.successCount++;
-                        updateUI();
-                        testTallyBtn.disabled = false;
-                        testTallyBtn.textContent = '🔗 Test Tally Connection';
-                    });
-                });
-            }
-
-            const testInternetBtn = document.getElementById('testInternetBtn');
-            if (testInternetBtn) {
-                testInternetBtn.addEventListener('click', () => {
-                    testInternetBtn.disabled = true;
-                    testInternetBtn.textContent = '⏳ Testing...';
-                    checkInternetConnection().then(result => {
-                        syncState.internet.connected = result;
-                        syncState.internet.lastCheck = new Date();
-                        syncState.internet.totalCount++;
-                        if (result) syncState.internet.successCount++;
-                        updateUI();
-                        testInternetBtn.disabled = false;
-                        testInternetBtn.textContent = '🌐 Test Internet';
-                    });
-                });
-            }
-
-            const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-            if (clearHistoryBtn) {
-                clearHistoryBtn.addEventListener('click', () => {
-                    const timeline = document.getElementById('statusTimeline');
-                    if (timeline) {
-                        timeline.innerHTML = '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"><div class="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div><div class="text-sm text-gray-600"><span class="font-medium">History cleared</span></div></div>';
-                        syncState.history = [];
-                    }
-                });
-            }
-
-            const fetchLicenseBtn = document.getElementById('fetchLicenseBtn');
-            if (fetchLicenseBtn) {
-                fetchLicenseBtn.addEventListener('click', async () => {
-                    fetchLicenseBtn.disabled = true;
-                    fetchLicenseBtn.innerHTML = '<span>⏳</span><span>Fetching License...</span>';
-
-                    try {
-                        // Get Tally port from settings
-                        const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-                        const tallyPort = appSettings.tallyPort || 9000;
-
-                        console.log(`Fetching license from port ${tallyPort}...`);
-
-                        // Call Python via IPC to fetch license
-                        if (window.electronAPI && window.electronAPI.invoke) {
-                            const result = await window.electronAPI.invoke('fetch-license', { tallyPort });
-
-                            if (result.success && result.data) {
-                                updateLicenseInfo(result.data);
-                                addTimelineEntry('✅ License fetched successfully');
-                            } else {
-                                addTimelineEntry('❌ License fetch failed - ' + JSON.stringify(result.error || result));
-                            }
-                        } else {
-                            addTimelineEntry('❌ Electron API not available');
-                        }
-                    } catch (error) {
-                        console.error('License fetch error:', error);
-                        addTimelineEntry('❌ License fetch failed - ' + error.message);
-                    } finally {
-                        fetchLicenseBtn.disabled = false;
-                        fetchLicenseBtn.innerHTML = '<span>📜</span><span>Fetch License</span>';
-                    }
-                });
             }
 
             // Start monitoring

@@ -1,6 +1,6 @@
 (function () {
     const getUsersTemplate = () => `
-    <div id="usersPageContainer" class="space-y-6">
+    <div id="usersPageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
         <div class="page-header flex justify-between items-center">
             <div>
                 <h2>User Management</h2>

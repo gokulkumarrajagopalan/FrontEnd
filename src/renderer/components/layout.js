@@ -24,14 +24,16 @@ const Layout = {
         };
 
         return `
-            <div class="min-h-screen p-8" ${backgrounds[background]}>
-                ${(title || headerActions) ? window.UIComponents.pageHeader({
-                    title,
-                    subtitle,
-                    actions: headerActions
-                }) : ''}
-                <div class="container mx-auto mt-8">
-                    ${content}
+            <div class="min-h-screen" ${backgrounds[background]}>
+                <div style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
+                    ${(title || headerActions) ? window.UIComponents.pageHeader({
+                        title,
+                        subtitle,
+                        actions: headerActions
+                    }) : ''}
+                    <div style="margin-top: 2rem;">
+                        ${content}
+                    </div>
                 </div>
             </div>
         `;

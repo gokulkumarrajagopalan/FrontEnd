@@ -1,8 +1,3 @@
-/**
- * Sync Scheduler - Runs incremental sync at configured interval
- * Replaces full reconciliation with optimized AlterID-based sync
- */
-
 class SyncScheduler {
     constructor() {
         this.syncInterval = null;
@@ -10,9 +5,7 @@ class SyncScheduler {
         this.lastSyncTime = null;
     }
 
-    /**
-     * Get sync interval from global settings (converts minutes to ms)
-     */
+
     getSyncInterval() {
         try {
             const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
@@ -27,9 +20,6 @@ class SyncScheduler {
         }
     }
 
-    /**
-     * Start scheduler
-     */
     start() {
         if (this.isRunning) {
             console.log('⚠️ Scheduler already running');
@@ -42,13 +32,10 @@ class SyncScheduler {
         this.isRunning = true;
         this.syncInterval = setInterval(() => this.runSync(), interval);
 
-        // Run first sync immediately
         this.runSync();
     }
 
-    /**
-     * Stop scheduler
-     */
+
     stop() {
         if (this.syncInterval) {
             clearInterval(this.syncInterval);
@@ -58,24 +45,18 @@ class SyncScheduler {
         }
     }
 
-    /**
-     * Restart scheduler with new settings
-     */
+
     restart() {
         console.log('🔄 Restarting sync scheduler...');
         this.stop();
         this.start();
     }
 
-    /**
-     * Run incremental sync for all companies
-     */
     async runSync() {
         try {
             console.log(`\n📊 Running incremental sync at ${new Date().toLocaleTimeString()}`);
             this.lastSyncTime = new Date();
 
-            // Validate license before sync
             if (window.LicenseValidator) {
                 const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
                 const userLicense = currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
@@ -101,7 +82,6 @@ class SyncScheduler {
                 return;
             }
 
-            // Fetch companies from backend API instead of localStorage
             const companies = await this.fetchImportedCompanies(backendUrl, authToken, deviceToken);
             if (companies.length === 0) {
                 console.log('ℹ️ No companies to sync');
@@ -110,7 +90,6 @@ class SyncScheduler {
 
             console.log(`📋 Found ${companies.length} companies to sync`);
 
-            // Use SyncStateManager to prevent concurrent syncs
             if (window.syncStateManager && !window.syncStateManager.startSync('incremental', companies.length)) {
                 console.warn('⚠️ Sync already in progress, this sync will be queued');
                 return;
@@ -120,11 +99,9 @@ class SyncScheduler {
             let failureCount = 0;
             const failedCompanies = [];
 
-            // Sync each company
             for (let i = 0; i < companies.length; i++) {
                 const company = companies[i];
-                
-                // Update progress in SyncStateManager (i+1 because we're starting the sync for this company)
+
                 if (window.syncStateManager) {
                     window.syncStateManager.updateProgress(i + 1, company.name);
                 }
@@ -139,7 +116,7 @@ class SyncScheduler {
                         authToken,
                         deviceToken
                     );
-                    
+
                     if (syncResult.success) {
                         successCount++;
                     } else {
@@ -160,67 +137,65 @@ class SyncScheduler {
             }
 
             console.log(`✅ Sync cycle completed - ${successCount} successful, ${failureCount} failed`);
-            
-            // Build detailed message
+
             const success = failureCount === 0;
             let message = `${successCount}/${companies.length} companies synced`;
-            
+
             if (failureCount > 0) {
                 const failureDetails = failedCompanies
                     .map(c => `${c.name}: ${c.errors.map(e => `${e.entity}(${e.message})`).join(', ')}`)
                     .join(' | ');
                 message = `${message}. Failed: ${failureDetails}`;
             }
-            
-            // Notify via SyncStateManager
+
             if (window.syncStateManager) {
                 window.syncStateManager.endSync(success, message);
             } else {
-                // Fallback to direct notification if SyncStateManager not available
                 if (window.notificationService) {
                     if (success) {
                         window.notificationService.success(message, 'Sync Completed');
+                        window.notificationService.system('Sync Completed', message);
                     } else {
                         window.notificationService.warning(message, 'Sync Completed with Errors');
+                        window.notificationService.system('Sync Completed with Errors', message);
                     }
                 }
             }
-            
-            // CASE 3: Run reconciliation after background sync (every 2 hours)
+
             console.log('🔍 Starting post-sync reconciliation...');
             setTimeout(() => {
                 this.runReconciliation(companies, currentUser.userId, authToken, deviceToken, appSettings);
-            }, 1000); // 1 second delay after sync notification
-            
+            }, 1000);
+
         } catch (error) {
             console.error('❌ Sync error:', error);
-            
-            // Notify error via SyncStateManager
+
             if (window.syncStateManager) {
                 window.syncStateManager.endSync(false, error.message || 'An error occurred during sync');
             } else {
-                // Fallback to direct notification
                 if (window.notificationService) {
                     window.notificationService.error(
                         error.message || 'An error occurred during sync',
                         'Sync Failed'
+                    );
+                    window.notificationService.system(
+                        'Sync Failed',
+                        error.message || 'An error occurred during sync'
                     );
                 }
             }
         }
     }
 
-    /**
-     * Run reconciliation for all companies after sync
-     */
+
     async runReconciliation(companies, userId, authToken, deviceToken, appSettings) {
         try {
             console.log(`🔍 Reconciling ${companies.length} companies...`);
-            
+
             let totalMissing = 0;
             let totalUpdated = 0;
             let totalSynced = 0;
-            
+
             for (const company of companies) {
                 try {
                     const result = await window.electronAPI.reconcileData({
@@ -233,12 +208,12 @@ class SyncScheduler {
                         deviceToken: deviceToken,
                         entityType: 'all'
                     });
-                    
+
                     if (result.success) {
                         totalMissing += result.totalMissing || 0;
                         totalUpdated += result.totalUpdated || 0;
                         totalSynced += result.totalSynced || 0;
-                        
+
                         if (result.totalSynced > 0) {
                             console.log(`✅ ${company.name}: Reconciled and synced ${result.totalSynced} records`);
                         }
@@ -247,8 +222,7 @@ class SyncScheduler {
                     console.error(`❌ Error reconciling ${company.name}:`, error);
                 }
             }
-            
-            // Show notification if any records were synced
+
             if (totalSynced > 0) {
                 if (window.notificationService) {
                     window.notificationService.show({
@@ -262,36 +236,31 @@ class SyncScheduler {
             } else {
                 console.log('✅ Background reconciliation: All records in sync');
             }
-            
+
         } catch (error) {
             console.error('❌ Background reconciliation error:', error);
         }
     }
 
-    /**
-     * Fetch imported companies from backend API
-     */
     async fetchImportedCompanies(backendUrl, authToken, deviceToken) {
         try {
-            // Use apiConfig if available, otherwise construct URL
-            const companiesUrl = window.apiConfig 
+            const companiesUrl = window.apiConfig
                 ? window.apiConfig.getUrl('/companies')
                 : `${backendUrl}/companies`;
-            
+
             console.log(`📡 Fetching companies from: ${companiesUrl}`);
-            
+
             const headers = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`,
                 'X-Device-Token': deviceToken
             };
-            
-            // Add CSRF token if available
+
             const csrfToken = sessionStorage.getItem('csrfToken');
             if (csrfToken) {
                 headers['X-CSRF-Token'] = csrfToken;
             }
-            
+
             const response = await fetch(companiesUrl, {
                 method: 'GET',
                 headers
@@ -317,20 +286,14 @@ class SyncScheduler {
         }
     }
 
-    /**
-     * Sync single company incrementally
-     * Returns object with success flag and error details
-     */
     async syncCompany(companyId, companyName, userId, tallyPort, backendUrl, authToken, deviceToken) {
         const result = { success: true, errors: [] };
-        
+
         try {
             console.log(`\n📋 Syncing company ${companyId} (${companyName})...`);
 
-            // Fetch master mapping once for all entities (efficient single call)
             const masterMapping = await this.getMasterMapping(companyId, backendUrl, authToken, deviceToken);
-            
-            // All 12 entity types
+
             const entities = [
                 { type: 'Group', key: 'group' },
                 { type: 'Currency', key: 'currency' },
@@ -345,7 +308,7 @@ class SyncScheduler {
                 { type: 'Ledger', key: 'ledger' },
                 { type: 'StockItem', key: 'stockitem' }
             ];
-            
+
             for (const entity of entities) {
                 const maxAlterID = masterMapping[entity.key] || 0;
                 const entityResult = await this.syncEntity(
@@ -359,8 +322,7 @@ class SyncScheduler {
                     authToken,
                     deviceToken
                 );
-                
-                // Track entity-level failures
+
                 if (!entityResult || !entityResult.success) {
                     result.success = false;
                     result.errors.push({
@@ -377,21 +339,15 @@ class SyncScheduler {
                 message: error.message || 'Unexpected error during company sync'
             });
         }
-        
+
         return result;
     }
 
-    /**
-     * Sync single entity incrementally
-     * Returns object with success flag and message
-     */
     async syncEntity(companyId, companyName, userId, entityType, maxAlterID, tallyPort, backendUrl, authToken, deviceToken) {
         try {
             const isFirstSync = maxAlterID === 0;
 
             console.log(`  📦 ${entityType}: Max AlterID in DB = ${maxAlterID}${isFirstSync ? ' (FIRST-TIME SYNC)' : ''}`);
-
-            // Call Python incremental sync - it will fetch only records with alterID > maxAlterID
             const result = await this.callIncrementalSync(
                 companyId,
                 companyName,
@@ -419,32 +375,27 @@ class SyncScheduler {
         }
     }
 
-    /**
-     * Get master mapping (per-entity alterIDs) from backend
-     * Fetches the maximum AlterID for each entity type
-     */
     async getMasterMapping(companyId, backendUrl, authToken, deviceToken) {
         try {
             console.log(`📊 Fetching master mapping for company ${companyId}...`);
-            
-            // First try the dedicated endpoint
-            const url = window.apiConfig 
+
+            const url = window.apiConfig
                 ? window.apiConfig.getUrl(`/api/companies/${companyId}/master-mapping`)
                 : `${backendUrl}/api/companies/${companyId}/master-mapping`;
-            
+
             console.log(`   📡 Trying endpoint: ${url}`);
-            
+
             const headers = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`,
                 'X-Device-Token': deviceToken
             };
-            
+
             const csrfToken = sessionStorage.getItem('csrfToken');
             if (csrfToken) {
                 headers['X-CSRF-Token'] = csrfToken;
             }
-            
+
             const response = await fetch(url, {
                 method: 'GET',
                 headers
@@ -462,11 +413,10 @@ class SyncScheduler {
                     console.error('❌ Access Forbidden - Check authentication and permissions');
                 }
             }
-            
-            // Fallback: Fetch max AlterID for each entity type from individual endpoints
+
             console.log(`🔄 Using fallback: fetching individual entity max AlterIDs...`);
             const mapping = {};
-            
+
             const entities = [
                 { type: 'Group', endpoint: '/groups/company/{cmpId}' },
                 { type: 'Currency', endpoint: '/currencies/company/{cmpId}' },
@@ -481,35 +431,35 @@ class SyncScheduler {
                 { type: 'Ledger', endpoint: '/ledgers/company/{cmpId}' },
                 { type: 'StockItem', endpoint: '/stock-items/company/{cmpId}' }
             ];
-            
+
             for (const entity of entities) {
                 try {
                     const endpointUrl = entity.endpoint.replace('{cmpId}', companyId);
-                    const entityUrl = window.apiConfig 
+                    const entityUrl = window.apiConfig
                         ? window.apiConfig.getUrl(endpointUrl)
                         : `${backendUrl}${endpointUrl}`;
-                    
+
                     const entityHeaders = {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`,
                         'X-Device-Token': deviceToken
                     };
-                    
+
                     if (csrfToken) {
                         entityHeaders['X-CSRF-Token'] = csrfToken;
                     }
-                    
+
                     const response = await fetch(entityUrl, {
                         method: 'GET',
                         headers: entityHeaders
                     });
-                    
+
                     if (response.ok) {
                         const result = await response.json();
-                        
+
                         // Extract max AlterID from the data
                         let maxAlterID = 0;
-                        
+
                         if (Array.isArray(result.data)) {
                             // If data is an array, find the max AlterID
                             maxAlterID = result.data.reduce((max, item) => {
@@ -521,7 +471,7 @@ class SyncScheduler {
                         } else if (result.data && result.data.maxAlterID) {
                             maxAlterID = result.data.maxAlterID;
                         }
-                        
+
                         const key = entity.type.toLowerCase();
                         mapping[key] = maxAlterID;
                         console.log(`   ✅ ${entity.type}: Max AlterID = ${maxAlterID}`);
@@ -534,7 +484,7 @@ class SyncScheduler {
                     console.warn(`   ⚠️ Error fetching ${entity.type}: ${error.message}`);
                 }
             }
-            
+
             console.log(`📊 Final master mapping:`, mapping);
             return mapping;
         } catch (error) {
@@ -550,7 +500,7 @@ class SyncScheduler {
         try {
             console.log(`🔍 Checking window.electronAPI:`, window.electronAPI);
             console.log(`🔍 Checking incrementalSync method:`, window.electronAPI?.incrementalSync);
-            
+
             if (!window.electronAPI?.incrementalSync) {
                 console.warn('⚠️ Electron API not available');
                 console.warn(`   window.electronAPI exists: ${!!window.electronAPI}`);

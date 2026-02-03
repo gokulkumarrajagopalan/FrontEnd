@@ -408,77 +408,144 @@ class App {
                 console.log('✅ Session monitoring started');
             }
 
-            const licenseMatches = true;
-
-
-
-
-
             document.body.className = 'h-screen overflow-hidden flex bg-gray-50';
             document.body.innerHTML = `
-                <aside class="flex flex-col relative transition-all duration-300" id="mainSidebar" style="width: 80px; flex-shrink: 0; height: 100vh; background: white; border-right: 1px solid #e5e7eb;" onmouseenter="window.app.expandSidebar()" onmouseleave="window.app.collapseSidebar()">
-                    <!-- Fixed Header - Collapsed View (Icon only) -->
-                    <div id="collapsedHeader" class="h-16 px-3 border-b border-gray-200 flex-shrink-0 flex flex-col justify-center transition-all duration-300">
-                        <div class="flex items-center justify-center">
-                            <div class="brand-icon-wrapper" onclick="window.router.navigate('home')" aria-label="Talliffy Home" title="Talliffy Home">
-                                <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image brand-icon-collapsed" />
+                <style>
+                    /* Force Light Theme Colors for Sidebar Navigation */
+                    #mainSidebar .nav-link {
+                        color: #1e293b !important; /* Slate 800 - High contrast text */
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                    }
+                    #mainSidebar .nav-link .nav-text {
+                        color: #1e293b !important; /* Ensure all child spans are visible */
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        display: block !important;
+                        font-weight: 500 !important;
+                    }
+                    #mainSidebar .nav-link:hover {
+                        color: #1d4ed8 !important; /* Blue 700 */
+                        background: #eff6ff !important; /* Blue 50 */
+                    }
+                    #mainSidebar .nav-link:hover .nav-text {
+                        color: #1d4ed8 !important;
+                    }
+                    #mainSidebar .nav-link.active {
+                        color: #1e40af !important; /* Blue 800 */
+                        background: #dbeafe !important; /* Blue 100 */
+                        font-weight: 600 !important;
+                    }
+                    #mainSidebar .nav-link.active .nav-text {
+                        color: #1e40af !important;
+                    }
+                    #mainSidebar .nav-link .nav-icon {
+                        filter: none !important;
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                    }
+                    /* Ensure header is visible */
+                    #expandedHeader {
+                        display: flex !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                    }
+                    #expandedHeader h1 {
+                        color: #1e293b !important;
+                        display: block !important;
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                    }
+                    #expandedHeader p {
+                        color: #64748b !important;
+                        display: block !important;
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                    }
+                </style>
+                <aside class="flex flex-col relative" id="mainSidebar" style="width: 280px; flex-shrink: 0; height: 100vh; background: #f0f4f8; border-right: 1px solid #e2e8f0; box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);">
+                    <!-- Fixed Header -->
+                    <div id="expandedHeader" style="padding: 1.5rem 1rem; border-bottom: 1px solid #e2e8f0; background: #ffffff;">
+                        <div class="flex items-center gap-3" style="white-space: nowrap;">
+                            <div class="brand-icon-wrapper" onclick="window.router.navigate('home')" aria-label="Talliffy Home" title="Talliffy Home" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image brand-icon-expanded" style="width: 32px; height: 32px;" />
+                            </div>
+                            <div style="display: flex; flex-direction: column;">
+                                <h1 class="brand-title" style="cursor: pointer; margin: 0; font-size: 1.25rem; font-weight: 700; color: #1e293b !important; letter-spacing: -0.02em; display: block !important;" onclick="window.router.navigate('home')">Talliffy</h1>
+                                <p class="brand-subtitle" style="font-size: 0.75rem; color: #64748b !important; margin: 0; font-weight: 500; display: block !important;">Enterprise Sync Platform</p>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Expanded Content (Hidden by default) -->
-                    <div id="expandedHeader" style="display: none; padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">
-                        <div class="flex items-center gap-2" style="white-space: nowrap;">
-                            <div class="brand-icon-wrapper" onclick="window.router.navigate('home')" aria-label="Talliffy Home" title="Talliffy Home">
-                                <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image brand-icon-expanded" />
-                            </div>
-                            <h1 class="brand-title" style="cursor: pointer; margin: 0;" onclick="window.router.navigate('home')">Talliffy</h1>
-                        </div>
-                        <p class="brand-subtitle">Enterprise Sync Platform</p>
-                    </div>
-                    
-                    <!-- Resizable Navigation Area -->
-                    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-1 transition-all duration-300" id="sidebarNav">
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide sidebar-section-title">Main</div>
-                        <a class="nav-link active" data-route="import-company">
-                            <span class="nav-icon">📥</span> <span>Add Company</span>
+                    <!-- Navigation Area -->
+                    <nav class="flex-1 overflow-y-auto py-4 px-3" id="sidebarNav" style="scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
+                        <div style="padding: 0 0.75rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">NAVIGATION</div>
+                        <a class="nav-link" data-route="company-sync" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">🏢</span>
+                            <span class="nav-text" style="flex: 1; color: #1e293b;">My Company</span>
                         </a>
-                        <a class="nav-link" data-route="company-sync">
-                            <span class="nav-icon">🏢</span> <span>My Company</span>
+                        <a class="nav-link" data-route="import-company" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">📥</span>
+                            <span class="nav-text" style="flex: 1; color: #1e293b;">Add Company</span>
                         </a>
-                        <a class="nav-link" data-route="sync-settings">
-                            <span class="nav-icon">📡</span> <span>Tally Sync</span>
+                        <a class="nav-link" data-route="settings" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">⚙️</span>
+                            <span class="nav-text" style="flex: 1; color: #1e293b;">Setting</span>
                         </a>
-                        <a class="nav-link" data-route="settings">
-                            <span class="nav-icon">⚙️</span> <span>Settings</span>
+                        <a class="nav-link" data-route="profile" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">👤</span>
+                            <span class="nav-text" style="flex: 1; color: #1e293b;">Profile</span>
+                        </a>
+                        <a class="nav-link" data-route="system-info" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">💻</span>
+                            <span class="nav-text" style="flex: 1; color: #1e293b;">System Info</span>
+                        </a>
+                        <a class="nav-link" data-route="tutorial" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">❓</span>
+                            <span class="nav-text" style="flex: 1; color: #1e293b;">Tutorial</span>
+                        </a>
+                        <a class="nav-link" data-route="support" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">📞</span>
+                            <span class="nav-text" style="flex: 1; color: #1e293b;">Support</span>
+                        </a>
+                        <a class="nav-link" data-route="update-app" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">⬇️</span>
+                            <span class="nav-text" style="flex: 1; color: #1e293b;">Update App</span>
+                        </a>
+                        <a class="nav-link" data-route="purchase" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">💳</span>
+                            <span class="nav-text" style="flex: 1; color: #1e293b;">Purchase</span>
                         </a>
                     </nav>
                     
-                    <!-- Resize Handle - Only on nav/logout area (starts below header) -->
-                    <div id="sidebarResizeHandle" style="position: absolute; top: 64px; right: 0; width: 4px; height: calc(100% - 64px); cursor: ew-resize; background: transparent; z-index: 1000;" 
-                         onmouseenter="this.style.background='rgba(59, 130, 246, 0.5)'" 
-                         onmouseleave="this.style.background='transparent'"></div>
+                    <!-- Status Bar at bottom of sidebar -->
+                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; background: #ffffff;">
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.75rem;">
+                            <!-- Tally Status -->
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
+                                <span style="color: #475569; font-weight: 600;">Tally: CONNECTED</span>
+                            </div>
+                            
+                            <!-- Internet Status -->
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
+                                <span style="color: #475569; font-weight: 600;">Internet: Connected</span>
+                                <span style="color: #475569;">📶</span>
+                            </div>
+                        </div>
+                    </div>
                     
-                    <!-- Logout Button at bottom of sidebar -->
-                    <div class="p-2 border-t border-gray-200 flex-shrink-0 flex justify-center items-center">
-                        <button id="logoutBtn" class="py-2 px-4 text-white bg-red-500 text-sm font-semibold hover:bg-red-600 transition-colors cursor-pointer rounded-lg" style="border: none; width: auto;">
-                            Logout
+                    <!-- Logout Button -->
+                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; background: #ffffff;">
+                        <button id="logoutBtn" style="width: 100%; padding: 0.75rem 1rem; background: #f1f5f9; color: #000000; font-size: 0.875rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <span style="font-size: 1.1rem;">🚪</span>
+                            <span>Logout</span>
                         </button>
                     </div>
                 </aside>
-                <main class="flex-1 flex flex-col min-w-0" style="height: 100vh; overflow: hidden;">
-                    <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm" style="flex-shrink: 0; position: sticky; top: 0; z-index: 40;">
-                        <div class="flex items-center gap-4">
-                            <button id="tableHeaderToggleBtnOpened" class="header-toggle-btn" title="Collapse Header" style="${this.tableHeaderToggleBtnOpened ? 'display: flex;' : 'display: none;'}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </button>
-                            <div class="h-8 w-px bg-gray-300"></div>
-                            <h2 class="text-lg font-semibold text-gray-800" id="page-title">Home</h2>
-                        </div>
-                    </header>
-                    <div id="page-content" class="flex-1 overflow-y-auto bg-gray-50" style="height: 100%; min-height: 0;">Loading...</div>
+                <main class="flex-1 flex flex-col min-w-0" style="height: 100vh; overflow: hidden; background: #ffffff;">
+                    <div id="page-content" class="flex-1 overflow-y-auto" style="height: 100%; min-height: 0; background: #f8f9fb; padding: 0;">Loading...</div>
                 </main>
             `;
 
@@ -492,9 +559,6 @@ class App {
 
             // Setup global company selector change handler
             this.setupGlobalCompanySelector();
-
-            // Setup sidebar resize functionality
-            this.setupSidebarResize();
 
             // Setup notification bell click handler
             this.setupNotificationBell();
@@ -758,86 +822,6 @@ class App {
         }
     }
 
-    setupSidebarResize() {
-        const sidebarContainer = document.querySelector('div[style*="width: 256px"]'); // The outer fixed container
-        const sidebar = document.getElementById('mainSidebar');
-        const resizeHandle = document.getElementById('sidebarResizeHandle');
-
-        if (!sidebar || !resizeHandle || !sidebarContainer) return;
-
-        let isResizing = false;
-        let startX = 0;
-        let startWidth = 0;
-
-        // Function to adjust text size based on sidebar width
-        const adjustTextSize = (width) => {
-            const minWidth = 200;
-            const maxWidth = 400;
-
-            // Calculate scale factor (0.75 to 1.0)
-            const scale = 0.75 + (0.25 * (width - minWidth) / (maxWidth - minWidth));
-
-            // Apply font size scaling ONLY to nav and logout button
-            const nav = sidebar.querySelector('nav');
-            const logoutSection = sidebar.querySelector('.p-4.border-t');
-
-            if (nav) {
-                nav.style.fontSize = `${scale * 100}%`;
-            }
-
-            if (logoutSection) {
-                logoutSection.style.fontSize = `${scale * 100}%`;
-            }
-        };
-
-        resizeHandle.addEventListener('mousedown', (e) => {
-            isResizing = true;
-            startX = e.clientX;
-            startWidth = sidebarContainer.offsetWidth;
-
-            document.body.style.cursor = 'ew-resize';
-            document.body.style.userSelect = 'none';
-
-            e.preventDefault();
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isResizing) return;
-
-            const diff = e.clientX - startX;
-            const newWidth = startWidth + diff;
-
-            // Respect min and max width
-            const minWidth = 200;
-            const maxWidth = 400;
-
-            if (newWidth >= minWidth && newWidth <= maxWidth) {
-                sidebarContainer.style.width = newWidth + 'px';
-                adjustTextSize(newWidth);
-                // Save width to localStorage
-                localStorage.setItem('sidebarWidth', newWidth);
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (isResizing) {
-                isResizing = false;
-                document.body.style.cursor = '';
-                document.body.style.userSelect = '';
-            }
-        });
-
-        // Restore saved width
-        const savedWidth = localStorage.getItem('sidebarWidth');
-        if (savedWidth) {
-            const width = parseInt(savedWidth);
-            sidebarContainer.style.width = width + 'px';
-            adjustTextSize(width);
-        } else {
-            adjustTextSize(256); // Default width
-        }
-    }
-
     setupNotificationBell() {
         console.log('🔍 Setting up notification bell...');
         const bell = document.getElementById('notificationBell');
@@ -863,63 +847,6 @@ class App {
             console.log('✅ Notification bell click handler attached');
         } else {
             console.error('❌ Notification bell element NOT FOUND in DOM');
-        }
-    }
-
-    expandSidebar() {
-        const sidebar = document.getElementById('mainSidebar');
-        const expandedHeader = document.getElementById('expandedHeader');
-        const collapsedHeader = document.getElementById('collapsedHeader');
-        const sidebarNav = document.getElementById('sidebarNav');
-
-        if (!sidebar) return;
-
-        // Set expanded state attribute
-        sidebar.setAttribute('data-expanded', 'true');
-
-        // Expand sidebar
-        sidebar.style.width = '250px';
-        sidebar.style.transition = 'width 0.3s ease-in-out';
-
-        // Show expanded header content
-        if (expandedHeader) {
-            expandedHeader.style.display = 'block';
-            setTimeout(() => {
-                expandedHeader.style.opacity = '1';
-            }, 50);
-        }
-
-        // Hide collapsed header to avoid duplicate icon when expanded
-        if (collapsedHeader) {
-            collapsedHeader.style.display = 'none';
-        }
-    }
-
-    collapseSidebar() {
-        const sidebar = document.getElementById('mainSidebar');
-        const expandedHeader = document.getElementById('expandedHeader');
-        const collapsedHeader = document.getElementById('collapsedHeader');
-
-        if (!sidebar) return;
-
-        // Remove expanded state attribute
-        sidebar.setAttribute('data-expanded', 'false');
-
-        // Collapse sidebar
-        sidebar.style.width = '80px';
-        sidebar.style.transition = 'width 0.3s ease-in-out';
-
-        // Hide expanded header content
-        if (expandedHeader) {
-            expandedHeader.style.opacity = '0';
-            setTimeout(() => {
-                expandedHeader.style.display = 'none';
-            }, 150);
-        }
-
-        // Show collapsed header again
-        if (collapsedHeader) {
-            collapsedHeader.style.display = '';
         }
     }
 

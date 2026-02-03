@@ -17,7 +17,13 @@ class PageLoader {
             'users': 'initializeUsers',
             'sync-settings': 'initializeSyncSettings',
             'import-company': 'initializeImportCompany',
-            'company-sync': 'initializeCompanySync'
+            'company-sync': 'initializeCompanySync',
+            'profile': 'initializeProfile',
+            'system-info': 'initializeSystemInfo',
+            'tutorial': 'initializeTutorial',
+            'support': 'initializeSupport',
+            'update-app': 'initializeUpdateApp',
+            'purchase': 'initializePurchase'
         };
 
         for (const [route, initName] of Object.entries(pageInitializers)) {

@@ -24,7 +24,7 @@
             height: 20px;
         }
     </style>
-    <div id="companySyncPageContainer" class="space-y-6" style="padding: 1rem; box-sizing: border-box;">
+    <div id="companySyncPageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
                <!-- Combined Search & Table Section -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <!-- Header -->
@@ -826,13 +826,6 @@
 
     window.initializeCompanySync = async function () {
         console.log('Initializing My Company Page...');
-        
-        // Check license validation
-        if (window.LicenseValidator && !await window.LicenseValidator.validateAndNotify()) {
-            console.warn('⚠️ License validation failed - access denied');
-            window.router?.navigate('home');
-            return;
-        }
         
         const content = document.getElementById('page-content');
         if (content) {

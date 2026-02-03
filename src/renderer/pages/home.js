@@ -1,6 +1,6 @@
 (function () {
     const getHomeTemplate = () => `
-    <div id="homePageContainer" class="space-y-6" style="padding: 1rem; box-sizing: border-box;">
+    <div id="homePageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
         <!-- Hero Section -->
         <div class="rounded-2xl p-8 text-white shadow-2xl relative overflow-hidden" style="background: linear-gradient(135deg, #06090a 0%, #6B7F8E 100%); border: 1px solid rgba(255, 255, 255, 0.1);">
             <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>

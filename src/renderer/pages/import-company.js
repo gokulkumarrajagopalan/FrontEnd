@@ -1,6 +1,6 @@
 (function () {
     const getTemplate = () => `
-    <div id="importCompanyPageContainer" class="space-y-6" style="padding: 1rem; box-sizing: border-box;">
+    <div id="importCompanyPageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
         <!-- Import Header -->
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-gray-900">
             <div class="flex items-center justify-between gap-6 flex-wrap">
@@ -637,8 +637,8 @@
 
         try {
             // Get auth token and user directly from sessionStorage (more reliable)
-            const authToken = sessionStorage.getItem('authToken');
-            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+            const authToken = localStorage.getItem('authToken');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
 
             console.log('🔐 Import - Auth check:', {
@@ -650,7 +650,7 @@
 
             if (!authToken) {
                 addImportLog('❌ Authentication token not found. Please login.', 'error');
-                console.error('No authToken in sessionStorage');
+                console.error('No authToken in localStorage');
                 showStatus('⚠️ Please login to import companies', 'error');
                 importBtn.disabled = false;
                 return;
@@ -658,17 +658,17 @@
 
             if (!currentUser || !currentUser.userId) {
                 addImportLog('❌ User information not found. Please login again.', 'error');
-                console.error('No currentUser in sessionStorage or missing userId');
+                console.error('No currentUser in localStorage or missing userId');
                 showStatus('⚠️ User session invalid. Please login again.', 'error');
                 importBtn.disabled = false;
                 return;
             }
 
             // Generate device token if missing
-            let deviceToken = sessionStorage.getItem('deviceToken');
+            let deviceToken = localStorage.getItem('deviceToken');
             if (!deviceToken) {
                 deviceToken = 'device-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
-                sessionStorage.setItem('deviceToken', deviceToken);
+                localStorage.setItem('deviceToken', deviceToken);
                 addImportLog('🔑 Generated new device token', 'info');
             }
 
@@ -972,13 +972,6 @@
 
     window.initializeImportCompany = async function () {
         console.log('Initializing Import Company Page...');
-        
-        // Check license validation
-        if (window.LicenseValidator && !await window.LicenseValidator.validateAndNotify()) {
-            console.warn('⚠️ License validation failed - access denied');
-            window.router?.navigate('home');
-            return;
-        }
         
         const content = document.getElementById('page-content');
         if (content) {

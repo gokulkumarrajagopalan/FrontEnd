@@ -19,6 +19,24 @@ class NotificationService {
 
         // Inject styles
         this.injectStyles();
+
+        // Request system notification permission
+        this.requestSystemPermission();
+    }
+
+    requestSystemPermission() {
+        if (!('Notification' in window)) {
+            console.log('⚠️ This browser does not support system notifications');
+            return;
+        }
+
+        if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    console.log('✅ System notification permission granted');
+                }
+            });
+        }
     }
 
     injectStyles() {
@@ -259,7 +277,7 @@ class NotificationService {
         if (!progressBar) return;
 
         progressBar.style.width = '100%';
-        
+
         // Animate progress bar
         requestAnimationFrame(() => {
             progressBar.style.transition = `width ${duration}ms linear`;
@@ -302,6 +320,28 @@ class NotificationService {
 
     error(message, title = 'Error', duration = 6000, options = {}) {
         return this.show('error', message, title, duration, options);
+    }
+
+    // System Notification (OS Toast)
+    system(title, body, icon = null) {
+        if (!('Notification' in window)) return;
+
+        if (Notification.permission === 'granted') {
+            const options = {
+                body: body,
+                icon: icon || 'assets/brand/talliffy-icon.png', // Default icon
+                silent: false
+            };
+
+            try {
+                new Notification(title, options);
+                console.log(`🔔 System notification sent: ${title}`);
+            } catch (e) {
+                console.error('Error sending system notification:', e);
+            }
+        } else if (Notification.permission !== 'denied') {
+            this.requestSystemPermission();
+        }
     }
 
     warning(message, title = 'Warning', duration = 5000, options = {}) {
@@ -367,13 +407,14 @@ class NotificationService {
 // Initialize global notification service
 if (typeof window !== 'undefined') {
     window.notificationService = new NotificationService();
-    
+
     // Also create a simpler global function for quick access
     window.notify = {
         success: (msg, title, duration) => window.notificationService.success(msg, title, duration),
         error: (msg, title, duration) => window.notificationService.error(msg, title, duration),
         warning: (msg, title, duration) => window.notificationService.warning(msg, title, duration),
         info: (msg, title, duration) => window.notificationService.info(msg, title, duration),
+        system: (title, body, icon) => window.notificationService.system(title, body, icon),
         loading: (msg, title) => window.notificationService.loading(msg, title),
         hide: (id) => window.notificationService.hide(id),
         hideAll: () => window.notificationService.hideAll()
