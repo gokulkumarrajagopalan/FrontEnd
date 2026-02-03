@@ -221,15 +221,34 @@
                     showStatus(`✅ Found ${tallyCompanies.length} companies in Tally`, 'success');
                     saveConnectionHistory('success', tallyCompanies.length, 'Connected successfully');
                 } else {
-                    throw new Error(result.error || 'Failed to fetch companies');
+                    // Parse error details to provide user-friendly message
+                    let errorMsg = result.error || 'Failed to fetch companies';
+                    
+                    // Check if it's a connection error (string or object format)
+                    const isConnectionError = 
+                        (typeof errorMsg === 'string' && errorMsg.toLowerCase().includes('connection')) ||
+                        (typeof errorMsg === 'object' && errorMsg.error === 'Connection failed');
+                    
+                    if (isConnectionError) {
+                        errorMsg = `Unable to connect to Tally!\n\nPlease ensure:\n• Tally is running on port ${tallyPort}\n• ODBC/HTTP Server is enabled in Tally\n• Port ${tallyPort} is not blocked by firewall\n\nTo enable ODBC in Tally: Gateway → F12 (Configure) → Advanced → HTTP/HTTPS`;
+                    }
+                    
+                    throw new Error(errorMsg);
                 }
             } else {
                 throw new Error('Electron API not available');
             }
         } catch (error) {
-            showStatus(`❌ Error: ${error.message}`, 'error');
+            // Display user-friendly error message
+            const errorMsg = error.message || 'Unknown error occurred';
+            showStatus(`❌ ${errorMsg}`, 'error');
             console.error('Fetch error:', error);
-            saveConnectionHistory('error', 0, error.message);
+            
+            // Save simplified message to history
+            const historyMsg = errorMsg.includes('Unable to connect') 
+                ? 'Cannot connect to Tally - Please check Tally is running'
+                : errorMsg;
+            saveConnectionHistory('error', 0, historyMsg);
         } finally {
             fetchBtn.disabled = false;
             fetchBtn.innerHTML = '<span>🔗</span><span>Fetch from Tally</span>';
