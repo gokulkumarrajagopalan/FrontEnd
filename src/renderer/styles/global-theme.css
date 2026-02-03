@@ -933,7 +933,7 @@ button:not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master
 
 /* Logout button text color on dark sidebar */
 #mainSidebar #logoutBtn span {
-    color: #ffffff !important;
+    color: #000000 !important;
 }
 
 /* Navigation Icons */

@@ -538,8 +538,7 @@ class App {
                     
                     <!-- Logout Button -->
                     <div style="padding: 1rem; border-top: 1px solid #e2e8f0; background: #ffffff;">
-                        <button id="logoutBtn" style="width: 100%; padding: 0.75rem 1rem; background: #f1f5f9; color: #000000; font-size: 0.875rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                            <span style="font-size: 1.1rem;">🚪</span>
+                        <button id="logoutBtn" style="width: 100%; padding: 0.75rem; background: #f1f5f9; color: #000000; font-size: 0.875rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                             <span>Logout</span>
                         </button>
                     </div>

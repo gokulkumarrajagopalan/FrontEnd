@@ -199,7 +199,6 @@ body {
   display: none;
   max-width: 0;
   transition: opacity 0.2s ease-in-out, display 0.2s ease-in-out !important;
-  overflow: hidden;
   white-space: nowrap;
 }
 
