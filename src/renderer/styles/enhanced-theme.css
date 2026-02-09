@@ -141,141 +141,121 @@
     --btn-info-text: var(--text-white);
 }
 
-/* ==================== GLOBAL RESET ==================== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* Global reset handled by Tailwind preflight + design-system.css */
 
-html,
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-size: 14px;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-#app {
-    min-height: 100vh;
-    background: var(--bg-primary);
-}
+/* App root background inherits from design-system.css vars */
 
 /* ==================== ENHANCED BUTTONS (Modern Enterprise Stylings) ==================== */
-/* Base Button Styles */
-.btn {
+/* Base Button Styles — scoped to avoid design-system conflicts */
+.btn:not(.ds-btn) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
     padding: 0.65rem 1.5rem;
     border: none;
-    border-radius: 12px;
-    /* 12px rounded corners per user request */
+    border-radius: var(--ds-radius-lg, 12px);
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: var(--ds-weight-semibold, 600);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all var(--ds-transition-normal, 0.2s ease);
     text-decoration: none;
     white-space: nowrap;
     position: relative;
     overflow: hidden;
 }
 
-.btn:disabled {
+.btn:not(.ds-btn):disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
+    transform: none;
+    box-shadow: none;
 }
 
-/* ERP Primary Button - Premium Blue Steel Gradient */
-.btn-erp {
+/* ERP Primary Button — uses design-system primary palette */
+.btn-erp:not(.ds-btn) {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.6rem 1.25rem;
-    background: linear-gradient(145deg, var(--accent-500) 0%, #1f3550 100%);
+    background: linear-gradient(145deg, var(--ds-primary-600, var(--accent-500)) 0%, var(--ds-primary-700, #1f3550) 100%);
     color: white;
     border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 0.75rem;
+    border-radius: var(--ds-radius-lg, 12px);
+    font-weight: var(--ds-weight-semibold, 600);
+    font-size: var(--ds-text-xs, 0.75rem);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(41, 65, 96, 0.3);
+    transition: all var(--ds-transition-normal, 0.2s ease);
+    box-shadow: 0 4px 12px rgba(73, 109, 160, 0.3);
 }
 
-.btn-erp:hover:not(:disabled) {
-    background: linear-gradient(145deg, #3a5a7f 0%, var(--accent-500) 100%);
+.btn-erp:not(.ds-btn):hover:not(:disabled) {
+    background: linear-gradient(145deg, var(--ds-primary-500, #3a5a7f) 0%, var(--ds-primary-600, var(--accent-500)) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(41, 65, 96, 0.4);
+    box-shadow: 0 8px 20px rgba(73, 109, 160, 0.4);
 }
 
-.btn-erp:active:not(:disabled) {
+.btn-erp:not(.ds-btn):active:not(:disabled) {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(41, 65, 96, 0.2);
+    box-shadow: 0 2px 8px rgba(73, 109, 160, 0.2);
 }
 
-.btn-erp:disabled {
+.btn-erp:not(.ds-btn):disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
 }
 
-/* Secondary Button - Professional SaaS White/Gray */
-.btn-secondary {
+/* Secondary Button */
+.btn-secondary:not(.ds-btn) {
     background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-    color: var(--secondary-700) !important;
+    color: var(--secondary-700);
     border: 1px solid var(--border-primary);
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
 }
 
-.btn-secondary:hover:not(:disabled) {
+.btn-secondary:not(.ds-btn):hover:not(:disabled) {
     background: #f1f5f9;
     border-color: var(--secondary-300);
-    color: var(--secondary-900) !important;
+    color: var(--secondary-900);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
 }
 
-/* Success Button - Soft Emerald Gradient */
-.btn-success {
+/* Success Button */
+.btn-success:not(.ds-btn) {
     background: linear-gradient(145deg, var(--success-500) 0%, var(--success-600) 100%);
-    color: #ffffff !important;
+    color: #ffffff;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
-.btn-success:hover:not(:disabled) {
+.btn-success:not(.ds-btn):hover:not(:disabled) {
     background: linear-gradient(145deg, #10b981 0%, #059669 100%);
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
 }
 
-/* Danger Button - Clean Muted Red Gradient */
-.btn-danger {
+/* Danger Button */
+.btn-danger:not(.ds-btn) {
     background: linear-gradient(145deg, #ef4444 0%, #dc2626 100%);
-    color: #ffffff !important;
+    color: #ffffff;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
-.btn-danger:hover:not(:disabled) {
+.btn-danger:not(.ds-btn):hover:not(:disabled) {
     background: linear-gradient(145deg, #f87171 0%, #ef4444 100%);
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
 }
 
-/* Info Button - Primary Variant */
-.btn-info {
+/* Info Button */
+.btn-info:not(.ds-btn) {
     background: linear-gradient(145deg, var(--secondary-400) 0%, var(--secondary-500) 100%);
-    color: #ffffff !important;
+    color: #ffffff;
     box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);
 }
 
-.btn-info:hover:not(:disabled) {
+.btn-info:not(.ds-btn):hover:not(:disabled) {
     background: linear-gradient(145deg, var(--secondary-300) 0%, var(--secondary-400) 100%);
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(100, 116, 139, 0.3);
@@ -406,7 +386,7 @@ body {
 }
 
 /* ==================== NAVIGATION LINKS ==================== */
-.nav-link {
+.nav-link:not(.ds-nav-link) {
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -420,14 +400,14 @@ body {
     margin-bottom: 2px;
 }
 
-.nav-link:hover {
+.nav-link:not(.ds-nav-link):hover {
     background: var(--bg-tertiary);
     color: var(--primary-600);
 }
 
-.nav-link.active {
-    background: var(--primary-50) !important;
-    color: var(--primary-600) !important;
+.nav-link:not(.ds-nav-link).active {
+    background: var(--primary-50);
+    color: var(--primary-600);
     font-weight: 600;
 }
 
@@ -469,7 +449,7 @@ body {
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 1rem;
-    padding-right: 2.5rem !important;
+    padding-right: 2.5rem;
 }
 
 /* ==================== PAGE HEADER ==================== */
@@ -562,7 +542,7 @@ body {
     box-shadow: var(--shadow-xl);
 }
 
-#mainSidebar .nav-link {
+#mainSidebar .nav-link:not(.ds-nav-link) {
     color: #334155;
     background: transparent;
     border-radius: var(--radius-lg);
@@ -573,11 +553,10 @@ body {
     border-left: 3px solid transparent;
 }
 
-#mainSidebar .nav-link:hover {
+#mainSidebar .nav-link:not(.ds-nav-link):hover {
     color: #1d4ed8;
     background: #eff6ff;
     border-left-color: var(--primary-400);
-    transform: translateX(4px);
 }
 
 /* Collapsible Sidebar Sections */
@@ -629,7 +608,7 @@ body {
     padding-left: var(--space-8);
 }
 
-#mainSidebar .nav-link.active {
+#mainSidebar .nav-link:not(.ds-nav-link).active {
     color: #1e40af;
     background: #dbeafe;
     border-left-color: var(--primary-300);

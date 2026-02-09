@@ -357,7 +357,14 @@ async function runWorkerCommand(mode, params = {}) {
     let errorOutput = '';
 
     child.stdout.on('data', (data) => output += data.toString());
-    child.stderr.on('data', (data) => errorOutput += data.toString());
+    child.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+      // In dev mode, always stream stderr so Python logger.error is visible
+      if (isDev) {
+        const line = data.toString().trim();
+        if (line) console.log('[sync-worker]', line);
+      }
+    });
 
     child.on('close', (code) => {
       // console.log(`Worker exited with code ${code}`);

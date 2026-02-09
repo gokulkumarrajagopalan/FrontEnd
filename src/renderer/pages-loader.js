@@ -9,7 +9,6 @@ class PageLoader {
 
         // Map of route names to their initialize function names
         const pageInitializers = {
-            'home': 'initializeHome',
             'dashboard': 'initializeDashboard',
             'login': 'initializeAuth',
             'signup': 'initializeAuth',

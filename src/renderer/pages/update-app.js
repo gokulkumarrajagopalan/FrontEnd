@@ -13,14 +13,14 @@
                     </div>
                     
                     <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 0.4rem;">You're up to date!</h3>
-                    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem;">Talliffy v8.4.32 is the latest version</p>
+                    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem;">Talliffy v1.0 is the latest version</p>
                     
                     <div style="background: #f8f9fb; padding: 1.25rem; border-radius: 10px; margin-bottom: 1.5rem; text-align: left;">
                         <h4 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem;">Current Version Details</h4>
                         <div style="display: grid; gap: 0;">
                             <div style="display: flex; justify-content: space-between; padding: 0.55rem 0;">
                                 <span style="color: #64748b; font-size: 0.875rem;">Version</span>
-                                <span style="color: #1e293b; font-weight: 600; font-size: 0.875rem;">8.4.32</span>
+                                <span style="color: #1e293b; font-weight: 600; font-size: 0.875rem;">v1.0</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: 0.55rem 0; border-top: 1px solid #e5e7eb;">
                                 <span style="color: #64748b; font-size: 0.875rem;">Release Date</span>

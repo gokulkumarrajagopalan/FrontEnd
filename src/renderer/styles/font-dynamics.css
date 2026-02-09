@@ -109,32 +109,32 @@ p {
 }
 
 /* Button and input text */
-button, input, select, textarea, .btn {
-  font-size: var(--text-sm) !important;
+button:not(.ds-btn):not(.ds-logout-btn), input:not(.ds-input), select:not(.ds-input), textarea:not(.ds-input), .btn:not(.ds-btn) {
+  font-size: var(--text-sm);
 }
 
 /* Navigation and sidebar */
-.nav-link, .nav-section-header, .sidebar-item {
-  font-size: var(--text-xs) !important;
-  font-weight: 500 !important;
+.nav-link:not(.ds-nav-link), .nav-section-header, .sidebar-item {
+  font-size: var(--text-xs);
+  font-weight: 500;
 }
 
 /* Table elements */
 table th {
-  font-size: var(--text-xs) !important;
+  font-size: var(--text-xs);
 }
 
 table td {
-  font-size: var(--text-sm) !important;
+  font-size: var(--text-sm);
 }
 
 /* Label and form elements */
 label {
-  font-size: var(--text-sm) !important;
+  font-size: var(--text-sm);
 }
 
 .form-label, .input-label {
-  font-size: var(--text-sm) !important;
+  font-size: var(--text-sm);
 }
 
 /* Responsive adjustments for larger screens */
@@ -191,7 +191,12 @@ body {
   opacity: 0;
   display: none;
 }
-
+/* When sidebar uses design-system classes, always show the header */
+.ds-sidebar #expandedHeader,
+.ds-sidebar > #expandedHeader {
+  opacity: 1;
+  display: flex;
+}
 /* By default, hide text labels in collapsed state */
 #mainSidebar .nav-link span:not(.nav-icon) {
   opacity: 0;
@@ -258,18 +263,18 @@ body {
 }
 
 /* Sidebar navigation items styling */
-.nav-link {
+.nav-link:not(.ds-nav-link) {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out !important;
+  transition: background-color 0.2s ease-in-out;
   position: relative;
 }
 
-.nav-link:hover {
+.nav-link:not(.ds-nav-link):hover {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
@@ -315,8 +320,8 @@ body {
 
 /* Brand styles */
 :root {
-  --brand-blue: #1346A8; /* Talliffy brand blue for icon background */
-  --brand-accent: #5AB3FF; /* Accent bar color */
+  --brand-blue: var(--ds-primary-600, #496da0); /* Aligned with design-system primary */
+  --brand-accent: var(--ds-primary-400, #779cc4); /* Accent bar color */
 }
 
 .brand-icon-wrapper {

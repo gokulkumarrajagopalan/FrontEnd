@@ -57,7 +57,6 @@
                     <thead class="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
                         <tr>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Company Name</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Code</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">State</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Sync Status</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Last Sync</th>
@@ -65,7 +64,7 @@
                         </tr>
                     </thead>
                     <tbody id="companiesTableBody">
-                        <tr><td colspan="6" class="px-6 py-12 text-center">
+                        <tr><td colspan="5" class="px-6 py-12 text-center">
                             <div class="flex flex-col items-center gap-3">
                                 <span class="text-6xl">📦</span>
                                 <p class="text-gray-400 text-lg font-semibold">No companies imported yet</p>
@@ -111,7 +110,7 @@
         if (!loader) {
             console.debug('Global loader element not found, attempting to create it');
             try {
-                const container = document.querySelector('#companySyncPageContainer .flex.flex-col.items-end') || document.querySelector('#companySyncPageContainer');
+                const container = document.getElementById('companySyncPageContainer');
                 if (container) {
                     const wrapper = document.createElement('div');
                     wrapper.id = 'companySyncGlobalLoader';
@@ -127,7 +126,8 @@
                             <span id="companySyncQueueCount" class="text-xs text-gray-500"></span>
                         </div>
                     `;
-                    container.insertBefore(wrapper, container.querySelector('.flex') || null);
+                    // Insert as first child — safe, avoids querySelector descendant mismatch
+                    container.insertBefore(wrapper, container.firstChild);
                     loader = document.getElementById('companySyncGlobalLoader');
                     textEl = document.getElementById('companySyncGlobalLoaderText');
                     queueEl = document.getElementById('companySyncQueueCount');
@@ -488,21 +488,33 @@
             const headers = window.authService.getHeaders();
             headers['Content-Type'] = 'application/json';
 
+            const payload = JSON.stringify({
+                syncStatus: syncStatus,
+                status: status,
+                lastSyncDate: new Date().toISOString()
+            });
+
+            // Try PUT first
             const response = await fetch(window.apiConfig.getUrl(`/companies/${companyId}/status`), {
                 method: 'PUT',
                 headers: headers,
-                body: JSON.stringify({
-                    syncStatus: syncStatus,
-                    status: status,
-                    lastSyncDate: new Date().toISOString()
-                })
+                body: payload
             });
 
             if (!response.ok) {
-                console.warn('Failed to update company status in backend:', response.status);
+                // Fallback to PATCH on the company resource itself
+                const patchResponse = await fetch(window.apiConfig.getUrl(`/companies/${companyId}`), {
+                    method: 'PATCH',
+                    headers: headers,
+                    body: payload
+                });
+
+                if (!patchResponse.ok) {
+                    console.warn(`Company status update failed (PUT: ${response.status}, PATCH: ${patchResponse.status}) — non-critical, continuing`);
+                }
             }
         } catch (error) {
-            console.error('Error updating company status:', error);
+            console.warn('Non-critical: Could not update company status:', error.message);
         }
     }
 
@@ -524,7 +536,7 @@
         });
 
         if (filtered.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-400">No companies found</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">No companies found</td></tr>';
             return;
         }
 
@@ -543,15 +555,10 @@
             <tr class="border-b border-gray-100 hover:bg-blue-50 transition-all">
                 <td class="px-6 py-5">
                     <div class="flex items-center gap-3">
-                       
                         <div>
                             <p class="font-bold text-gray-900 text-base">${company.name}</p>
-                            <p class="text-xs text-gray-500 font-mono">ID: ${company.id ? company.id.toString().substring(0, 12) + '...' : 'N/A'}</p>
                         </div>
                     </div>
-                </td>
-                <td class="px-6 py-5">
-                    <span class="px-3 py-1 bg-gray-100 text-gray-900 rounded-lg font-mono text-sm font-bold ">${company.code}</span>
                 </td>
                 <td class="px-6 py-5">
                     <span class="text-sm text-gray-900 font-semibold">${company.state || '--'}</span>

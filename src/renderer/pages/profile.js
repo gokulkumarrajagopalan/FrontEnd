@@ -23,14 +23,6 @@
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                         <div>
-                            <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem;">Full Name</label>
-                            <input type="text" id="fullName" style="width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.9375rem;" placeholder="Enter full name">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem;">Email</label>
-                            <input type="email" id="email" style="width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.9375rem;" placeholder="Enter email">
-                        </div>
-                        <div>
                             <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem;">Phone</label>
                             <input type="tel" id="phone" style="width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.9375rem;" placeholder="Enter phone number">
                         </div>
@@ -134,15 +126,11 @@
         const profileName = document.getElementById('profileName');
         const profileEmail = document.getElementById('profileEmail');
         const profileInitial = document.getElementById('profileInitial');
-        const fullName = document.getElementById('fullName');
-        const email = document.getElementById('email');
 
         if (user) {
             if (profileName) profileName.textContent = user.fullName || user.username || 'User';
             if (profileEmail) profileEmail.textContent = user.email || 'user@example.com';
             if (profileInitial) profileInitial.textContent = (user.fullName || user.username || 'U')[0].toUpperCase();
-            if (fullName) fullName.value = user.fullName || user.username || '';
-            if (email) email.value = user.email || '';
         }
     }
 

@@ -11,19 +11,11 @@
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
                         <div style="background: #f8f9fb; padding: 1.15rem; border-radius: 10px;">
                             <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.35rem;">Application Version</div>
-                            <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;">v8.4.32</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;">v1.0</div>
                         </div>
                         <div style="background: #f8f9fb; padding: 1.15rem; border-radius: 10px;">
                             <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.35rem;">Platform</div>
                             <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;" id="platform">Windows</div>
-                        </div>
-                        <div style="background: #f8f9fb; padding: 1.15rem; border-radius: 10px;">
-                            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.35rem;">Node Version</div>
-                            <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;" id="nodeVersion">Loading...</div>
-                        </div>
-                        <div style="background: #f8f9fb; padding: 1.15rem; border-radius: 10px;">
-                            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.35rem;">Electron Version</div>
-                            <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;" id="electronVersion">Loading...</div>
                         </div>
                     </div>
 
@@ -66,8 +58,6 @@
         if (window.electronAPI && window.electronAPI.getSystemInfo) {
             window.electronAPI.getSystemInfo().then(info => {
                 document.getElementById('platform').textContent = info.platform || 'Windows';
-                document.getElementById('nodeVersion').textContent = info.nodeVersion || 'N/A';
-                document.getElementById('electronVersion').textContent = info.electronVersion || 'N/A';
                 document.getElementById('os').textContent = info.os || 'Windows 11';
                 document.getElementById('arch').textContent = info.arch || 'x64';
                 document.getElementById('memory').textContent = info.memory || '16 GB';

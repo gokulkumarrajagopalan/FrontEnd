@@ -31,17 +31,6 @@
                     <div style="background: #f8f9fb; padding: 1.5rem; border-radius: 10px;">
                         <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1.15rem;">Send us a message</h3>
                         <form id="supportForm">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                                <div>
-                                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.4rem;">Name</label>
-                                    <input type="text" style="width: 100%; padding: 0.6rem 0.85rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.875rem;" placeholder="Your name" required>
-                                </div>
-                                <div>
-                                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.4rem;">Email</label>
-                                    <input type="email" style="width: 100%; padding: 0.6rem 0.85rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.875rem;" placeholder="your@email.com" required>
-                                </div>
-                            </div>
-                            
                             <div style="margin-bottom: 1rem;">
                                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.4rem;">Subject</label>
                                 <input type="text" style="width: 100%; padding: 0.6rem 0.85rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.875rem;" placeholder="How can we help?" required>

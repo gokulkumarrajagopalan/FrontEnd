@@ -71,6 +71,34 @@ class ThemeManager {
         root.style.setProperty('--text-tertiary', '#64748b');
         root.style.setProperty('--text-disabled', '#94a3b8');
 
+        // Bridge to --ds-* design system tokens (light mode)
+        root.style.setProperty('--ds-bg-app', '#f8f9fb');
+        root.style.setProperty('--ds-bg-surface', '#ffffff');
+        root.style.setProperty('--ds-bg-surface-raised', '#ffffff');
+        root.style.setProperty('--ds-bg-surface-sunken', '#f1f5f9');
+        root.style.setProperty('--ds-bg-hover', '#f1f5f9');
+        root.style.setProperty('--ds-bg-active', '#e2e8f0');
+        root.style.setProperty('--ds-text-primary', '#1e293b');
+        root.style.setProperty('--ds-text-secondary', '#475569');
+        root.style.setProperty('--ds-text-tertiary', '#64748b');
+        root.style.setProperty('--ds-text-disabled', '#94a3b8');
+        root.style.setProperty('--ds-text-inverse', '#ffffff');
+        root.style.setProperty('--ds-border-default', '#e2e8f0');
+        root.style.setProperty('--ds-border-strong', '#cbd5e1');
+        root.style.setProperty('--ds-sidebar-bg', '#0c131d');
+        root.style.setProperty('--ds-sidebar-header-bg', 'rgba(255, 255, 255, 0.04)');
+        root.style.setProperty('--ds-sidebar-text', '#e2e8f0');
+        root.style.setProperty('--ds-sidebar-text-muted', 'rgba(255, 255, 255, 0.6)');
+        root.style.setProperty('--ds-sidebar-border', 'rgba(255, 255, 255, 0.08)');
+        root.style.setProperty('--ds-card-bg', '#ffffff');
+        root.style.setProperty('--ds-card-border', '#e2e8f0');
+        root.style.setProperty('--ds-input-bg', '#ffffff');
+        root.style.setProperty('--ds-input-border', '#e2e8f0');
+        root.style.setProperty('--ds-input-text', '#1e293b');
+        root.style.setProperty('--ds-table-header-bg', '#f8fafc');
+        root.style.setProperty('--ds-table-header-text', '#475569');
+        root.style.setProperty('--ds-table-row-border', '#f1f5f9');
+
         // Border colors
         root.style.setProperty('--border-primary', '#e2e8f0');
         root.style.setProperty('--border-secondary', '#cbd5e1');
@@ -136,6 +164,34 @@ class ThemeManager {
         root.style.setProperty('--text-secondary', '#cbd5e1');
         root.style.setProperty('--text-tertiary', '#94a3b8');
         root.style.setProperty('--text-disabled', '#64748b');
+
+        // Bridge to --ds-* design system tokens (dark mode)
+        root.style.setProperty('--ds-bg-app', '#0f172a');
+        root.style.setProperty('--ds-bg-surface', '#1e293b');
+        root.style.setProperty('--ds-bg-surface-raised', '#334155');
+        root.style.setProperty('--ds-bg-surface-sunken', '#0f172a');
+        root.style.setProperty('--ds-bg-hover', '#334155');
+        root.style.setProperty('--ds-bg-active', '#475569');
+        root.style.setProperty('--ds-text-primary', '#f8fafc');
+        root.style.setProperty('--ds-text-secondary', '#cbd5e1');
+        root.style.setProperty('--ds-text-tertiary', '#94a3b8');
+        root.style.setProperty('--ds-text-disabled', '#64748b');
+        root.style.setProperty('--ds-text-inverse', '#0f172a');
+        root.style.setProperty('--ds-border-default', '#334155');
+        root.style.setProperty('--ds-border-strong', '#475569');
+        root.style.setProperty('--ds-sidebar-bg', '#0f172a');
+        root.style.setProperty('--ds-sidebar-header-bg', '#1e293b');
+        root.style.setProperty('--ds-sidebar-text', '#f1f5f9');
+        root.style.setProperty('--ds-sidebar-text-muted', '#94a3b8');
+        root.style.setProperty('--ds-sidebar-border', '#334155');
+        root.style.setProperty('--ds-card-bg', '#1e293b');
+        root.style.setProperty('--ds-card-border', '#334155');
+        root.style.setProperty('--ds-input-bg', '#1e293b');
+        root.style.setProperty('--ds-input-border', '#334155');
+        root.style.setProperty('--ds-input-text', '#f8fafc');
+        root.style.setProperty('--ds-table-header-bg', '#1e293b');
+        root.style.setProperty('--ds-table-header-text', '#cbd5e1');
+        root.style.setProperty('--ds-table-row-border', '#334155');
 
         // Brand colors - Keep consistent with light theme
         root.style.setProperty('--primary-50', '#eff3f8');

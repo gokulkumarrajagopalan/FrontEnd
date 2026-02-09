@@ -304,6 +304,39 @@ class IncrementalSyncManager:
             }
             
             if entity_type == 'Ledger':
+                # Extract GST registration details from LEDGSTREGDETAILS.LIST
+                gst_reg = elem.find('.//LEDGSTREGDETAILS.LIST')
+                gst_applicable = get_text('GSTAPPLICABLE') or ''
+                gst_registration_type = ''
+                gst_gstin = ''
+                gst_place_of_supply = ''
+                gst_details_applicable_from = ''
+                gst_is_common_party = False
+                gst_is_freezone = False
+                gst_is_transporter = False
+                gst_is_other_territory = False
+                gst_consider_purchase_export = False
+                gst_registration_date = ''
+                gst_state_name = ''
+
+                if gst_reg is not None:
+                    def gst_text(tag):
+                        child = gst_reg.find(tag)
+                        if child is not None and child.text:
+                            return child.text.strip()
+                        return ''
+                    gst_registration_type = gst_text('GSTREGISTRATIONTYPE')
+                    gst_gstin = gst_text('GSTIN')
+                    gst_place_of_supply = gst_text('PLACEOFSUPPLY')
+                    gst_details_applicable_from = gst_text('APPLICABLEFROM')
+                    gst_is_common_party = gst_text('ISCOMMONPARTY') == 'Yes'
+                    gst_is_freezone = gst_text('ISFREEZONE') == 'Yes'
+                    gst_is_transporter = gst_text('ISTRANSPORTER') == 'Yes'
+                    gst_is_other_territory = gst_text('ISOTHERTERRITORYASSESSEE') == 'Yes'
+                    gst_consider_purchase_export = gst_text('CONSIDERPURCHASEFOREXPORT') == 'Yes'
+                    gst_registration_date = gst_text('GSTREGISTRATIONDATE')
+                    gst_state_name = gst_text('STATENAME')
+
                 record.update({
                     'alias': get_text('ONLYALIAS') or get_text('ALIAS'),
                     'parent': get_text('PARENT'),
@@ -321,6 +354,18 @@ class IncrementalSyncManager:
                     'incometaxNumber': get_text('INCOMETAXNUMBER'),
                     'vatTINNumber': get_text('VATTINNUMBER'),
                     'vatDealerType': get_text('VATDEALERTYPE'),
+                    'gstApplicable': gst_applicable,
+                    'gstRegistrationType': gst_registration_type,
+                    'gstGstin': gst_gstin,
+                    'gstPlaceOfSupply': gst_place_of_supply,
+                    'gstDetailsApplicableFrom': gst_details_applicable_from,
+                    'gstIsCommonParty': gst_is_common_party,
+                    'gstIsFreezone': gst_is_freezone,
+                    'gstIsTransporter': gst_is_transporter,
+                    'gstIsOtherTerritoryAssessee': gst_is_other_territory,
+                    'gstConsiderPurchaseForExport': gst_consider_purchase_export,
+                    'gstRegistrationDate': gst_registration_date,
+                    'gstStateName': gst_state_name,
                 })
             elif entity_type == 'VoucherType':
                 # Extract numbering method from nested VOUCHERNUMBERSERIES.LIST
@@ -564,28 +609,56 @@ class IncrementalSyncManager:
                 })
             
             elif entity_type == 'Ledger':
+                # Sanitize opening balance — Tally may return "5000.00 Dr" string
+                raw_balance = record.get('openingBalance', 0)
+                if isinstance(raw_balance, str):
+                    cleaned = raw_balance.replace(',', '').strip()
+                    has_cr = 'Cr' in cleaned
+                    cleaned = cleaned.replace('Dr', '').replace('Cr', '').strip()
+                    try:
+                        raw_balance = float(cleaned)
+                        if has_cr:
+                            raw_balance = -raw_balance
+                    except (ValueError, TypeError):
+                        raw_balance = 0.0
+                elif raw_balance is None:
+                    raw_balance = 0.0
+
                 prepared.append({
                     'userId': user_id,
                     'cmpId': company_id,
                     'masterId': record.get('masterID'),
                     'alterId': record.get('alterID'),
                     'guid': record.get('guid'),
-                    'ledName': record.get('name'),
-                    'ledAlias': record.get('alias'),
-                    'ledParent': record.get('parent'),
-                    'ledDescription': record.get('description'),
-                    'ledPhone': record.get('phone'),
-                    'ledMobile': record.get('mobile'),
-                    'ledEmail': record.get('email'),
-                    'ledWebsite': record.get('website'),
-                    'currencyName': record.get('currencyName'),
-                    'incomeTaxNumber': record.get('incometaxNumber'),
-                    'vatTinNumber': record.get('vatTINNumber'),
-                    'ledOpeningBalance': record.get('openingBalance', 0),
-                    'ledBillwiseOn': record.get('isBillWiseOn', False),
-                    'ledIsCostcentreOn': record.get('isCostCentresOn', False),
-                    'isRevenue': record.get('isRevenue', False),
-                    'isActive': True
+                    'ledName': (record.get('name', '') or '')[:255],
+                    'ledAlias': (record.get('alias', '') or '')[:255],
+                    'ledParent': (record.get('parent', '') or '')[:255],
+                    'ledDescription': (record.get('description') or '')[:500],
+                    'ledPhone': (record.get('phone') or '')[:50],
+                    'ledMobile': (record.get('mobile') or '')[:50],
+                    'ledEmail': (record.get('email') or '')[:100],
+                    'ledWebsite': (record.get('website') or '')[:200],
+                    'currencyName': (record.get('currencyName') or '')[:20],
+                    'incomeTaxNumber': (record.get('incometaxNumber') or '')[:20],
+                    'vatTinNumber': (record.get('vatTINNumber') or '')[:20],
+                    'ledOpeningBalance': raw_balance,
+                    'ledBillwiseOn': bool(record.get('isBillWiseOn', False)),
+                    'ledIsCostcentreOn': bool(record.get('isCostCentresOn', False)),
+                    'isRevenue': bool(record.get('isRevenue', False)),
+                    'isActive': True,
+                    # GST fields — truncated to safe column widths
+                    'gstApplicable': (record.get('gstApplicable') or '')[:20],
+                    'gstRegistrationType': (record.get('gstRegistrationType') or '')[:20],
+                    'gstGstin': (record.get('gstGstin') or '')[:20],
+                    'gstPlaceOfSupply': (record.get('gstPlaceOfSupply') or '')[:100],
+                    'gstDetailsApplicableFrom': (record.get('gstDetailsApplicableFrom') or '')[:20],
+                    'gstIsCommonParty': bool(record.get('gstIsCommonParty', False)),
+                    'gstIsFreezone': bool(record.get('gstIsFreezone', False)),
+                    'gstIsTransporter': bool(record.get('gstIsTransporter', False)),
+                    'gstIsOtherTerritoryAssessee': bool(record.get('gstIsOtherTerritoryAssessee', False)),
+                    'gstConsiderPurchaseForExport': bool(record.get('gstConsiderPurchaseForExport', False)),
+                    'gstRegistrationDate': (record.get('gstRegistrationDate') or '')[:20],
+                    'gstStateName': (record.get('gstStateName') or '')[:100],
                 })
             
             elif entity_type == 'StockItem':
@@ -616,7 +689,8 @@ class IncrementalSyncManager:
         return prepared
     
     def save_batch_to_database(self, records: List[Dict], company_id: int, endpoint: str) -> Tuple[bool, int]:
-        """Save batch of records to database"""
+        """Save batch of records to database. Sets self._last_batch_error on failure."""
+        self._last_batch_error = None
         try:
             url = f"{self.backend_url}{endpoint}/sync"
             
@@ -624,7 +698,6 @@ class IncrementalSyncManager:
                 logger.debug(f"Posting {len(records)} records to {url}")
             
             # Log exact payload being sent to help debug 500 errors
-            # Only log first 2 records to avoid massive log files
             sample_size = min(len(records), 2)
             logger.info(f"📤 Sending batch of {len(records)} records to {endpoint}. Sample: {json.dumps(records[:sample_size], indent=2)}")
             
@@ -638,12 +711,28 @@ class IncrementalSyncManager:
                     logger.debug(f"Saved {count} records")
                 return True, count
             else:
-                # Log full response body on error
+                # Capture full error detail for upstream reporting
+                error_body = ''
+                try:
+                    error_body = response.text[:500]
+                except Exception:
+                    error_body = 'Could not read response body'
+                
+                self._last_batch_error = f"HTTP {response.status_code}: {error_body}"
                 logger.error(f"❌ Database error: HTTP {response.status_code}")
-                logger.error(f"   Payload sent to {url}")
-                logger.error(f"   Response from server: {response.text}")
+                logger.error(f"   URL: {url}")
+                logger.error(f"   Response: {error_body}")
                 return False, 0
+        except requests.exceptions.Timeout:
+            self._last_batch_error = f"Request timeout (30s) posting to {endpoint}/sync"
+            logger.error(f"❌ Timeout saving batch to {endpoint}")
+            return False, 0
+        except requests.exceptions.ConnectionError as e:
+            self._last_batch_error = f"Connection error: {str(e)[:200]}"
+            logger.error(f"❌ Connection error saving batch: {e}")
+            return False, 0
         except Exception as e:
+            self._last_batch_error = f"Exception: {str(e)[:200]}"
             logger.error(f"Error saving batch: {e}")
             return False, 0
     
@@ -750,8 +839,9 @@ class IncrementalSyncManager:
             success, count = self.save_batch_to_database(batch, company_id, endpoint)
             
             if not success:
-                logger.error(f"❌ Failed to save batch {i // self.BATCH_SIZE + 1}")
-                return {'success': False, 'message': 'Failed to save batch', 'count': total_saved}
+                error_detail = getattr(self, '_last_batch_error', '') or 'Unknown error'
+                logger.error(f"❌ Failed to save batch {i // self.BATCH_SIZE + 1}: {error_detail}")
+                return {'success': False, 'message': f'Failed to save batch: {error_detail}', 'count': total_saved}
             
             total_saved += count
             

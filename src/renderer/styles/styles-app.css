@@ -39,7 +39,7 @@
 }
 
 .auth-header {
-    /* background: var(--primary-600); */
+    background: linear-gradient(135deg, var(--ds-primary-600, var(--primary-600, #496da0)) 0%, var(--ds-primary-800, var(--primary-800, #253956)) 100%);
     color: white;
     padding: 40px 20px;
     text-align: center;

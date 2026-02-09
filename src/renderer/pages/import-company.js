@@ -2,24 +2,24 @@
     const getTemplate = () => `
     <div id="importCompanyPageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
         <!-- Import Header -->
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-gray-900">
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 text-gray-900">
             <div class="flex items-center justify-between gap-6 flex-wrap">
                 <div>
-                    <h2 class="text-3xl font-bold mb-2">🏢 Import Companies from Tally</h2>
-                    <p class="text-gray-600">Connect to Tally and import your company data seamlessly</p>
+                    <h2 class="text-2xl font-bold mb-1">🏢 Import Companies from Tally</h2>
+                    <p class="text-gray-600 text-sm">Connect to Tally and import your company data seamlessly</p>
                 </div>
-                <div class="flex flex-col items-center gap-4">
-                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
-                        <p class="text-4xl font-bold text-blue-600" id="tallyCompanyCount">0</p>
-                        <p class="text-sm text-blue-500">Available</p>
+                <div class="flex flex-col items-center gap-3">
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+                        <p class="text-2xl font-bold text-blue-600" id="tallyCompanyCount">0</p>
+                        <p class="text-xs text-blue-500">Available</p>
                     </div>
-                    <button id="fetchCompaniesBtn" class="px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-bold flex items-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%); color: white; border: none;">
+                    <button id="fetchCompaniesBtn" class="px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold text-sm flex items-center gap-2" style="background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 100%); color: white; border: none;">
                         <span>🔗</span>
                         <span>Fetch from Tally</span>
                     </button>
                     <style>
                         #fetchCompaniesBtn:hover {
-                            background: linear-gradient(135deg, #0f3a8a 0%, #4aa3ef 100%);
+                            background: linear-gradient(135deg, var(--primary-800) 0%, var(--primary-600) 100%);
                         }
                     </style>
                 </div>
@@ -37,7 +37,7 @@
                         <h3 class="text-lg font-semibold text-gray-900 mb-1">📋 Select Companies to Import</h3>
                         <p class="text-sm text-gray-600">Choose the companies you want to import from Tally</p>
                     </div>
-                    <button id="importMoreBtn" class="px-6 py-3 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-bold flex items-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
+                    <button id="importMoreBtn" class="px-6 py-3 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-bold flex items-center gap-2" style="background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 100%);">
                         <span>🔗</span>
                         <span>Fetch More</span>
                     </button>
@@ -50,7 +50,7 @@
 
         <!-- Import Selected Button -->
         <div id="importButtonContainer" style="display: none;" class="flex gap-4">
-            <button id="importSelectedBtn" class="flex-1 px-6 py-2.5 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold text-base flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);">
+            <button id="importSelectedBtn" class="flex-1 px-6 py-2.5 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold text-base flex items-center justify-center gap-2" style="background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 100%);">
                 <span class="text-lg">📥</span>
                 <span>Import Selected Companies</span>
             </button>
@@ -313,11 +313,8 @@
                 }
                     </div>
                     <div class="flex gap-6 text-sm text-gray-600">
-                        <span>Code: <span class="font-mono bg-gray-100 px-2 py-1 rounded text-gray-900">${company.code || 'N/A'}</span></span>
                         ${company.state ? `<span>📍 State: ${company.state}</span>` : ''}
-                        ${company.email ? `<span>📧 Email: ${company.email}</span>` : ''}
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">GUID: <span class="font-mono">${companyGuid ? companyGuid.substring(0, 12) + '...' : 'N/A'}</span></p>
                 </div>
             </div>
         `;

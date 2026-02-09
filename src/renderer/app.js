@@ -408,143 +408,86 @@ class App {
                 console.log('✅ Session monitoring started');
             }
 
-            document.body.className = 'h-screen overflow-hidden flex bg-gray-50';
+            document.body.className = 'h-screen overflow-hidden flex';
+            document.body.style.background = 'var(--ds-bg-app)';
             document.body.innerHTML = `
-                <style>
-                    /* Force Light Theme Colors for Sidebar Navigation */
-                    #mainSidebar .nav-link {
-                        color: #1e293b !important; /* Slate 800 - High contrast text */
-                        visibility: visible !important;
-                        opacity: 1 !important;
-                    }
-                    #mainSidebar .nav-link .nav-text {
-                        color: #1e293b !important; /* Ensure all child spans are visible */
-                        visibility: visible !important;
-                        opacity: 1 !important;
-                        display: block !important;
-                        font-weight: 500 !important;
-                    }
-                    #mainSidebar .nav-link:hover {
-                        color: #1d4ed8 !important; /* Blue 700 */
-                        background: #eff6ff !important; /* Blue 50 */
-                    }
-                    #mainSidebar .nav-link:hover .nav-text {
-                        color: #1d4ed8 !important;
-                    }
-                    #mainSidebar .nav-link.active {
-                        color: #1e40af !important; /* Blue 800 */
-                        background: #dbeafe !important; /* Blue 100 */
-                        font-weight: 600 !important;
-                    }
-                    #mainSidebar .nav-link.active .nav-text {
-                        color: #1e40af !important;
-                    }
-                    #mainSidebar .nav-link .nav-icon {
-                        filter: none !important;
-                        opacity: 1 !important;
-                        visibility: visible !important;
-                    }
-                    /* Ensure header is visible */
-                    #expandedHeader {
-                        display: flex !important;
-                        visibility: visible !important;
-                        opacity: 1 !important;
-                    }
-                    #expandedHeader h1 {
-                        color: #1e293b !important;
-                        display: block !important;
-                        opacity: 1 !important;
-                        visibility: visible !important;
-                    }
-                    #expandedHeader p {
-                        color: #64748b !important;
-                        display: block !important;
-                        opacity: 1 !important;
-                        visibility: visible !important;
-                    }
-                </style>
-                <aside class="flex flex-col relative" id="mainSidebar" style="width: 280px; flex-shrink: 0; height: 100vh; background: #f0f4f8; border-right: 1px solid #e2e8f0; box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);">
-                    <!-- Fixed Header -->
-                    <div id="expandedHeader" style="padding: 1.5rem 1rem; border-bottom: 1px solid #e2e8f0; background: #ffffff;">
-                        <div class="flex items-center gap-3" style="white-space: nowrap;">
-                            <div class="brand-icon-wrapper" onclick="window.router.navigate('home')" aria-label="Talliffy Home" title="Talliffy Home" style="padding: 8px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image brand-icon-expanded" style="width: 42px; height: 42px;" />
-                            </div>
-                            <div style="display: flex; flex-direction: column;">
-                                <h1 class="brand-title" style="cursor: pointer; margin: 0; font-size: 1rem; font-weight: 700; color: #1e293b !important; letter-spacing: -0.02em; display: block !important;" onclick="window.router.navigate('home')">Talliffy</h1>
-                                <p class="brand-subtitle" style="font-size: 0.625rem; color: #64748b !important; margin: 0; font-weight: 500; display: block !important;">Enterprise Sync Platform</p>
-                            </div>
+                <aside class="ds-sidebar" id="mainSidebar" role="navigation" aria-label="Main navigation">
+                    <!-- Brand Header -->
+                    <div class="ds-sidebar-header" id="expandedHeader">
+                        <div class="brand-icon-wrapper" aria-label="Talliffy" title="Talliffy">
+                            <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image" style="width: 36px; height: 36px;" />
+                        </div>
+                        <div class="ds-sidebar-brand-text">
+                            <span class="ds-sidebar-brand-title">Talliffy</span>
+                            <span class="ds-sidebar-brand-subtitle">Enterprise Sync Platform</span>
                         </div>
                     </div>
                     
                     <!-- Navigation Area -->
-                    <nav class="flex-1 overflow-y-auto py-4 px-3" id="sidebarNav" style="scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
-                        <div style="padding: 0 0.75rem 0.4rem; font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.35rem;">NAVIGATION</div>
-                        <a class="nav-link" data-route="company-sync" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">🏢</span>
-                            <span class="nav-text" style="flex: 1; color: #1e293b;">My Company</span>
+                    <nav class="ds-sidebar-nav" id="sidebarNav" aria-label="Sidebar navigation">
+                        <div class="ds-nav-section-label">Navigation</div>
+                        <a class="ds-nav-link" data-route="company-sync" role="link" tabindex="0" aria-label="My Company">
+                            <span class="ds-nav-icon" aria-hidden="true">🏢</span>
+                            <span class="ds-nav-text">My Company</span>
                         </a>
-                        <a class="nav-link" data-route="import-company" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">📥</span>
-                            <span class="nav-text" style="flex: 1; color: #1e293b;">Add Company</span>
+                        <a class="ds-nav-link" data-route="import-company" role="link" tabindex="0" aria-label="Add Company">
+                            <span class="ds-nav-icon" aria-hidden="true">📥</span>
+                            <span class="ds-nav-text">Add Company</span>
                         </a>
-                        <a class="nav-link" data-route="settings" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">⚙️</span>
-                            <span class="nav-text" style="flex: 1; color: #1e293b;">Setting</span>
+                        <a class="ds-nav-link" data-route="settings" role="link" tabindex="0" aria-label="Settings">
+                            <span class="ds-nav-icon" aria-hidden="true">⚙️</span>
+                            <span class="ds-nav-text">Settings</span>
                         </a>
-                        <a class="nav-link" data-route="profile" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">👤</span>
-                            <span class="nav-text" style="flex: 1; color: #1e293b;">Profile</span>
+                        <a class="ds-nav-link" data-route="profile" role="link" tabindex="0" aria-label="Profile">
+                            <span class="ds-nav-icon" aria-hidden="true">👤</span>
+                            <span class="ds-nav-text">Profile</span>
                         </a>
-                        <a class="nav-link" data-route="system-info" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">💻</span>
-                            <span class="nav-text" style="flex: 1; color: #1e293b;">System Info</span>
+                        <a class="ds-nav-link" data-route="system-info" role="link" tabindex="0" aria-label="System Info">
+                            <span class="ds-nav-icon" aria-hidden="true">💻</span>
+                            <span class="ds-nav-text">System Info</span>
                         </a>
-                        <a class="nav-link" data-route="tutorial" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">❓</span>
-                            <span class="nav-text" style="flex: 1; color: #1e293b;">Tutorial</span>
+                        <a class="ds-nav-link" data-route="tutorial" role="link" tabindex="0" aria-label="Tutorial">
+                            <span class="ds-nav-icon" aria-hidden="true">❓</span>
+                            <span class="ds-nav-text">Tutorial</span>
                         </a>
-                        <a class="nav-link" data-route="support" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">📞</span>
-                            <span class="nav-text" style="flex: 1; color: #1e293b;">Support</span>
+                        <a class="ds-nav-link" data-route="support" role="link" tabindex="0" aria-label="Support">
+                            <span class="ds-nav-icon" aria-hidden="true">📞</span>
+                            <span class="ds-nav-text">Support</span>
                         </a>
-                        <a class="nav-link" data-route="update-app" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">⬇️</span>
-                            <span class="nav-text" style="flex: 1; color: #1e293b;">Update App</span>
+                        <a class="ds-nav-link" data-route="update-app" role="link" tabindex="0" aria-label="Update App">
+                            <span class="ds-nav-icon" aria-hidden="true">⬇️</span>
+                            <span class="ds-nav-text">Update App</span>
                         </a>
-                        <a class="nav-link" data-route="purchase" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">💳</span>
-                            <span class="nav-text" style="flex: 1; color: #1e293b;">Purchase</span>
+                        <a class="ds-nav-link" data-route="purchase" role="link" tabindex="0" aria-label="Purchase">
+                            <span class="ds-nav-icon" aria-hidden="true">💳</span>
+                            <span class="ds-nav-text">Purchase</span>
                         </a>
                     </nav>
                     
-                    <!-- Status Bar at bottom of sidebar -->
-                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; background: #ffffff;">
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.625rem;">
-                            <!-- Tally Status -->
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
-                                <span style="color: #475569; font-weight: 600;">Tally: CONNECTED</span>
+                    <!-- Status Bar -->
+                    <div class="ds-sidebar-footer">
+                        <div class="ds-sidebar-status">
+                            <div class="ds-status-item">
+                                <span class="ds-status-dot online" id="tallyStatusDot"></span>
+                                <span>Tally: Connected</span>
                             </div>
-                            
-                            <!-- Internet Status -->
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
-                                <span style="color: #475569; font-weight: 600;">Internet: Connected</span>
-                                <span style="color: #475569;">📶</span>
+                            <div class="ds-status-item">
+                                <span class="ds-status-dot online" id="internetStatusDot"></span>
+                                <span>Internet: Connected</span>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Logout Button -->
-                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; background: #ffffff;">
-                        <button id="logoutBtn" style="width: 100%; padding: 0.5rem; background: #f1f5f9; color: #000000; font-size: 0.7rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                            <span>Logout</span>
-                        </button>
+                        
+                        <!-- Logout Button -->
+                        <div class="ds-sidebar-logout">
+                            <button id="logoutBtn" class="ds-logout-btn" aria-label="Logout">
+                                <span>🚪</span>
+                                <span>Logout</span>
+                            </button>
+                        </div>
                     </div>
                 </aside>
-                <main class="flex-1 flex flex-col min-w-0" style="height: 100vh; overflow: hidden; background: #ffffff;">
-                    <div id="page-content" class="flex-1 overflow-y-auto" style="height: 100%; min-height: 0; background: #f8f9fb; padding: 0;">Loading...</div>
+                <main class="flex-1 flex flex-col min-w-0" style="height: 100vh; overflow: hidden;">
+                    <div id="page-content" class="flex-1 overflow-y-auto" style="height: 100%; min-height: 0; background: var(--ds-bg-app); padding: 0;">Loading...</div>
                 </main>
             `;
 
@@ -965,10 +908,10 @@ class App {
             window.router.setupNavigation();
             window.router.setupHashRouting();
 
-            // Navigate to initial route
-            const hash = window.location.hash.slice(1) || 'home';
-            console.log('🚀 Navigating to:', hash);
-            await window.router.navigate(hash);
+            // Determine initial route based on company status
+            const initialRoute = await this.getInitialRoute();
+            console.log('🚀 Navigating to:', initialRoute);
+            await window.router.navigate(initialRoute);
 
             console.log('✅ Router setup complete');
         } catch (error) {
@@ -978,6 +921,36 @@ class App {
                 content.innerHTML = `<div class="p-6"><h1 class="text-2xl font-bold text-red-600 mb-4">Router Error</h1><pre class="bg-gray-100 p-4 rounded text-sm overflow-auto">${error.message}</pre></div>`;
             }
         }
+    }
+
+    async getInitialRoute() {
+        try {
+            // Check if user has companies
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const userId = currentUser.userId;
+
+            if (!userId || !window.apiConfig) {
+                return 'import-company';
+            }
+
+            const endpoint = window.apiConfig.getUrl(`/companies/user/${userId}`);
+            const response = await fetch(endpoint, {
+                method: 'GET',
+                headers: window.authService.getHeaders()
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const companies = (result.success && Array.isArray(result.data)) ? result.data : [];
+                
+                // If user has companies, go to company-sync, otherwise import-company
+                return companies.length > 0 ? 'company-sync' : 'import-company';
+            }
+        } catch (error) {
+            console.error('Error checking companies:', error);
+        }
+        
+        return 'import-company';
     }
 }
 
