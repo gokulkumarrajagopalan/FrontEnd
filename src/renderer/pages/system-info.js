@@ -1,50 +1,50 @@
 (function () {
     const getSystemInfoTemplate = () => `
-        <div style="padding: 2.5rem; max-width: 1200px; margin: 0 auto;">
-            <div style="background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); overflow: hidden;">
-                <div style="padding: 2rem; border-bottom: 1px solid #e5e7eb;">
-                    <h2 style="font-size: 1.875rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">System Information</h2>
-                    <p style="color: #64748b; font-size: 0.9375rem;">View system and application details</p>
+        <div style="padding: 1.75rem; max-width: 1100px; margin: 0 auto;">
+            <div style="background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); overflow: hidden;">
+                <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #e5e7eb;">
+                    <h2 style="font-size: 1.35rem; font-weight: 700; color: #1e293b; margin-bottom: 0.3rem;">System Information</h2>
+                    <p style="color: #64748b; font-size: 0.875rem;">View system and application details</p>
                 </div>
                 
-                <div style="padding: 2rem;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-                        <div style="background: #f8f9fb; padding: 1.5rem; border-radius: 12px;">
-                            <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Application Version</div>
-                            <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">v8.4.32</div>
+                <div style="padding: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div style="background: #f8f9fb; padding: 1.15rem; border-radius: 10px;">
+                            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.35rem;">Application Version</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;">v8.4.32</div>
                         </div>
-                        <div style="background: #f8f9fb; padding: 1.5rem; border-radius: 12px;">
-                            <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Platform</div>
-                            <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;" id="platform">Windows</div>
+                        <div style="background: #f8f9fb; padding: 1.15rem; border-radius: 10px;">
+                            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.35rem;">Platform</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;" id="platform">Windows</div>
                         </div>
-                        <div style="background: #f8f9fb; padding: 1.5rem; border-radius: 12px;">
-                            <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Node Version</div>
-                            <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;" id="nodeVersion">Loading...</div>
+                        <div style="background: #f8f9fb; padding: 1.15rem; border-radius: 10px;">
+                            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.35rem;">Node Version</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;" id="nodeVersion">Loading...</div>
                         </div>
-                        <div style="background: #f8f9fb; padding: 1.5rem; border-radius: 12px;">
-                            <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.5rem;">Electron Version</div>
-                            <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;" id="electronVersion">Loading...</div>
+                        <div style="background: #f8f9fb; padding: 1.15rem; border-radius: 10px;">
+                            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.35rem;">Electron Version</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;" id="electronVersion">Loading...</div>
                         </div>
                     </div>
 
-                    <div style="background: #f8f9fb; padding: 1.5rem; border-radius: 12px;">
-                        <h3 style="font-size: 1.125rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem;">System Details</h3>
-                        <div style="display: grid; gap: 0.75rem;">
-                            <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
-                                <span style="color: #64748b; font-weight: 500;">Operating System</span>
-                                <span style="color: #1e293b; font-weight: 600;" id="os">Windows 11</span>
+                    <div style="background: #f8f9fb; padding: 1.25rem; border-radius: 10px;">
+                        <h3 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.85rem;">System Details</h3>
+                        <div style="display: grid; gap: 0;">
+                            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid #e5e7eb;">
+                                <span style="color: #64748b; font-weight: 500; font-size: 0.875rem;">Operating System</span>
+                                <span style="color: #1e293b; font-weight: 600; font-size: 0.875rem;" id="os">Windows 11</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
-                                <span style="color: #64748b; font-weight: 500;">Architecture</span>
-                                <span style="color: #1e293b; font-weight: 600;" id="arch">x64</span>
+                            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid #e5e7eb;">
+                                <span style="color: #64748b; font-weight: 500; font-size: 0.875rem;">Architecture</span>
+                                <span style="color: #1e293b; font-weight: 600; font-size: 0.875rem;" id="arch">x64</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
-                                <span style="color: #64748b; font-weight: 500;">Total Memory</span>
-                                <span style="color: #1e293b; font-weight: 600;" id="memory">16 GB</span>
+                            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid #e5e7eb;">
+                                <span style="color: #64748b; font-weight: 500; font-size: 0.875rem;">Total Memory</span>
+                                <span style="color: #1e293b; font-weight: 600; font-size: 0.875rem;" id="memory">16 GB</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; padding: 0.75rem 0;">
-                                <span style="color: #64748b; font-weight: 500;">CPU Cores</span>
-                                <span style="color: #1e293b; font-weight: 600;" id="cpus">8</span>
+                            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0;">
+                                <span style="color: #64748b; font-weight: 500; font-size: 0.875rem;">CPU Cores</span>
+                                <span style="color: #1e293b; font-weight: 600; font-size: 0.875rem;" id="cpus">8</span>
                             </div>
                         </div>
                     </div>

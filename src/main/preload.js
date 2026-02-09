@@ -122,6 +122,12 @@ try {
         syncStockItems: (config) => ipcRenderer.invoke("sync-stock-items", config),
         syncGodowns: (config) => ipcRenderer.invoke("sync-godowns", config),
 
+        // Voucher sync API
+        syncVouchers: (config) => {
+            if (isDev) console.log('📡 Preload: Calling sync-vouchers handler...');
+            return ipcRenderer.invoke('sync-vouchers', config);
+        },
+
         // Incremental sync API
         incrementalSync: (config) => {
             if (isDev) console.log('📡 Preload: Calling incremental-sync handler...');

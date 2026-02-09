@@ -3,6 +3,17 @@ module.exports = {
     content: ["./src/main/index.html", "./src/renderer/pages/**/*.html", "./src/renderer/pages/**/*.js", "./src/renderer/**/*.js"],
     theme: {
         extend: {
+            fontSize: {
+                'xs': '0.625rem',     /* 10px */
+                'sm': '0.75rem',      /* 12px */
+                'base': '0.8125rem',  /* 13px */
+                'lg': '0.875rem',     /* 14px */
+                'xl': '1rem',         /* 16px */
+                '2xl': '1.125rem',    /* 18px */
+                '3xl': '1.25rem',     /* 20px */
+                '4xl': '1.5rem',      /* 24px */
+                '5xl': '1.75rem',     /* 28px */
+            },
             colors: {
                 primary: {
                     50: '#eef2ff',

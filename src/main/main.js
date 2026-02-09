@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const security = require("./security");
 const { findPython } = require("./python-finder");
+const { registerVoucherSyncHandler } = require("./voucher-sync-handler");
 
 // Load environment variables from .env file in project root
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
@@ -48,10 +49,10 @@ function createWindow() {
   }
   
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 1000,
-    minHeight: 700,
+    width: 1200,
+    height: 750,
+    minWidth: 800,
+    minHeight: 600,
     show: false,
     autoHideMenuBar: !isDev,  // Auto-hide menu bar in production
     webPreferences: {
@@ -530,6 +531,10 @@ ipcMain.handle("sync-stock-items", async (event, config) => {
 ipcMain.handle("sync-godowns", async (event, config) => {
   return handleSync(config, "incremental_sync.py", "godowns", "Godown");
 });
+
+// Register voucher sync handler (sync_vouchers.py)
+registerVoucherSyncHandler();
+if (isDev) console.log("✅ 'sync-vouchers' IPC handler registered successfully");
 
 if (isDev) console.log("🔧 About to register 'incremental-sync' handler...");
 

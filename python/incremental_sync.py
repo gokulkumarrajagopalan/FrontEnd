@@ -1,8 +1,3 @@
-"""
-Incremental Sync Script with AlterID Filtering, Reconciliation & First-Time Sync
-Syncs only new/modified records based on AlterID to handle large volumes efficiently
-"""
-
 import requests
 import json
 import logging
@@ -195,7 +190,7 @@ class IncrementalSyncManager:
         company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
         
         return f"""<ENVELOPE>
-    <HEADER>
+        <HEADER>
         <VERSION>1</VERSION>
         <TALLYREQUEST>Export</TALLYREQUEST>
         <TYPE>Collection</TYPE>

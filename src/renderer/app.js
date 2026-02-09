@@ -471,56 +471,56 @@ class App {
                                 <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image brand-icon-expanded" style="width: 42px; height: 42px;" />
                             </div>
                             <div style="display: flex; flex-direction: column;">
-                                <h1 class="brand-title" style="cursor: pointer; margin: 0; font-size: 1.25rem; font-weight: 700; color: #1e293b !important; letter-spacing: -0.02em; display: block !important;" onclick="window.router.navigate('home')">Talliffy</h1>
-                                <p class="brand-subtitle" style="font-size: 0.75rem; color: #64748b !important; margin: 0; font-weight: 500; display: block !important;">Enterprise Sync Platform</p>
+                                <h1 class="brand-title" style="cursor: pointer; margin: 0; font-size: 1rem; font-weight: 700; color: #1e293b !important; letter-spacing: -0.02em; display: block !important;" onclick="window.router.navigate('home')">Talliffy</h1>
+                                <p class="brand-subtitle" style="font-size: 0.625rem; color: #64748b !important; margin: 0; font-weight: 500; display: block !important;">Enterprise Sync Platform</p>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Navigation Area -->
                     <nav class="flex-1 overflow-y-auto py-4 px-3" id="sidebarNav" style="scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
-                        <div style="padding: 0 0.75rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">NAVIGATION</div>
-                        <a class="nav-link" data-route="company-sync" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">🏢</span>
+                        <div style="padding: 0 0.75rem 0.4rem; font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.35rem;">NAVIGATION</div>
+                        <a class="nav-link" data-route="company-sync" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">🏢</span>
                             <span class="nav-text" style="flex: 1; color: #1e293b;">My Company</span>
                         </a>
-                        <a class="nav-link" data-route="import-company" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">📥</span>
+                        <a class="nav-link" data-route="import-company" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">📥</span>
                             <span class="nav-text" style="flex: 1; color: #1e293b;">Add Company</span>
                         </a>
-                        <a class="nav-link" data-route="settings" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">⚙️</span>
+                        <a class="nav-link" data-route="settings" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">⚙️</span>
                             <span class="nav-text" style="flex: 1; color: #1e293b;">Setting</span>
                         </a>
-                        <a class="nav-link" data-route="profile" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">👤</span>
+                        <a class="nav-link" data-route="profile" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">👤</span>
                             <span class="nav-text" style="flex: 1; color: #1e293b;">Profile</span>
                         </a>
-                        <a class="nav-link" data-route="system-info" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">💻</span>
+                        <a class="nav-link" data-route="system-info" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">💻</span>
                             <span class="nav-text" style="flex: 1; color: #1e293b;">System Info</span>
                         </a>
-                        <a class="nav-link" data-route="tutorial" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">❓</span>
+                        <a class="nav-link" data-route="tutorial" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">❓</span>
                             <span class="nav-text" style="flex: 1; color: #1e293b;">Tutorial</span>
                         </a>
-                        <a class="nav-link" data-route="support" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">📞</span>
+                        <a class="nav-link" data-route="support" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">📞</span>
                             <span class="nav-text" style="flex: 1; color: #1e293b;">Support</span>
                         </a>
-                        <a class="nav-link" data-route="update-app" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">⬇️</span>
+                        <a class="nav-link" data-route="update-app" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">⬇️</span>
                             <span class="nav-text" style="flex: 1; color: #1e293b;">Update App</span>
                         </a>
-                        <a class="nav-link" data-route="purchase" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; margin-bottom: 0.375rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
-                            <span class="nav-icon" style="font-size: 1.25rem; filter: grayscale(0);">💳</span>
+                        <a class="nav-link" data-route="purchase" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; margin-bottom: 0.25rem; border-radius: 8px; font-size: 0.7rem; font-weight: 500; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; color: #1e293b;">
+                            <span class="nav-icon" style="font-size: 0.95rem; filter: grayscale(0);">💳</span>
                             <span class="nav-text" style="flex: 1; color: #1e293b;">Purchase</span>
                         </a>
                     </nav>
                     
                     <!-- Status Bar at bottom of sidebar -->
                     <div style="padding: 1rem; border-top: 1px solid #e2e8f0; background: #ffffff;">
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.75rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.625rem;">
                             <!-- Tally Status -->
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
@@ -538,7 +538,7 @@ class App {
                     
                     <!-- Logout Button -->
                     <div style="padding: 1rem; border-top: 1px solid #e2e8f0; background: #ffffff;">
-                        <button id="logoutBtn" style="width: 100%; padding: 0.75rem; background: #f1f5f9; color: #000000; font-size: 0.875rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <button id="logoutBtn" style="width: 100%; padding: 0.5rem; background: #f1f5f9; color: #000000; font-size: 0.7rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                             <span>Logout</span>
                         </button>
                     </div>
