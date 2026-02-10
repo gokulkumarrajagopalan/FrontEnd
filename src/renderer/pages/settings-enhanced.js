@@ -380,6 +380,31 @@
                         justify-content: center;
                     }
                 }
+                    .sync-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.left-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-card,
+.info-card {
+    height: fit-content;
+}
+
+/* Mobile fallback */
+@media (max-width: 1024px) {
+    .sync-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
             </style>
 
             <div class="settings-container">
@@ -399,12 +424,6 @@
                     </button>
                     <button class="tab" data-tab="notifications">
                         <span>🔔</span> Notifications
-                    </button>
-                    <button class="tab" data-tab="advanced">
-                        <span>⚡</span> Advanced
-                    </button>
-                    <button class="tab" data-tab="help">
-                        <span>❓</span> Help
                     </button>
                     <button class="tab" data-tab="about">
                         <span>ℹ️</span> About
@@ -431,70 +450,97 @@
                 </div>
 
                 <!-- Tab Content: Sync -->
-                <div class="tab-content" data-content="sync">
-                    <div class="settings-card">
-                        <h3 class="settings-section-title">
-                            <span class="settings-section-title-icon">🔌</span>
-                            Tally Prime Connection
-                        </h3>
-                        <div class="form-group">
-                            <label class="form-label" for="tallyPort">Tally Port Number</label>
-                            <input 
-                                type="number" 
-                                id="tallyPort" 
-                                class="form-input" 
-                                value="${settings.tallyPort}"
-                                min="1000"
-                                max="65535"
-                            >
-                            <p class="form-help warning">⚠️ Changes apply immediately to all sync operations. Default: 9000</p>
-                        </div>
-                    </div>
+<div class="tab-content" data-content="sync">
+    <div class="sync-grid">
 
-                    <div class="settings-card">
-                        <h3 class="settings-section-title">
-                            <span class="settings-section-title-icon">⏱️</span>
-                            Auto Sync Settings
-                        </h3>
-                        
-                        ${createSettingsRow(
-                            'Sync on Startup',
-                            'Automatically sync data when the application starts',
-                            createToggleSwitch('autoSyncOnStartup', settings.autoSyncOnStartup)
-                        )}
+        <!-- LEFT COLUMN -->
+        <div class="left-column">
 
-                        <div class="form-group" style="margin-top: var(--ds-space-5);">
-                            <label class="form-label" for="syncInterval">Auto Sync Interval (minutes)</label>
-                            <input 
-                                type="number" 
-                                id="syncInterval" 
-                                class="form-input" 
-                                value="${settings.syncInterval}"
-                                min="0"
-                                max="1440"
-                            >
-                            <p class="form-help info">💡 Set to 0 to disable auto-sync. Recommended: 15-30 minutes</p>
-                        </div>
+            <!-- Tally Prime Connection -->
+            <div class="settings-card">
+                <h3 class="settings-section-title">
+                    <span class="settings-section-title-icon">🔌</span>
+                    Tally Prime Connection
+                </h3>
 
-                        <div class="form-group">
-                            <label class="form-label" for="batchSize">Batch Size</label>
-                            <select class="form-select" id="batchSize">
-                                <option value="500" ${settings.batchSize === 500 ? 'selected' : ''}>500 (Recommended)</option>
-                                <option value="1000" ${settings.batchSize === 1000 ? 'selected' : ''}>1000</option>
-                                <option value="2000" ${settings.batchSize === 2000 ? 'selected' : ''}>2000</option>
-                            </select>
-                            <p class="form-help">Number of records to sync in each batch</p>
-                        </div>
-
-                        <div class="info-card">
-                            <div class="info-card-title">📊 Current Sync Status</div>
-                            <div class="info-card-content">
-                                <span class="status-indicator status-success"></span>
-                                <span>Ready to sync</span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="tallyPort">Tally Port Number</label>
+                    <input 
+                        type="number"
+                        id="tallyPort"
+                        class="form-input"
+                        value="${settings.tallyPort}"
+                        min="1000"
+                        max="65535"
+                    >
+                    <p class="form-help warning">
+                        ⚠️ Changes apply immediately. Default: 9000
+                    </p>
                 </div>
+            </div>
+
+            <!-- 📊 Current Sync Status (MOVED HERE) -->
+            <div class="info-card" style="margin-top: 1rem;">
+                <div class="info-card-title">📊 Current Sync Status</div>
+                <div class="info-card-content">
+                    <span class="status-indicator status-success"></span>
+                    <span>Ready to sync</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="settings-card">
+            <h3 class="settings-section-title">
+                <span class="settings-section-title-icon">⏱️</span>
+                Auto Sync Settings
+            </h3>
+
+            ${createSettingsRow(
+                'Sync on Startup',
+                'Automatically sync data when the application starts',
+                createToggleSwitch('autoSyncOnStartup', settings.autoSyncOnStartup)
+            )}
+
+            <div class="form-group">
+                <label class="form-label" for="syncInterval">
+                    Auto Sync Interval (minutes)
+                </label>
+                <input 
+                    type="number"
+                    id="syncInterval"
+                    class="form-input"
+                    value="${settings.syncInterval}"
+                    min="0"
+                    max="1440"
+                >
+                <p class="form-help info">
+                    💡 0 disables auto-sync. Recommended: 15–30 minutes
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="batchSize">Batch Size</label>
+                <select class="form-select" id="batchSize">
+                    <option value="500" ${settings.batchSize === 500 ? 'selected' : ''}>
+                        500 (Recommended)
+                    </option>
+                    <option value="1000" ${settings.batchSize === 1000 ? 'selected' : ''}>
+                        1000
+                    </option>
+                    <option value="2000" ${settings.batchSize === 2000 ? 'selected' : ''}>
+                        2000
+                    </option>
+                </select>
+                <p class="form-help">Records per sync batch</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
 
                 <!-- Tab Content: Notifications -->
                 <div class="tab-content" data-content="notifications">

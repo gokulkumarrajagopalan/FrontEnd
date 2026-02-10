@@ -469,7 +469,7 @@ body {
     display: flex;
     align-items: center;
     gap: var(--ds-space-2);
-    font-size: var(--ds-text-2xs);
+    font-size: var(--ds-text-md);   /* BIG & clear */
     font-weight: var(--ds-weight-semibold);
     color: var(--ds-sidebar-text-muted);
 }

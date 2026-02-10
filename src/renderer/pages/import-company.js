@@ -2,29 +2,25 @@
     const getTemplate = () => `
     <div id="importCompanyPageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
         <!-- Import Header -->
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 text-gray-900">
-            <div class="flex items-center justify-between gap-6 flex-wrap">
-                <div>
-                    <h2 class="text-2xl font-bold mb-1">🏢 Import Companies from Tally</h2>
-                    <p class="text-gray-600 text-sm">Connect to Tally and import your company data seamlessly</p>
-                </div>
-                <div class="flex flex-col items-center gap-3">
-                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
-                        <p class="text-2xl font-bold text-blue-600" id="tallyCompanyCount">0</p>
-                        <p class="text-xs text-blue-500">Available</p>
-                    </div>
-                    <button id="fetchCompaniesBtn" class="px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold text-sm flex items-center gap-2" style="background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 100%); color: white; border: none;">
-                        <span>🔗</span>
-                        <span>Fetch from Tally</span>
-                    </button>
-                    <style>
-                        #fetchCompaniesBtn:hover {
-                            background: linear-gradient(135deg, var(--primary-800) 0%, var(--primary-600) 100%);
-                        }
-                    </style>
-                </div>
-            </div>
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 text-gray-900">
+    <div class="flex items-center justify-between">
+        
+        <!-- Left content -->
+        <div>
+            <h2 class="text-xl font-bold mb-1">🏢 Import Companies from Tally</h2>
+            <p class="text-gray-600 text-sm">
+                Connect to Tally and import your company data seamlessly
+            </p>
         </div>
+
+        <!-- Right stats box -->
+        <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-center">
+            <p class="text-2xl font-bold text-blue-600" id="tallyCompanyCount">0</p>
+            <p class="text-xs text-blue-500">Available</p>
+        </div>
+
+    </div>
+</div>
 
         <!-- Status Messages -->
         <div id="statusMessage" style="display: none;" class="p-4 rounded-xl border border-gray-200 bg-gray-50 shadow-sm text-gray-900"></div>
