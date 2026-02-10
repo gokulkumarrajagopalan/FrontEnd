@@ -19,13 +19,21 @@ class AppInitializer {
                 return;
             }
 
-            // Run app-start incremental sync
-            await this.runAppStartSync();
+            // Schedule auto-sync 30 seconds after app opens
+            console.log('⏱️ Auto-sync scheduled to start in 30 seconds...');
+            this._autoSyncTimer = setTimeout(async () => {
+                try {
+                    console.log('🔄 Auto-sync starting (30s after app open)...');
+                    await this.runAppStartSync();
+                } catch (err) {
+                    console.error('❌ Auto-sync error:', err);
+                }
+            }, 30 * 1000);
 
             // Start background sync scheduler (2-hour interval)
             this.initializeBackgroundSyncScheduler();
 
-            console.log('✅ App Sync System initialized');
+            console.log('✅ App Sync System initialized (auto-sync in 30s)');
         } catch (error) {
             console.error('❌ Error initializing app sync system:', error);
         }
@@ -419,6 +427,11 @@ class AppInitializer {
      * Stop all sync systems (called on logout)
      */
     static stopAllSyncSystems() {
+        // Clear pending auto-sync timer
+        if (this._autoSyncTimer) {
+            clearTimeout(this._autoSyncTimer);
+            this._autoSyncTimer = null;
+        }
         this.stopSyncScheduler();
         this.stopBackgroundSyncScheduler();
         console.log('✅ All sync systems stopped');

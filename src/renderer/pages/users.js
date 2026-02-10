@@ -319,7 +319,11 @@
             const confirmPassword = document.getElementById('confirmPassword').value;
 
             if (password && password !== confirmPassword) {
-                this.showAlert('Passwords do not match', 'error');
+                if (window.Toast) {
+                    window.Toast.error('Passwords do not match', 'Validation Error');
+                } else {
+                    this.showAlert('Passwords do not match', 'error');
+                }
                 return;
             }
 
@@ -353,15 +357,27 @@
                 });
 
                 if (response.ok) {
-                    this.showAlert('User saved successfully', 'success');
+                    if (window.Toast) {
+                        window.Toast.success('User saved successfully!', 'Success');
+                    } else {
+                        this.showAlert('User saved successfully', 'success');
+                    }
                     this.closeModal();
                     this.loadUsers();
                 } else {
                     const error = await response.json();
-                    this.showAlert(error.message || 'Failed to save user', 'error');
+                    if (window.Toast) {
+                        window.Toast.error(error.message || 'Failed to save user', 'Error');
+                    } else {
+                        this.showAlert(error.message || 'Failed to save user', 'error');
+                    }
                 }
             } catch (error) {
-                this.showAlert('Error: ' + error.message, 'error');
+                if (window.Toast) {
+                    window.Toast.error('Error: ' + error.message, 'Error');
+                } else {
+                    this.showAlert('Error: ' + error.message, 'error');
+                }
             }
         }
 
@@ -373,13 +389,25 @@
                 });
 
                 if (response.ok) {
-                    this.showAlert('User deleted successfully', 'success');
+                    if (window.Toast) {
+                        window.Toast.success('User deleted successfully!', 'Success');
+                    } else {
+                        this.showAlert('User deleted successfully', 'success');
+                    }
                     this.loadUsers();
                 } else {
-                    this.showAlert('Failed to delete user', 'error');
+                    if (window.Toast) {
+                        window.Toast.error('Failed to delete user', 'Error');
+                    } else {
+                        this.showAlert('Failed to delete user', 'error');
+                    }
                 }
             } catch (error) {
-                this.showAlert('Error: ' + error.message, 'error');
+                if (window.Toast) {
+                    window.Toast.error('Error: ' + error.message, 'Error');
+                } else {
+                    this.showAlert('Error: ' + error.message, 'error');
+                }
             }
         }
 
@@ -395,11 +423,19 @@
                 });
 
                 if (response.ok) {
-                    this.showAlert(`User ${!currentStatus ? 'activated' : 'deactivated'}`, 'success');
+                    if (window.Toast) {
+                        window.Toast.success(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully!`, 'Success');
+                    } else {
+                        this.showAlert(`User ${!currentStatus ? 'activated' : 'deactivated'}`, 'success');
+                    }
                     this.loadUsers();
                 }
             } catch (error) {
-                this.showAlert('Error: ' + error.message, 'error');
+                if (window.Toast) {
+                    window.Toast.error('Error: ' + error.message, 'Error');
+                } else {
+                    this.showAlert('Error: ' + error.message, 'error');
+                }
             }
         }
 

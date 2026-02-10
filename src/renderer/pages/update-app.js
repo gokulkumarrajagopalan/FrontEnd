@@ -63,10 +63,16 @@
             checkBtn.addEventListener('click', () => {
                 checkBtn.textContent = 'Checking...';
                 checkBtn.disabled = true;
+                checkBtn.classList.add('btn-loading');
                 setTimeout(() => {
                     checkBtn.textContent = 'Check for Updates';
                     checkBtn.disabled = false;
-                    alert('No new updates available.');
+                    checkBtn.classList.remove('btn-loading');
+                    if (window.Toast) {
+                        window.Toast.info('You are running the latest version', 'Up to Date');
+                    } else {
+                        alert('No new updates available.');
+                    }
                 }, 2000);
             });
         }

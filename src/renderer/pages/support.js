@@ -65,7 +65,11 @@
         if (form) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
-                alert('Thank you for contacting support! We will get back to you soon.');
+                if (window.Toast) {
+                    window.Toast.success('Thank you for contacting support! We will get back to you soon.', 'Message Sent');
+                } else {
+                    alert('Thank you for contacting support! We will get back to you soon.');
+                }
                 form.reset();
             });
         }

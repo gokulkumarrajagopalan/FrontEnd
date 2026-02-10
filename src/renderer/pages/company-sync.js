@@ -23,6 +23,37 @@
             width: 20px;
             height: 20px;
         }
+
+        /* Sync Progress Bar Styles */
+        .sync-progress-container {
+            width: 100%;
+            margin-top: 8px;
+            display: none; /* Hidden by default */
+        }
+        
+        .sync-progress-track {
+            width: 100%;
+            height: 6px;
+            background-color: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        
+        .sync-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1346A8, #5AB3FF);
+            width: 0%;
+            transition: width 0.3s ease-out;
+            border-radius: 3px;
+        }
+        
+        .sync-progress-text {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-align: center;
+            font-weight: 500;
+        }
     </style>
     <div id="companySyncPageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
                <!-- Combined Search & Table Section -->
@@ -381,7 +412,8 @@
                 { name: 'Cost Centres', api: window.electronAPI.syncCostCenters },
                 { name: 'Voucher Types', api: window.electronAPI.syncVoucherTypes },
                 { name: 'Currencies', api: window.electronAPI.syncCurrencies },
-                { name: 'Tax Units', api: window.electronAPI.syncTaxUnits }
+                { name: 'Tax Units', api: window.electronAPI.syncTaxUnits },
+                { name: 'Vouchers', api: window.electronAPI.syncVouchers }
             ];
 
             let successCount = 0;
@@ -389,10 +421,15 @@
 
             for (let i = 0; i < syncSteps.length; i++) {
                 const step = syncSteps[i];
+                const percentage = Math.round(((i + 1) / syncSteps.length) * 100);
+
                 // Update progress in SyncStateManager (loader updated separately below)
                 if (window.syncStateManager) {
                     window.syncStateManager.updateProgress(i, `${company.name} - ${step.name}`);
                 }
+                
+                // Update local progress bar
+                updateCompanySyncProgress(company.id, percentage, step.name);
                 
                 console.log(`   🔄 Syncing ${step.name}...`);
 
@@ -404,7 +441,8 @@
                     continue;
                 }
 
-                const result = await step.api({
+                // Build sync params — add extra fields for Vouchers
+                const syncParams = {
                     companyId: company.id,
                     userId: currentUser?.userId || 1,
                     authToken: authToken,
@@ -412,7 +450,26 @@
                     tallyPort: tallyPort,
                     backendUrl: backendUrl,
                     companyName: company.name
-                });
+                };
+                if (step.name === 'Vouchers') {
+                    syncParams.companyGuid = company.companyGuid || company.guid || '';
+                    // Convert ISO date (2021-04-01) to Tally format (01-Apr-2021)
+                    const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    const _isoToTally = (iso) => {
+                        if (!iso || iso.length < 10) return null;
+                        const [y, m, d] = iso.split('-');
+                        return `${d}-${_months[parseInt(m,10)-1]}-${y}`;
+                    };
+                    const fromISO = company.booksStart || company.financialYearStart || '';
+                    syncParams.fromDate = _isoToTally(fromISO) || '01-Apr-2024';
+                    // Compute toDate: current date in Tally format
+                    const _now = new Date();
+                    syncParams.toDate = `${String(_now.getDate()).padStart(2,'0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`;
+                    syncParams.lastAlterID = 0;
+                    console.log(`   📅 Voucher date range: ${syncParams.fromDate} to ${syncParams.toDate}`);
+                    console.log(`   🔑 Company GUID: ${syncParams.companyGuid}`);
+                }
+                const result = await step.api(syncParams);
 
                 if (result.success) {
                     successCount++;
@@ -446,6 +503,11 @@
                     window.syncStateManager.endSync(true, `${successCount} masters synced for ${company.name}`);
                 }
                 button.innerHTML = getDefaultSyncButtonHTML();
+                // Hide progress bar after a short delay
+                setTimeout(() => {
+                    const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
+                    if (progressContainer) progressContainer.style.display = 'none';
+                }, 2000);
             } else if (successCount > 0) {
                 window.notificationService.warning(`⚠️ Partial sync for ${company.name}: ${successCount}/${syncSteps.length} masters succeeded.`);
                 company.syncStatus = 'pending';
@@ -454,6 +516,11 @@
                     window.syncStateManager.endSync(true, `Partial sync: ${successCount}/${syncSteps.length} completed`);
                 }
                 button.innerHTML = getDefaultSyncButtonHTML();
+                 // Hide progress bar after a short delay
+                 setTimeout(() => {
+                    const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
+                    if (progressContainer) progressContainer.style.display = 'none';
+                }, 2000);
             } else {
                 window.notificationService.error(`❌ Failed to sync any masters for ${company.name}. Check logs for details.`);
                 company.syncStatus = 'error';
@@ -462,6 +529,11 @@
                     window.syncStateManager.endSync(false, `Failed to sync ${company.name}`);
                 }
                 button.innerHTML = getDefaultSyncButtonHTML();
+                 // Hide progress bar after a short delay
+                 setTimeout(() => {
+                    const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
+                    if (progressContainer) progressContainer.style.display = 'none';
+                }, 2000);
             }
 
             // Reload companies to refresh table
@@ -474,12 +546,27 @@
                 window.syncStateManager.endSync(false, error.message);
             }
             button.innerHTML = getDefaultSyncButtonHTML();
+            // Hide progress bar in case of error
+             const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
+             if (progressContainer) progressContainer.style.display = 'none';
         } finally {
             isSyncing = false;
             currentSyncingCompanyId = null;
             
             // Update all button states
             updateSyncButtonStates();
+        }
+    }
+
+    function updateCompanySyncProgress(companyId, percentage, stepName) {
+        const container = document.getElementById(`sync-progress-container-${companyId}`);
+        const fill = document.getElementById(`sync-progress-fill-${companyId}`);
+        const text = document.getElementById(`sync-progress-text-${companyId}`);
+
+        if (container && fill && text) {
+            container.style.display = 'block';
+            fill.style.width = `${percentage}%`;
+            text.textContent = `${percentage}% - ${stepName}`;
         }
     }
 
@@ -575,7 +662,16 @@
                     <span class="text-sm text-gray-900 font-medium">${company.lastSyncDate ? new Date(company.lastSyncDate).toLocaleString() : '--'}</span>
                 </td>
                 <td class="px-6 py-5">
-                    <button class="sync-company-btn px-4 py-2 text-white rounded-xl shadow-md hover:shadow-lg transition-all font-semibold text-sm" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);" data-id="${company.id}">🔄 Sync</button>
+                    <div class="flex flex-col items-center">
+                        <button class="sync-company-btn px-4 py-2 text-white rounded-xl shadow-md hover:shadow-lg transition-all font-semibold text-sm" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);" data-id="${company.id}">🔄 Sync</button>
+                        <!-- Progress Bar Container -->
+                        <div id="sync-progress-container-${company.id}" class="sync-progress-container">
+                            <div class="sync-progress-track">
+                                <div id="sync-progress-fill-${company.id}" class="sync-progress-fill"></div>
+                            </div>
+                            <div id="sync-progress-text-${company.id}" class="sync-progress-text">0%</div>
+                        </div>
+                    </div>
                 </td>
             </tr>
         `;

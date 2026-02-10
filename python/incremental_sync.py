@@ -306,7 +306,8 @@ class IncrementalSyncManager:
             if entity_type == 'Ledger':
                 # Extract GST registration details from LEDGSTREGDETAILS.LIST
                 gst_reg = elem.find('.//LEDGSTREGDETAILS.LIST')
-                gst_applicable = get_text('GSTAPPLICABLE') or ''
+                gst_applicable_text = get_text('GSTAPPLICABLE') or ''
+                gst_applicable = gst_applicable_text.lower() in ('applicable', 'yes', 'true')
                 gst_registration_type = ''
                 gst_gstin = ''
                 gst_place_of_supply = ''
@@ -317,7 +318,7 @@ class IncrementalSyncManager:
                 gst_is_other_territory = False
                 gst_consider_purchase_export = False
                 gst_registration_date = ''
-                gst_state_name = ''
+                gst_state = ''
 
                 if gst_reg is not None:
                     def gst_text(tag):
@@ -335,7 +336,38 @@ class IncrementalSyncManager:
                     gst_is_other_territory = gst_text('ISOTHERTERRITORYASSESSEE') == 'Yes'
                     gst_consider_purchase_export = gst_text('CONSIDERPURCHASEFOREXPORT') == 'Yes'
                     gst_registration_date = gst_text('GSTREGISTRATIONDATE')
-                    gst_state_name = gst_text('STATENAME')
+                    gst_state = gst_text('STATENAME') or gst_place_of_supply
+
+                # Extract mailing details
+                mailing = elem.find('.//LEDMAILINGDETAILS.LIST')
+                mailing_name = ''
+                address1 = ''
+                address2 = ''
+                address3 = ''
+                address4 = ''
+                mailing_state = ''
+                mailing_country = ''
+                mailing_pincode = ''
+                mailing_applicable_from = ''
+                if mailing is not None:
+                    def mail_text(tag):
+                        child = mailing.find(tag)
+                        if child is not None and child.text:
+                            return child.text.strip()
+                        return ''
+                    mailing_name = mail_text('MAILINGNAME')
+                    mailing_applicable_from = mail_text('APPLICABLEFROM')
+                    mailing_state = mail_text('STATE')
+                    mailing_country = mail_text('COUNTRY')
+                    mailing_pincode = mail_text('PINCODE')
+                    # Address lines are in ADDRESS.LIST
+                    addr_list = mailing.find('ADDRESS.LIST')
+                    if addr_list is not None:
+                        addrs = [a.text.strip() for a in addr_list.findall('ADDRESS') if a.text]
+                        address1 = addrs[0] if len(addrs) > 0 else ''
+                        address2 = addrs[1] if len(addrs) > 1 else ''
+                        address3 = addrs[2] if len(addrs) > 2 else ''
+                        address4 = addrs[3] if len(addrs) > 3 else ''
 
                 record.update({
                     'alias': get_text('ONLYALIAS') or get_text('ALIAS'),
@@ -347,7 +379,9 @@ class IncrementalSyncManager:
                     'isCostCentresOn': get_text('ISCOSTCENTRESON') == 'Yes',
                     'openingBalance': float(get_text('OPENINGBALANCE') or 0),
                     'phone': get_text('LEDGERPHONE'),
+                    'countryIsdCode': get_text('LEDGERCOUNTRYISDCODE'),
                     'mobile': get_text('LEDGERMOBILE'),
+                    'contact': get_text('LEDGERCONTACT'),
                     'email': get_text('EMAIL'),
                     'website': get_text('WEBSITE'),
                     'currencyName': get_text('CURRENCYNAME'),
@@ -365,7 +399,17 @@ class IncrementalSyncManager:
                     'gstIsOtherTerritoryAssessee': gst_is_other_territory,
                     'gstConsiderPurchaseForExport': gst_consider_purchase_export,
                     'gstRegistrationDate': gst_registration_date,
-                    'gstStateName': gst_state_name,
+                    'gstState': gst_state,
+                    # Mailing details
+                    'mailingName': mailing_name,
+                    'address1': address1,
+                    'address2': address2,
+                    'address3': address3,
+                    'address4': address4,
+                    'mailingState': mailing_state,
+                    'mailingCountry': mailing_country,
+                    'mailingPincode': mailing_pincode,
+                    'mailingApplicableFrom': mailing_applicable_from,
                 })
             elif entity_type == 'VoucherType':
                 # Extract numbering method from nested VOUCHERNUMBERSERIES.LIST
@@ -624,6 +668,15 @@ class IncrementalSyncManager:
                 elif raw_balance is None:
                     raw_balance = 0.0
 
+                # Helper: convert Tally YYYYMMDD date to ISO YYYY-MM-DD or None
+                def tally_date_to_iso(ds):
+                    if not ds or len(ds) != 8:
+                        return None
+                    try:
+                        return f"{ds[:4]}-{ds[4:6]}-{ds[6:8]}"
+                    except Exception:
+                        return None
+
                 prepared.append({
                     'userId': user_id,
                     'cmpId': company_id,
@@ -634,31 +687,43 @@ class IncrementalSyncManager:
                     'ledAlias': (record.get('alias', '') or '')[:255],
                     'ledParent': (record.get('parent', '') or '')[:255],
                     'ledDescription': (record.get('description') or '')[:500],
-                    'ledPhone': (record.get('phone') or '')[:50],
-                    'ledMobile': (record.get('mobile') or '')[:50],
+                    'ledPhone': (record.get('phone') or '')[:20],
+                    'ledCountryIsdCode': (record.get('countryIsdCode') or '')[:10],
+                    'ledMobile': (record.get('mobile') or '')[:20],
+                    'ledContact': (record.get('contact') or '')[:100],
                     'ledEmail': (record.get('email') or '')[:100],
-                    'ledWebsite': (record.get('website') or '')[:200],
-                    'currencyName': (record.get('currencyName') or '')[:20],
-                    'incomeTaxNumber': (record.get('incometaxNumber') or '')[:20],
-                    'vatTinNumber': (record.get('vatTINNumber') or '')[:20],
+                    'ledWebsite': (record.get('website') or '')[:255],
+                    'currencyName': (record.get('currencyName') or '')[:50] or None,
+                    'incomeTaxNumber': (record.get('incometaxNumber') or '')[:50],
+                    'vatTinNumber': (record.get('vatTINNumber') or '')[:50],
                     'ledOpeningBalance': raw_balance,
                     'ledBillwiseOn': bool(record.get('isBillWiseOn', False)),
                     'ledIsCostcentreOn': bool(record.get('isCostCentresOn', False)),
                     'isRevenue': bool(record.get('isRevenue', False)),
                     'isActive': True,
-                    # GST fields — truncated to safe column widths
-                    'gstApplicable': (record.get('gstApplicable') or '')[:20],
-                    'gstRegistrationType': (record.get('gstRegistrationType') or '')[:20],
-                    'gstGstin': (record.get('gstGstin') or '')[:20],
-                    'gstPlaceOfSupply': (record.get('gstPlaceOfSupply') or '')[:100],
-                    'gstDetailsApplicableFrom': (record.get('gstDetailsApplicableFrom') or '')[:20],
+                    # GST fields — types must match backend entity exactly
+                    'gstApplicable': bool(record.get('gstApplicable', False)),
+                    'gstRegistrationType': (record.get('gstRegistrationType') or '')[:50] or None,
+                    'gstGstin': (record.get('gstGstin') or '')[:15] or None,
+                    'gstPlaceOfSupply': (record.get('gstPlaceOfSupply') or '')[:100] or None,
+                    'gstDetailsApplicableFrom': tally_date_to_iso(record.get('gstDetailsApplicableFrom')),
                     'gstIsCommonParty': bool(record.get('gstIsCommonParty', False)),
                     'gstIsFreezone': bool(record.get('gstIsFreezone', False)),
                     'gstIsTransporter': bool(record.get('gstIsTransporter', False)),
                     'gstIsOtherTerritoryAssessee': bool(record.get('gstIsOtherTerritoryAssessee', False)),
                     'gstConsiderPurchaseForExport': bool(record.get('gstConsiderPurchaseForExport', False)),
-                    'gstRegistrationDate': (record.get('gstRegistrationDate') or '')[:20],
-                    'gstStateName': (record.get('gstStateName') or '')[:100],
+                    'gstRegistrationDate': tally_date_to_iso(record.get('gstRegistrationDate')),
+                    'gstState': (record.get('gstState') or '')[:100] or None,
+                    # Mailing / Contact details
+                    'ledMailingName': (record.get('mailingName') or '')[:255] or None,
+                    'ledAddress1': (record.get('address1') or '')[:255] or None,
+                    'ledAddress2': (record.get('address2') or '')[:255] or None,
+                    'ledAddress3': (record.get('address3') or '')[:255] or None,
+                    'ledAddress4': (record.get('address4') or '')[:255] or None,
+                    'ledState': (record.get('mailingState') or '')[:100] or None,
+                    'ledCountry': (record.get('mailingCountry') or '')[:100] or None,
+                    'ledPincode': (record.get('mailingPincode') or '')[:20] or None,
+                    'mailingDetailsApplicableFrom': tally_date_to_iso(record.get('mailingApplicableFrom')),
                 })
             
             elif entity_type == 'StockItem':

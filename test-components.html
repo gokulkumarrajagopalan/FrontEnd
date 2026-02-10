@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Components Test</title>
+    <link rel="stylesheet" href="src/renderer/styles/design-system.css">
+    <link rel="stylesheet" href="src/renderer/styles/design-system-v2.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            padding: 40px;
+            background: #F9FAFB;
+        }
+        .test-section {
+            background: white;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #111827;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .test-card {
+            border: 1px solid #E5E7EB;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        code {
+            background: #F3F4F6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: #111827; margin-bottom: 40px;">🎨 Talliffy UI Components Test</h1>
+
+    <!-- Toast Notifications Test -->
+    <div class="test-section">
+        <h2>🔔 Toast Notifications</h2>
+        <p style="color: #6B7280; margin-bottom: 20px;">Click buttons to test different notification types</p>
+        <div class="button-group">
+            <button class="btn btn-primary" onclick="testToastSuccess()">
+                ✅ Success
+            </button>
+            <button class="btn btn-secondary" onclick="testToastError()">
+                ❌ Error
+            </button>
+            <button class="btn btn-secondary" onclick="testToastWarning()">
+                ⚠️ Warning
+            </button>
+            <button class="btn btn-secondary" onclick="testToastInfo()">
+                ℹ️ Info
+            </button>
+            <button class="btn btn-secondary" onclick="testToastWithActions()">
+                🎯 With Actions
+            </button>
+        </div>
+        <div class="test-card">
+            <strong>Expected Result:</strong> Toast notification slides in from the right, auto-dismisses after 5 seconds
+        </div>
+    </div>
+
+    <!-- Command Palette Test -->
+    <div class="test-section">
+        <h2>⌨️ Command Palette</h2>
+        <p style="color: #6B7280; margin-bottom: 20px;">Press <code>Ctrl+K</code> to open the command palette</p>
+        <div class="button-group">
+            <button class="btn btn-primary" onclick="openCommandPalette()">
+                Open Command Palette
+            </button>
+        </div>
+        <div class="test-card">
+            <strong>Expected Result:</strong> Modal overlay appears with search input. Use arrow keys to navigate, Enter to select, Esc to close.
+        </div>
+    </div>
+
+    <!-- Button States Test -->
+    <div class="test-section">
+        <h2>🎨 Button States</h2>
+        <p style="color: #6B7280; margin-bottom: 20px;">Hover over buttons to see lift effect</p>
+        
+        <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 16px; color: #374151; margin-bottom: 10px;">Primary Buttons</h3>
+            <div class="button-group">
+                <button class="btn btn-primary">💾 Save</button>
+                <button class="btn btn-primary btn-loading">⏳ Loading</button>
+                <button class="btn btn-primary" disabled>🚫 Disabled</button>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 16px; color: #374151; margin-bottom: 10px;">Secondary Buttons</h3>
+            <div class="button-group">
+                <button class="btn btn-secondary">🔄 Reset</button>
+                <button class="btn btn-secondary btn-loading">⏳ Loading</button>
+                <button class="btn btn-secondary" disabled>🚫 Disabled</button>
+            </div>
+        </div>
+
+        <div>
+            <h3 style="font-size: 16px; color: #374151; margin-bottom: 10px;">Danger Buttons</h3>
+            <div class="button-group">
+                <button class="btn btn-danger">🗑️ Delete</button>
+                <button class="btn btn-danger btn-loading">⏳ Loading</button>
+                <button class="btn btn-danger" disabled>🚫 Disabled</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Badges Test -->
+    <div class="test-section">
+        <h2>🏷️ Badges & Status Indicators</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 16px; color: #374151; margin-bottom: 10px;">Badges</h3>
+            <div class="button-group">
+                <span class="badge badge-success">✅ Synced</span>
+                <span class="badge badge-warning">⏳ Pending</span>
+                <span class="badge badge-danger">❌ Failed</span>
+                <span class="badge badge-info">ℹ️ New</span>
+                <span class="badge badge-gray">⚪ Draft</span>
+            </div>
+        </div>
+
+        <div>
+            <h3 style="font-size: 16px; color: #374151; margin-bottom: 10px;">Status Indicators</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div><span class="status-indicator status-success"></span> Synced</div>
+                <div><span class="status-indicator status-warning"></span> Pending</div>
+                <div><span class="status-indicator status-danger"></span> Failed</div>
+                <div><span class="status-indicator status-info status-pulse"></span> Syncing (pulsing)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Switches Test -->
+    <div class="test-section">
+        <h2>🎚️ Toggle Switches</h2>
+        
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-weight: 500; color: #111827;">Enable Notifications</div>
+                    <div style="font-size: 14px; color: #6B7280;">Receive desktop notifications</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-weight: 500; color: #111827;">Sound Effects</div>
+                    <div style="font-size: 14px; color: #6B7280;">Play sound on events</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-weight: 500; color: #111827;">Disabled Toggle</div>
+                    <div style="font-size: 14px; color: #6B7280;">Cannot be changed</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" disabled>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading States Test -->
+    <div class="test-section">
+        <h2>⏳ Loading States</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 16px; color: #374151; margin-bottom: 10px;">Skeleton Loaders</h3>
+            <div style="max-width: 400px;">
+                <div class="skeleton skeleton-line"></div>
+                <div class="skeleton skeleton-line"></div>
+                <div class="skeleton skeleton-line short"></div>
+            </div>
+        </div>
+
+        <div>
+            <h3 style="font-size: 16px; color: #374151; margin-bottom: 10px;">Button Loading States</h3>
+            <div class="button-group">
+                <button class="btn btn-primary btn-loading">Saving...</button>
+                <button class="btn btn-secondary btn-loading">Processing...</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="src/renderer/components/toast-notifications.js"></script>
+    <script src="src/renderer/components/command-palette.js"></script>
+
+    <script>
+        // Toast Test Functions
+        function testToastSuccess() {
+            Toast.success('Settings saved successfully!', 'Success');
+        }
+
+        function testToastError() {
+            Toast.error('Failed to connect to Tally Prime', 'Connection Error');
+        }
+
+        function testToastWarning() {
+            Toast.warning('Sync will overwrite existing data', 'Warning');
+        }
+
+        function testToastInfo() {
+            Toast.info('A new update is available', 'Update Available');
+        }
+
+        function testToastWithActions() {
+            Toast.warning('Sync failed for ABC Company', 'Sync Error', {
+                duration: 10000,
+                actions: [
+                    {
+                        label: 'Retry Now',
+                        primary: true,
+                        onClick: () => {
+                            Toast.info('Retrying sync...', 'Action');
+                        }
+                    },
+                    {
+                        label: 'View Logs',
+                        onClick: () => {
+                            Toast.info('Opening logs...', 'Action');
+                        }
+                    }
+                ]
+            });
+        }
+
+        function openCommandPalette() {
+            if (window.CommandPalette) {
+                window.CommandPalette.open();
+            }
+        }
+
+        // Show welcome message
+        setTimeout(() => {
+            Toast.info('Welcome to Talliffy UI Components Test! Try all the features.', 'Welcome', {
+                duration: 8000
+            });
+        }, 500);
+    </script>
+</body>
+</html>

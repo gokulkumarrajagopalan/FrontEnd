@@ -163,6 +163,34 @@ class VoucherSyncManager:
         value = self.get_text(elem, tag, '0')
         return self.parse_tally_qty(value)
     
+    # ─── Backend Format Conversion ────────────────────────────────
+    
+    def _snake_to_camel(self, name: str) -> str:
+        """Convert snake_case to camelCase: 'voucher_number' → 'voucherNumber'"""
+        components = name.split('_')
+        return components[0] + ''.join(x.title() for x in components[1:])
+    
+    def _convert_keys_to_camel(self, data):
+        """Recursively convert all dict keys from snake_case to camelCase.
+        Also renames: all_ledger_entries → ledgerEntries, all_inventory_entries → inventoryEntries
+        """
+        RENAMES = {
+            'allLedgerEntries': 'ledgerEntries',
+            'allInventoryEntries': 'inventoryEntries',
+            'costCategoryAllocations': 'costCategoryAllocations',
+            'costCentreAllocations': 'costCentreAllocations',
+        }
+        if isinstance(data, dict):
+            result = {}
+            for k, v in data.items():
+                camel = self._snake_to_camel(k)
+                camel = RENAMES.get(camel, camel)
+                result[camel] = self._convert_keys_to_camel(v)
+            return result
+        elif isinstance(data, list):
+            return [self._convert_keys_to_camel(item) for item in data]
+        return data
+    
     def calculate_due_date(self, bill_date: Optional[str], credit_period: str) -> Optional[str]:
         """Calculate due date = bill_date + credit_period days"""
         if not bill_date or not credit_period:
@@ -596,46 +624,82 @@ class VoucherSyncManager:
     
     def save_vouchers_to_backend(self, vouchers: List[Dict], company_id: int, 
                                   user_id: int, company_guid: str) -> Tuple[bool, int]:
-        """Send voucher data to backend /api/vouchers/bulk-upsert endpoint.
+        """Send voucher data to backend /vouchers/sync endpoint.
         
-        Backend will handle:
-        - Insert/Update voucher header
-        - Insert/Update all nested entries (ledger, bill, cost, inventory, batch)
-        - Use PostgreSQL transaction for atomicity
+        Backend expects a flat JSON array of vouchers in camelCase format,
+        each containing cmpId and userId.
         """
         try:
             if not vouchers:
                 return True, 0
             
-            payload = {
-                'companyId': company_id,
-                'companyGuid': company_guid,
-                'userId': user_id,
-                'vouchers': vouchers
-            }
+            # Convert each voucher to camelCase and propagate cmpId/userId/voucherGuid
+            # to all nested entries (backend requires NOT NULL on child table FKs)
+            backend_vouchers = []
+            for v in vouchers:
+                camel_v = self._convert_keys_to_camel(v)
+                camel_v['cmpId'] = company_id
+                camel_v['userId'] = user_id
+                
+                # Get parent voucher's GUID for child FK references
+                voucher_guid = camel_v.get('guid', '')
+                
+                # Propagate cmpId/userId/voucherGuid to nested ledger entries
+                # (voucher_ledger_entries.voucher_guid NOT NULL)
+                for le in camel_v.get('ledgerEntries', []):
+                    le['cmpId'] = company_id
+                    le['userId'] = user_id
+                    le['voucherGuid'] = voucher_guid
+                    # Also propagate to bill allocations inside ledger entries
+                    for ba in le.get('billAllocations', []):
+                        ba['cmpId'] = company_id
+                        ba['voucherGuid'] = voucher_guid
+                    # And cost category/centre allocations
+                    for cc in le.get('costCategoryAllocations', []):
+                        cc['cmpId'] = company_id
+                        cc['voucherGuid'] = voucher_guid
+                        for cca in cc.get('costCentreAllocations', []):
+                            cca['cmpId'] = company_id
+                            cca['voucherGuid'] = voucher_guid
+                
+                # Propagate cmpId/userId/voucherGuid to nested inventory entries
+                # (voucher_inventory_entries.voucher_id / voucher_guid NOT NULL)
+                for ie in camel_v.get('inventoryEntries', []):
+                    ie['cmpId'] = company_id
+                    ie['userId'] = user_id
+                    ie['voucherGuid'] = voucher_guid
+                    # Also propagate to batch allocations inside inventory entries
+                    for bat in ie.get('batchAllocations', []):
+                        bat['cmpId'] = company_id
+                        bat['voucherGuid'] = voucher_guid
+                
+                backend_vouchers.append(camel_v)
             
-            url = f"{self.backend_url}/api/vouchers/bulk-upsert"
+            url = f"{self.backend_url}/vouchers/sync"
             
             if VERBOSE_MODE:
-                logger.info(f"📤 Sending {len(vouchers)} vouchers to {url}")
+                logger.info(f"📤 Sending {len(backend_vouchers)} vouchers to {url}")
+                if backend_vouchers:
+                    sample = {k: v for k, v in backend_vouchers[0].items() 
+                              if k not in ('ledgerEntries', 'inventoryEntries')}
+                    logger.info(f"📋 Sample voucher (header): {json.dumps(sample, default=str)[:500]}")
             
             response = requests.post(
                 url,
-                json=payload,
+                json=backend_vouchers,
                 headers=self.headers,
                 timeout=120
             )
             
             if response.status_code in [200, 201]:
                 result = response.json()
-                saved_count = result.get('savedCount', len(vouchers))
+                saved_count = result.get('savedCount', result.get('totalProcessed', len(backend_vouchers)))
                 if VERBOSE_MODE:
                     logger.info(f"✅ Backend saved {saved_count} vouchers")
                 return True, saved_count
             else:
                 logger.error(f"❌ Backend error: HTTP {response.status_code}")
-                if VERBOSE_MODE:
-                    logger.error(f"Response: {response.text[:500]}")
+                logger.error(f"Response: {response.text[:500]}")
                 return False, 0
                 
         except Exception as e:
