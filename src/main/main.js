@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Notification } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -258,6 +258,36 @@ ipcMain.handle("get-sync-status", async () => {
     running: syncWorker !== null,
     timestamp: new Date().toISOString()
   };
+});
+
+// ========== SYSTEM NOTIFICATION HANDLER ==========
+ipcMain.handle("show-system-notification", async (event, { title, body, urgency }) => {
+  try {
+    if (Notification.isSupported()) {
+      const notification = new Notification({
+        title: title || 'Talliffy',
+        body: body || '',
+        icon: path.join(__dirname, '../assets/brand/talliffy-icon.png'),
+        urgency: urgency || 'normal', // 'normal', 'critical', 'low'
+        silent: false
+      });
+      notification.show();
+      
+      // Click to focus app window
+      notification.on('click', () => {
+        if (mainWindow) {
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.focus();
+        }
+      });
+      
+      return { success: true };
+    }
+    return { success: false, message: 'Notifications not supported' };
+  } catch (error) {
+    if (isDev) console.error('Notification error:', error);
+    return { success: false, message: error.message };
+  }
 });
 
 ipcMain.on("trigger-sync", (event, config) => {

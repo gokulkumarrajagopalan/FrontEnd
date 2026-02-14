@@ -336,7 +336,7 @@
     async function syncCompanyGroups(company, button) {
         // Validate license before sync
         if (window.LicenseValidator) {
-            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             const userLicense = currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
@@ -444,7 +444,7 @@
                 // Build sync params — add extra fields for Vouchers
                 const syncParams = {
                     companyId: company.id,
-                    userId: currentUser?.userId || 1,
+                    userId: currentUser?.userId,
                     authToken: authToken,
                     deviceToken: deviceToken,
                     tallyPort: tallyPort,

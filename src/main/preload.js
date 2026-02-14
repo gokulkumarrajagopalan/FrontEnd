@@ -138,6 +138,11 @@ try {
         reconcileData: (config) => {
             if (isDev) console.log('📡 Preload: Calling reconcile-data handler...');
             return ipcRenderer.invoke('reconcile-data', config);
+        },
+
+        // System Notification (OS-level toast)
+        showSystemNotification: (options) => {
+            return ipcRenderer.invoke('show-system-notification', options);
         }
     });
     if (isDev) console.log('✅ Preload: electronAPI exposed successfully');

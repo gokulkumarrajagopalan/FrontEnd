@@ -58,7 +58,7 @@ class SyncScheduler {
             this.lastSyncTime = new Date();
 
             if (window.LicenseValidator) {
-                const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
                 const userLicense = currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
                 const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
                 const tallyPort = appSettings.tallyPort || 9000;
@@ -73,9 +73,9 @@ class SyncScheduler {
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
-            const authToken = sessionStorage.getItem('authToken');
-            const deviceToken = sessionStorage.getItem('deviceToken');
-            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const authToken = localStorage.getItem('authToken');
+            const deviceToken = localStorage.getItem('deviceToken');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
             if (!authToken || !deviceToken) {
                 console.warn('⚠️ Not authenticated, skipping sync');
@@ -110,7 +110,7 @@ class SyncScheduler {
                     const syncResult = await this.syncCompany(
                         company.id,
                         company.name,
-                        currentUser.userId || 1,
+                        currentUser.userId,
                         tallyPort,
                         backendUrl,
                         authToken,
@@ -256,7 +256,7 @@ class SyncScheduler {
                 'X-Device-Token': deviceToken
             };
 
-            const csrfToken = sessionStorage.getItem('csrfToken');
+            const csrfToken = localStorage.getItem('csrfToken');
             if (csrfToken) {
                 headers['X-CSRF-Token'] = csrfToken;
             }
@@ -391,7 +391,7 @@ class SyncScheduler {
                 'X-Device-Token': deviceToken
             };
 
-            const csrfToken = sessionStorage.getItem('csrfToken');
+            const csrfToken = localStorage.getItem('csrfToken');
             if (csrfToken) {
                 headers['X-CSRF-Token'] = csrfToken;
             }

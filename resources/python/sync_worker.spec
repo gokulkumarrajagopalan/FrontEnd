@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['D:\\Talliffy\\DesktopApp\\python\\sync_worker.py'],
+    ['D:\\Talliffy\\FrontEnd\\python\\sync_worker.py'],
     pathex=[],
     binaries=[],
     datas=[],

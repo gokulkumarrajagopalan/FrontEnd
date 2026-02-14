@@ -12,15 +12,40 @@ from typing import Dict, List, Optional
 LOG_LEVEL = os.getenv('SYNC_LOG_LEVEL', 'INFO')
 VERBOSE_MODE = os.getenv('SYNC_VERBOSE', 'false').lower() == 'true'
 
+# Create logs directory if it doesn't exist
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+RECONCILIATION_LOG_FILE = os.path.join(LOG_DIR, 'reconciliation.log')
+
+# Configure logging with both file and console handlers
+logger = logging.getLogger(__name__)
+logger.setLevel(getattr(logging, LOG_LEVEL))
+
+# Remove existing handlers to avoid duplicates
+logger.handlers = []
+
+# File handler - always writes detailed logs
+file_handler = logging.FileHandler(RECONCILIATION_LOG_FILE, encoding='utf-8')
+file_handler.setLevel(logging.DEBUG)  # Always log everything to file
+file_formatter = logging.Formatter(
+    '%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+
+# Console handler - respects VERBOSE_MODE
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=getattr(logging, LOG_LEVEL),
-        format='%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(getattr(logging, LOG_LEVEL))
+    console_formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-logger = logging.getLogger(__name__)
+    console_handler.setFormatter(console_formatter)
+    logger.addHandler(console_handler)
 
-# Reconciliation log file
+# Legacy log file path (for backward compatibility)
 RECONCILE_LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reconcilation.txt')
 
 

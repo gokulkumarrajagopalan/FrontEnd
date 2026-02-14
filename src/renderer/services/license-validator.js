@@ -18,9 +18,9 @@ class LicenseValidator {
                 if (v) return String(v);
             }
 
-            // 2) sessionStorage currentUser (services/auth.js flow)
+            // 2) localStorage currentUser (services/auth.js flow)
             try {
-                const su = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+                const su = JSON.parse(localStorage.getItem('currentUser') || 'null');
                 const sv = su?.licenseNumber || su?.licenceNo || su?.licence_number;
                 if (sv) return String(sv);
             } catch (_) { }

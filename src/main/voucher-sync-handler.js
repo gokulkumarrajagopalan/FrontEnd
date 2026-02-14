@@ -53,7 +53,7 @@ function syncVouchers(params) {
             toDate,
             lastAlterID.toString(),
             companyName || '',
-            (userId || 1).toString()
+            (userId || '').toString()
         ];
 
         if (isDev) {

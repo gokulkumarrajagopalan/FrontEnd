@@ -12,8 +12,8 @@ class AppInitializer {
         try {
             console.log('🚀 Initializing App Sync System...');
             
-            // Check if user is authenticated
-            const authToken = sessionStorage.getItem('authToken');
+            // Check if user is authenticated (auth tokens stored in localStorage)
+            const authToken = localStorage.getItem('authToken');
             if (!authToken) {
                 console.log('ℹ️ User not authenticated, sync system will start after login');
                 return;
@@ -48,9 +48,9 @@ class AppInitializer {
         
         try {
             // CRITICAL: Verify authentication before starting sync
-            const authToken = sessionStorage.getItem('authToken');
-            const deviceToken = sessionStorage.getItem('deviceToken');
-            const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+            const authToken = localStorage.getItem('authToken');
+            const deviceToken = localStorage.getItem('deviceToken');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             
             if (!currentUser || !authToken || !deviceToken) {
                 console.log('⚠️ Not authenticated - skipping app-start sync');
@@ -223,8 +223,16 @@ class AppInitializer {
             
             // CASE 2: Run reconciliation after app-start sync
             console.log('🔍 Starting post-login reconciliation...');
-            setTimeout(() => {
-                this.runReconciliation(companies, currentUser, authToken, deviceToken, appSettings);
+            setTimeout(async () => {
+                await this.runReconciliation(companies, currentUser, authToken, deviceToken, appSettings);
+
+                // Fire OS system notification after sync + recon complete
+                if (window.notificationService && typeof window.notificationService.system === 'function') {
+                    const msg = totalSynced > 0
+                        ? `Sync & Reconciliation complete: ${totalSynced} records synced`
+                        : 'Sync & Reconciliation complete — all data in sync';
+                    window.notificationService.system('Talliffy Sync', msg);
+                }
             }, 2000); // 2 second delay after sync completes
             
         } catch (error) {
@@ -253,9 +261,9 @@ class AppInitializer {
                 console.error('   User needs to login again');
                 
                 // Clear invalid tokens
-                sessionStorage.removeItem('authToken');
-                sessionStorage.removeItem('deviceToken');
-                sessionStorage.removeItem('currentUser');
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('deviceToken');
+                localStorage.removeItem('currentUser');
                 
                 return [];
             }

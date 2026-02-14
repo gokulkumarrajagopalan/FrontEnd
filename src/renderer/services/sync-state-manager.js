@@ -319,6 +319,12 @@ class SyncStateManager {
             } else {
                 window.notificationService.error(msg, '❌ Sync Failed', 5000);
             }
+
+            // Also fire OS-level system notification
+            if (typeof window.notificationService.system === 'function') {
+                const title = success ? 'Talliffy — Sync Complete' : 'Talliffy — Sync Failed';
+                window.notificationService.system(title, msg);
+            }
         }
     }
 }

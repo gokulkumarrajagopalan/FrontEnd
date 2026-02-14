@@ -18,7 +18,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(log_file, encoding='utf-8', mode='w'),  # 'w' overwrites the file each time
+        logging.FileHandler(log_file, encoding='utf-8', mode='a'),  # 'a' appends to keep history
         logging.StreamHandler()
     ]
 )

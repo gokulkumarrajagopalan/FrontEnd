@@ -18,9 +18,9 @@ class UserProfileService {
         try {
             this.isLoading = true;
             
-            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             const userId = currentUser.userId;
-            const loginTime = sessionStorage.getItem('loginTime');
+            const loginTime = localStorage.getItem('loginTime');
 
             if (!userId) {
                 console.error('❌ No userId found in session');

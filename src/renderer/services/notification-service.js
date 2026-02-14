@@ -322,20 +322,45 @@ class NotificationService {
         return this.show('error', message, title, duration, options);
     }
 
-    // System Notification (OS Toast)
+    // System Notification (OS Toast) — uses Electron native notifications when available
     system(title, body, icon = null) {
+        // Prefer Electron's native notification (works even when app is minimized)
+        if (window.electronAPI && window.electronAPI.showSystemNotification) {
+            window.electronAPI.showSystemNotification({
+                title: title || 'Talliffy',
+                body: body || '',
+                urgency: 'normal'
+            }).then(result => {
+                if (result.success) {
+                    console.log(`🔔 System notification sent (Electron): ${title}`);
+                } else {
+                    // Fallback to browser notification
+                    this._showBrowserNotification(title, body, icon);
+                }
+            }).catch(() => {
+                this._showBrowserNotification(title, body, icon);
+            });
+            return;
+        }
+
+        // Fallback: browser Notification API
+        this._showBrowserNotification(title, body, icon);
+    }
+
+    // Internal helper: browser Notification API fallback
+    _showBrowserNotification(title, body, icon) {
         if (!('Notification' in window)) return;
 
         if (Notification.permission === 'granted') {
             const options = {
                 body: body,
-                icon: icon || 'assets/brand/talliffy-icon.png', // Default icon
+                icon: icon || 'assets/brand/talliffy-icon.png',
                 silent: false
             };
 
             try {
                 new Notification(title, options);
-                console.log(`🔔 System notification sent: ${title}`);
+                console.log(`🔔 System notification sent (Browser): ${title}`);
             } catch (e) {
                 console.error('Error sending system notification:', e);
             }

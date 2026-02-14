@@ -305,14 +305,13 @@ class App {
     checkLicenseMatch() {
         try {
             // Get user license from storage (check multiple locations)
-            let userLicense = sessionStorage.getItem('userLicenseNumber') ||
-                sessionStorage.getItem('licenseNumber') ||
+            let userLicense = localStorage.getItem('userLicenseNumber') ||
                 localStorage.getItem('licenseNumber') ||
                 localStorage.getItem('licenceNo');
 
             // If still not found, try to get from currentUser object
             if (!userLicense) {
-                const currentUser = sessionStorage.getItem('currentUser');
+                const currentUser = localStorage.getItem('currentUser');
                 if (currentUser) {
                     try {
                         const parsed = JSON.parse(currentUser);

@@ -13,13 +13,38 @@ import os
 LOG_LEVEL = os.getenv('SYNC_LOG_LEVEL', 'INFO')
 VERBOSE_MODE = os.getenv('SYNC_VERBOSE', 'false').lower() == 'true'
 
+# Create logs directory if it doesn't exist
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+INCREMENTAL_SYNC_LOG_FILE = os.path.join(LOG_DIR, 'incremental_sync.log')
+
+# Configure logging with both file and console handlers
+logger = logging.getLogger(__name__)
+logger.setLevel(getattr(logging, LOG_LEVEL))
+
+# Remove existing handlers to avoid duplicates
+logger.handlers = []
+
+# File handler - always writes detailed logs
+file_handler = logging.FileHandler(INCREMENTAL_SYNC_LOG_FILE, encoding='utf-8')
+file_handler.setLevel(logging.DEBUG)  # Always log everything to file
+file_formatter = logging.Formatter(
+    '%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+
+# Console handler - respects VERBOSE_MODE
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=getattr(logging, LOG_LEVEL),
-        format='%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(getattr(logging, LOG_LEVEL))
+    console_formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-logger = logging.getLogger(__name__)
+    console_handler.setFormatter(console_formatter)
+    logger.addHandler(console_handler)
 
 
 class IncrementalSyncManager:
@@ -171,7 +196,7 @@ class IncrementalSyncManager:
         # Define fetch fields for each entity type
         entity_fields = {
             'Group': "GUID, MASTERID, ALTERID, Name, Alias, Parent, Nature, IsRevenue, RESERVEDNAME",
-            'Currency': "GUID, MASTERID, ALTERID, Name, Symbol, FormalName, DecimalPlaces, DecimalSymbol",
+            'Currency': "GUID, MASTERID, ALTERID, Name, Symbol, FormalName, DecimalPlaces, DecimalSymbol, ShowAmountInWords, SuffixSymbol, SpaceBetweenAmountAndSymbol",
             'Unit': "GUID, MASTERID, ALTERID, Name, Alias, OriginalName, DecimalPlaces, NumberOfDecimals",
             'StockGroup': "GUID, MASTERID, ALTERID, Name, Alias, Parent, BaseUnits, AdditionalUnits",
             'StockCategory': "GUID, MASTERID, ALTERID, Name, Alias, Parent",
@@ -180,8 +205,8 @@ class IncrementalSyncManager:
             'Godown': "GUID, MASTERID, ALTERID, Name, Alias, Parent, Address",
             'VoucherType': "GUID, MASTERID, ALTERID, Name, Alias, Parent, NumberingMethod, IsDeemedPositive",
             'TaxUnit': "GUID, MASTERID, ALTERID, Name, Alias, OriginalName",
-            'Ledger': "GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*",
-            'StockItem': "GUID, MASTERID, ALTERID, Name, Alias, Parent, Category, Description, BaseUnits, OpeningBalance, OpeningValue, OpeningRate, ReorderLevel, MinimumLevel, HSNCode, GST",
+            'Ledger': "GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, PrimaryGroup, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*",
+            'StockItem': "GUID, MASTERID, ALTERID, Name, Alias, Parent, Category, Description, MailingName, BaseUnits, AdditionalUnits, OpeningBalance, OpeningValue, OpeningRate, ReorderLevel, MinimumLevel, CostingMethod, ValuationMethod, GSTTypeOfSupply, HSNCode, GST, IsBatchWiseOn, IsCostCentresOn",
         }
         
         fetch_fields = entity_fields.get(entity_type, "GUID, MASTERID, ALTERID, Name")
@@ -319,6 +344,7 @@ class IncrementalSyncManager:
                 gst_consider_purchase_export = False
                 gst_registration_date = ''
                 gst_state = ''
+                gst_transporter_id = ''
 
                 if gst_reg is not None:
                     def gst_text(tag):
@@ -337,6 +363,7 @@ class IncrementalSyncManager:
                     gst_consider_purchase_export = gst_text('CONSIDERPURCHASEFOREXPORT') == 'Yes'
                     gst_registration_date = gst_text('GSTREGISTRATIONDATE')
                     gst_state = gst_text('STATENAME') or gst_place_of_supply
+                    gst_transporter_id = gst_text('TRANSPORTERID')
 
                 # Extract mailing details
                 mailing = elem.find('.//LEDMAILINGDETAILS.LIST')
@@ -372,6 +399,8 @@ class IncrementalSyncManager:
                 record.update({
                     'alias': get_text('ONLYALIAS') or get_text('ALIAS'),
                     'parent': get_text('PARENT'),
+                    'primaryGroup': get_text('PRIMARYGROUP'),
+                    'lastParent': get_text('LASTPARENT'),
                     'isRevenue': get_text('ISREVENUE') == 'Yes',
                     'description': get_text('DESCRIPTION'),
                     'narration': get_text('NARRATION'),
@@ -400,6 +429,7 @@ class IncrementalSyncManager:
                     'gstConsiderPurchaseForExport': gst_consider_purchase_export,
                     'gstRegistrationDate': gst_registration_date,
                     'gstState': gst_state,
+                    'gstTransporterId': gst_transporter_id,
                     # Mailing details
                     'mailingName': mailing_name,
                     'address1': address1,
@@ -412,16 +442,18 @@ class IncrementalSyncManager:
                     'mailingApplicableFrom': mailing_applicable_from,
                 })
             elif entity_type == 'VoucherType':
-                # Extract numbering method from nested VOUCHERNUMBERSERIES.LIST
-                numbering_method = None
-                vch_series = elem.find('.//VOUCHERNUMBERSERIES.LIST/NUMBERINGMETHOD')
-                if vch_series is not None:
-                    numbering_method = vch_series.text
+                # Extract numbering method - try direct path first, then nested
+                numbering_method = get_text('NUMBERINGMETHOD')
+                if not numbering_method:
+                    vch_series = elem.find('.//VOUCHERNUMBERSERIES.LIST/NUMBERINGMETHOD')
+                    if vch_series is not None:
+                        numbering_method = vch_series.text
                 
                 record.update({
                     'alias': get_text('MAILINGNAME'),
                     'parent': get_text('PARENT'),
                     'isActive': get_text('ISACTIVE') == 'Yes',
+                    'isDeemedPositive': get_text('ISDEEMEDPOSITIVE') == 'Yes',
                     'numberingMethod': numbering_method,
                     'reservedName': elem.get('RESERVEDNAME', ''),
                 })
@@ -445,10 +477,13 @@ class IncrementalSyncManager:
                 })
             elif entity_type == 'Currency':
                 record.update({
-                    'symbol': get_text('SYMBOL'),
+                    'symbol': get_text('SYMBOL') or get_text('EXPANDEDSYMBOL') or get_text('ORIGINALSYMBOL'),
                     'formalName': get_text('FORMALNAME'),
                     'decimalPlaces': int(get_text('DECIMALPLACES') or 0),
-                    'decimalSymbol': get_text('DECIMALSYMBOL'),
+                    'decimalSeparator': get_text('DECIMALSYMBOL') or get_text('DECIMALSEPARATOR'),
+                    'showAmountInWords': get_text('SHOWAMOUNTINWORDS'),
+                    'suffixSymbol': get_text('SUFFIXSYMBOL'),
+                    'spaceBetweenAmountAndSymbol': get_text('SPACEBETWEENAMOUNTANDSYMBOL'),
                 })
             elif entity_type == 'StockGroup':
                 record.update({
@@ -482,6 +517,7 @@ class IncrementalSyncManager:
                     'parent': get_text('PARENT'),
                     'category': get_text('CATEGORY'),
                     'description': get_text('DESCRIPTION'),
+                    'mailingName': get_text('MAILINGNAME'),
                     'baseUnits': get_text('BASEUNITS'),
                     'additionalUnits': get_text('ADDITIONALUNITS'),
                     'costingMethod': get_text('COSTINGMETHOD'),
@@ -541,6 +577,10 @@ class IncrementalSyncManager:
                     'symbol': record.get('symbol'),
                     'formalName': record.get('formalName'),
                     'decimalPlaces': record.get('decimalPlaces', 2),
+                    'decimalSeparator': record.get('decimalSeparator'),
+                    'showAmountInWords': record.get('showAmountInWords'),
+                    'suffixSymbol': record.get('suffixSymbol'),
+                    'spaceBetweenAmountAndSymbol': record.get('spaceBetweenAmountAndSymbol'),
                     'guid': record.get('guid'),
                     'masterId': record.get('masterID'),
                     'alterId': record.get('alterID'),
@@ -635,6 +675,8 @@ class IncrementalSyncManager:
                     'name': record.get('name'),
                     'parent': record.get('parent'),
                     'numberingMethod': record.get('numberingMethod'),
+                    'reservedName': record.get('reservedName'),
+                    'isDeemedPositive': 'Yes' if record.get('isDeemedPositive') else 'No',
                     'isActive': record.get('isActive', True)
                 })
             
@@ -686,7 +728,10 @@ class IncrementalSyncManager:
                     'ledName': (record.get('name', '') or '')[:255],
                     'ledAlias': (record.get('alias', '') or '')[:255],
                     'ledParent': (record.get('parent', '') or '')[:255],
+                    'ledPrimaryGroup': (record.get('primaryGroup', '') or '')[:255] or None,
                     'ledDescription': (record.get('description') or '')[:500],
+                    'ledNote': (record.get('narration') or '')[:500] or None,
+                    'lastParent': (record.get('lastParent') or '')[:255] or None,
                     'ledPhone': (record.get('phone') or '')[:20],
                     'ledCountryIsdCode': (record.get('countryIsdCode') or '')[:10],
                     'ledMobile': (record.get('mobile') or '')[:20],
@@ -714,6 +759,7 @@ class IncrementalSyncManager:
                     'gstConsiderPurchaseForExport': bool(record.get('gstConsiderPurchaseForExport', False)),
                     'gstRegistrationDate': tally_date_to_iso(record.get('gstRegistrationDate')),
                     'gstState': (record.get('gstState') or '')[:100] or None,
+                    'gstTransporterId': (record.get('gstTransporterId') or '')[:50] or None,
                     # Mailing / Contact details
                     'ledMailingName': (record.get('mailingName') or '')[:255] or None,
                     'ledAddress1': (record.get('address1') or '')[:255] or None,
@@ -737,6 +783,7 @@ class IncrementalSyncManager:
                     'parent': record.get('parent'),
                     'category': record.get('category'),
                     'description': record.get('description'),
+                    'mailingName': record.get('mailingName'),
                     'baseUnits': record.get('baseUnits'),
                     'additionalUnits': record.get('additionalUnits'),
                     'openingBalance': record.get('openingBalance', 0),
@@ -947,6 +994,15 @@ def main():
         device_token = sys.argv[6] if len(sys.argv) > 6 else ''
         entity_type = sys.argv[7] if len(sys.argv) > 7 else 'Ledger'
         max_alter_id = int(sys.argv[8]) if len(sys.argv) > 8 else 0  # Max alterID from database
+        
+        # Log sync start
+        logger.info("="*80)
+        logger.info("🔄 INCREMENTAL SYNC STARTED")
+        logger.info(f"   Company ID: {company_id}")
+        logger.info(f"   Entity Type: {entity_type}")
+        logger.info(f"   Max Alter ID: {max_alter_id}")
+        logger.info(f"   Tally Port: {tally_port}")
+        logger.info("="*80)
         
         # Initialize sync manager
         sync_manager = IncrementalSyncManager(backend_url, auth_token, device_token)
@@ -1315,10 +1371,29 @@ def main():
             else:
                 sync_manager.update_company_sync_status(company_id, 'failed', False)
             
+            # Log completion
+            logger.info("\n" + "="*80)
+            if result['success']:
+                logger.info("✅ INCREMENTAL SYNC COMPLETED")
+                logger.info(f"   Entity Type: {entity_type}")
+                logger.info(f"   Records Synced: {result.get('count', 0)}")
+                logger.info(f"   Last Alter ID: {result.get('lastAlterID', 'N/A')}")
+            else:
+                logger.error("❌ INCREMENTAL SYNC FAILED")
+                logger.error(f"   Error: {result.get('message', 'Unknown error')}")
+            logger.info("="*80)
+            
             # Output result
             print(json.dumps(result))
             sys.exit(0 if result['success'] else 1)
         
+    except Exception as e:
+        logger.error("="*80)
+        logger.error("❌ INCREMENTAL SYNC - FATAL ERROR")
+        logger.error(f"   Error: {str(e)}")
+        logger.error("="*80)
+        print(json.dumps({'success': False, 'message': str(e), 'count': 0}))
+        sys.exit(1)
     except Exception as e:
         logger.error(f"❌ Fatal error: {e}")
         print(json.dumps({'success': False, 'message': str(e), 'count': 0}))

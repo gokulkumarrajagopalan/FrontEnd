@@ -13,10 +13,17 @@
             </p>
         </div>
 
-        <!-- Right stats box -->
-        <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-center">
-            <p class="text-2xl font-bold text-blue-600" id="tallyCompanyCount">0</p>
-            <p class="text-xs text-blue-500">Available</p>
+        <div class="flex items-center gap-4">
+            <button id="fetchCompaniesBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition-all duration-200 font-semibold text-sm flex items-center gap-2">
+                <span>🔗</span>
+                <span>Fetch from Tally</span>
+            </button>
+
+            <!-- Right stats box -->
+            <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-center">
+                <p class="text-2xl font-bold text-blue-600" id="tallyCompanyCount">0</p>
+                <p class="text-xs text-blue-500">Available</p>
+            </div>
         </div>
 
     </div>
@@ -393,7 +400,7 @@
 
             if (groupElements.length === 0) return;
 
-            const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             const tallyGroups = Array.from(groupElements).map(elem => {
                 const getTextContent = (tag) => {
                     const node = elem.querySelector(tag);
@@ -414,8 +421,8 @@
             });
 
             // Sync to backend
-            const authToken = sessionStorage.getItem('authToken');
-            const deviceToken = sessionStorage.getItem('deviceToken');
+            const authToken = localStorage.getItem('authToken');
+            const deviceToken = localStorage.getItem('deviceToken');
             const syncResponse = await fetch(window.apiConfig.getUrl('/groups/sync'), {
                 method: 'POST',
                 headers: {
@@ -516,9 +523,9 @@
     async function triggerFirstTimeSync(companyId, companyData) {
         console.log(`🔄 Starting first-time sync for: ${companyData.name}`);
         
-        const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
-        const authToken = sessionStorage.getItem('authToken');
-        const deviceToken = sessionStorage.getItem('deviceToken');
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        const authToken = localStorage.getItem('authToken');
+        const deviceToken = localStorage.getItem('deviceToken');
         const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
         
         try {
@@ -596,8 +603,8 @@
      */
     async function reconcileEntity(companyId, entityType) {
         try {
-            const authToken = sessionStorage.getItem('authToken');
-            const deviceToken = sessionStorage.getItem('deviceToken');
+            const authToken = localStorage.getItem('authToken');
+            const deviceToken = localStorage.getItem('deviceToken');
             
             const headers = {
                 'Content-Type': 'application/json',

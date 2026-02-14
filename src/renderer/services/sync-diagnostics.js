@@ -30,10 +30,10 @@ class SyncDiagnostics {
         console.log('📋 AUTHENTICATION STATUS');
         console.log('-'.repeat(80));
 
-        const authToken = sessionStorage.getItem('authToken');
-        const deviceToken = sessionStorage.getItem('deviceToken');
-        const csrfToken = sessionStorage.getItem('csrfToken');
-        const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        const authToken = localStorage.getItem('authToken');
+        const deviceToken = localStorage.getItem('deviceToken');
+        const csrfToken = localStorage.getItem('csrfToken');
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
         console.log(`  Auth Token Present: ${!!authToken ? '✅ YES' : '❌ NO'}`);
         if (authToken) {
@@ -133,9 +133,9 @@ class SyncDiagnostics {
         console.log('📋 NETWORK HEADERS (Will be sent with requests)');
         console.log('-'.repeat(80));
 
-        const authToken = sessionStorage.getItem('authToken');
-        const deviceToken = sessionStorage.getItem('deviceToken');
-        const csrfToken = sessionStorage.getItem('csrfToken');
+        const authToken = localStorage.getItem('authToken');
+        const deviceToken = localStorage.getItem('deviceToken');
+        const csrfToken = localStorage.getItem('csrfToken');
 
         const headers = {
             'Content-Type': 'application/json',
@@ -160,8 +160,8 @@ class SyncDiagnostics {
         console.log('🌐 API CONNECTIVITY TEST');
         console.log('='.repeat(80) + '\n');
 
-        const authToken = sessionStorage.getItem('authToken');
-        const deviceToken = sessionStorage.getItem('deviceToken');
+        const authToken = localStorage.getItem('authToken');
+        const deviceToken = localStorage.getItem('deviceToken');
         const baseUrl = window.apiConfig?.BASE_URL || window.AppConfig?.API_BASE_URL;
 
         if (!authToken || !deviceToken) {
@@ -187,7 +187,7 @@ class SyncDiagnostics {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`,
                         'X-Device-Token': deviceToken,
-                        'X-CSRF-Token': sessionStorage.getItem('csrfToken') || ''
+                        'X-CSRF-Token': localStorage.getItem('csrfToken') || ''
                     }
                 });
 
@@ -216,11 +216,11 @@ class SyncDiagnostics {
     static getSummary() {
         const issues = [];
 
-        if (!sessionStorage.getItem('authToken')) {
+        if (!localStorage.getItem('authToken')) {
             issues.push('❌ No authentication token');
         }
 
-        if (!sessionStorage.getItem('deviceToken')) {
+        if (!localStorage.getItem('deviceToken')) {
             issues.push('❌ No device token');
         }
 

@@ -1337,7 +1337,7 @@ class BasePage {
      */
     setupCompanySelection() {
         // Use global company selector
-        const savedCompanyId = sessionStorage.getItem('selectedCompanyId');
+        const savedCompanyId = localStorage.getItem('selectedCompanyId');
         this.selectedCompanyId = window.selectedCompanyId || (savedCompanyId ? parseInt(savedCompanyId) : null);
 
         // Listen for global company changes

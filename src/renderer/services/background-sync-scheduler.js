@@ -49,7 +49,14 @@ class BackgroundSyncScheduler {
      * Run background sync operation
      */
     async runBackgroundSync() {
-        if (this.isRunning) {
+        // Use SyncStateManager queue if available
+        if (window.syncStateManager) {
+            if (window.syncStateManager.isSyncInProgress()) {
+                console.log('⚠️ Sync already in progress, queuing background sync...');
+                window.syncStateManager.addToQueue('background', 0);
+                return;
+            }
+        } else if (this.isRunning) {
             console.log('⚠️ Background sync already running, skipping...');
             return;
         }
@@ -68,9 +75,9 @@ class BackgroundSyncScheduler {
             }
             
             // Get auth info
-            const authToken = sessionStorage.getItem('authToken');
-            const deviceToken = sessionStorage.getItem('deviceToken');
-            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const authToken = localStorage.getItem('authToken');
+            const deviceToken = localStorage.getItem('deviceToken');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             
             if (!authToken || !deviceToken) {
@@ -84,6 +91,11 @@ class BackgroundSyncScheduler {
             if (companies.length === 0) {
                 console.log('ℹ️ No companies to sync');
                 return;
+            }
+
+            // Register with SyncStateManager for queue management
+            if (window.syncStateManager) {
+                window.syncStateManager.startSync('background', companies.length);
             }
             
             let totalNewRecords = 0;
@@ -170,14 +182,31 @@ class BackgroundSyncScheduler {
                 }
             }
             
-            // Run background reconciliation
-            await this.runBackgroundReconciliation(companies);
+            // Run background reconciliation (actual Python IPC reconciliation)
+            await this.runBackgroundReconciliation(companies, currentUser, authToken, deviceToken, appSettings);
             
             // Show notification for sync results (success or failure)
             this.showSyncNotification(totalNewRecords, syncResults);
+
+            // Fire OS system notification on completion
+            if (window.notificationService && typeof window.notificationService.system === 'function') {
+                const msg = totalNewRecords > 0
+                    ? `Sync & Reconciliation complete: ${totalNewRecords} records updated`
+                    : 'Sync & Reconciliation complete — all data in sync';
+                window.notificationService.system('Talliffy Sync', msg);
+            }
+
+            // End sync in SyncStateManager (triggers queue processing)
+            if (window.syncStateManager) {
+                const hasFailures = syncResults.some(r => r.success === false);
+                window.syncStateManager.endSync(!hasFailures, `Background sync: ${totalNewRecords} records`);
+            }
             
         } catch (error) {
             console.error('❌ Background sync error:', error);
+            if (window.syncStateManager) {
+                window.syncStateManager.endSync(false, `Background sync error: ${error.message}`);
+            }
         } finally {
             this.isRunning = false;
         }
@@ -236,43 +265,61 @@ class BackgroundSyncScheduler {
     
     /**
      * Run background reconciliation for all companies
+     * Uses actual Python IPC reconciliation (not just status check)
      */
-    async runBackgroundReconciliation(companies) {
+    async runBackgroundReconciliation(companies, currentUser, authToken, deviceToken, appSettings) {
         console.log('🔍 Running background reconciliation...');
+        
+        if (!window.electronAPI || typeof window.electronAPI.reconcileData !== 'function') {
+            console.warn('⚠️ reconcileData IPC not available, skipping reconciliation');
+            return;
+        }
+
+        let totalMissing = 0;
+        let totalSynced = 0;
         
         for (const company of companies) {
             try {
-                await this.reconcileCompany(company.id);
+                console.log(`🔍 Reconciling: ${company.name}`);
+                const result = await window.electronAPI.reconcileData({
+                    companyId: company.id,
+                    companyName: company.name,
+                    userId: currentUser.userId,
+                    tallyPort: appSettings.tallyPort || 9000,
+                    backendUrl: window.apiConfig.baseURL,
+                    authToken: authToken,
+                    deviceToken: deviceToken,
+                    entityType: 'all'
+                });
+
+                if (result.success) {
+                    totalMissing += result.totalMissing || 0;
+                    totalSynced += result.totalSynced || 0;
+                    if (result.totalSynced > 0) {
+                        console.log(`✅ ${company.name}: Reconciled and synced ${result.totalSynced} records`);
+                    } else {
+                        console.log(`✅ ${company.name}: All records in sync`);
+                    }
+                } else {
+                    console.error(`❌ ${company.name}: Reconciliation failed - ${result.message || 'Unknown error'}`);
+                }
             } catch (error) {
-                console.error(`Error reconciling company ${company.id}:`, error);
+                console.error(`❌ Error reconciling company ${company.name}:`, error);
             }
         }
         
-        console.log('✅ Background reconciliation complete');
-    }
-    
-    /**
-     * Reconcile a single company
-     */
-    async reconcileCompany(companyId) {
-        try {
-            const headers = window.authService.getHeaders();
-            const response = await fetch(
-                window.apiConfig.getUrl(`/api/companies/${companyId}/reconcile-status`),
-                {
-                    method: 'GET',
-                    headers: headers
-                }
-            );
-            
-            if (response.ok) {
-                const result = await response.json();
-                if (result.discrepancies && result.discrepancies.length > 0) {
-                    console.warn(`⚠️ Reconciliation issues found for company ${companyId}:`, result);
-                }
+        if (totalSynced > 0) {
+            console.log(`📊 Background reconciliation: ${totalSynced} missing/outdated records synced`);
+            if (window.notificationService) {
+                window.notificationService.show({
+                    type: 'success',
+                    message: `🔍 Reconciliation: ${totalSynced} missing/outdated records synced`,
+                    details: `Missing: ${totalMissing}`,
+                    duration: 5000
+                });
             }
-        } catch (error) {
-            console.error('Reconciliation error:', error);
+        } else {
+            console.log('✅ Background reconciliation complete — all records in sync');
         }
     }
     
