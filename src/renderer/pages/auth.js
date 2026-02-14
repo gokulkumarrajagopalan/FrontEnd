@@ -10,8 +10,10 @@
 
     // ============= DUAL-MODE LOGIN TEMPLATE =============
     const getLoginTemplate = () => `
-    <div class="auth-background flex" style="min-height: 100vh;">
+    <div class="auth-background flex min-h-screen">
         <!-- Left Side - Branding Panel -->
+                <div class="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-[#f8fafc]">
+
         <div class="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 relative" style="background: linear-gradient(135deg, #1346A8 0%, #0f3a8a 50%, #0a2d6e 100%);">
             <!-- Background Pattern -->
             <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.4\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -72,6 +74,13 @@
                 </div>
             </div>
         </div>
+        </div>
+        <div
+            class="hidden lg:block lg:w-1/2"
+            style="
+                background: linear-gradient(135deg, #1346A8 0%, #0f3a8a 50%, #0a2d6e 100%);
+            "
+        ></div>
 
         <!-- Right Side - Auth Forms -->
         <div class="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12" style="background: #f8fafc;">
