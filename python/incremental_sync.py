@@ -53,7 +53,10 @@ class IncrementalSyncManager:
     BATCH_SIZE = 500
     BATCH_DELAY = 0.1  # 100ms delay between batches
     
-    def __init__(self, backend_url: str, auth_token: str, device_token: str):
+    def __init__(self, backend_url: str, auth_token: str, device_token: str, batch_size: int = None):
+        if batch_size and batch_size > 0:
+            self.BATCH_SIZE = batch_size
+            logger.info(f"📦 Batch size set to {batch_size} (from settings)")
         self.backend_url = backend_url.rstrip('/')
         self.headers = {
             'Content-Type': 'application/json',
@@ -183,8 +186,38 @@ class IncrementalSyncManager:
             logger.warning(f"⚠️ Error updating company sync status: {e}")
             return False
     
-    def generate_incremental_tdl(self, last_alter_id: int, entity_type: str = 'Ledger', company_name: str = None) -> str:
-        """Generate TDL for incremental fetch based on AlterID"""
+    @staticmethod
+    def _parse_tally_amount(value) -> float:
+        """Safely parse Tally amount strings like '5000.00', '-5000.00', '5000.00 Dr', '5000.00 Cr'"""
+        if value is None:
+            return 0.0
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            cleaned = value.replace(',', '').strip()
+            if not cleaned:
+                return 0.0
+            # Handle Dr/Cr suffix (Tally convention: Dr=Debit, Cr=Credit)
+            has_cr = 'Cr' in cleaned
+            cleaned = cleaned.replace('Dr', '').replace('Cr', '').strip()
+            try:
+                amount = float(cleaned)
+                if has_cr:
+                    amount = -amount
+                return amount
+            except (ValueError, TypeError):
+                return 0.0
+        return 0.0
+
+    def generate_incremental_tdl(self, last_alter_id: int, entity_type: str = 'Ledger', company_name: str = None, books_from: str = None) -> str:
+        """Generate TDL for incremental fetch based on AlterID
+        
+        Args:
+            books_from: Company's BooksFrom date (Tally format: DD-Mon-YYYY). 
+                        When provided, used as SVFROMDATE to capture ALL transactions 
+                        since company inception — critical for accurate ClosingBalance 
+                        when companies don't maintain opening balances.
+        """
         
         # Map entity type to Tally-specific names
         tally_entity_names = {
@@ -205,7 +238,7 @@ class IncrementalSyncManager:
             'Godown': "GUID, MASTERID, ALTERID, Name, Alias, Parent, Address",
             'VoucherType': "GUID, MASTERID, ALTERID, Name, Alias, Parent, NumberingMethod, IsDeemedPositive",
             'TaxUnit': "GUID, MASTERID, ALTERID, Name, Alias, OriginalName",
-            'Ledger': "GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, PrimaryGroup, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*",
+            'Ledger': "GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, PrimaryGroup, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, ClosingBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*",
             'StockItem': "GUID, MASTERID, ALTERID, Name, Alias, Parent, Category, Description, MailingName, BaseUnits, AdditionalUnits, OpeningBalance, OpeningValue, OpeningRate, ReorderLevel, MinimumLevel, CostingMethod, ValuationMethod, GSTTypeOfSupply, HSNCode, GST, IsBatchWiseOn, IsCostCentresOn",
         }
         
@@ -214,6 +247,24 @@ class IncrementalSyncManager:
         # Add company name to STATICVARIABLES if provided
         company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
         
+        # Date range for Tally balance computation:
+        # - If books_from is provided, use it as SVFROMDATE to capture ALL transactions
+        #   since company inception. This ensures ClosingBalance is accurate even when 
+        #   companies don't maintain opening balances (OB = 0 for all ledgers).
+        # - Otherwise, fall back to current Indian financial year dates.
+        now = datetime.now()
+        if books_from:
+            fy_start = books_from
+            # Use today's date as SVTODATE for up-to-date ClosingBalance
+            fy_end = now.strftime('%d-%b-%Y')  # e.g. '14-Feb-2026'
+        else:
+            if now.month >= 4:
+                fy_start = f"01-Apr-{now.year}"
+                fy_end = f"31-Mar-{now.year + 1}"
+            else:
+                fy_start = f"01-Apr-{now.year - 1}"
+                fy_end = f"31-Mar-{now.year}"
+
         return f"""<ENVELOPE>
         <HEADER>
         <VERSION>1</VERSION>
@@ -224,8 +275,8 @@ class IncrementalSyncManager:
     <BODY>
         <DESC>
             <STATICVARIABLES>
-                <SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE>
-                <SVTODATE TYPE="Date">01-Jan-1970</SVTODATE>
+                <SVFROMDATE TYPE="Date">{fy_start}</SVFROMDATE>
+                <SVTODATE TYPE="Date">{fy_end}</SVTODATE>
                 <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>{company_var}
             </STATICVARIABLES>
             <TDL>
@@ -406,7 +457,8 @@ class IncrementalSyncManager:
                     'narration': get_text('NARRATION'),
                     'isBillWiseOn': get_text('ISBILLWISEON') == 'Yes',
                     'isCostCentresOn': get_text('ISCOSTCENTRESON') == 'Yes',
-                    'openingBalance': float(get_text('OPENINGBALANCE') or 0),
+                    'openingBalance': self._parse_tally_amount(get_text('OPENINGBALANCE')),
+                    'closingBalance': self._parse_tally_amount(get_text('CLOSINGBALANCE')),
                     'phone': get_text('LEDGERPHONE'),
                     'countryIsdCode': get_text('LEDGERCOUNTRYISDCODE'),
                     'mobile': get_text('LEDGERMOBILE'),
@@ -524,9 +576,9 @@ class IncrementalSyncManager:
                     'valuationMethod': get_text('VALUATIONMETHOD'),
                     'gstTypeOfSupply': get_text('GSTTYPEOFSUPPLY'),
                     'hsnCode': get_text('HSNCODE'),
-                    'openingBalance': float(get_text('OPENINGBALANCE') or 0),
-                    'openingValue': float(get_text('OPENINGVALUE') or 0),
-                    'openingRate': float(get_text('OPENINGRATE') or 0),
+                    'openingBalance': self._parse_tally_amount(get_text('OPENINGBALANCE')),
+                    'openingValue': self._parse_tally_amount(get_text('OPENINGVALUE')),
+                    'openingRate': self._parse_tally_amount(get_text('OPENINGRATE')),
                     'batchWiseOn': get_text('ISBATCHWISEON') == 'Yes',
                     'costCentersOn': get_text('ISCOSTCENTRESON') == 'Yes',
                     'reservedName': elem.get('RESERVEDNAME', ''),
@@ -874,13 +926,14 @@ class IncrementalSyncManager:
     def sync_incremental(self, company_id: int, user_id: int, tally_port: int, 
                         entity_type: str = 'Ledger', endpoint: str = None,
                         is_first_sync: bool = False, last_alter_id: int = None, 
-                        company_name: str = None) -> Dict:
+                        company_name: str = None, books_from: str = None) -> Dict:
         """Execute incremental sync with optional reconciliation
         
         Args:
             last_alter_id: If provided, use this as the starting point instead of fetching from backend
             company_name: Tally company name to switch context
             endpoint: Optional endpoint override. If not provided, derived from entity_type
+            books_from: Company's BooksFrom date for accurate balance computation
         """
         
         # Map entity type to correct backend endpoint (same as reconciliation)
@@ -914,7 +967,7 @@ class IncrementalSyncManager:
             logger.debug(f"Using max AlterID for {entity_type}: {last_alter_id}")
         
         # Generate TDL with AlterID filter
-        tdl = self.generate_incremental_tdl(last_alter_id, entity_type, company_name)
+        tdl = self.generate_incremental_tdl(last_alter_id, entity_type, company_name, books_from)
         
         # Fetch from Tally
         if VERBOSE_MODE:
@@ -1059,9 +1112,12 @@ def main():
             for company in companies:
                 cmp_id = company['id']
                 cmp_name = company['name']
+                cmp_books_from = company.get('booksStart') or company.get('financialYearStart')
                 
                 logger.info(f"\n{'='*60}")
                 logger.info(f"📦 Company {cmp_id}: {cmp_name}")
+                if cmp_books_from:
+                    logger.info(f"   📅 BooksFrom: {cmp_books_from}")
                 logger.info(f"{'='*60}")
                 
                 # If entity_type is 'all', sync all entities in proper order
@@ -1104,7 +1160,8 @@ def main():
                             endpoint=sync_endpoint,
                             is_first_sync=is_first_sync,
                             last_alter_id=max_alter_id,
-                            company_name=cmp_name
+                            company_name=cmp_name,
+                            books_from=cmp_books_from
                         )
                         
                         if result['success']:
@@ -1161,7 +1218,8 @@ def main():
                         endpoint=endpoint,
                         is_first_sync=is_first_sync,
                         last_alter_id=max_alter_id,
-                        company_name=cmp_name  # Pass company name to switch Tally context
+                        company_name=cmp_name,
+                        books_from=cmp_books_from
                     )
                     
                     if result['success']:
@@ -1218,13 +1276,15 @@ def main():
                     'StockItem': 'stockitem',
                 }
                 
-                # Get company name
+                # Get company name and books_from date
                 company_name = None
+                cmp_books_from = None
                 try:
                     companies = sync_manager.fetch_companies()
                     company = next((c for c in companies if c['id'] == company_id), None)
                     if company:
                         company_name = company['name']
+                        cmp_books_from = company.get('booksStart') or company.get('financialYearStart')
                 except:
                     pass
                 
@@ -1270,7 +1330,8 @@ def main():
                         endpoint=endpoint,
                         is_first_sync=is_first_sync,
                         last_alter_id=max_alter_id,
-                        company_name=company_name
+                        company_name=company_name,
+                        books_from=cmp_books_from
                     )
                     
                     if result['success']:
@@ -1343,13 +1404,15 @@ def main():
             logger.info(f"   Max AlterID for {entity_type} in DB: {max_alter_id}")
             logger.info(f"   First-time sync: {'Yes' if is_first_sync else 'No'}")
             
-            # Get company name for Tally context
+            # Get company name and books_from for Tally context
             company_name = None
+            cmp_books_from = None
             try:
                 companies = sync_manager.fetch_companies()
                 company = next((c for c in companies if c['id'] == company_id), None)
                 if company:
                     company_name = company['name']
+                    cmp_books_from = company.get('booksStart') or company.get('financialYearStart')
             except:
                 pass
             
@@ -1362,7 +1425,8 @@ def main():
                 endpoint=endpoint,
                 is_first_sync=is_first_sync,
                 last_alter_id=max_alter_id,
-                company_name=company_name
+                company_name=company_name,
+                books_from=cmp_books_from
             )
             
             # Update company sync status based on result

@@ -12,31 +12,31 @@
 
     const COMMANDS = [
         // Navigation
-        { id: 'nav-dashboard', icon: '🏠', title: 'Go to Dashboard', action: () => navigateTo('/dashboard') },
-        { id: 'nav-companies', icon: '🏢', title: 'Go to Companies', action: () => navigateTo('/import-company') },
-        { id: 'nav-sync', icon: '🔄', title: 'Go to Sync', action: () => navigateTo('/company-sync') },
-        { id: 'nav-settings', icon: '⚙️', title: 'Go to Settings', action: () => navigateTo('/settings') },
-        { id: 'nav-profile', icon: '👤', title: 'Go to Profile', action: () => navigateTo('/profile') },
-        
+        { id: 'nav-dashboard', icon: '<i class="fas fa-home"></i>', title: 'Go to Dashboard', action: () => navigateTo('/dashboard') },
+        { id: 'nav-companies', icon: '<i class="fas fa-building"></i>', title: 'Go to Companies', action: () => navigateTo('/import-company') },
+        { id: 'nav-sync', icon: '<i class="fas fa-sync-alt"></i>', title: 'Go to Sync', action: () => navigateTo('/company-sync') },
+        { id: 'nav-settings', icon: '<i class="fas fa-cog"></i>', title: 'Go to Settings', action: () => navigateTo('/settings') },
+        { id: 'nav-profile', icon: '<i class="fas fa-user"></i>', title: 'Go to Profile', action: () => navigateTo('/profile') },
+
         // Actions
-        { id: 'action-sync-all', icon: '🔄', title: 'Sync All Companies', action: () => syncAll(), shortcut: 'Ctrl+Shift+S' },
-        { id: 'action-import', icon: '📥', title: 'Import New Company', action: () => navigateTo('/import-company') },
-        { id: 'action-refresh', icon: '🔄', title: 'Refresh Page', action: () => location.reload(), shortcut: 'Ctrl+R' },
-        { id: 'action-save', icon: '💾', title: 'Save Current Page', action: () => saveCurrent(), shortcut: 'Ctrl+S' },
-        
+        { id: 'action-sync-all', icon: '<i class="fas fa-sync"></i>', title: 'Sync All Companies', action: () => syncAll(), shortcut: 'Ctrl+Shift+S' },
+        { id: 'action-import', icon: '<i class="fas fa-file-import"></i>', title: 'Import New Company', action: () => navigateTo('/import-company') },
+        { id: 'action-refresh', icon: '<i class="fas fa-redo"></i>', title: 'Refresh Page', action: () => location.reload(), shortcut: 'Ctrl+R' },
+        { id: 'action-save', icon: '<i class="fas fa-save"></i>', title: 'Save Current Page', action: () => saveCurrent(), shortcut: 'Ctrl+S' },
+
         // Settings
-        { id: 'settings-tally-port', icon: '🔌', title: 'Change Tally Port', action: () => openSetting('tally-port') },
-        { id: 'settings-theme', icon: '🎨', title: 'Change Theme', action: () => openSetting('theme') },
-        { id: 'settings-sync-interval', icon: '⏱️', title: 'Change Sync Interval', action: () => openSetting('sync-interval') },
-        
+        { id: 'settings-tally-port', icon: '<i class="fas fa-plug"></i>', title: 'Change Tally Port', action: () => openSetting('tally-port') },
+        { id: 'settings-theme', icon: '<i class="fas fa-palette"></i>', title: 'Change Theme', action: () => openSetting('theme') },
+        { id: 'settings-sync-interval', icon: '<i class="fas fa-stopwatch"></i>', title: 'Change Sync Interval', action: () => openSetting('sync-interval') },
+
         // Help
-        { id: 'help-docs', icon: '📖', title: 'Open Documentation', action: () => openDocs() },
-        { id: 'help-shortcuts', icon: '⌨️', title: 'Keyboard Shortcuts', action: () => showShortcuts() },
-        { id: 'help-about', icon: 'ℹ️', title: 'About Talliffy', action: () => navigateTo('/settings#about') },
-        
+        { id: 'help-docs', icon: '<i class="fas fa-book"></i>', title: 'Open Documentation', action: () => openDocs() },
+        { id: 'help-shortcuts', icon: '<i class="fas fa-keyboard"></i>', title: 'Keyboard Shortcuts', action: () => showShortcuts() },
+        { id: 'help-about', icon: '<i class="fas fa-info-circle"></i>', title: 'About Talliffy', action: () => navigateTo('/settings#about') },
+
         // Developer
-        { id: 'dev-console', icon: '💻', title: 'Open Developer Console', action: () => window.electron?.openDevTools() },
-        { id: 'dev-logs', icon: '📋', title: 'View Logs', action: () => viewLogs() },
+        { id: 'dev-console', icon: '<i class="fas fa-terminal"></i>', title: 'Open Developer Console', action: () => window.electron?.openDevTools() },
+        { id: 'dev-logs', icon: '<i class="fas fa-clipboard-list"></i>', title: 'View Logs', action: () => viewLogs() },
     ];
 
     function navigateTo(path) {

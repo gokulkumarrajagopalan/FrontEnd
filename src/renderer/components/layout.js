@@ -19,19 +19,19 @@ const Layout = {
         } = options;
 
         const backgrounds = {
-            default: 'style="background: var(--bg-primary)"',
-            white: 'style="background: var(--bg-primary)"'
+            default: 'style="background: var(--ds-bg-app)"',
+            white: 'style="background: var(--ds-bg-app)"'
         };
 
         return `
             <div class="min-h-screen" ${backgrounds[background]}>
-                <div style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
+                <div style="padding: var(--ds-space-10); max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
                     ${(title || headerActions) ? window.UIComponents.pageHeader({
-                        title,
-                        subtitle,
-                        actions: headerActions
-                    }) : ''}
-                    <div style="margin-top: 2rem;">
+            title,
+            subtitle,
+            actions: headerActions
+        }) : ''}
+                    <div style="margin-top: var(--ds-space-8);">
                         ${content}
                     </div>
                 </div>
@@ -61,7 +61,7 @@ const Layout = {
         };
 
         return `
-            <div class="grid ${colClasses[columns]} gap-${gap} ${className}">
+            <div class="grid ${colClasses[columns]} ${className}" style="gap: var(--ds-space-${gap});">
                 ${items.join('')}
             </div>
         `;
@@ -87,7 +87,7 @@ const Layout = {
         };
 
         return `
-            <div class="flex gap-${gap}">
+            <div class="flex" style="gap: var(--ds-space-${gap});">
                 <div class="w-${sidebarWidth}">
                     ${sidebar}
                 </div>
@@ -117,27 +117,27 @@ const Layout = {
 
         const colClasses = {
             1: '',
-            2: 'grid grid-cols-1 md:grid-cols-2 gap-6',
-            3: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+            2: 'grid grid-cols-1 md:grid-cols-2',
+            3: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
         };
 
         return `
-            <form id="${id}" ${onSubmit ? `onsubmit="${onSubmit}"` : ''} class="space-y-6 ${className}">
-                ${title ? `<h3 class="text-lg font-bold text-gray-900 mb-4">${title}</h3>` : ''}
-                <div class="${colClasses[columns]}">
+            <form id="${id}" ${onSubmit ? `onsubmit="${onSubmit}"` : ''} class="${className}" style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                ${title ? `<h3 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-4);">${title}</h3>` : ''}
+                <div class="${colClasses[columns]}" style="gap: var(--ds-space-6);">
                     ${fields.map(field => `<div>${field}</div>`).join('')}
                 </div>
-                <div class="flex gap-3 justify-end pt-4">
+                <div style="display: flex; gap: var(--ds-space-3); justify-content: flex-end; padding-top: var(--ds-space-4);">
                     ${cancelButton ? window.UIComponents.button({
-                        text: cancelButton,
-                        variant: 'outline',
-                        type: 'button'
-                    }) : ''}
+            text: cancelButton,
+            variant: 'secondary',
+            type: 'button'
+        }) : ''}
                     ${window.UIComponents.button({
-                        text: submitButton,
-                        variant: 'primary',
-                        type: 'submit'
-                    })}
+            text: submitButton,
+            variant: 'primary',
+            type: 'submit'
+        })}
                 </div>
             </form>
         `;
@@ -150,7 +150,7 @@ const Layout = {
      */
     statsCard: (options = {}) => {
         const {
-            icon = '📊',
+            icon = '<i class="fas fa-chart-bar" style="color:var(--ds-primary-600)"></i>',
             title = '',
             value = '',
             change = '',
@@ -159,19 +159,19 @@ const Layout = {
         } = options;
 
         const changeColors = {
-            positive: 'text-green-600',
-            negative: 'text-red-600',
-            neutral: 'text-gray-600'
+            positive: 'color: var(--ds-success-600);',
+            negative: 'color: var(--ds-error-600);',
+            neutral: 'color: var(--ds-text-secondary);'
         };
 
         return `
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 ${className}">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="text-3xl">${icon}</div>
-                    ${change ? `<span class="text-sm font-semibold ${changeColors[changeType]}">${change}</span>` : ''}
+            <div class="${className}" style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); shadow: var(--ds-shadow-sm); border: 1px solid var(--ds-border-default); padding: var(--ds-space-6);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--ds-space-4);">
+                    <div style="font-size: var(--ds-text-3xl);">${icon}</div>
+                    ${change ? `<span style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); ${changeColors[changeType]}">${change}</span>` : ''}
                 </div>
-                <h3 class="text-sm font-medium text-gray-600 mb-1">${title}</h3>
-                <p class="text-2xl font-bold text-gray-900">${value}</p>
+                <h3 style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1);">${title}</h3>
+                <p style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${value}</p>
             </div>
         `;
     },
@@ -189,11 +189,11 @@ const Layout = {
         } = options;
 
         return `
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 flex items-center justify-between ${className}">
-                <div class="flex items-center gap-3">
+            <div class="${className}" style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); shadow: var(--ds-shadow-sm); border: 1px solid var(--ds-border-default); padding: var(--ds-space-4); display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: var(--ds-space-3);">
                     ${leftActions}
                 </div>
-                <div class="flex items-center gap-3">
+                <div style="display: flex; align-items: center; gap: var(--ds-space-3);">
                     ${rightActions}
                 </div>
             </div>
@@ -215,14 +215,14 @@ const Layout = {
         } = options;
 
         return `
-            <div class="mb-8 ${className}">
+            <div class="${className}" style="margin-bottom: var(--ds-space-8);">
                 ${(title || actions) ? `
-                    <div class="flex items-center justify-between mb-4">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--ds-space-4);">
                         <div>
-                            ${title ? `<h3 class="text-xl font-bold text-gray-900">${title}</h3>` : ''}
-                            ${description ? `<p class="text-sm text-gray-600 mt-1">${description}</p>` : ''}
+                            ${title ? `<h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${title}</h3>` : ''}
+                            ${description ? `<p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin-top: var(--ds-space-1);">${description}</p>` : ''}
                         </div>
-                        ${actions ? `<div class="flex gap-3">${actions}</div>` : ''}
+                        ${actions ? `<div style="display: flex; gap: var(--ds-space-3);">${actions}</div>` : ''}
                     </div>
                 ` : ''}
                 ${content}
@@ -243,13 +243,15 @@ const Layout = {
         } = options;
 
         return `
-            <div class="border-b border-gray-200 ${className}">
-                <nav id="${id}" class="flex space-x-8" aria-label="Tabs">
+            <div class="${className}" style="border-bottom: 1px solid var(--ds-border-default);">
+                <nav id="${id}" style="display: flex; gap: var(--ds-space-8);" aria-label="Tabs">
                     ${tabs.map(tab => `
                         <button
                             data-tab="${tab.id}"
-                            class="tab-btn ${tab.active ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} 
-                                   whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+                            class="tab-btn ${tab.active ? 'active' : ''}"
+                            style="white-space: nowrap; padding: var(--ds-space-4) var(--ds-space-1); border: none; border-bottom: 2px solid ${tab.active ? 'var(--ds-primary-600)' : 'transparent'}; font-weight: var(--ds-weight-medium); font-size: var(--ds-text-sm); transition: all var(--ds-duration-base) var(--ds-ease); background: none; color: ${tab.active ? 'var(--ds-primary-600)' : 'var(--ds-text-tertiary)'}; cursor: pointer;"
+                            onmouseover="if(!this.classList.contains('active')) { this.style.color='var(--ds-text-secondary)'; this.style.borderBottomColor='var(--ds-border-default)'; }"
+                            onmouseout="if(!this.classList.contains('active')) { this.style.color='var(--ds-text-tertiary)'; this.style.borderBottomColor='transparent'; }"
                         >
                             ${tab.label}
                         </button>
@@ -274,15 +276,18 @@ const Layout = {
         } = options;
 
         return `
-            <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between hover:shadow-md transition-shadow ${className}">
-                <div class="flex items-center gap-4">
-                    ${icon ? `<div class="text-2xl">${icon}</div>` : ''}
+            <div class="${className}" style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-xl); border: 1px solid var(--ds-border-default); padding: var(--ds-space-4); display: flex; align-items: center; justify-content: space-between; transition: all var(--ds-duration-base) var(--ds-ease);"
+                 onmouseover="this.style.boxShadow='var(--ds-shadow-md)'; this.style.borderColor='var(--ds-primary-200)';"
+                 onmouseout="this.style.boxShadow='none'; this.style.borderColor='var(--ds-border-default)';"
+            >
+                <div style="display: flex; align-items: center; gap: var(--ds-space-4);">
+                    ${icon ? `<div style="font-size: var(--ds-text-2xl);">${icon}</div>` : ''}
                     <div>
-                        <h4 class="font-semibold text-gray-900">${title}</h4>
-                        ${subtitle ? `<p class="text-sm text-gray-600 mt-1">${subtitle}</p>` : ''}
+                        <h4 style="font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">${title}</h4>
+                        ${subtitle ? `<p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin-top: var(--ds-space-1);">${subtitle}</p>` : ''}
                     </div>
                 </div>
-                ${actions ? `<div class="flex items-center gap-2">${actions}</div>` : ''}
+                ${actions ? `<div style="display: flex; align-items: center; gap: var(--ds-space-2);">${actions}</div>` : ''}
             </div>
         `;
     }

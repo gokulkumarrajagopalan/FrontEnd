@@ -1,85 +1,83 @@
 (function () {
-    const getTemplate = () => `
-    <div id="importCompanyPageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
-        <!-- Import Header -->
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 text-gray-900">
-    <div class="flex items-center justify-between">
-        
-        <!-- Left content -->
-        <div>
-            <h2 class="text-xl font-bold mb-1">🏢 Import Companies from Tally</h2>
-            <p class="text-gray-600 text-sm">
-                Connect to Tally and import your company data seamlessly
-            </p>
-        </div>
+    const getTemplate = () => {
+        const fetchBtn = window.UIComponents.button({
+            id: 'fetchCompaniesBtn',
+            text: 'Fetch from Tally',
+            icon: '<i class="fas fa-plug"></i>',
+            variant: 'primary',
+            size: 'md'
+        });
 
-        <div class="flex items-center gap-4">
-            <button id="fetchCompaniesBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition-all duration-200 font-semibold text-sm flex items-center gap-2">
-                <span>🔗</span>
-                <span>Fetch from Tally</span>
-            </button>
-
-            <!-- Right stats box -->
-            <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-center">
-                <p class="text-2xl font-bold text-blue-600" id="tallyCompanyCount">0</p>
-                <p class="text-xs text-blue-500">Available</p>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-        <!-- Status Messages -->
-        <div id="statusMessage" style="display: none;" class="p-4 rounded-xl border border-gray-200 bg-gray-50 shadow-sm text-gray-900"></div>
-
-        <!-- Companies List -->
-        <div id="companiesList" style="display: none;" class="space-y-4">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center justify-between mb-2">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-1">📋 Select Companies to Import</h3>
-                        <p class="text-sm text-gray-600">Choose the companies you want to import from Tally</p>
+        return window.Layout.page({
+            title: 'Import Companies',
+            subtitle: 'Connect to Tally Prime and import your company data seamlessly',
+            headerActions: fetchBtn,
+            content: `
+                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                    <!-- Stats Card -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--ds-space-4);">
+                        <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-2xl); padding: var(--ds-space-6); display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h4 style="font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-2);">Tally Status</h4>
+                                <div id="tallyConnectionStatus" style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary);">Not Connected</div>
+                            </div>
+                            <div style="font-size: var(--ds-text-4xl); color: var(--ds-text-tertiary); opacity: 0.2;"><i class="fas fa-plug"></i></div>
+                        </div>
+                        <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-2xl); padding: var(--ds-space-6); display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h4 style="font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-2);">Available Companies</h4>
+                                <div id="tallyCompanyCount" style="font-size: var(--ds-text-3xl); font-weight: var(--ds-weight-bold); color: var(--ds-primary-600);">0</div>
+                            </div>
+                            <div style="font-size: var(--ds-text-4xl); color: var(--ds-primary-500); opacity: 0.2;"><i class="fas fa-building"></i></div>
+                        </div>
                     </div>
-                    <button id="importMoreBtn" class="px-6 py-3 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-bold flex items-center gap-2" style="background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 100%);">
-                        <span>🔗</span>
-                        <span>Fetch More</span>
-                    </button>
-                </div>
-                <div id="companiesContainer" class="space-y-3">
-                    <!-- Company list items will be rendered here -->
-                </div>
-            </div>
-        </div>
 
-        <!-- Import Selected Button -->
-        <div id="importButtonContainer" style="display: none;" class="flex gap-4">
-            <button id="importSelectedBtn" class="flex-1 px-6 py-2.5 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold text-base flex items-center justify-center gap-2" style="background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 100%);">
-                <span class="text-lg">📥</span>
-                <span>Import Selected Companies</span>
-            </button>
-            <button id="clearSelectionBtn" class="px-6 py-2.5 bg-gray-300 hover:bg-gray-400 text-gray-900 rounded-xl shadow-lg hover:shadow-xl border-2 border-gray-400 transition-all duration-200 font-semibold text-base flex items-center justify-center gap-2">
-                <span class="text-lg">🔄</span>
-                <span>Clear Selection</span>
-            </button>
-        </div>
+                    <!-- Connection History / Status -->
+                    <div id="statusMessage" style="display: none;"></div>
 
-        <!-- Import Progress -->
-        <div id="importProgress" style="display: none;" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center animate-pulse">
-                    <span class="text-2xl">⚙️</span>
+                    <!-- Companies List Area -->
+                    <div id="companiesListSection" style="display: none;">
+                        <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-3xl); overflow: hidden; display: flex; flex-direction: column;">
+                            <div style="padding: var(--ds-space-6) var(--ds-space-8); border-bottom: 1px solid var(--ds-border-default); background: var(--ds-bg-surface-sunken); display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Select Companies</h3>
+                                    <p style="font-size: var(--ds-text-sm); color: var(--ds-text-secondary); margin: var(--ds-space-1) 0 0 0;">Choose which companies to import from your Tally server</p>
+                                </div>
+                                <div style="display: flex; gap: var(--ds-space-2);">
+                                    ${window.UIComponents.button({ id: 'importMoreBtn', text: 'Refresh', icon: '<i class="fas fa-sync-alt"></i>', variant: 'secondary', size: 'sm' })}
+                                    ${window.UIComponents.button({ id: 'clearSelectionBtn', text: 'Clear', icon: '<i class="fas fa-undo"></i>', variant: 'secondary', size: 'sm' })}
+                                </div>
+                            </div>
+                            <div id="companiesContainer" style="padding: var(--ds-space-8); display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: var(--ds-space-4);">
+                                <!-- Company cards injected here -->
+                            </div>
+                            <div id="importButtonContainer" style="padding: var(--ds-space-6) var(--ds-space-8); border-top: 1px solid var(--ds-border-default); background: var(--ds-bg-surface-sunken); display: none;">
+                                ${window.UIComponents.button({ id: 'importSelectedBtn', text: 'Import Selected Companies', icon: '<i class="fas fa-file-import"></i>', variant: 'primary', fullWidth: true, size: 'lg' })}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Import Progress -->
+                    <div id="importProgress" style="display: none;">
+                        <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-3xl); padding: var(--ds-space-8); display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                            <div style="display: flex; align-items: center; gap: var(--ds-space-4);">
+                                <div style="width: 48px; height: 48px; min-width: 48px; border-radius: var(--ds-radius-xl); background: var(--ds-primary-100); color: var(--ds-primary-600); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-2xl);">
+                                    <i class="fas fa-cog fa-spin"></i>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Importing Data...</h3>
+                                    <p style="font-size: var(--ds-text-sm); color: var(--ds-text-secondary); margin: var(--ds-space-1) 0 0 0;">Synchronizing company records with the cloud server</p>
+                                </div>
+                            </div>
+                            <div id="importLog" style="background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-2xl); padding: var(--ds-space-6); font-family: monospace; font-size: var(--ds-text-xs); color: var(--ds-text-primary); max-height: 400px; overflow-y: auto;">
+                                <!-- Logs here -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="text-xl font-bold text-gray-900">Importing Companies...</h3>
-                    <p class="text-sm text-gray-700">Please wait while we import your data</p>
-                </div>
-            </div>
-            <div id="importLog" class="space-y-2 max-h-96 overflow-y-auto bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <!-- Import progress will be logged here -->
-            </div>
-        </div>
-    </div>
-    `;
+            `
+        });
+    };
 
     let tallyCompanies = [];
     let selectedCompanies = [];
@@ -113,9 +111,10 @@
 
         if (connectionHistory.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-4 text-gray-400">
-                    <p class="text-sm">No connection history yet</p>
-                    <p class="text-xs mt-1">Click "Fetch from Tally" to connect</p>
+                <div style="text-align: center; padding: var(--ds-space-8); color: var(--ds-text-tertiary);">
+                    <div style="font-size: var(--ds-text-4xl); margin-bottom: var(--ds-space-3); opacity: 0.2;"><i class="fas fa-history"></i></div>
+                    <p style="font-size: var(--ds-text-sm); margin: 0;">No connection history yet</p>
+                    <p style="font-size: var(--ds-text-xs); margin: var(--ds-space-1) 0 0 0;">Click "Fetch from Tally" to connect</p>
                 </div>
             `;
             return;
@@ -125,28 +124,25 @@
             const date = new Date(conn.timestamp);
             const timeAgo = getTimeAgo(date);
             const isSuccess = conn.status === 'success';
-            const statusIcon = isSuccess ? '✓' : '✗';
-            const bgClass = isSuccess ? 'bg-green-100' : 'bg-red-100';
-            const textClass = isSuccess ? 'text-green-600' : 'text-red-600';
 
             return `
-                <div class="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 ${bgClass} rounded-lg flex items-center justify-center">
-                            <span class="${textClass} font-bold text-lg">${statusIcon}</span>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--ds-space-4) var(--ds-space-5); background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-xl); transition: all var(--ds-duration-base) var(--ds-ease);">
+                    <div style="display: flex; align-items: center; gap: var(--ds-space-4);">
+                        <div style="width: 40px; height: 40px; border-radius: var(--ds-radius-lg); background: ${isSuccess ? 'var(--ds-success-50)' : 'var(--ds-error-50)'}; color: ${isSuccess ? 'var(--ds-success-600)' : 'var(--ds-error-600)'}; display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-lg);">
+                            <i class="fas fa-${isSuccess ? 'check' : 'times'}"></i>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold text-gray-800">${conn.message}</p>
-                            <p class="text-xs text-gray-500">${timeAgo}</p>
+                            <p style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${conn.message}</p>
+                            <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin: var(--ds-space-1) 0 0 0;">${timeAgo}</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-lg font-bold ${textClass}">${conn.companyCount}</p>
-                        <p class="text-xs text-gray-500">companies</p>
+                    <div style="text-align: right;">
+                        <p style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: ${isSuccess ? 'var(--ds-success-600)' : 'var(--ds-error-600)'}; margin: 0;">${conn.companyCount}</p>
+                        <p style="font-size: var(--ds-text-2xs); color: var(--ds-text-tertiary); text-transform: uppercase; margin: 0;">companies</p>
                     </div>
                 </div>
             `;
-        }).join('');
+        }).join('<div style="height: var(--ds-space-3);"></div>');
     }
 
     function getTimeAgo(date) {
@@ -160,58 +156,78 @@
         return `${days}d ago`;
     }
 
-    function showStatus(message, type = 'info') {
-        const statusDiv = document.getElementById('statusMessage');
-        if (!statusDiv) {
-            console.warn('Status div not found, message:', message);
-            return;
-        }
-        // Use textContent for security (prevents XSS)
-        statusDiv.textContent = message;
-        statusDiv.style.display = 'block';
-
-        if (type === 'success') {
-            statusDiv.className = 'p-4 rounded-lg border-l-4 bg-green-50 border-green-500 text-green-800';
-        } else if (type === 'error') {
-            statusDiv.className = 'p-4 rounded-lg border-l-4 bg-red-50 border-red-500 text-red-800';
-        } else {
-            statusDiv.className = 'p-4 rounded-lg border-l-4 bg-blue-50 border-blue-500 text-blue-800';
-        }
-    }
-
     function addImportLog(message, status = 'info') {
         const log = document.getElementById('importLog');
-        if (!log) {
-            console.warn('Import log not found, message:', message);
-            return;
-        }
+        if (!log) return;
         const entry = document.createElement('div');
-        entry.className = `text-sm ${status === 'success' ? 'text-green-700' :
-                status === 'error' ? 'text-red-700' :
-                    'text-gray-700'
-            }`;
-        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        entry.style.marginBottom = 'var(--ds-space-1)';
+        entry.style.color = status === 'success' ? 'var(--ds-success-600)' :
+            status === 'error' ? 'var(--ds-error-600)' :
+                'var(--ds-text-primary)';
+        entry.innerHTML = `<span style="color: var(--ds-text-tertiary); margin-right: var(--ds-space-2);">[${new Date().toLocaleTimeString()}]</span> ${message}`;
         log.appendChild(entry);
         log.scrollTop = log.scrollHeight;
     }
 
+    const init = () => {
+        const fetchBtn = document.getElementById('fetchCompaniesBtn');
+        if (fetchBtn) fetchBtn.onclick = fetchTallyCompanies;
+
+        const importMoreBtn = document.getElementById('importMoreBtn');
+        if (importMoreBtn) importMoreBtn.onclick = fetchTallyCompanies;
+
+        const clearBtn = document.getElementById('clearSelectionBtn');
+        if (clearBtn) {
+            clearBtn.onclick = () => {
+                document.querySelectorAll('.company-checkbox').forEach(cb => cb.checked = false);
+                updateSelection();
+            };
+        }
+
+        const importSelectedBtn = document.getElementById('importSelectedBtn');
+        if (importSelectedBtn) importSelectedBtn.onclick = importSelectedCompanies;
+
+        loadConnectionHistory();
+        renderConnectionHistory();
+    };
+
+    function showStatus(message, type = 'info') {
+        if (window.notificationService) {
+            window.notificationService.show({
+                type: type,
+                message: message,
+                duration: 5000
+            });
+        }
+
+        const statusDiv = document.getElementById('statusMessage');
+        if (!statusDiv) return;
+
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = window.UIComponents.alert({
+            message: message,
+            type: type,
+            className: 'mb-6'
+        });
+    }
+
     async function fetchTallyCompanies() {
         const fetchBtn = document.getElementById('fetchCompaniesBtn');
-        if (!fetchBtn) {
-            console.warn('Fetch button not found');
-            return;
-        }
-        fetchBtn.disabled = true;
-        fetchBtn.innerHTML = '<span>⏳</span><span>Fetching from Tally...</span>';
+        const statusText = document.getElementById('tallyConnectionStatus');
 
-        showStatus('Connecting to Tally server...', 'info');
+        if (!fetchBtn) return;
+
+        fetchBtn.disabled = true;
+        fetchBtn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i></span><span>Fetching...</span>';
+
+        if (statusText) {
+            statusText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Connecting...';
+            statusText.style.color = 'var(--ds-text-secondary)';
+        }
 
         try {
-            // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
-
-            console.log('📍 Fetching companies with Tally Port:', tallyPort);
 
             if (window.electronAPI && window.electronAPI.invoke) {
                 const result = await window.electronAPI.invoke('fetch-companies', { tallyPort });
@@ -220,51 +236,39 @@
                     tallyCompanies = result.data;
                     const countElem = document.getElementById('tallyCompanyCount');
                     if (countElem) countElem.textContent = tallyCompanies.length;
+
+                    if (statusText) {
+                        statusText.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Connected';
+                        statusText.style.color = 'var(--ds-success-600)';
+                    }
+
                     await displayCompanies(tallyCompanies);
-                    showStatus(`✅ Found ${tallyCompanies.length} companies in Tally`, 'success');
+                    showStatus(`Found ${tallyCompanies.length} companies in Tally`, 'success');
                     saveConnectionHistory('success', tallyCompanies.length, 'Connected successfully');
                 } else {
-                    // Parse error details to provide user-friendly message
                     let errorMsg = result.error || 'Failed to fetch companies';
-                    
-                    // Check if it's a connection error (string or object format)
-                    const isConnectionError = 
-                        (typeof errorMsg === 'string' && errorMsg.toLowerCase().includes('connection')) ||
-                        (typeof errorMsg === 'object' && errorMsg.error === 'Connection failed');
-                    
-                    if (isConnectionError) {
-                        errorMsg = `Unable to connect to Tally!\n\nPlease ensure:\n• Tally is running on port ${tallyPort}\n• ODBC/HTTP Server is enabled in Tally\n• Port ${tallyPort} is not blocked by firewall\n\nTo enable ODBC in Tally: Gateway → F12 (Configure) → Advanced → HTTP/HTTPS`;
+                    if (statusText) {
+                        statusText.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Failed';
+                        statusText.style.color = 'var(--ds-error-600)';
                     }
-                    
                     throw new Error(errorMsg);
                 }
-            } else {
-                throw new Error('Electron API not available');
             }
         } catch (error) {
-            // Display user-friendly error message
-            const errorMsg = error.message || 'Unknown error occurred';
-            showStatus(`❌ ${errorMsg}`, 'error');
-            console.error('Fetch error:', error);
-            
-            // Save simplified message to history
-            const historyMsg = errorMsg.includes('Unable to connect') 
-                ? 'Cannot connect to Tally - Please check Tally is running'
-                : errorMsg;
-            saveConnectionHistory('error', 0, historyMsg);
+            showStatus(error.message || 'Connection failed', 'error');
+            saveConnectionHistory('error', 0, error.message);
         } finally {
             fetchBtn.disabled = false;
-            fetchBtn.innerHTML = '<span>🔗</span><span>Fetch from Tally</span>';
+            fetchBtn.innerHTML = '<span><i class="fas fa-plug"></i></span><span>Fetch from Tally</span>';
         }
     }
 
     async function displayCompanies(companies) {
         const container = document.getElementById('companiesContainer');
-        const list = document.getElementById('companiesList');
+        const listSection = document.getElementById('companiesListSection');
         const importContainer = document.getElementById('importButtonContainer');
 
-        console.log('📊 Displaying companies:', companies.length);
-        console.log('Sample company structure:', companies[0]);
+        if (!container) return;
 
         // Fetch already imported companies from database
         let importedGuids = new Set();
@@ -279,9 +283,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     if (result.success && Array.isArray(result.data)) {
-                        // Normalize GUIDs to uppercase for reliable matching
                         importedGuids = new Set(result.data.map(c => (c.companyGuid || c.guid || '').toUpperCase().trim()));
-                        console.log(`✅ Loaded ${importedGuids.size} companies from database`);
                     }
                 }
             }
@@ -290,8 +292,11 @@
         }
 
         if (companies.length === 0) {
-            container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-400">No companies found</div>';
-            list.style.display = 'block';
+            container.innerHTML = window.UIComponents.emptyState({
+                title: 'No companies found',
+                message: 'Ensure Tally Prime is running and ODBC is enabled.'
+            });
+            listSection.style.display = 'block';
             importContainer.style.display = 'none';
             return;
         }
@@ -301,55 +306,63 @@
             const isImported = companyGuid ? importedGuids.has(companyGuid) : false;
 
             return `
-            <div class="company-card flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 ${isImported
-                    ? 'bg-gray-100 border-gray-200 opacity-70 cursor-not-allowed'
-                    : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md cursor-pointer'
-                }" data-index="${index}" data-imported="${isImported}">
-                <input type="checkbox" class="company-checkbox w-6 h-6 rounded border-2 border-blue-500 ${isImported ? 'opacity-50 cursor-not-allowed' : ''}" data-index="${index}" ${isImported ? 'disabled' : ''}>
+            <div class="company-card" data-index="${index}" data-imported="${isImported}" 
+                 style="background: ${isImported ? 'var(--ds-bg-surface-sunken)' : 'var(--ds-bg-surface)'}; 
+                        border: 1px solid var(--ds-border-default); 
+                        border-radius: var(--ds-radius-2xl); 
+                        padding: var(--ds-space-5); 
+                        display: flex; 
+                        align-items: center; 
+                        gap: var(--ds-space-4); 
+                        cursor: ${isImported ? 'default' : 'pointer'}; 
+                        transition: all var(--ds-duration-base) var(--ds-ease);
+                        ${isImported ? 'opacity: 0.7;' : ''}"
+                 onmouseover="${isImported ? '' : "this.style.borderColor='var(--ds-primary-500)'; this.style.shadow='var(--ds-shadow-md)';"}"
+                 onmouseout="${isImported ? '' : "this.style.borderColor='var(--ds-border-default)'; this.style.shadow='none';"}"
+            >
+                <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--ds-radius-lg); background: ${isImported ? 'var(--ds-bg-surface)' : 'var(--ds-primary-50)'}; color: ${isImported ? 'var(--ds-text-tertiary)' : 'var(--ds-primary-600)'}; font-size: var(--ds-text-xl);">
+                    <i class="fas fa-building"></i>
+                </div>
                 
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-1">
-                        <h4 class="text-base text-gray-900">${company.name}</h4>
-                        ${isImported
-                    ? '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">✓ Imported</span>'
-                    : '<span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-50 text-green-700 border border-green-200">● Available</span>'
-                }
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); font-size: var(--ds-text-base); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${company.name}
                     </div>
-                    <div class="flex gap-6 text-sm text-gray-600">
-                        ${company.state ? `<span>📍 State: ${company.state}</span>` : ''}
+                    <div style="display: flex; align-items: center; gap: var(--ds-space-2); margin-top: var(--ds-space-1);">
+                        <span style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);"><i class="fas fa-map-marker-alt"></i> ${company.state || 'N/A'}</span>
+                        ${isImported
+                    ? window.UIComponents.badge({ text: 'IMPORTED', variant: 'neutral', size: 'sm' })
+                    : window.UIComponents.badge({ text: 'AVAILABLE', variant: 'success', size: 'sm' })}
                     </div>
                 </div>
+
+                <input type="checkbox" class="company-checkbox" data-index="${index}" ${isImported ? 'disabled style="display:none;"' : 'style="width: 20px; height: 20px; accent-color: var(--ds-primary-600); cursor: pointer;"'}>
             </div>
         `;
         }).join('');
 
-        console.log('✅ Rendered', companies.length, 'company cards');
-
         // Add event listeners
         document.querySelectorAll('.company-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                if (e.target.tagName !== 'INPUT') {
-                    const checkbox = card.querySelector('.company-checkbox');
-                    if (!checkbox.disabled) {
+            const index = card.getAttribute('data-index');
+            const isImported = card.getAttribute('data-imported') === 'true';
+
+            if (!isImported) {
+                card.onclick = (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        const checkbox = card.querySelector('.company-checkbox');
                         checkbox.checked = !checkbox.checked;
                         updateSelection();
                     }
-                }
-            });
+                };
+            }
         });
 
         document.querySelectorAll('.company-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('click', (e) => {
-                if (checkbox.disabled) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            });
-            checkbox.addEventListener('change', updateSelection);
+            checkbox.onchange = updateSelection;
         });
 
-        list.style.display = 'block';
-        importContainer.style.display = 'flex';
+        listSection.style.display = 'block';
+        importContainer.style.display = 'block';
     }
 
     function updateSelection() {
@@ -485,17 +498,17 @@
             }
 
             if (response.ok) {
-                addImportLog(`   📤 Sent to Backend API (ID: ${result.data?.id || result.id || 'N/A'})`, 'success');
-                addImportLog(`   ✅ Response: ${result.message || 'Company created'}`, 'success');
+                addImportLog(`   Sent to Backend API (ID: ${result.data?.id || result.id || 'N/A'})`, 'success');
+                addImportLog(`   Backend response: ${result.message || 'Company created'}`, 'success');
                 return { success: true, backendId: result.data?.id || result.id };
             } else {
                 // Extract detailed error information
                 let errorMsg = result.message || result.error || `HTTP ${response.status}`;
                 let errorDetails = result.details || result.fieldErrors || '';
 
-                addImportLog(`   ⚠️ Backend Error (${response.status}): ${errorMsg}`, 'error');
+                addImportLog(`   Backend Error (${response.status}): ${errorMsg}`, 'error');
                 if (errorDetails) {
-                    addImportLog(`   📋 Details: ${JSON.stringify(errorDetails)}`, 'error');
+                    addImportLog(`   Details: ${JSON.stringify(errorDetails)}`, 'error');
                 }
 
                 // Log FULL response for debugging
@@ -510,7 +523,7 @@
                 return { success: false, error: errorMsg };
             }
         } catch (err) {
-            addImportLog(`   ❌ API Error: ${err.message}`, 'error');
+            addImportLog(`   API Error: ${err.message}`, 'error');
             console.error('API Call Error:', err);
             return { success: false, error: err.message };
         }
@@ -522,18 +535,18 @@
      */
     async function triggerFirstTimeSync(companyId, companyData) {
         console.log(`🔄 Starting first-time sync for: ${companyData.name}`);
-        
+
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         const authToken = localStorage.getItem('authToken');
         const deviceToken = localStorage.getItem('deviceToken');
         const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-        
+
         try {
             // Call sync_master.py via Electron IPC for full sync
             if (!window.electronAPI || !window.electronAPI.syncMasterData) {
                 throw new Error('Sync API not available');
             }
-            
+
             const result = await window.electronAPI.syncMasterData({
                 companyName: companyData.name,
                 cmpId: companyId,
@@ -543,14 +556,14 @@
                 authToken: authToken,
                 deviceToken: deviceToken
             });
-            
+
             if (result.success) {
                 console.log('✅ Full sync completed');
                 addImportLog(`   📊 Sync results: ${JSON.stringify(result.results)}`, 'info');
-                
+
                 // Trigger reconciliation for all entity types
                 await runFirstTimeReconciliation(companyId);
-                
+
                 return result;
             } else {
                 throw new Error(result.error || 'Sync failed');
@@ -566,31 +579,31 @@
      */
     async function runFirstTimeReconciliation(companyId) {
         console.log(`🔍 Starting reconciliation for company ${companyId}`);
-        
+
         const entityTypes = [
-            'Group', 'Currency', 'Unit', 'StockGroup', 
+            'Group', 'Currency', 'Unit', 'StockGroup',
             'StockCategory', 'CostCategory', 'CostCenter',
-            'Godown', 'VoucherType', 'TaxUnit', 
+            'Godown', 'VoucherType', 'TaxUnit',
             'Ledger', 'StockItem'
         ];
-        
+
         let totalDiscrepancies = 0;
-        
+
         for (const entityType of entityTypes) {
             try {
                 const result = await reconcileEntity(companyId, entityType);
                 if (result.missing > 0 || result.extra > 0) {
                     totalDiscrepancies += result.missing + result.extra;
-                    addImportLog(`   ⚠️ ${entityType}: ${result.missing} missing, ${result.extra} extra`, 'info');
+                    addImportLog(`   <i class="fas fa-exclamation-triangle mr-2"></i> ${entityType}: ${result.missing} missing, ${result.extra} extra`, 'info');
                 } else {
-                    addImportLog(`   ✅ ${entityType}: Verified (${result.matched} records)`, 'success');
+                    addImportLog(`   <i class="fas fa-check-circle mr-2"></i> ${entityType}: Verified (${result.matched} records)`, 'success');
                 }
             } catch (error) {
                 console.error(`Reconciliation error for ${entityType}:`, error);
                 addImportLog(`   ⚠️ ${entityType}: Reconciliation failed - ${error.message}`, 'info');
             }
         }
-        
+
         if (totalDiscrepancies === 0) {
             addImportLog(`   ✅ All entity types reconciled successfully`, 'success');
         } else {
@@ -605,13 +618,13 @@
         try {
             const authToken = localStorage.getItem('authToken');
             const deviceToken = localStorage.getItem('deviceToken');
-            
+
             const headers = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`,
                 'X-Device-Token': deviceToken
             };
-            
+
             const response = await fetch(
                 window.apiConfig.getUrl(`/api/companies/${companyId}/reconcile`),
                 {
@@ -622,7 +635,7 @@
                     })
                 }
             );
-            
+
             if (response.ok) {
                 const result = await response.json();
                 return {
@@ -668,17 +681,17 @@
             });
 
             if (!authToken) {
-                addImportLog('❌ Authentication token not found. Please login.', 'error');
+                addImportLog('Authentication token not found. Please login.', 'error');
                 console.error('No authToken in localStorage');
-                showStatus('⚠️ Please login to import companies', 'error');
+                showStatus('Please login to import companies', 'error');
                 importBtn.disabled = false;
                 return;
             }
 
             if (!currentUser || !currentUser.userId) {
-                addImportLog('❌ User information not found. Please login again.', 'error');
+                addImportLog('User information not found. Please login again.', 'error');
                 console.error('No currentUser in localStorage or missing userId');
-                showStatus('⚠️ User session invalid. Please login again.', 'error');
+                showStatus('User session invalid. Please login again.', 'error');
                 importBtn.disabled = false;
                 return;
             }
@@ -698,7 +711,7 @@
                 'X-Device-Token': deviceToken
             };
 
-            addImportLog(`✅ Authenticated as: ${currentUser.username} (ID: ${currentUser.userId})`, 'success');
+            addImportLog(`Authenticated as: ${currentUser.username} (ID: ${currentUser.userId})`, 'success');
 
             // Fetch existing companies from database to check for duplicates
             let existingCompanyGuids = new Set();
@@ -709,10 +722,10 @@
                 });
 
                 if (response.status === 401) {
-                    addImportLog('⚠️ Your session has expired. Please login again to import companies.', 'error');
+                    addImportLog('Your session has expired. Please login again to import companies.', 'error');
                     addImportLog('💡 Click the user icon or refresh the page to login again.', 'info');
                     importBtn.disabled = false;
-                    showStatus('⚠️ Session expired. Please login again to continue.', 'error');
+                    showStatus('Session expired. Please login again to continue.', 'error');
                     return;
                 }
 
@@ -720,11 +733,11 @@
                     const result = await response.json();
                     if (result.success && Array.isArray(result.data)) {
                         existingCompanyGuids = new Set(result.data.map(c => c.companyGuid || c.guid));
-                        addImportLog(`📊 Found ${existingCompanyGuids.size} existing companies in database`, 'info');
+                        addImportLog(`Found ${existingCompanyGuids.size} existing companies in database`, 'info');
                     }
                 }
             } catch (error) {
-                addImportLog(`⚠️ Could not check existing companies: ${error.message}`, 'info');
+                addImportLog(`Could not check existing companies: ${error.message}`, 'info');
             }
 
             let importedCount = 0;
@@ -736,7 +749,7 @@
                 const exists = existingCompanyGuids.has(companyGuid);
 
                 if (exists) {
-                    addImportLog(`⏭️ Skipped: ${company.name} (already exists in database)`, 'info');
+                    addImportLog(`Skipped: ${company.name} (already exists in database)`, 'info');
                     skippedCount++;
                 } else {
                     // Create company object for our database
@@ -818,13 +831,13 @@
                     const backendResponse = await sendCompanyToBackend(newCompany);
 
                     if (backendResponse.success) {
-                        addImportLog(`✅ Imported: ${company.name} (ID: ${backendResponse.backendId})`, 'success');
+                        addImportLog(`Imported: ${company.name} (ID: ${backendResponse.backendId})`, 'success');
                         importedCount++;
 
                         // TRIGGER FIRST-TIME FULL SYNC → RECONCILE
                         try {
-                            addImportLog(`   🔄 Starting first-time full sync for ${company.name}...`, 'info');
-                            
+                            addImportLog(`Starting first-time full sync for ${company.name}...`, 'info');
+
                             // Mark as syncing in notification center
                             if (window.notificationCenter) {
                                 window.notificationCenter.updateCompanySyncStatus(
@@ -833,10 +846,10 @@
                                     0
                                 );
                             }
-                            
+
                             const syncResult = await triggerFirstTimeSync(backendResponse.backendId, company);
-                            addImportLog(`   ✅ First-time sync completed successfully`, 'success');
-                            
+                            addImportLog(`First-time sync completed successfully`, 'success');
+
                             // Update as success in notification center
                             if (window.notificationCenter) {
                                 window.notificationCenter.updateCompanySyncStatus(
@@ -845,9 +858,9 @@
                                     syncResult.totalCount || 0
                                 );
                             }
-                            
+
                             // CASE 1: Run reconciliation after company import
-                            addImportLog(`   🔍 Running reconciliation for ${company.name}...`, 'info');
+                            addImportLog(`Running reconciliation for ${company.name}...`, 'info');
                             try {
                                 const reconResult = await window.electronAPI.reconcileData({
                                     companyId: backendResponse.backendId,
@@ -859,20 +872,20 @@
                                     deviceToken: deviceToken,
                                     entityType: 'all'
                                 });
-                                
+
                                 if (reconResult.success) {
                                     if (reconResult.totalSynced > 0) {
-                                        addImportLog(`   ✅ Reconciliation: ${reconResult.totalSynced} records auto-synced`, 'success');
+                                        addImportLog(`Reconciliation: ${reconResult.totalSynced} records auto-synced`, 'success');
                                     } else {
-                                        addImportLog(`   ✅ Reconciliation: All records in sync`, 'success');
+                                        addImportLog(`Reconciliation: All records in sync`, 'success');
                                     }
                                 } else {
-                                    addImportLog(`   ⚠️ Reconciliation completed with warnings`, 'info');
+                                    addImportLog(`Reconciliation completed with warnings`, 'info');
                                 }
                             } catch (reconError) {
-                                addImportLog(`   ⚠️ Reconciliation skipped: ${reconError.message}`, 'info');
+                                addImportLog(`Reconciliation skipped: ${reconError.message}`, 'info');
                             }
-                            
+
                             // Show success notification
                             if (window.notificationService) {
                                 window.notificationService.show({
@@ -883,8 +896,8 @@
                                 });
                             }
                         } catch (syncError) {
-                            addImportLog(`   ⚠️ First-time sync failed: ${syncError.message}`, 'error');
-                            
+                            addImportLog(`First-time sync failed: ${syncError.message}`, 'error');
+
                             // Update as error in notification center
                             if (window.notificationCenter) {
                                 window.notificationCenter.updateCompanySyncStatus(
@@ -894,7 +907,7 @@
                                     syncError.message
                                 );
                             }
-                            
+
                             // Show error notification
                             if (window.notificationService) {
                                 window.notificationService.show({
@@ -906,16 +919,16 @@
                             }
                         }
                     } else {
-                        addImportLog(`❌ Failed: ${company.name} - ${backendResponse.error}`, 'error');
+                        addImportLog(`Failed: ${company.name} - ${backendResponse.error}`, 'error');
                         skippedCount++;
                     }
                 }
             }
 
-            addImportLog(`\n✅ Import Complete!`, 'success');
+            addImportLog(`Import Complete!`, 'success');
             addImportLog(`Imported: ${importedCount} | Skipped: ${skippedCount}`, 'success');
 
-            showStatus(`✅ Successfully imported ${importedCount} company/companies with groups!`, 'success');
+            showStatus(`Successfully imported ${importedCount} company/companies with groups!`, 'success');
 
             // Reset selection
             selectedCompanies = [];
@@ -923,86 +936,53 @@
 
             // Refresh company data in the app
             if (importedCount > 0) {
-                addImportLog(`🔄 Refreshing company data...`, 'info');
-                
+                addImportLog(`Refreshing company data...`, 'info');
+
                 // Refresh companies in sidebar/dropdown
                 if (window.refreshCompanyList) {
                     await window.refreshCompanyList();
-                    addImportLog(`✅ Company list refreshed`, 'success');
+                    addImportLog(`Company list refreshed`, 'success');
                 }
-                
+
                 // Refresh dashboard if function exists
                 if (window.refreshDashboard) {
                     await window.refreshDashboard();
                 }
-                
+
                 // Dispatch event to notify other components
-                window.dispatchEvent(new CustomEvent('companies-updated', { 
-                    detail: { importedCount, skippedCount } 
+                window.dispatchEvent(new CustomEvent('companies-updated', {
+                    detail: { importedCount, skippedCount }
                 }));
             }
 
             // Show success message and navigate after 2 seconds
             setTimeout(() => {
                 document.getElementById('importProgress').style.display = 'none';
-                
+
                 // Show notification before navigation
                 if (window.notificationService) {
                     window.notificationService.success(`${importedCount} company/companies imported successfully!`);
                 }
-                
+
                 window.router.navigate('company-sync');
             }, 2000);
 
         } catch (error) {
-            addImportLog(`❌ Error: ${error.message}`, 'error');
-            showStatus(`❌ Import failed: ${error.message}`, 'error');
+            addImportLog(`Error: ${error.message}`, 'error');
+            showStatus(`Import failed: ${error.message}`, 'error');
         } finally {
             importBtn.disabled = false;
         }
     }
 
-    function setupEventListeners() {
-        const fetchBtn = document.getElementById('fetchCompaniesBtn');
-        if (fetchBtn) {
-            fetchBtn.addEventListener('click', fetchTallyCompanies);
-        }
-
-        const importMoreBtn = document.getElementById('importMoreBtn');
-        if (importMoreBtn) {
-            importMoreBtn.addEventListener('click', fetchTallyCompanies);
-        }
-
-        const importBtn = document.getElementById('importSelectedBtn');
-        if (importBtn) {
-            importBtn.addEventListener('click', importSelectedCompanies);
-        }
-
-        const clearBtn = document.getElementById('clearSelectionBtn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                selectedCompanies = [];
-                document.querySelectorAll('.company-checkbox').forEach(cb => cb.checked = false);
-                updateSelection();
-                showStatus('Selection cleared', 'info');
-            });
-        }
-    }
-
     window.initializeImportCompany = async function () {
-        console.log('Initializing Import Company Page...');
-        
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getTemplate();
-            loadConnectionHistory();
-            renderConnectionHistory();
-            setupEventListeners();
-            console.log('✅ Import Company Page initialized');
-            // Auto-fetch from Tally on page load
-            setTimeout(async () => {
-                await fetchTallyCompanies();
-            }, 500);
+            init();
+
+            // Auto-fetch after short delay to improve UX
+            setTimeout(fetchTallyCompanies, 400);
         }
     };
 })();

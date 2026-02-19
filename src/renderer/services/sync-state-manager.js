@@ -12,11 +12,12 @@ class SyncStateManager {
         this.syncedCount = 0;
         this.totalCount = 0;
         this.currentSyncCompany = null;
+        this.entityProgress = null; // { companyId, companyName, entityIndex, entityCount, entityName, percentage }
         this.syncQueue = [];
         this.syncHistory = [];
         this.listeners = [];
         this.notificationId = null;
-        
+
         // Initialize from localStorage
         this.loadState();
     }
@@ -81,16 +82,18 @@ class SyncStateManager {
     /**
      * Update sync progress
      */
-    updateProgress(syncedCount, currentCompany = null) {
+    updateProgress(syncedCount, currentCompany = null, entityProgress = null) {
         this.syncedCount = syncedCount;
         this.currentSyncCompany = currentCompany;
+        this.entityProgress = entityProgress;
 
         this.notifyListeners('sync-progress', {
             type: this.syncType,
             syncedCount: this.syncedCount,
             totalCount: this.totalCount,
             currentCompany: this.currentSyncCompany,
-            progress: this.totalCount > 0 ? (this.syncedCount / this.totalCount) * 100 : 0
+            progress: this.totalCount > 0 ? (this.syncedCount / this.totalCount) * 100 : 0,
+            entityProgress: this.entityProgress
         });
 
         this.updateSyncNotification();
@@ -101,7 +104,7 @@ class SyncStateManager {
      */
     endSync(success = true, message = '') {
         const duration = this.syncStartTime ? Date.now() - this.syncStartTime.getTime() : 0;
-        
+
         const syncRecord = {
             timestamp: new Date(),
             type: this.syncType,
@@ -116,7 +119,7 @@ class SyncStateManager {
         this.saveState();
 
         console.log(`✅ Sync Completed - Type: ${this.syncType}, Duration: ${duration}ms, Success: ${success}`);
-        
+
         this.notifyListeners('sync-ended', syncRecord);
 
         this.syncInProgress = false;
@@ -125,9 +128,10 @@ class SyncStateManager {
         this.syncedCount = 0;
         this.totalCount = 0;
         this.currentSyncCompany = null;
+        this.entityProgress = null;
 
         this.hideSyncNotification();
-        
+
         // Show completion notification
         this.showCompletionNotification(success, message);
 
@@ -160,7 +164,7 @@ class SyncStateManager {
         if (this.syncQueue.length > 0 && !this.syncInProgress) {
             const nextSync = this.syncQueue.shift();
             console.log(`⏳ Processing queued sync: ${nextSync.type}`);
-            
+
             // Emit event to trigger the queued sync
             window.dispatchEvent(new CustomEvent('sync-process-queue', {
                 detail: nextSync
@@ -194,7 +198,8 @@ class SyncStateManager {
             totalCount: this.totalCount,
             currentCompany: this.currentSyncCompany,
             progress: this.totalCount > 0 ? (this.syncedCount / this.totalCount) * 100 : 0,
-            queueSize: this.syncQueue.length
+            queueSize: this.syncQueue.length,
+            entityProgress: this.entityProgress || null
         };
     }
 
@@ -244,11 +249,11 @@ class SyncStateManager {
             }
 
             const syncTypeLabel = this.syncType === 'full' ? 'Full' : this.syncType === 'incremental' ? 'Incremental' : 'Company';
-            const message = this.totalCount > 0 
+            const message = this.totalCount > 0
                 ? `${syncTypeLabel} Sync Started - Syncing ${this.totalCount} companies...`
                 : `${syncTypeLabel} Sync Started`;
-            
-            const elem = window.notificationService.show(message, 'info', '🔄 Sync in Progress', 0); // 0 = no auto-dismiss
+
+            const elem = window.notificationService.show(message, 'info', '<i class="fas fa-sync fa-spin"></i> Sync in Progress', 0); // 0 = no auto-dismiss
             this.notificationId = elem.id || 'sync-notification';
         }
     }
@@ -259,13 +264,19 @@ class SyncStateManager {
     updateSyncNotification() {
         if (!this.notificationId) return;
 
-        const progressMsg = this.totalCount > 0 
-            ? `${this.syncedCount}/${this.totalCount} companies synced`
+        const progressMsg = this.totalCount > 0
+            ? `${this.syncedCount}/${this.totalCount} companies`
             : 'Processing...';
 
-        const fullMsg = this.currentSyncCompany 
-            ? `Syncing: ${this.currentSyncCompany} (${progressMsg})`
-            : progressMsg;
+        let fullMsg;
+        if (this.entityProgress) {
+            const ep = this.entityProgress;
+            fullMsg = `${ep.companyName || 'Syncing'} — [${ep.entityIndex}/${ep.entityCount}] ${ep.entityName} (${ep.percentage}%)`;
+        } else if (this.currentSyncCompany) {
+            fullMsg = `Syncing: ${this.currentSyncCompany} (${progressMsg})`;
+        } else {
+            fullMsg = progressMsg;
+        }
 
         // Update notification message using data-id selector
         const notif = document.querySelector(`[data-id="${this.notificationId}"]`);
@@ -298,7 +309,7 @@ class SyncStateManager {
             window.notificationService.show(
                 `Sync queued. ${this.syncQueue.length} request(s) waiting...`,
                 'warning',
-                '⏳ Sync Queued',
+                '<i class="fas fa-hourglass-half"></i> Sync Queued',
                 4000
             );
         }
@@ -311,13 +322,13 @@ class SyncStateManager {
         if (window.notificationService) {
             const duration = this.syncStartTime ? Math.round((Date.now() - this.syncStartTime.getTime()) / 1000) : 0;
             const durationStr = duration > 60 ? `${Math.round(duration / 60)}m ${duration % 60}s` : `${duration}s`;
-            
+
             const msg = message || `${this.syncedCount}/${this.totalCount} companies synced in ${durationStr}`;
-            
+
             if (success) {
-                window.notificationService.success(msg, '✅ Sync Complete', 4000);
+                window.notificationService.success(msg, '<i class="fas fa-check-circle"></i> Sync Complete', 4000);
             } else {
-                window.notificationService.error(msg, '❌ Sync Failed', 5000);
+                window.notificationService.error(msg, '<i class="fas fa-times-circle"></i> Sync Failed', 5000);
             }
 
             // Also fire OS-level system notification

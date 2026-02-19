@@ -14,10 +14,10 @@ class UserProfileService {
      */
     async showProfile() {
         if (this.isLoading) return;
-        
+
         try {
             this.isLoading = true;
-            
+
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             const userId = currentUser.userId;
             const loginTime = localStorage.getItem('loginTime');
@@ -33,10 +33,10 @@ class UserProfileService {
 
             // Fetch user details from API
             const user = await this.fetchUserDetails(userId);
-            
+
             // Close loading popup first
             this.closeLoading();
-            
+
             if (!user) return;
 
             // Build and show profile popup
@@ -101,8 +101,8 @@ class UserProfileService {
         const createdAtFormatted = this.formatDateTime(user.createdAt);
 
         // Format mobile with country code
-        const mobileDisplay = user.mobile 
-            ? (user.countryCode ? `${user.countryCode} ${user.mobile}` : user.mobile) 
+        const mobileDisplay = user.mobile
+            ? (user.countryCode ? `${user.countryCode} ${user.mobile}` : user.mobile)
             : 'N/A';
 
         // Get role badge colors
@@ -126,12 +126,12 @@ class UserProfileService {
                 
                 <!-- User Details -->
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                    ${this.buildInfoRow('👤', 'Full Name', user.fullName || 'N/A')}
-                    ${this.buildInfoRow('📧', 'Email', user.email || 'N/A', true)}
-                    ${this.buildInfoRow('📱', 'Mobile', mobileDisplay)}
-                    ${this.buildInfoRow('🎫', 'License No.', user.licenceNo || 'N/A')}
-                    ${this.buildInfoRow('📅', 'Account Created', createdAtFormatted, true)}
-                    ${this.buildInfoRow('🕐', 'Login at', loginTimeFormatted, true)}
+                    ${this.buildInfoRow('<i class="fas fa-user"></i>', 'Full Name', user.fullName || 'N/A')}
+                    ${this.buildInfoRow('<i class="fas fa-envelope"></i>', 'Email', user.email || 'N/A', true)}
+                    ${this.buildInfoRow('<i class="fas fa-mobile-alt"></i>', 'Mobile', mobileDisplay)}
+                    ${this.buildInfoRow('<i class="fas fa-id-card"></i>', 'License No.', user.licenceNo || 'N/A')}
+                    ${this.buildInfoRow('<i class="fas fa-calendar-alt"></i>', 'Account Created', createdAtFormatted, true)}
+                    ${this.buildInfoRow('<i class="fas fa-clock"></i>', 'Login at', loginTimeFormatted, true)}
                 </div>
             </div>
         `;
@@ -193,7 +193,7 @@ class UserProfileService {
     showLoading() {
         // Generate a unique ID for the loading popup
         this.loadingPopupId = 'userProfileLoading_' + Date.now();
-        
+
         const popupHtml = `
             <div id="${this.loadingPopupId}" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-in">
@@ -203,7 +203,7 @@ class UserProfileService {
                                 <h3 class="text-xl font-bold text-gray-900 mb-2">Loading...</h3>
                                 <div class="text-gray-600">
                                     <div style="text-align: center; padding: 20px;">
-                                        <div style="font-size: 32px;">⏳</div>
+                                        <div style="font-size: 32px;"><i class="fas fa-spinner fa-spin" style="color:#3b82f6"></i></div>
                                         <p>Fetching user details...</p>
                                     </div>
                                 </div>
@@ -213,7 +213,7 @@ class UserProfileService {
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', popupHtml);
     }
 
@@ -255,8 +255,8 @@ class UserProfileService {
             window.Popup.alert({
                 title: 'Error',
                 message: message,
-                icon: '❌',
-                variant: 'danger'
+                icon: '<i class="fas fa-times-circle" style="color:var(--primary-500)"></i>',
+                variant: 'primary'
             });
         }
     }

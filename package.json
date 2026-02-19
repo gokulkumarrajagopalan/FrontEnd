@@ -18,6 +18,7 @@
     "css:watch": "tailwindcss -i ./src/renderer/styles/input.css -o ./src/renderer/styles/output.css -c ./config/tailwind.config.js --watch"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.2.0",
     "@playwright/test": "^1.57.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.8.7",

@@ -214,10 +214,10 @@ class NotificationService {
 
     show(message, type = 'info', title = null, duration = 4000) {
         const icons = {
-            success: '✓',
-            error: '✕',
-            warning: '⚠',
-            info: 'ℹ'
+            success: '<i class="fas fa-check-circle"></i>',
+            error: '<i class="fas fa-times-circle"></i>',
+            warning: '<i class="fas fa-exclamation-triangle"></i>',
+            info: '<i class="fas fa-info-circle"></i>'
         };
 
         const notification = document.createElement('div');
@@ -247,20 +247,20 @@ class NotificationService {
         `;
 
         const closeBtn = notification.querySelector('.notification-close');
-        
+
         // Close button click handler
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.remove(notification);
         });
-        
+
         // Click on notification to close
         notification.addEventListener('click', (e) => {
             if (e.target === notification || e.target.closest('.notification-content')) {
                 this.remove(notification);
             }
         });
-        
+
         // Add outside click handler to close notification
         const outsideClickHandler = (e) => {
             if (!notification.contains(e.target) && notification.parentNode) {
@@ -268,10 +268,10 @@ class NotificationService {
                 document.removeEventListener('click', outsideClickHandler);
             }
         };
-        
+
         // Store the handler on the notification element for cleanup
         notification._closeHandler = outsideClickHandler;
-        
+
         // Delay outside click handler to avoid immediate closure
         setTimeout(() => {
             document.addEventListener('click', outsideClickHandler);
@@ -320,7 +320,7 @@ class NotificationService {
         if (notification._closeHandler) {
             document.removeEventListener('click', notification._closeHandler);
         }
-        
+
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => {
             if (notification.parentNode) {

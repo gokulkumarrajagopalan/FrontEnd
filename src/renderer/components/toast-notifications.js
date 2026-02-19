@@ -215,10 +215,10 @@
 
     function getToastIcon(type) {
         const icons = {
-            success: '✅',
-            error: '❌',
-            warning: '⚠️',
-            info: 'ℹ️'
+            success: '<i class="fas fa-check-circle" style="color:#10b981"></i>',
+            error: '<i class="fas fa-times-circle" style="color:#ef4444"></i>',
+            warning: '<i class="fas fa-exclamation-triangle" style="color:#f59e0b"></i>',
+            info: '<i class="fas fa-info-circle" style="color:#3b82f6"></i>'
         };
         return icons[type] || icons.info;
     }
@@ -313,7 +313,7 @@
             }
         }
 
-        // Play sound (optional)
+        // Play sound (optional - checks appSettings.soundEnabled)
         if (sound && window.NotificationSound) {
             window.NotificationSound.play(type);
         }
@@ -402,5 +402,71 @@
         }
     };
 
+    // =====================================================
+    // NOTIFICATION SOUND SYSTEM - Web Audio API
+    // =====================================================
+    class NotificationSoundPlayer {
+        constructor() {
+            this.audioContext = null;
+            this.enabled = true;
+        }
+
+        _getContext() {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return this.audioContext;
+        }
+
+        _isEnabled() {
+            try {
+                const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+                return settings.soundEnabled !== false; // default true
+            } catch {
+                return true;
+            }
+        }
+
+        play(type = 'info') {
+            if (!this._isEnabled()) return;
+
+            try {
+                const ctx = this._getContext();
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+
+                // Different sound profiles per notification type
+                const profiles = {
+                    success: { freq: 880, duration: 0.15, type: 'sine', pattern: [880, 1100] },
+                    error: { freq: 300, duration: 0.3, type: 'square', pattern: [300, 200] },
+                    warning: { freq: 600, duration: 0.2, type: 'triangle', pattern: [600, 500] },
+                    info: { freq: 700, duration: 0.12, type: 'sine', pattern: [700] }
+                };
+
+                const profile = profiles[type] || profiles.info;
+                oscillator.type = profile.type;
+                gainNode.gain.setValueAtTime(0.08, ctx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + profile.duration * profile.pattern.length);
+
+                // Play frequency pattern
+                let time = ctx.currentTime;
+                for (const freq of profile.pattern) {
+                    oscillator.frequency.setValueAtTime(freq, time);
+                    time += profile.duration;
+                }
+
+                oscillator.start(ctx.currentTime);
+                oscillator.stop(time);
+            } catch (e) {
+                console.warn('🔇 Sound playback failed:', e.message);
+            }
+        }
+    }
+
+    window.NotificationSound = new NotificationSoundPlayer();
     console.log('✅ Toast Notification System initialized');
+    console.log('🔊 Notification Sound System initialized');
 })();

@@ -1,0 +1,366 @@
+/* =====================================================
+   TALLIFY - MASTER STYLESHEET
+   Final cascade override - loaded LAST in index.html
+   Resolves conflicts from global-theme.css (126 !important),
+   styles-tailwind.css, styles.css, enhanced-theme.css
+   ===================================================== */
+
+/* ==================== CSS VARIABLES ==================== */
+:root {
+    /* Primary Colors */
+    --primary-50: #EFF6FF;
+    --primary-100: #DBEAFE;
+    --primary-400: #779cc4;
+    --primary-500: #5e86ba;
+    --primary-600: #496da0;
+    --primary-700: #37537b;
+    --primary-900: #131e31;
+
+    /* Semantic Colors */
+    --success: #10B981;
+    --warning: #F59E0B;
+    --error: #EF4444;
+    --info: #3B82F6;
+
+    /* Neutrals */
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-500: #6B7280;
+    --gray-700: #374151;
+    --gray-900: #111827;
+
+    /* Backgrounds */
+    --bg-app: #F9FAFB;
+    --bg-surface: #FFFFFF;
+    --bg-overlay: rgba(0, 0, 0, 0.5);
+
+    /* Text */
+    --text-primary: #111827;
+    --text-secondary: #4B5563;
+    --text-disabled: #9CA3AF;
+
+    /* Borders */
+    --border-default: #E5E7EB;
+    --border-focus: var(--primary-500);
+    --border-error: var(--error);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-base: 200ms ease;
+}
+
+/* ==================== BUTTONS (override global-theme + styles-tailwind) ==================== */
+/* Using html body prefix for specificity to beat global-theme.css !important */
+html body .btn {
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    line-height: 1.4;
+}
+
+html body .btn-primary,
+html body .btn-erp {
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(94, 134, 186, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+html body .btn-primary:hover,
+html body .btn-erp:hover {
+    background: linear-gradient(135deg, var(--primary-400) 0%, var(--primary-500) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(73, 109, 160, 0.4);
+}
+
+html body .btn-secondary {
+    background: white;
+    color: var(--text-secondary);
+    border: 2px solid var(--border-default);
+}
+
+html body .btn-secondary:hover {
+    background: var(--gray-50);
+    border-color: var(--primary-500);
+    color: var(--primary-700);
+}
+
+html body .btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+html body .btn-danger:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4);
+}
+
+html body .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+html body .btn:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+/* ==================== FORMS (override global-theme + styles-tailwind) ==================== */
+html body .form-group {
+    margin-bottom: 1.25rem;
+    position: relative;
+}
+
+html body .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+html body .form-label.required::after {
+    content: ' *';
+    color: var(--error);
+}
+
+html body .form-input,
+html body input.form-input,
+html body select.form-input,
+html body textarea.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-default);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    background: white;
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+
+html body .form-input:focus,
+html body input.form-input:focus,
+html body select.form-input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.15);
+}
+
+html body .form-input.error,
+html body input.form-input.error {
+    border-color: var(--border-error);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+html body .form-input.success,
+html body input.form-input.success {
+    border-color: var(--success);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.form-error {
+    display: none;
+    color: var(--error);
+    font-size: 0.75rem;
+    margin-top: 0.375rem;
+    padding-left: 0.25rem;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.form-error.visible {
+    display: flex;
+}
+
+.form-error::before {
+    content: '\f071';
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 0.7rem;
+}
+
+.form-success {
+    display: none;
+    color: var(--success);
+    font-size: 0.75rem;
+    margin-top: 0.375rem;
+    padding-left: 0.25rem;
+}
+
+.form-success.visible {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.form-success::before {
+    content: '\f00c';
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-weight: 700;
+}
+
+/* Password strength indicator */
+.password-strength {
+    height: 4px;
+    border-radius: 2px;
+    margin-top: 0.5rem;
+    background: var(--gray-200);
+    overflow: hidden;
+    transition: all var(--transition-fast);
+}
+
+.password-strength-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+.password-strength-bar.weak {
+    width: 33%;
+    background: #ef4444;
+}
+
+.password-strength-bar.medium {
+    width: 66%;
+    background: #f59e0b;
+}
+
+.password-strength-bar.strong {
+    width: 100%;
+    background: #10b981;
+}
+
+/* ==================== CARDS (override global-theme + enhanced-theme) ==================== */
+html body .card {
+    background: var(--bg-surface);
+    border-radius: 1rem;
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-base);
+}
+
+html body .card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* ==================== NOTIFICATIONS ==================== */
+#notification-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10000;
+    max-width: 380px;
+    pointer-events: none;
+}
+
+.notification {
+    background: var(--bg-surface);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-lg);
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    animation: masterSlideIn 0.25s ease-out;
+    pointer-events: all;
+    border-left: 4px solid var(--primary-500);
+}
+
+.notification.success {
+    border-left-color: var(--success);
+}
+
+.notification.error {
+    border-left-color: var(--error);
+}
+
+.notification.warning {
+    border-left-color: var(--warning);
+}
+
+@keyframes masterSlideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ==================== LOADING STATES ==================== */
+.spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: masterSpin 0.6s linear infinite;
+}
+
+@keyframes masterSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ==================== UTILITIES ==================== */
+.hidden {
+    display: none !important;
+}
+
+.text-error {
+    color: var(--error);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.text-warning {
+    color: var(--warning);
+}
+
+/* ==================== GLOBAL BUTTON COLOR ==================== */
+/* All primary action buttons use #3b82f6 (blue-500) consistently */
+html body .ds-btn-primary {
+    background: #3b82f6;
+}
+
+html body .ds-btn-primary:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+html body .sync-company-btn {
+    background: #3b82f6 !important;
+}
+
+html body .sync-company-btn:hover {
+    background: #2563eb !important;
+}

@@ -1,47 +1,47 @@
 (function () {
     const getSupportTemplate = () => `
-        <div style="padding: 1.75rem; max-width: 1100px; margin: 0 auto;">
-            <div style="background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); overflow: hidden;">
-                <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #e5e7eb;">
-                    <h2 style="font-size: 1.35rem; font-weight: 700; color: #1e293b; margin-bottom: 0.3rem;">Support</h2>
-                    <p style="color: #64748b; font-size: 0.875rem;">Get help from our support team</p>
+        <div style="padding: var(--ds-space-6); max-width: 1100px; margin: 0 auto;">
+            <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; border: 1px solid var(--ds-border-default);">
+                <div style="padding: var(--ds-space-5) var(--ds-space-6); border-bottom: 1px solid var(--ds-border-default);">
+                    <h2 style="font-size: var(--ds-text-3xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-1);">Support</h2>
+                    <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-md);">Get help from our support team</p>
                 </div>
                 
-                <div style="padding: 1.5rem;">
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
-                        <div style="padding: 1.15rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1); color: #111827; background: #ffffff;">
-                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📞</div>
-                            <div style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 0.3rem;">Call Us</div>
-                            <div style="font-size: 1rem; font-weight: 700;">+1 (555) 123-4567</div>
+                <div style="padding: var(--ds-space-6);">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--ds-space-4); margin-bottom: var(--ds-space-6);">
+                        <div style="padding: var(--ds-space-5); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default); color: var(--ds-text-primary); background: var(--ds-bg-surface); transition: all var(--ds-duration-base) var(--ds-ease);" class="support-card">
+                            <div style="font-size: var(--ds-text-3xl); margin-bottom: var(--ds-space-3); color: var(--ds-primary-500);"><i class="fas fa-phone-alt"></i></div>
+                            <div style="font-size: var(--ds-text-base); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); font-weight: var(--ds-weight-semibold);">Call Us</div>
+                            <div style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold);">+1 (555) 123-4567</div>
                         </div>
 
-                        <div style="padding: 1.15rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); color: #111827; background: #ffffff;">
-                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">✉️</div>
-                            <div style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 0.3rem;">Email Us</div>
-                            <div style="font-size: 1rem; font-weight: 700;">support@talliffy.com</div>
+                        <div style="padding: var(--ds-space-5); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default); color: var(--ds-text-primary); background: var(--ds-bg-surface); transition: all var(--ds-duration-base) var(--ds-ease);" class="support-card">
+                            <div style="font-size: var(--ds-text-3xl); margin-bottom: var(--ds-space-3); color: var(--ds-primary-500);"><i class="fas fa-envelope"></i></div>
+                            <div style="font-size: var(--ds-text-base); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); font-weight: var(--ds-weight-semibold);">Email Us</div>
+                            <div style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold);">support@talliffy.com</div>
                         </div>
 
-                        <div style="padding: 1.15rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1); color: #111827; background: #ffffff;">
-                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💬</div>
-                            <div style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 0.3rem;">Live Chat</div>
-                            <div style="font-size: 1rem; font-weight: 700;">Available 24/7</div>
+                        <div style="padding: var(--ds-space-5); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default); color: var(--ds-text-primary); background: var(--ds-bg-surface); transition: all var(--ds-duration-base) var(--ds-ease);" class="support-card">
+                            <div style="font-size: var(--ds-text-3xl); margin-bottom: var(--ds-space-3); color: var(--ds-primary-500);"><i class="fas fa-comments"></i></div>
+                            <div style="font-size: var(--ds-text-base); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); font-weight: var(--ds-weight-semibold);">Live Chat</div>
+                            <div style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold);">Available 24/7</div>
                         </div>
                     </div>
 
-                    <div style="background: #f8f9fb; padding: 1.5rem; border-radius: 10px;">
-                        <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1.15rem;">Send us a message</h3>
+                    <div style="background: var(--ds-bg-surface-sunken); padding: var(--ds-space-6); border-radius: var(--ds-radius-lg);">
+                        <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-4);">Send us a message</h3>
                         <form id="supportForm">
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.4rem;">Subject</label>
-                                <input type="text" style="width: 100%; padding: 0.6rem 0.85rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.875rem;" placeholder="How can we help?" required>
+                            <div style="margin-bottom: var(--ds-space-4);">
+                                <label style="display: block; font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2);">Subject</label>
+                                <input type="text" class="ds-input" style="width: 100%;" placeholder="How can we help?" required>
                             </div>
                             
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.4rem;">Message</label>
-                                <textarea style="width: 100%; padding: 0.6rem 0.85rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.875rem; min-height: 100px; resize: vertical;" placeholder="Describe your issue..." required></textarea>
+                            <div style="margin-bottom: var(--ds-space-4);">
+                                <label style="display: block; font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2);">Message</label>
+                                <textarea class="ds-input" style="width: 100%; min-height: 120px; resize: vertical;" placeholder="Describe your issue..." required></textarea>
                             </div>
                             
-                            <button type="submit" style="padding: 0.6rem 1.75rem; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                            <button type="submit" class="ds-btn ds-btn-primary">
                                 Send Message
                             </button>
                         </form>

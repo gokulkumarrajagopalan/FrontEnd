@@ -178,39 +178,42 @@ class LicenseValidator {
      */
     static async showLicenseMismatchPopup(userLicense, tallyLicense, options = {}) {
         const title = options.title || '🚫 Sync Not Allowed';
-        const header = options.header || 'License Mismatch Detected';
+        const header = options.header || 'Tally not matched with our record';
         const mainText = options.message || 'Sync cannot proceed because the Tally license does not match your user license.';
-        const instructions = options.instructions || 'Please ensure you are logged in with the correct account that matches the Tally license, or contact your administrator.';
 
-        // Only show license details if we actually have some licenses to compare, 
-        // or if it's a genuine mismatch case (not just a missing login).
+        // Helper to mask all but last 4 digits
+        const maskLicense = (lic) => {
+            if (!lic || lic.length <= 4) return lic;
+            return '****' + lic.slice(-4);
+        };
+
+        const maskedUser = maskLicense(userLicense);
+        const maskedTally = maskLicense(tallyLicense);
+
         const showLicenseDetails = (userLicense || tallyLicense) && !options.hideDetails;
 
         const message = `
             <div class="text-left">
                 <p class="mb-4 text-gray-700">${mainText}</p>
-                <div class="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-4">
+                <div class="bg-blue-50 border-2 border-blue-100 rounded-xl p-4 mb-4">
                     <div class="flex items-start gap-3">
-                        <span class="text-2xl">⚠️</span>
+                        <span class="text-2xl">ℹ️</span>
                         <div class="flex-1">
-                            <p class="text-sm font-bold text-red-800 mb-2">${header}</p>
+                            <p class="text-sm font-bold text-blue-900 mb-2">${header}</p>
                             ${showLicenseDetails ? `
                             <div class="space-y-2 text-sm">
                                 <div class="flex justify-between">
-                                    <span class="text-gray-600">Your License:</span>
-                                    <span class="font-bold text-gray-900">${userLicense || 'Not Available'}</span>
+                                    <span class="text-gray-600">Your License (Last 4):</span>
+                                    <span class="font-bold text-gray-900">${maskedUser || 'N/A'}</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span class="text-gray-600">Tally License:</span>
-                                    <span class="font-bold text-gray-900">${tallyLicense || 'Not Available'}</span>
+                                    <span class="text-gray-600">Tally License (Last 4):</span>
+                                    <span class="font-bold text-gray-900">${maskedTally || 'N/A'}</span>
                                 </div>
                             </div>` : ''}
                         </div>
                     </div>
                 </div>
-                <p class="text-sm text-gray-600">
-                    ${instructions}
-                </p>
             </div>
         `;
 
@@ -220,19 +223,13 @@ class LicenseValidator {
                 title: title,
                 message: message,
                 okText: 'OK',
-                variant: 'danger',
+                variant: 'primary',
                 closeOnBackdrop: false
             });
         } else if (window.notificationService) {
-            // Fallback to notification service
-            window.notificationService.error(
-                mainText,
-                title,
-                10000
-            );
+            window.notificationService.info(mainText, title, 10000);
         } else {
-            // Final fallback to alert
-            alert(`${title}\n\n${header}\n${mainText}\n\n${instructions}`);
+            alert(`${title}\n\n${header}\n${mainText}\n\nYour License: ${maskedUser}\nTally License: ${maskedTally}`);
         }
     }
 
@@ -243,13 +240,37 @@ class LicenseValidator {
      * @returns {Promise<boolean>} - Returns true if valid, false if invalid
      */
     static async validateAndNotify(userLicenseNumber, tallyPort = 9000) {
-        const result = await this.validateLicense(userLicenseNumber, tallyPort);
+        // First check if Tally is connected/license fetchable
+        const validationResult = await this.validateLicense(userLicenseNumber, tallyPort);
 
-        if (!result.isValid) {
+        // CASE 1: Tally Not Connected (tallyLicense is null/undefined)
+        if (!validationResult.tallyLicense && !validationResult.isValid) {
+            const msg = `
+                <div class="text-left">
+                    <p class="mb-2 text-gray-700">Unable to reach Tally on port <strong>${tallyPort}</strong>.</p>
+                    <p class="text-sm text-blue-900 font-semibold">Tally is not opened, please connect.</p>
+                </div>
+            `;
+
+            if (window.Popup && typeof window.Popup.alert === 'function') {
+                await window.Popup.alert({
+                    title: 'Tally Not Connected',
+                    message: msg,
+                    okText: 'OK',
+                    variant: 'primary'
+                });
+            } else {
+                alert('Tally is not opened, please connect.');
+            }
+            return false;
+        }
+
+        // CASE 2: License Mismatch
+        if (!validationResult.isValid) {
             // Only show popup if user is logged in but license doesn't match
-            if (result.userLicense && result.tallyLicense) {
-                await this.showLicenseMismatchPopup(result.userLicense, result.tallyLicense, {
-                    message: result.message
+            if (validationResult.userLicense && validationResult.tallyLicense) {
+                await this.showLicenseMismatchPopup(validationResult.userLicense, validationResult.tallyLicense, {
+                    message: validationResult.message
                 });
             }
             return false;

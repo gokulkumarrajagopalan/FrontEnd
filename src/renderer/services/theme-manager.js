@@ -85,11 +85,16 @@ class ThemeManager {
         root.style.setProperty('--ds-text-inverse', '#ffffff');
         root.style.setProperty('--ds-border-default', '#e2e8f0');
         root.style.setProperty('--ds-border-strong', '#cbd5e1');
-        root.style.setProperty('--ds-sidebar-bg', '#0c131d');
-        root.style.setProperty('--ds-sidebar-header-bg', 'rgba(255, 255, 255, 0.04)');
-        root.style.setProperty('--ds-sidebar-text', '#e2e8f0');
-        root.style.setProperty('--ds-sidebar-text-muted', 'rgba(255, 255, 255, 0.6)');
-        root.style.setProperty('--ds-sidebar-border', 'rgba(255, 255, 255, 0.08)');
+        root.style.setProperty('--ds-sidebar-bg', '#f8fafc');
+        root.style.setProperty('--ds-sidebar-header-bg', '#ffffff');
+        root.style.setProperty('--ds-sidebar-text', '#334155');
+        root.style.setProperty('--ds-sidebar-text-muted', '#64748b');
+        root.style.setProperty('--ds-sidebar-border', '#e2e8f0');
+        root.style.setProperty('--ds-sidebar-nav-hover-bg', '#eff6ff');
+        root.style.setProperty('--ds-sidebar-nav-hover-text', '#1d4ed8');
+        root.style.setProperty('--ds-sidebar-nav-active-bg', '#dbeafe');
+        root.style.setProperty('--ds-sidebar-nav-active-text', '#1e40af');
+        root.style.setProperty('--ds-sidebar-section-label', '#94a3b8');
         root.style.setProperty('--ds-card-bg', '#ffffff');
         root.style.setProperty('--ds-card-border', '#e2e8f0');
         root.style.setProperty('--ds-input-bg', '#ffffff');
@@ -131,9 +136,9 @@ class ThemeManager {
         root.style.setProperty('--gradient-end', '#294160');
 
         // Sidebar
-        root.style.setProperty('--sidebar-bg', '#294160');
-        root.style.setProperty('--sidebar-text', '#ffffff');
-        root.style.setProperty('--sidebar-hover', '#395984');
+        root.style.setProperty('--sidebar-bg', '#f8fafc');
+        root.style.setProperty('--sidebar-text', '#334155');
+        root.style.setProperty('--sidebar-hover', '#e2e8f0');
 
         // Card
         root.style.setProperty('--card-bg', '#ffffff');

@@ -16,7 +16,7 @@ class BasePage {
         this.isLoading = false;
         this.isSyncing = false;
         this.selectedRow = null;
-        
+
         // Grid features
         this.sortField = null;
         this.sortOrder = 'asc'; // 'asc' or 'desc'
@@ -24,14 +24,14 @@ class BasePage {
         this.pageSize = 50;
         this.visibleColumns = new Set(this.config.tableColumns.map(col => col.field));
         this.tableFullscreenLocked = false;
-        
+
         // Server-side pagination
         this.useServerPagination = this.config.useServerPagination !== false; // Default true
         this.totalItems = 0;
         this.totalPages = 0;
         this.searchQuery = '';
         this.headerSearch = {};
-        
+
         // Debounce settings for server-side search
         this._searchDebounceTimer = null;
         this._searchDebounceDelay = 400; // 400ms delay before server search
@@ -1369,12 +1369,12 @@ class BasePage {
 
             // Build URL with pagination parameters
             let url = window.apiConfig.getUrl(`${this.config.apiEndpoint}/company/${this.selectedCompanyId}`);
-            
+
             if (this.useServerPagination) {
                 // Server expects 0-based page index
                 const pageIndex = this.currentPage - 1;
                 url += `?page=${pageIndex}&size=${this.pageSize}`;
-                
+
                 // Add global search query if present
                 if (this.searchQuery && this.searchQuery.trim()) {
                     url += `&search=${encodeURIComponent(this.searchQuery.trim())}`;
@@ -1402,7 +1402,7 @@ class BasePage {
             if (result.success) {
                 this.data = result.data || [];
                 this.filteredData = [...this.data];
-                
+
                 // Update pagination info from server response
                 if (this.useServerPagination && result.totalItems !== undefined) {
                     this.totalItems = result.totalItems;
@@ -1414,7 +1414,7 @@ class BasePage {
                     this.totalPages = Math.ceil(this.data.length / this.pageSize);
                     console.log(`✅ Loaded ${this.data.length} ${this.config.entityNamePlural}`);
                 }
-                
+
                 this.renderTable();
                 this.setupTableListeners();
             } else {
@@ -1461,7 +1461,7 @@ class BasePage {
         }
 
         let pageData;
-        
+
         if (this.useServerPagination) {
             // Data is already paginated from server, use as-is
             pageData = this.filteredData;
@@ -1614,7 +1614,7 @@ class BasePage {
         this._searchDebounceTimer = setTimeout(async () => {
             this.searchQuery = searchTerm.trim();
             this.currentPage = 1; // Reset to first page on new search
-            
+
             console.log(`🔍 Server search: "${this.searchQuery}"`);
             await this.loadData();
         }, this._searchDebounceDelay);
@@ -1635,11 +1635,11 @@ class BasePage {
             const searchTerms = Object.entries(this.headerSearch)
                 .filter(([_, val]) => val && val.trim())
                 .map(([field, val]) => val.trim());
-            
+
             // Use combined search terms as the search query
             this.searchQuery = searchTerms.join(' ');
             this.currentPage = 1;
-            
+
             console.log(`🔍 Header search: "${this.searchQuery}" from fields:`, this.headerSearch);
             await this.loadData();
         }, this._searchDebounceDelay);
@@ -1652,22 +1652,22 @@ class BasePage {
         if (this._searchDebounceTimer) {
             clearTimeout(this._searchDebounceTimer);
         }
-        
+
         this.searchQuery = '';
         this.headerSearch = {};
         this.currentPage = 1;
-        
+
         // Clear search input
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
             searchInput.value = '';
         }
-        
+
         // Clear header search inputs
         document.querySelectorAll('.header-search-input').forEach(input => {
             input.value = '';
         });
-        
+
         await this.loadData();
     }
 
@@ -1790,7 +1790,7 @@ class BasePage {
             window.Popup.alert({
                 title: 'Company Not Selected',
                 message: 'Please select a company first before adding a new record.',
-                icon: '⚠️',
+                icon: '<i class="fas fa-exclamation-triangle" style="color:#f59e0b"></i>',
                 okText: 'OK',
                 variant: 'primary'
             });
@@ -1932,7 +1932,7 @@ class BasePage {
         // Update page numbers
         const currentPageNum = document.getElementById('currentPageNum');
         const totalPagesEl = document.getElementById('totalPages');
-        
+
         if (currentPageNum) currentPageNum.textContent = this.currentPage;
         if (totalPagesEl) totalPagesEl.textContent = totalPages || 1;
 
@@ -1960,7 +1960,7 @@ class BasePage {
         const totalPages = this.useServerPagination ? this.totalPages : Math.ceil(this.filteredData.length / this.pageSize);
         if (pageNum >= 1 && pageNum <= totalPages) {
             this.currentPage = pageNum;
-            
+
             if (this.useServerPagination) {
                 // Reload data from server for new page
                 await this.loadData();
@@ -1976,7 +1976,7 @@ class BasePage {
     async changePageSize(newSize) {
         this.pageSize = parseInt(newSize, 10);
         this.currentPage = 1;
-        
+
         if (this.useServerPagination) {
             // Reload data from server with new page size
             await this.loadData();
@@ -2010,12 +2010,12 @@ class BasePage {
             // Clone and replace to remove existing listeners
             const newInput = input.cloneNode(true);
             input.parentNode.replaceChild(newInput, input);
-            
+
             newInput.addEventListener('input', (e) => {
                 const field = e.target.getAttribute('data-field');
                 const val = (e.target.value || '').trim();
                 this.headerSearch[field] = val;
-                
+
                 // For server-side search, use debounced header search
                 if (this.useServerPagination) {
                     this.debouncedHeaderSearch();
@@ -2024,7 +2024,7 @@ class BasePage {
                     this.filterData();
                 }
             });
-            
+
             // Allow input clicks but don't propagate
             newInput.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2063,10 +2063,10 @@ class BasePage {
             // Clone and replace to remove all existing listeners
             const newPageSizeSelect = pageSizeSelect.cloneNode(true);
             pageSizeSelect.parentNode.replaceChild(newPageSizeSelect, pageSizeSelect);
-            
+
             // Sync dropdown value with current pageSize
             newPageSizeSelect.value = this.pageSize.toString();
-            
+
             newPageSizeSelect.addEventListener('change', async (e) => {
                 await this.changePageSize(e.target.value);
             });

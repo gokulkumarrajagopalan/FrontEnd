@@ -3,7 +3,8 @@
         const tallyPortInput = window.UIComponents.input({
             id: 'tallyPort',
             type: 'number',
-            label: '🔌 Tally Prime Port',
+            label: 'Tally Prime Port',
+            icon: '<i class="fas fa-plug"></i>',
             placeholder: '9000',
             value: '9000',
             required: true
@@ -12,7 +13,8 @@
         const syncIntervalInput = window.UIComponents.input({
             id: 'syncInterval',
             type: 'number',
-            label: '🔄 Auto Sync Interval (minutes)',
+            label: 'Auto Sync Interval (minutes)',
+            icon: '<i class="fas fa-sync"></i>',
             placeholder: '30',
             value: '30',
             required: false
@@ -21,149 +23,114 @@
         const saveButton = window.UIComponents.button({
             id: 'saveConnectionBtn',
             text: 'Save Settings',
-            icon: '💾',
+            icon: '<i class="fas fa-save"></i>',
             variant: 'primary',
             fullWidth: true
         });
 
-        const tallyConnectionCard = window.UIComponents.card({
-            title: '🔌 Tally Prime Connection',
+        const connectionCard = window.UIComponents.card({
+            title: 'Tally Prime Connection',
             content: `
-                <style>
-                    input[type=number]::-webkit-inner-spin-button,
-                    input[type=number]::-webkit-outer-spin-button {
-                        -webkit-appearance: none;
-                        margin: 0;
-                    }
-                    input[type=number] {
-                        -moz-appearance: textfield;
-                    }
-                </style>
-                <form id="connectionForm" class="space-y-6">
+                <form id="connectionForm" style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
                     <div>
                         ${tallyPortInput}
-                        <small class="text-xs text-gray-600 mt-2 block">
+                        <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-2);">
                             Port number for Tally Prime ODBC/HTTP Server (default: 9000)
-                            <br>
-                            <span class="text-amber-600">⚠️ Changes apply immediately to all sync operations</span>
-                        </small>
+                        </p>
                     </div>
                     
                     <div>
                         ${syncIntervalInput}
-                        <small class="text-xs text-gray-600 mt-2 block">
+                        <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-2);">
                             Automatically sync data from Tally at specified intervals (0 to disable)
-                            <br>
-                            <span class="text-blue-600">💡 Recommended: 15-30 minutes for active businesses</span>
-                        </small>
+                        </p>
                         
-                        <div id="autoSyncStatus" class="mt-3 p-3 rounded-xl text-xs" style="display: none;">
-                            <div class="flex items-center gap-2">
-                                <span id="syncStatusIndicator">⏸️</span>
-                                <span id="syncStatusText" class="font-semibold">Auto-sync disabled</span>
-                            </div>
-                            <div id="syncLastTime" class="text-gray-600 mt-1" style="display: none;"></div>
-                            <div id="syncNextTime" class="text-gray-600" style="display: none;"></div>
+                        <div id="autoSyncStatus" style="display: none; margin-top: var(--ds-space-4);">
+                            <!-- Status content -->
                         </div>
                     </div>
                     
                     ${saveButton}
-                    <div id="connectionStatus" class="hidden"></div>
+                    <div id="connectionStatus" style="margin-top: var(--ds-space-4);"></div>
                 </form>
             `
         });
 
-        const aboutCard = window.UIComponents.card({
-            title: 'ℹ️ About',
+        const appearanceCard = window.UIComponents.card({
+            title: 'Appearance',
             content: `
-                <div class="space-y-3">
-                    <div class="flex items-center gap-3">
-                        <div class="text-3xl">🚀</div>
+                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
                         <div>
-                            <h4 class="font-bold" style="color: var(--text-primary);">Talliffy</h4>
-                            <p class="text-sm" style="color: var(--text-tertiary);">Professional Tally Sync Application</p>
+                            <h4 style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Application Theme</h4>
+                            <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin: 0;">Switch between light and dark modes</p>
+                        </div>
+                        <div style="display: flex; gap: var(--ds-space-2);">
+                            ${window.UIComponents.button({ id: 'lightThemeBtn', text: 'Light', icon: '☀️', variant: 'secondary', size: 'sm' })}
+                            ${window.UIComponents.button({ id: 'darkThemeBtn', text: 'Dark', icon: '🌙', variant: 'secondary', size: 'sm' })}
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4 pt-4" style="border-top: 1px solid var(--border-primary);">
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--ds-border-default); pt: var(--ds-space-4); padding-top: var(--ds-space-4);">
                         <div>
-                            <p class="text-xs" style="color: var(--text-tertiary);">Version</p>
-                            <p class="font-semibold" style="color: var(--text-primary);">1.0.0</p>
+                            <h4 style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Font Size</h4>
+                            <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin: 0;">Adjust UI text scale</p>
                         </div>
-                        <div>
-                            <p class="text-xs" style="color: var(--text-tertiary);">License</p>
-                            <p class="font-semibold" style="color: var(--text-primary);">MIT</p>
-                        </div>
-                        <div class="col-span-2">
-                            <p class="text-xs" style="color: var(--text-tertiary);">Built with</p>
-                            <p class="font-semibold" style="color: var(--text-primary);">Electron + Spring Boot</p>
+                        <div style="display: flex; align-items: center; gap: var(--ds-space-3);">
+                            <input type="range" id="fontSizeSlider" min="12" max="20" step="1" style="width: 100px; accent-color: var(--ds-primary-500);">
+                            <span id="fontSizeValue" style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-primary-600); min-width: 40px;">15 px</span>
                         </div>
                     </div>
                 </div>
             `
         });
 
-        const themeCard = window.UIComponents.card({
-    title: '🎨 Appearance',
-    content: `
-        <div class="space-y-4 text-sm">
+        const aboutCard = window.UIComponents.card({
+            title: 'System Information',
+            content: `
+                <div style="display: flex; flex-direction: column; gap: var(--ds-space-4);">
+                    <div style="display: flex; align-items: center; gap: var(--ds-space-4);">
+                        <div style="width: 48px; height: 48px; background: var(--ds-primary-500); border-radius: var(--ds-radius-xl); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-2xl); color: white;">
+                            🚀
+                        </div>
+                        <div>
+                            <h4 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Talliffy Enterprise</h4>
+                            <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin: 0;">Professional Tally synchronization suite</p>
+                        </div>
+                    </div>
 
-            <!-- THEME -->
-            <div class="flex items-center justify-between">
-                <span class="font-semibold" style="color: var(--text-primary);">
-                    Theme
-                </span>
-                <div class="flex gap-2">
-                    <button type="button" id="lightThemeBtn"
-                        class="px-3 py-1 rounded-md border text-sm theme-btn">
-                        ☀️ Light
-                    </button>
-
-                    <button type="button" id="darkThemeBtn"
-                        class="px-3 py-1 rounded-md border text-sm theme-btn">
-                        🌙 Dark
-                    </button>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--ds-space-4); border-top: 1px solid var(--ds-border-default); padding-top: var(--ds-space-4);">
+                        <div>
+                            <p style="font-size: var(--ds-text-3xs); color: var(--ds-text-tertiary); text-transform: uppercase;">Version</p>
+                            <p style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">1.2.4 Build 2026</p>
+                        </div>
+                        <div>
+                            <p style="font-size: var(--ds-text-3xs); color: var(--ds-text-tertiary); text-transform: uppercase;">License</p>
+                            <p style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">Enterprise MIT</p>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <p style="font-size: var(--ds-text-3xs); color: var(--ds-text-tertiary); text-transform: uppercase;">Platform</p>
+                            <p style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">Electron 28 (Chromium) + Spring Boot Node</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    `
-});
-
+            `
+        });
 
         return window.Layout.page({
-    title: 'Settings',
-    subtitle: 'Configure Tally connection and application preferences',
-    content: `
-        <div>
-
-            <!-- FORCE TWO COLUMNS -->
-            <div style="
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 24px;
-                align-items: stretch;
-            ">
-
-                <!-- LEFT -->
-                <div style="min-width: 0;">
-                    ${tallyConnectionCard}
+            title: 'Application Settings',
+            subtitle: 'Configure your connection and personalize the terminal experience',
+            content: `
+                <div style="display: flex; flex-direction: column; gap: var(--ds-space-8);">
+                    ${window.Layout.grid({
+                columns: 2,
+                gap: 8,
+                items: [connectionCard, appearanceCard]
+            })}
+                    ${aboutCard}
                 </div>
-
-                <!-- RIGHT -->
-                <div style="min-width: 0;">
-                    ${themeCard}
-                </div>
-
-            </div>
-
-            <!-- ABOUT FULL WIDTH -->
-            <div style="margin-top: 24px;">
-                ${aboutCard}
-            </div>
-
-        </div>
-    `
-});
-
+            `
+        });
     };
 
     if (!window.API_BASE_URL) {
@@ -195,57 +162,57 @@
         const lightThemeBtn = document.getElementById('lightThemeBtn');
         const darkThemeBtn = document.getElementById('darkThemeBtn');
         const fontSlider = document.getElementById('fontSizeSlider');
-const fontValue = document.getElementById('fontSizeValue');
+        const fontValue = document.getElementById('fontSizeValue');
 
-function applyFontSize(px) {
-    document.documentElement.style.fontSize = px + 'px';
-    localStorage.setItem('appFontSize', px);
+        function applyFontSize(px) {
+            document.documentElement.style.fontSize = px + 'px';
+            localStorage.setItem('appFontSize', px);
 
-    if (fontValue) {
-        fontValue.textContent = px + ' px';
-    }
-}
+            if (fontValue) {
+                fontValue.textContent = px + ' px';
+            }
+        }
 
-// Load saved font size
-const savedFontSize = localStorage.getItem('appFontSize') || '15';
-applyFontSize(savedFontSize);
+        // Load saved font size
+        const savedFontSize = localStorage.getItem('appFontSize') || '15';
+        applyFontSize(savedFontSize);
 
-if (fontSlider) {
-    fontSlider.value = savedFontSize;
+        if (fontSlider) {
+            fontSlider.value = savedFontSize;
 
-    fontSlider.addEventListener('input', (e) => {
-        const size = e.target.value;
-        applyFontSize(size);
-        window.notificationService?.success(`Font size set to ${size}px`);
-    });
-}
+            fontSlider.addEventListener('input', (e) => {
+                const size = e.target.value;
+                applyFontSize(size);
+                window.notificationService?.success(`Font size set to ${size}px`);
+            });
+        }
 
 
         function updateThemeButtons() {
-    const currentTheme = window.themeManager
-        ? window.themeManager.getTheme()
-        : 'light';
+            const currentTheme = window.themeManager
+                ? window.themeManager.getTheme()
+                : 'light';
 
-    if (!lightThemeBtn || !darkThemeBtn) return;
+            if (!lightThemeBtn || !darkThemeBtn) return;
 
-    // RESET
-    [lightThemeBtn, darkThemeBtn].forEach(btn => {
-        btn.style.borderColor = 'var(--border-primary)';
-        btn.style.background = 'var(--card-bg)';
-        btn.style.color = 'var(--text-primary)';
-    });
+            // RESET
+            [lightThemeBtn, darkThemeBtn].forEach(btn => {
+                btn.style.borderColor = 'var(--border-primary)';
+                btn.style.background = 'var(--card-bg)';
+                btn.style.color = 'var(--text-primary)';
+            });
 
-    // ACTIVE STATE
-    if (currentTheme === 'light') {
-        lightThemeBtn.style.borderColor = 'var(--primary-600)';
-        lightThemeBtn.style.background = 'rgba(94, 134, 186, 0.12)';
-        lightThemeBtn.style.color = 'var(--primary-700)';
-    } else {
-        darkThemeBtn.style.borderColor = 'var(--primary-600)';
-        darkThemeBtn.style.background = 'rgba(94, 134, 186, 0.12)';
-        darkThemeBtn.style.color = 'var(--primary-700)';
-    }
-}
+            // ACTIVE STATE
+            if (currentTheme === 'light') {
+                lightThemeBtn.style.borderColor = '#3b82f6';
+                lightThemeBtn.style.background = 'rgba(59, 130, 246, 0.12)';
+                lightThemeBtn.style.color = '#2563eb';
+            } else {
+                darkThemeBtn.style.borderColor = '#3b82f6';
+                darkThemeBtn.style.background = 'rgba(59, 130, 246, 0.12)';
+                darkThemeBtn.style.color = '#2563eb';
+            }
+        }
 
         if (lightThemeBtn) {
             lightThemeBtn.addEventListener('click', () => {
@@ -300,7 +267,7 @@ if (fontSlider) {
                     if (window.notificationService) {
                         window.notificationService.success('Settings saved successfully!');
                     }
-                    
+
                     // Also show inline success message
                     const connectionStatus = document.getElementById('connectionStatus');
                     if (connectionStatus) {
@@ -311,7 +278,7 @@ if (fontSlider) {
                             </div>
                         `;
                         connectionStatus.classList.remove('hidden');
-                        
+
                         // Auto-hide after 3 seconds
                         setTimeout(() => {
                             connectionStatus.classList.add('hidden');
@@ -331,7 +298,7 @@ if (fontSlider) {
                     if (window.notificationService) {
                         window.notificationService.error('❌ ' + error.message);
                     }
-                    
+
                     // Show inline error message
                     const connectionStatus = document.getElementById('connectionStatus');
                     if (connectionStatus) {

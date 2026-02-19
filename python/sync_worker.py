@@ -208,7 +208,7 @@ def fetch_companies(port):
 
 def run_incremental_sync(args):
     try:
-        manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token)
+        manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
         
         # If max_alter_id is not provided (0), usage depends on logic inside sync_incremental
         # It will fetch from backend if 0/None
@@ -238,10 +238,10 @@ def run_incremental_sync(args):
 
 def run_reconciliation(args):
     try:
-        manager = ReconciliationManager(args.backend_url, args.auth_token, args.device_token)
+        manager = ReconciliationManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
         
         # Create sync manager for updating company status
-        sync_manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token)
+        sync_manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
         
         if args.entity_type.lower() == 'all':
             # Reconcile all entities
@@ -302,9 +302,185 @@ def run_reconciliation(args):
         logger.error(f"Reconciliation error: {e}")
         print(json.dumps({'success': False, 'error': str(e)}))
 
+def run_bills_outstanding_sync(args):
+    """Fetch bills outstanding from Tally's built-in reports and push to backend.
+    
+    This is the missing link: Tally dashboard shows SUM of individual pending bills,
+    NOT net ledger closing balance. Without this sync, the backend falls back to
+    voucher-based computation which gives wrong Receivables/Payables totals.
+    """
+    try:
+        import xml.etree.ElementTree as ET
+        
+        tally_url = f"http://localhost:{args.port}"
+        backend_url = args.backend_url.rstrip('/')
+        company_id = int(args.company_id)
+        company_name = args.company_name or ''
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {args.auth_token}' if args.auth_token else '',
+            'X-Device-Token': args.device_token or ''
+        }
+        
+        def clean_xml(text):
+            """Remove invalid XML characters."""
+            import re
+            return re.sub(r'[^\x09\x0A\x0D\x20-\x7E\x80-\xFF\u0100-\uFFFF]', '', text)
+
+        def fetch_bills_from_tally(report_name):
+            """Fetch bill-wise outstanding using Tally's built-in report export."""
+            xml_req = f"""<ENVELOPE>
+<HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
+<BODY><EXPORTDATA>
+<REQUESTDESC>
+    <REPORTNAME>{report_name}</REPORTNAME>
+    <STATICVARIABLES>
+        <SVCOMPANY>{company_name}</SVCOMPANY>
+        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+    </STATICVARIABLES>
+</REQUESTDESC>
+</EXPORTDATA></BODY></ENVELOPE>"""
+            
+            try:
+                resp = requests.post(tally_url, data=xml_req.encode('utf-8'),
+                                     headers={'Content-Type': 'application/xml'},
+                                     timeout=30)
+                if resp.status_code != 200:
+                    logger.error(f"Tally returned {resp.status_code} for {report_name}")
+                    return []
+                
+                text = clean_xml(resp.text)
+                root = ET.fromstring(text)
+                elements = list(root)
+                bills = []
+                i = 0
+                while i < len(elements):
+                    el = elements[i]
+                    if el.tag == 'BILLFIXED':
+                        bill_date = (el.findtext('BILLDATE') or '').strip()
+                        bill_ref = (el.findtext('BILLREF') or '').strip()
+                        bill_party = (el.findtext('BILLPARTY') or '').strip()
+                        bill_party = ' '.join(bill_party.split())  # normalize whitespace
+                        
+                        bill_cl = 0.0
+                        bill_due = ''
+                        bill_overdue = 0
+                        credit_period = ''
+                        
+                        j = i + 1
+                        while j < len(elements) and elements[j].tag != 'BILLFIXED':
+                            tag = elements[j].tag
+                            txt = (elements[j].text or '').strip()
+                            if tag == 'BILLCL':
+                                try:
+                                    bill_cl = float(txt.replace(',', ''))
+                                except (ValueError, TypeError):
+                                    bill_cl = 0.0
+                            elif tag == 'BILLDUE':
+                                bill_due = txt
+                            elif tag == 'BILLOVERDUE':
+                                # Overdue can be like "30 days" or just "30"
+                                try:
+                                    bill_overdue = int(''.join(c for c in txt if c.isdigit() or c == '-')) if txt else 0
+                                except ValueError:
+                                    bill_overdue = 0
+                            elif tag == 'BILLCREDITPERIOD':
+                                credit_period = txt
+                            j += 1
+                        
+                        pending = abs(bill_cl)
+                        if pending > 0.001:
+                            bills.append({
+                                'partyName': bill_party,
+                                'billRef': bill_ref,
+                                'billDate': bill_date if bill_date else None,
+                                'pendingAmount': round(pending, 2),
+                                'drCr': 'Dr' if bill_cl < 0 else 'Cr',
+                                'dueDate': bill_due if bill_due else None,
+                                'overdueDays': bill_overdue,
+                                'creditPeriod': credit_period
+                            })
+                        i = j
+                    else:
+                        i += 1
+                
+                return bills
+            except requests.exceptions.ConnectionError:
+                logger.error(f"Cannot connect to Tally at {tally_url}")
+                return []
+            except Exception as e:
+                logger.error(f"Error fetching {report_name}: {e}")
+                return []
+
+        def push_to_backend(report_type, bills):
+            """Push bill data to backend's /bills-outstanding/sync endpoint."""
+            payload = {
+                'cmpId': company_id,
+                'reportType': report_type,
+                'bills': bills
+            }
+            try:
+                resp = requests.post(
+                    f"{backend_url}/bills-outstanding/sync",
+                    json=payload,
+                    headers=headers,
+                    timeout=30
+                )
+                if resp.status_code == 200:
+                    result = resp.json()
+                    return True, result.get('count', len(bills))
+                else:
+                    logger.error(f"Backend returned {resp.status_code}: {resp.text[:200]}")
+                    return False, 0
+            except Exception as e:
+                logger.error(f"Error pushing {report_type} to backend: {e}")
+                return False, 0
+
+        # Fetch and sync both report types
+        results = {}
+        
+        for report_name, report_type in [('Bills Receivable', 'receivable'), ('Bills Payable', 'payable')]:
+            logger.info(f"Fetching {report_name} from Tally...")
+            bills = fetch_bills_from_tally(report_name)
+            logger.info(f"  -> {len(bills)} bills fetched")
+            
+            if bills:
+                total = sum(b['pendingAmount'] for b in bills)
+                logger.info(f"  -> Total {report_type}: {total:,.2f}")
+                
+                success, count = push_to_backend(report_type, bills)
+                results[report_type] = {
+                    'success': success,
+                    'billCount': len(bills),
+                    'savedCount': count,
+                    'total': round(total, 2)
+                }
+            else:
+                # No bills = clear existing data by sending empty list
+                push_to_backend(report_type, [])
+                results[report_type] = {
+                    'success': True,
+                    'billCount': 0,
+                    'savedCount': 0,
+                    'total': 0
+                }
+        
+        all_success = all(r['success'] for r in results.values())
+        print(json.dumps({
+            'success': all_success,
+            'message': 'Bills outstanding synced from Tally' if all_success else 'Partial failure',
+            'receivable': results.get('receivable', {}),
+            'payable': results.get('payable', {}),
+        }))
+        
+    except Exception as e:
+        logger.error(f"Bills outstanding sync error: {e}")
+        print(json.dumps({'success': False, 'message': str(e)}))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Tallify Sync Worker')
-    parser.add_argument('--mode', choices=['daemon', 'fetch-license', 'fetch-companies', 'incremental-sync', 'reconcile'], default='daemon', help='Operation mode')
+    parser.add_argument('--mode', choices=['daemon', 'fetch-license', 'fetch-companies', 'incremental-sync', 'reconcile', 'sync-bills-outstanding'], default='daemon', help='Operation mode')
     parser.add_argument('--port', type=int, default=9000, help='Tally port number')
     
     # Arguments for sync/reconciliation
@@ -316,6 +492,7 @@ if __name__ == '__main__':
     parser.add_argument('--entity-type', default='Ledger', help='Entity Type')
     parser.add_argument('--max-alter-id', type=int, default=0, help='Max Alter ID')
     parser.add_argument('--company-name', help='Company Name')
+    parser.add_argument('--batch-size', type=int, default=500, help='Batch size for sync operations')
 
     args = parser.parse_args()
     
@@ -327,6 +504,8 @@ if __name__ == '__main__':
         run_incremental_sync(args)
     elif args.mode == 'reconcile':
         run_reconciliation(args)
+    elif args.mode == 'sync-bills-outstanding':
+        run_bills_outstanding_sync(args)
     else:
         # Default daemon mode
         worker = SyncWorker()

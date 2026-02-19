@@ -1,105 +1,95 @@
 (function () {
-    const getSyncSettingsTemplate = () => `
-    <div id="syncSettingsPageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
-        <div class="page-header">
-            <h2>Tally Sync Dashboard</h2>
-            <p>Monitor Tally connection and synchronization status in real-time.</p>
-        </div>
+    const getSyncSettingsTemplate = () => {
+        return window.Layout.page({
+            title: 'Tally Sync Dashboard',
+            subtitle: 'Monitor Tally connection and synchronization status in real-time',
+            content: `
+                <div style="display: flex; flex-direction: column; gap: var(--ds-space-8);">
+                    <!-- Status Cards Grid -->
+                    ${window.Layout.grid({
+                columns: 3,
+                gap: 'var(--ds-space-6)',
+                content: `
+                            ${window.Layout.statsCard({
+                    title: 'Tally Connection',
+                    value: 'Checking...',
+                    icon: '<i class="fas fa-plug"></i>',
+                    trend: '--',
+                    trendLabel: 'Server Status',
+                    id: 'tally-status-card'
+                }).replace('id="tally-status-card"', 'id="tallyStatusCard"')}
+                            
+                            ${window.Layout.statsCard({
+                    title: 'Internet Status',
+                    value: 'Checking...',
+                    icon: '<i class="fas fa-globe"></i>',
+                    trend: '--',
+                    trendLabel: 'Connectivity',
+                    id: 'internet-status-card'
+                }).replace('id="internet-status-card"', 'id="internetStatusCard"')}
+                            
+                            ${window.Layout.statsCard({
+                    title: 'Overall Sync',
+                    value: 'Checking...',
+                    icon: '<i class="fas fa-sync-alt"></i>',
+                    trend: '--',
+                    trendLabel: 'Sync Status',
+                    id: 'sync-status-card'
+                }).replace('id="sync-status-card"', 'id="syncStatusCard"')}
+                        `
+            })}
 
-        <!-- Status Cards -->
-        <div class="grid grid-cols-3 gap-6">
-            <!-- Tally Connection Status -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Tally Connection</p>
-                        <h3 class="text-lg font-bold text-gray-800 mt-2">Server Status</h3>
+                    <!-- Connection Details Info -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--ds-space-6); margin-top: calc(-1 * var(--ds-space-4));">
+                        <div id="tallyDetails" style="padding: 0 var(--ds-space-6); font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Last Check:</span> <span id="tallyLastCheck">--:--:--</span></div>
+                            <div style="display: flex; justify-content: space-between;"><span>Host:</span> <span>localhost:<span id="tallyPortDisplay">9000</span></span></div>
+                        </div>
+                        <div id="internetDetails" style="padding: 0 var(--ds-space-6); font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Last Check:</span> <span id="internetLastCheck">--:--:--</span></div>
+                            <div style="display: flex; justify-content: space-between;"><span>Verification:</span> <span>DNS Lookup</span></div>
+                        </div>
+                        <div id="syncDetails" style="padding: 0 var(--ds-space-6); font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Auto Sync:</span> <span id="syncEnabledStatus" style="font-weight: var(--ds-weight-bold);">Enabled</span></div>
+                            <div style="display: flex; justify-content: space-between;"><span>Interval:</span> <span>10 seconds</span></div>
+                        </div>
                     </div>
-                    <div class="p-3 rounded-lg" id="tallyStatusIcon">
-                        <span class="text-2xl">⏳</span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-3 h-3 rounded-full" id="tallyStatusDot" style="background-color: #9ca3af;"></div>
-                    <span class="text-sm font-medium" id="tallyStatusText" style="color: #6b7280;">Checking...</span>
-                </div>
-                <div class="text-xs text-gray-400">
-                    <p>Last Check: <span id="tallyLastCheck">--:--:--</span></p>
-                    <p>Host: localhost:<span id="tallyPortDisplay">9000</span></p>
-                </div>
-            </div>
 
-            <!-- Internet Connection Status -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Internet Status</p>
-                        <h3 class="text-lg font-bold text-gray-800 mt-2">Connectivity</h3>
+                    <!-- License Information Section -->
+                    <div style="background: var(--ds-bg-surface-sunken); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-3xl); overflow: hidden;">
+                        <div style="padding: var(--ds-space-5) var(--ds-space-8); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; gap: var(--ds-space-3);">
+                            <div style="color: var(--ds-primary-600); font-size: var(--ds-text-xl);"><i class="fas fa-file-contract"></i></div>
+                            <h3 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Tally License Information</h3>
+                        </div>
+                        <div style="padding: var(--ds-space-8);">
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--ds-space-6);">
+                                <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-2xl); padding: var(--ds-space-6);">
+                                    <div style="font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-2);">License Number</div>
+                                    <div id="licenseNumber" style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-primary-600);">--</div>
+                                    <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-1);">Tally Serial</div>
+                                </div>
+                                <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-2xl); padding: var(--ds-space-6);">
+                                    <div style="font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-2);">Product Version</div>
+                                    <div id="productVersion" style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-success-600);">--</div>
+                                    <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-1);">Release Info</div>
+                                </div>
+                                <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-2xl); padding: var(--ds-space-6);">
+                                    <div style="font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-2);">License Status</div>
+                                    <div id="licenseStatus" style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">--</div>
+                                    <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-1);">Current State</div>
+                                </div>
+                                <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-2xl); padding: var(--ds-space-6);">
+                                    <div style="font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-2);">Last Updated</div>
+                                    <div id="licenseUpdated" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: var(--ds-warning-600);">--</div>
+                                    <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-1);">Fetch Time</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="p-3 rounded-lg" id="internetStatusIcon">
-                        <span class="text-2xl">⏳</span>
-                    </div>
                 </div>
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-3 h-3 rounded-full" id="internetStatusDot" style="background-color: #9ca3af;"></div>
-                    <span class="text-sm font-medium" id="internetStatusText" style="color: #6b7280;">Checking...</span>
-                </div>
-                <div class="text-xs text-gray-400">
-                    <p>Last Check: <span id="internetLastCheck">--:--:--</span></p>
-                    <p>Type: DNS Lookup</p>
-                </div>
-            </div>
-
-            <!-- Sync Status -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Sync Status</p>
-                        <h3 class="text-lg font-bold text-gray-800 mt-2">Overall</h3>
-                    </div>
-                    <div class="p-3 rounded-lg" id="syncStatusIcon">
-                        <span class="text-2xl">⏳</span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-3 h-3 rounded-full" id="syncStatusDot" style="background-color: #9ca3af;"></div>
-                    <span class="text-sm font-medium" id="syncStatusText" style="color: #6b7280;">Checking...</span>
-                </div>
-                <div class="text-xs text-gray-400">
-                    <p>Sync Enabled: <span id="syncEnabledStatus">No</span></p>
-                    <p>Interval: 10 seconds</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tally License Information -->
-        <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow-sm border border-blue-100 p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">📜 Tally License Information</h3>
-            <div class="grid grid-cols-4 gap-4">
-                <div class="bg-white rounded-lg p-4 border border-blue-100">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">License Number</p>
-                    <p class="text-2xl font-bold text-blue-600" id="licenseNumber">--</p>
-                    <p class="text-xs text-gray-400 mt-2">Tally License Serial</p>
-                </div>
-                <div class="bg-white rounded-lg p-4 border border-green-100">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Product Version</p>
-                    <p class="text-2xl font-bold text-green-600" id="productVersion">--</p>
-                    <p class="text-xs text-gray-400 mt-2">Tally ERP Version</p>
-                </div>
-                <div class="bg-white rounded-lg p-4 border-2" style="border-color: var(--primary-100);">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Status</p>
-                    <p class="text-2xl font-bold" id="licenseStatus" style="color: var(--primary-600);">--</p>
-                    <p class="text-xs text-gray-400 mt-2">License Status</p>
-                </div>
-                <div class="bg-white rounded-lg p-4 border border-orange-100">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Last Updated</p>
-                    <p class="text-sm font-bold text-orange-600" id="licenseUpdated">--</p>
-                    <p class="text-xs text-gray-400 mt-2">Last fetch time</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
+            `
+        });
+    };
 
     // State management
     const syncState = {
@@ -203,27 +193,27 @@
     }
 
     function updateStatusCard(type, connected, timeStr) {
-        const statusDot = document.getElementById(`${type}StatusDot`);
-        const statusText = document.getElementById(`${type}StatusText`);
-        const statusIcon = document.getElementById(`${type}StatusIcon`);
-        const lastCheck = document.getElementById(`${type}LastCheck`);
+        const cardId = `${type}StatusCard`;
+        const card = document.getElementById(cardId);
+        if (!card) return;
 
-        if (statusDot) {
-            statusDot.style.backgroundColor = connected ? '#22c55e' : '#ef4444';
+        // Update the main value
+        const valueElem = card.querySelector('div[style*="font-size: var(--ds-text-3xl)"]');
+        if (valueElem) {
+            valueElem.textContent = connected ? 'Connected' : 'Disconnected';
+            valueElem.style.color = connected ? 'var(--ds-success-600)' : 'var(--ds-error-600)';
         }
 
-        if (statusText) {
-            statusText.textContent = connected ? 'Connected' : 'Disconnected';
-            statusText.style.color = connected ? '#16a34a' : '#dc2626';
+        // Update the trend/badge
+        const trendElem = card.querySelector('.ds-badge');
+        if (trendElem) {
+            trendElem.textContent = connected ? 'ONLINE' : 'OFFLINE';
+            trendElem.className = `ds-badge ds-badge-${connected ? 'success' : 'danger'}`;
         }
 
-        if (statusIcon) {
-            statusIcon.innerHTML = `<span class="text-2xl">${connected ? '✅' : '❌'}</span>`;
-        }
-
-        if (lastCheck) {
-            lastCheck.textContent = timeStr;
-        }
+        // Update details
+        const lastCheckElem = document.getElementById(`${type}LastCheck`);
+        if (lastCheckElem) lastCheckElem.textContent = timeStr;
     }
 
     function updateLicenseInfo(licenseData) {
@@ -244,53 +234,10 @@
         if (licenseNumber) licenseNumber.textContent = syncState.licenseInfo.licenseNumber;
         if (productVersion) productVersion.textContent = syncState.licenseInfo.productVersion;
         if (licenseStatus) {
-            licenseStatus.textContent = syncState.licenseInfo.status;
-            licenseStatus.style.color = syncState.licenseInfo.status === 'active' ? '#16a34a' : '#dc2626';
+            licenseStatus.textContent = syncState.licenseInfo.status.toUpperCase();
+            licenseStatus.style.color = syncState.licenseInfo.status.toLowerCase() === 'active' ? 'var(--ds-success-600)' : 'var(--ds-error-600)';
         }
         if (licenseUpdated) licenseUpdated.textContent = syncState.licenseInfo.lastUpdated;
-    }
-
-    // Add status entry to timeline
-    function addStatusEntry(customMessage = null) {
-        const timeline = document.getElementById('statusTimeline');
-        if (!timeline) return;
-
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString();
-
-        const entry = document.createElement('div');
-        entry.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg';
-
-        if (customMessage) {
-            // Custom message entry (license fetch, etc)
-            entry.innerHTML = `
-                <div class="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
-                <div class="text-sm text-gray-600 flex-1">
-                    <span class="font-medium">${customMessage}</span>
-                    <span class="text-gray-400 text-xs ml-2">${timeStr}</span>
-                </div>
-            `;
-        } else {
-            // Status entry
-            const tallyStatus = syncState.tally.connected ? '✅ Tally' : '❌ Tally';
-            const internetStatus = syncState.internet.connected ? '✅ Internet' : '❌ Internet';
-            const isOnline = syncState.tally.connected && syncState.internet.connected;
-
-            entry.innerHTML = `
-                <div class="w-2 h-2 ${isOnline ? 'bg-green-400' : 'bg-red-400'} rounded-full flex-shrink-0"></div>
-                <div class="text-sm text-gray-600 flex-1">
-                    <span class="font-medium">${tallyStatus} | ${internetStatus}</span>
-                    <span class="text-gray-400 text-xs ml-2">${timeStr}</span>
-                </div>
-            `;
-        }
-
-        timeline.insertBefore(entry, timeline.firstChild);
-
-        // Keep only last 3 entries
-        while (timeline.children.length > 3) {
-            timeline.removeChild(timeline.lastChild);
-        }
     }
 
     // Perform status check
@@ -351,7 +298,7 @@
                     updateLicenseInfo(result.data);
                 } else {
                     console.warn('License fetch failed:', result);
-                    addTimelineEntry('⚠️ License fetch - ' + JSON.stringify(result.error || result));
+                    addTimelineEntry('<i class="fas fa-exclamation-triangle" style="color: var(--ds-warning-500)"></i> License fetch - ' + JSON.stringify(result.error || result));
                 }
             } else {
                 console.warn('electronAPI.invoke not available');
@@ -372,7 +319,7 @@
     // Initialize page
     window.initializeSyncSettings = async function () {
         console.log('Initializing Sync Settings Page...');
-        
+
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getSyncSettingsTemplate();

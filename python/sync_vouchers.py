@@ -354,8 +354,11 @@ class VoucherSyncManager:
             # Parse all ledger entries
             ledger_entries = self._parse_ledger_entries(elem, guid, voucher_number, voucher_date, voucher_type)
             
-            # Calculate total amount (sum of debit amounts)
-            total_amount = sum(le['amount'] for le in ledger_entries if le['amount'] > 0)
+            # Calculate total amount = sum of all debit-side entries (Dr amounts)
+            # In Tally ALLLEDGERENTRIES: positive AMOUNT = Debit, negative = Credit
+            total_debit = sum(le['debit_amount'] for le in ledger_entries)
+            total_credit = sum(le['credit_amount'] for le in ledger_entries)
+            total_amount = total_debit  # Voucher total = debit side (equals credit side)
             
             # Parse all inventory entries
             inventory_entries = self._parse_inventory_entries(elem, guid, voucher_number, voucher_date, voucher_type)
@@ -382,6 +385,8 @@ class VoucherSyncManager:
                 'party_ledger_name': self.get_text(elem, 'PARTYLEDGERNAME') or self.get_text(elem, 'PARTYNAME'),
                 'party_name': self.get_text(elem, 'PARTYNAME'),
                 'amount': total_amount,
+                'total_debit': total_debit,
+                'total_credit': total_credit,
                 
                 # Reference
                 'reference': self.get_text(elem, 'REFERENCE'),
@@ -436,8 +441,13 @@ class VoucherSyncManager:
                 amount = self.get_amount(ledger_elem, 'AMOUNT')
                 is_deemed_positive = self.get_bool(ledger_elem, 'ISDEEMEDPOSITIVE')
                 
-                # Determine DR/CR from amount sign
-                dr_cr = 'DR' if amount >= 0 else 'CR'
+                # Tally ALLLEDGERENTRIES AMOUNT convention:
+                #   Positive amount = Debit (Dr) entry
+                #   Negative amount = Credit (Cr) entry
+                # ISDEEMEDPOSITIVE indicates the voucher type's default flow direction
+                dr_cr = 'DR' if amount > 0 else 'CR'
+                debit_amount = abs(amount) if amount > 0 else 0.0
+                credit_amount = abs(amount) if amount < 0 else 0.0
                 
                 # Parse nested bill allocations
                 bills = self._parse_bill_allocations(
@@ -453,6 +463,8 @@ class VoucherSyncManager:
                     'ledger_name': ledger_name,
                     'ledger_guid': self.get_text(ledger_elem, 'LEDGERGUID'),
                     'amount': amount,
+                    'debit_amount': debit_amount,
+                    'credit_amount': credit_amount,
                     'dr_cr': dr_cr,
                     'is_deemed_positive': is_deemed_positive,
                     'is_party_ledger': self.get_bool(ledger_elem, 'ISPARTYLEDGER'),

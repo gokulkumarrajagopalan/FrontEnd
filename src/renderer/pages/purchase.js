@@ -1,110 +1,120 @@
 (function () {
     const getPurchaseTemplate = () => `
-        <div style="padding: 1.75rem; max-width: 1100px; margin: 0 auto;">
-            <div style="background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); overflow: hidden;">
-                <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #e5e7eb;">
-                    <h2 style="font-size: 1.35rem; font-weight: 700; color: #1e293b; margin-bottom: 0.3rem;">Purchase</h2>
-                    <p style="color: #64748b; font-size: 0.875rem;">Choose a plan that fits your needs</p>
+        <div style="padding: var(--ds-space-6); max-width: 1100px; margin: 0 auto;">
+            <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; border: 1px solid var(--ds-border-default);">
+                <div style="padding: var(--ds-space-5) var(--ds-space-6); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; gap: var(--ds-space-4); background: var(--ds-bg-surface-sunken);">
+                    <div style="width: 44px; height: 44px; background: var(--ds-primary-50); color: var(--ds-primary-500); border-radius: var(--ds-radius-lg); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-xl); border: 1px solid var(--ds-primary-100);">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div>
+                        <h2 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-1);">Choose Your Plan</h2>
+                        <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm);">Flexible pricing for teams of all sizes</p>
+                    </div>
                 </div>
                 
-                <div style="padding: 1.5rem;">
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.15rem; align-items: start;">
+                <div style="padding: var(--ds-space-8) var(--ds-space-6) var(--ds-space-12);">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--ds-space-6); align-items: stretch;">
                         <!-- Basic Plan -->
-                        <div style="background: #f8f9fb; padding: 1.5rem; border-radius: 10px; border: 2px solid transparent; transition: all 0.2s;">
-                            <h3 style="font-size: 1.2rem; font-weight: 700; color: #1e293b; margin-bottom: 0.4rem;">Basic</h3>
-                            <div style="margin-bottom: 1.15rem;">
-                                <span style="font-size: 2rem; font-weight: 700; color: #1e293b;">$29</span>
-                                <span style="color: #64748b; font-size: 0.85rem;">/month</span>
+                        <div style="background: var(--ds-bg-surface); padding: var(--ds-space-8); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default); display: flex; flex-direction: column; transition: all var(--ds-duration-base) var(--ds-ease); height: 100%;" class="pricing-card">
+                            <div style="width: 40px; height: 40px; background: var(--ds-success-50); color: var(--ds-success-500); border-radius: var(--ds-radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: var(--ds-space-5); border: 1px solid var(--ds-success-100);">
+                                <i class="fas fa-seedling"></i>
                             </div>
-                            <ul style="list-style: none; padding: 0; margin: 0 0 1.25rem 0;">
-                                <li style="padding: 0.4rem 0; color: #475569; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                    <span style="color: #10b981; font-size: 1rem;">✓</span>
-                                    <span>1 Company</span>
+                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2);">Basic</h3>
+                            <div style="margin-bottom: var(--ds-space-6);">
+                                <span style="font-size: var(--ds-text-4xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">$29</span>
+                                <span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm);">/month</span>
+                            </div>
+                            <ul style="list-style: none; padding: 0; margin: 0 0 var(--ds-space-8) 0; flex-grow: 1;">
+                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
+                                    <span>1 Company Portfolio</span>
                                 </li>
-                                <li style="padding: 0.4rem 0; color: #475569; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                    <span style="color: #10b981; font-size: 1rem;">✓</span>
-                                    <span>Basic Sync Features</span>
+                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
+                                    <span>Standard Sync Frequency</span>
                                 </li>
-                                <li style="padding: 0.4rem 0; color: #475569; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                    <span style="color: #10b981; font-size: 1rem;">✓</span>
+                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
                                     <span>Email Support</span>
                                 </li>
-                                <li style="padding: 0.4rem 0; color: #475569; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                    <span style="color: #10b981; font-size: 1rem;">✓</span>
-                                    <span>Monthly Updates</span>
+                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
+                                    <span>Automatic Updates</span>
                                 </li>
                             </ul>
-                            <button style="width: 100%; padding: 0.6rem; background: white; color: #3b82f6; border: 2px solid #3b82f6; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                            <button class="ds-btn ds-btn-secondary" style="width: 100%;">
                                 Get Started
                             </button>
                         </div>
 
                         <!-- Professional Plan -->
-                        <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 1.5rem; border-radius: 10px; border: 2px solid #3b82f6; position: relative; color: white;">
-                            <div style="position: absolute; top: -11px; right: 16px; background: #10b981; color: white; padding: 0.2rem 0.7rem; border-radius: 10px; font-size: 0.7rem; font-weight: 600;">
-                                POPULAR
+                        <div style="background: linear-gradient(135deg, var(--ds-primary-600) 0%, var(--ds-primary-800) 100%); padding: var(--ds-space-10) var(--ds-space-8); border-radius: var(--ds-radius-2xl); border: none; position: relative; color: var(--ds-text-inverse); display: flex; flex-direction: column; box-shadow: var(--ds-shadow-lg); transform: scale(1.05); z-index: 10; height: 100%;" class="pricing-card professional">
+                            <div style="position: absolute; top: -14px; right: 24px; background: var(--ds-success-500); color: var(--ds-text-inverse); padding: var(--ds-space-1) var(--ds-space-4); border-radius: var(--ds-radius-full); font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); letter-spacing: var(--ds-tracking-wider); box-shadow: var(--ds-shadow-sm);">
+                                MOST POPULAR
                             </div>
-                            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.4rem; color: white;">Professional</h3>
-                            <div style="margin-bottom: 1.15rem;">
-                                <span style="font-size: 2rem; font-weight: 700;">$79</span>
-                                <span style="opacity: 0.9; font-size: 0.85rem;">/month</span>
+                            <div style="width: 40px; height: 40px; background: rgba(255, 255, 255, 0.2); color: var(--ds-text-inverse); border-radius: var(--ds-radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: var(--ds-space-5);">
+                                <i class="fas fa-rocket"></i>
                             </div>
-                            <ul style="list-style: none; padding: 0; margin: 0 0 1.25rem 0;">
-                                <li style="padding: 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; opacity: 0.95; font-size: 0.875rem;">
-                                    <span style="font-size: 1rem;">✓</span>
+                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-2);">Professional</h3>
+                            <div style="margin-bottom: var(--ds-space-6);">
+                                <span style="font-size: var(--ds-text-5xl); font-weight: var(--ds-weight-bold);">$79</span>
+                                <span style="opacity: 0.8; font-size: var(--ds-text-sm);">/month</span>
+                            </div>
+                            <ul style="list-style: none; padding: 0; margin: 0 0 var(--ds-space-8) 0; flex-grow: 1;">
+                                <li style="padding: var(--ds-space-2) 0; display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: rgba(255, 255, 255, 0.9); font-size: var(--ds-text-sm);"></i>
                                     <span>Unlimited Companies</span>
                                 </li>
-                                <li style="padding: 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; opacity: 0.95; font-size: 0.875rem;">
-                                    <span style="font-size: 1rem;">✓</span>
-                                    <span>Advanced Sync Features</span>
+                                <li style="padding: var(--ds-space-2) 0; display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: rgba(255, 255, 255, 0.9); font-size: var(--ds-text-sm);"></i>
+                                    <span>Advanced Sync Management</span>
                                 </li>
-                                <li style="padding: 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; opacity: 0.95; font-size: 0.875rem;">
-                                    <span style="font-size: 1rem;">✓</span>
-                                    <span>Priority Support</span>
+                                <li style="padding: var(--ds-space-2) 0; display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: rgba(255, 255, 255, 0.9); font-size: var(--ds-text-sm);"></i>
+                                    <span>Priority 24/7 Support</span>
                                 </li>
-                                <li style="padding: 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; opacity: 0.95; font-size: 0.875rem;">
-                                    <span style="font-size: 1rem;">✓</span>
-                                    <span>Real-time Sync</span>
+                                <li style="padding: var(--ds-space-2) 0; display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: rgba(255, 255, 255, 0.9); font-size: var(--ds-text-sm);"></i>
+                                    <span>Real-time Data Fetching</span>
                                 </li>
-                                <li style="padding: 0.4rem 0; display: flex; align-items: center; gap: 0.5rem; opacity: 0.95; font-size: 0.875rem;">
-                                    <span style="font-size: 1rem;">✓</span>
-                                    <span>API Access</span>
+                                <li style="padding: var(--ds-space-2) 0; display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: rgba(255, 255, 255, 0.9); font-size: var(--ds-text-sm);"></i>
+                                    <span>REST API Access</span>
                                 </li>
                             </ul>
-                            <button style="width: 100%; padding: 0.6rem; background: white; color: #3b82f6; border: 2px solid white; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                                Get Started
+                            <button class="ds-btn" style="width: 100%; background: var(--ds-text-inverse); color: var(--ds-primary-600); border: none; font-weight: var(--ds-weight-bold);">
+                                Choose Professional
                             </button>
                         </div>
 
                         <!-- Enterprise Plan -->
-                        <div style="background: #f8f9fb; padding: 1.5rem; border-radius: 10px; border: 2px solid transparent; transition: all 0.2s;">
-                            <h3 style="font-size: 1.2rem; font-weight: 700; color: #1e293b; margin-bottom: 0.4rem;">Enterprise</h3>
-                            <div style="margin-bottom: 1.15rem;">
-                                <span style="font-size: 2rem; font-weight: 700; color: #1e293b;">Custom</span>
+                        <div style="background: var(--ds-bg-surface); padding: var(--ds-space-8); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default); display: flex; flex-direction: column; transition: all var(--ds-duration-base) var(--ds-ease); height: 100%;" class="pricing-card">
+                            <div style="width: 40px; height: 40px; background: var(--ds-primary-50); color: var(--ds-primary-500); border-radius: var(--ds-radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: var(--ds-space-5); border: 1px solid var(--ds-primary-100);">
+                                <i class="fas fa-building"></i>
                             </div>
-                            <ul style="list-style: none; padding: 0; margin: 0 0 1.25rem 0;">
-                                <li style="padding: 0.4rem 0; color: #475569; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                    <span style="color: #10b981; font-size: 1rem;">✓</span>
+                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2);">Enterprise</h3>
+                            <div style="margin-bottom: var(--ds-space-6);">
+                                <span style="font-size: var(--ds-text-4xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">Custom</span>
+                            </div>
+                            <ul style="list-style: none; padding: 0; margin: 0 0 var(--ds-space-8) 0; flex-grow: 1;">
+                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
                                     <span>Everything in Pro</span>
                                 </li>
-                                <li style="padding: 0.4rem 0; color: #475569; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                    <span style="color: #10b981; font-size: 1rem;">✓</span>
-                                    <span>Dedicated Support</span>
+                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
+                                    <span>Dedicated Account Team</span>
                                 </li>
-                                <li style="padding: 0.4rem 0; color: #475569; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                    <span style="color: #10b981; font-size: 1rem;">✓</span>
-                                    <span>Custom Integration</span>
+                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
+                                    <span>On-Premise Deployment</span>
                                 </li>
-                                <li style="padding: 0.4rem 0; color: #475569; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                    <span style="color: #10b981; font-size: 1rem;">✓</span>
-                                    <span>On-premise Option</span>
-                                </li>
-                                <li style="padding: 0.4rem 0; color: #475569; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                    <span style="color: #10b981; font-size: 1rem;">✓</span>
-                                    <span>SLA Guarantee</span>
+                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
+                                    <span>SLA & Legal Coverage</span>
                                 </li>
                             </ul>
-                            <button style="width: 100%; padding: 0.6rem; background: white; color: #3b82f6; border: 2px solid #3b82f6; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                            <button class="ds-btn ds-btn-secondary" style="width: 100%;">
                                 Contact Sales
                             </button>
                         </div>

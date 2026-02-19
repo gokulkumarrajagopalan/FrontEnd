@@ -128,6 +128,12 @@ try {
             return ipcRenderer.invoke('sync-vouchers', config);
         },
 
+        // Bills Outstanding sync API — syncs Receivables/Payables from Tally to Backend
+        syncBillsOutstanding: (config) => {
+            if (isDev) console.log('📡 Preload: Calling sync-bills-outstanding handler...');
+            return ipcRenderer.invoke('sync-bills-outstanding', config);
+        },
+
         // Incremental sync API
         incrementalSync: (config) => {
             if (isDev) console.log('📡 Preload: Calling incremental-sync handler...');

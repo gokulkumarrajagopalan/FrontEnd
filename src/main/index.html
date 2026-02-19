@@ -7,6 +7,8 @@
     <title>Tally Prime - Enterprise ERP</title>
     <!-- Security: Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http: ws: wss:; object-src 'none';">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="../../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
     <!-- Tailwind CSS (compiled output) -->
     <link rel="stylesheet" href="../renderer/styles/output.css">
     <!-- Design System - Single source of truth (load first) -->
@@ -17,12 +19,11 @@
     <link rel="stylesheet" href="../renderer/styles/font-dynamics.css">
     <!-- Global Theme System -->
     <link rel="stylesheet" href="../renderer/styles/global-theme.css">
-    <!-- Enhanced Theme CSS (Overrides global with premium styles) -->
-    <link rel="stylesheet" href="../renderer/styles/enhanced-theme.css">
     <!-- Application Styles -->
     <link rel="stylesheet" href="../renderer/styles/styles.css">
     <link rel="stylesheet" href="../renderer/styles/styles-app.css">
-    <link rel="stylesheet" href="../renderer/styles/styles-tailwind.css">
+    <!-- Master CSS - Final override to resolve conflicts across all stylesheets -->
+    <link rel="stylesheet" href="../renderer/styles/master.css">
     <!-- Security Policy -->
     <script src="../main/security-policy.js"></script>
     <style>
@@ -199,7 +200,6 @@
     <script src="../renderer/components/popup.js"></script>
 
     <!-- Page Modules (All pages) -->
-    <script src="../renderer/pages/dashboard.js"></script>
     <script src="../renderer/pages/auth.js"></script>
     <script src="../renderer/pages/users.js"></script>
     <script src="../renderer/pages/sync-settings.js"></script>

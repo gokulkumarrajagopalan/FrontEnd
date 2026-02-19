@@ -319,7 +319,7 @@ class TallyAPIClient:
 
     def get_ledgers(self, company: Optional[str] = None) -> Tuple[bool, Any]:
         """Fetch ledgers from Tally."""
-        xml = self._build_collection_request("Ledger", "Collection of Ledgers", company, fetch_fields="GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*, RESERVEDNAME")
+        xml = self._build_collection_request("Ledger", "Collection of Ledgers", company, fetch_fields="GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, ClosingBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*, RESERVEDNAME")
         success, result = self.send_request(xml)
         if not success:
             return False, result
@@ -354,6 +354,7 @@ class TallyAPIClient:
                     'email': self._get_t(ledger_elem.get('EMAIL')) or None,
                     'website': self._get_t(ledger_elem.get('WEBSITE')) or None,
                     'openingBalance': float(self._get_t(ledger_elem.get('OPENINGBALANCE'), '0.0').replace(',', '') or '0.0'),
+                    'closingBalance': float(self._get_t(ledger_elem.get('CLOSINGBALANCE'), '0.0').replace(',', '') or '0.0'),
                     'gstin': self._get_t(gst_details.get('GSTIN')) or None,
                     'gstRegistrationType': self._get_t(gst_details.get('GSTREGISTRATIONTYPE')) or None,
                     'isRevenue': self._get_t(ledger_elem.get('ISREVENUE'), 'No').lower() == 'yes',
@@ -505,11 +506,29 @@ class TallyAPIClient:
             logger.error(f"Error parsing tax units: {e}")
             return False, {"error": str(e)}
 
-    def _build_collection_request(self, type_name: str, collection_id: str, company: Optional[str] = None, fetch_fields: str = "*") -> str:
-        """Helper to build Tally Collection request XML."""
+    def _build_collection_request(self, type_name: str, collection_id: str, company: Optional[str] = None, fetch_fields: str = "*", from_date: str = None, to_date: str = None) -> str:
+        """Helper to build Tally Collection request XML.
+        
+        Args:
+            from_date: SVFROMDATE in Tally format (DD-Mon-YYYY). If not provided,
+                       uses current Indian FY start for balance-dependent entities.
+            to_date: SVTODATE in Tally format. If not provided, uses today's date.
+        """
         static_vars = ""
         if company:
             static_vars += f"<SVCOMPANY>{company}</SVCOMPANY>"
+        
+        # Use current FY dates instead of 01-Jan-1970 for accurate balance computation
+        if not from_date or not to_date:
+            from datetime import datetime as _dt
+            now = _dt.now()
+            if not from_date:
+                if now.month >= 4:
+                    from_date = f"01-Apr-{now.year}"
+                else:
+                    from_date = f"01-Apr-{now.year - 1}"
+            if not to_date:
+                to_date = now.strftime('%d-%b-%Y')
         
         return f"""<ENVELOPE>
         <HEADER>
@@ -522,8 +541,8 @@ class TallyAPIClient:
             <DESC>
                 <STATICVARIABLES>
                     {static_vars}
-                    <SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE>
-                    <SVTODATE TYPE="Date">01-Jan-1970</SVTODATE>
+                    <SVFROMDATE TYPE="Date">{from_date}</SVFROMDATE>
+                    <SVTODATE TYPE="Date">{to_date}</SVTODATE>
                     <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
                 </STATICVARIABLES>
                 <TDL>

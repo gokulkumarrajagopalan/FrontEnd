@@ -54,12 +54,14 @@ class SyncScheduler {
 
     async runSync() {
         try {
-            console.log(`\n📊 Running incremental sync at ${new Date().toLocaleTimeString()}`);
+            console.log('\n' + '='.repeat(80));
+            console.log(`🔄 STARTING AUTOMATIC SYNC - ${new Date().toLocaleTimeString()}`);
+            console.log('='.repeat(80));
             this.lastSyncTime = new Date();
 
             if (window.LicenseValidator) {
                 const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                const userLicense = currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
+                const userLicense = currentUser?.licenceNo || currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
                 const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
                 const tallyPort = appSettings.tallyPort || 9000;
 
@@ -85,10 +87,19 @@ class SyncScheduler {
             const companies = await this.fetchImportedCompanies(backendUrl, authToken, deviceToken);
             if (companies.length === 0) {
                 console.log('ℹ️ No companies to sync');
+                console.log('='.repeat(80) + '\n');
                 return;
             }
 
-            console.log(`📋 Found ${companies.length} companies to sync`);
+            console.log(`📋 Found ${companies.length} companies to sync (one by one)`);
+            
+            // Notify user that sync is starting
+            if (window.notificationService) {
+                window.notificationService.info(
+                    `Starting automatic sync for ${companies.length} ${companies.length === 1 ? 'company' : 'companies'}...`,
+                    'Auto Sync Started'
+                );
+            }
 
             if (window.syncStateManager && !window.syncStateManager.startSync('incremental', companies.length)) {
                 console.warn('⚠️ Sync already in progress, this sync will be queued');
@@ -101,15 +112,15 @@ class SyncScheduler {
 
             for (let i = 0; i < companies.length; i++) {
                 const company = companies[i];
+                console.log(`\n[${i + 1}/${companies.length}] 🏢 Syncing: ${company.name}...`);
 
                 if (window.syncStateManager) {
-                    window.syncStateManager.updateProgress(i + 1, company.name);
+                    window.syncStateManager.updateProgress(i + 1, `Syncing ${company.name}...`);
                 }
 
                 try {
                     const syncResult = await this.syncCompany(
-                        company.id,
-                        company.name,
+                        company,
                         currentUser.userId,
                         tallyPort,
                         backendUrl,
@@ -119,15 +130,17 @@ class SyncScheduler {
 
                     if (syncResult.success) {
                         successCount++;
+                        console.log(`   ✅ ${company.name} synced successfully`);
                     } else {
                         failureCount++;
+                        console.error(`   ❌ ${company.name} sync failed`);
                         failedCompanies.push({
                             name: company.name,
                             errors: syncResult.errors
                         });
                     }
                 } catch (error) {
-                    console.error(`❌ Error syncing company ${company.name}:`, error);
+                    console.error(`   ❌ Error syncing company ${company.name}:`, error);
                     failureCount++;
                     failedCompanies.push({
                         name: company.name,
@@ -136,7 +149,11 @@ class SyncScheduler {
                 }
             }
 
-            console.log(`✅ Sync cycle completed - ${successCount} successful, ${failureCount} failed`);
+            console.log('\n' + '='.repeat(80));
+            console.log(`✅ SYNC CYCLE COMPLETED`);
+            console.log(`   Success: ${successCount}/${companies.length}`);
+            console.log(`   Failed: ${failureCount}/${companies.length}`);
+            console.log('='.repeat(80) + '\n');
 
             const success = failureCount === 0;
             let message = `${successCount}/${companies.length} companies synced`;
@@ -286,7 +303,9 @@ class SyncScheduler {
         }
     }
 
-    async syncCompany(companyId, companyName, userId, tallyPort, backendUrl, authToken, deviceToken) {
+    async syncCompany(company, userId, tallyPort, backendUrl, authToken, deviceToken) {
+        const companyId = company.id;
+        const companyName = company.name;
         const result = { success: true, errors: [] };
 
         try {
@@ -309,7 +328,26 @@ class SyncScheduler {
                 { type: 'StockItem', key: 'stockitem' }
             ];
 
-            for (const entity of entities) {
+            // Total steps = 12 master entities + Vouchers + Bills Outstanding = 14
+            const totalSteps = entities.length + 2;
+
+            for (let j = 0; j < entities.length; j++) {
+                const entity = entities[j];
+                const entityPercentage = Math.round(((j + 1) / totalSteps) * 100);
+
+                // Update entity-level progress for UI
+                if (window.syncStateManager) {
+                    const companyIndex = window.syncStateManager.syncedCount || 0;
+                    window.syncStateManager.updateProgress(companyIndex, `${companyName} - ${entity.type}`, {
+                        companyId: companyId,
+                        companyName: companyName,
+                        entityIndex: j + 1,
+                        entityCount: totalSteps,
+                        entityName: entity.type,
+                        percentage: entityPercentage
+                    });
+                }
+
                 const maxAlterID = masterMapping[entity.key] || 0;
                 const entityResult = await this.syncEntity(
                     companyId,
@@ -330,6 +368,103 @@ class SyncScheduler {
                         message: entityResult?.message || 'Unknown error'
                     });
                 }
+            }
+
+            // ============= VOUCHER SYNC =============
+            const voucherStepIndex = entities.length + 1;
+            const voucherPercentage = Math.round((voucherStepIndex / totalSteps) * 100);
+            if (window.syncStateManager) {
+                const companyIndex = window.syncStateManager.syncedCount || 0;
+                window.syncStateManager.updateProgress(companyIndex, `${companyName} - Vouchers`, {
+                    companyId: companyId,
+                    companyName: companyName,
+                    entityIndex: voucherStepIndex,
+                    entityCount: totalSteps,
+                    entityName: 'Vouchers',
+                    percentage: voucherPercentage
+                });
+            }
+            try {
+                if (window.electronAPI?.syncVouchers) {
+                    console.log(`  📦 Vouchers: Syncing...`);
+                    const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    const _isoToTally = (iso) => {
+                        if (!iso || iso.length < 10) return null;
+                        const [y, m, d] = iso.split('-');
+                        return `${d}-${_months[parseInt(m,10)-1]}-${y}`;
+                    };
+                    const fromISO = company.booksStart || company.financialYearStart || '';
+                    const _now = new Date();
+                    const voucherResult = await window.electronAPI.syncVouchers({
+                        companyId: companyId,
+                        userId: userId,
+                        authToken: authToken,
+                        deviceToken: deviceToken,
+                        tallyPort: tallyPort,
+                        backendUrl: backendUrl,
+                        companyName: companyName,
+                        companyGuid: company.companyGuid || company.guid || '',
+                        fromDate: _isoToTally(fromISO) || '01-Apr-2024',
+                        toDate: `${String(_now.getDate()).padStart(2,'0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`,
+                        lastAlterID: 0
+                    });
+                    if (voucherResult.success) {
+                        console.log(`  ✅ Vouchers: Synced successfully`);
+                    } else {
+                        console.warn(`  ⚠️ Vouchers: ${voucherResult.message}`);
+                        result.errors.push({ entity: 'Vouchers', message: voucherResult.message || 'Voucher sync failed' });
+                    }
+                } else {
+                    console.warn('  ⚠️ Vouchers: syncVouchers API not available');
+                }
+            } catch (vErr) {
+                console.error('  ❌ Vouchers sync error:', vErr);
+                result.errors.push({ entity: 'Vouchers', message: vErr.message || 'Voucher sync error' });
+            }
+
+            // ============= BILLS OUTSTANDING SYNC =============
+            const billsStepIndex = entities.length + 2;
+            const billsPercentage = Math.round((billsStepIndex / totalSteps) * 100);
+            if (window.syncStateManager) {
+                const companyIndex = window.syncStateManager.syncedCount || 0;
+                window.syncStateManager.updateProgress(companyIndex, `${companyName} - Bills Outstanding`, {
+                    companyId: companyId,
+                    companyName: companyName,
+                    entityIndex: billsStepIndex,
+                    entityCount: totalSteps,
+                    entityName: 'Bills Outstanding',
+                    percentage: billsPercentage
+                });
+            }
+            try {
+                if (window.electronAPI?.syncBillsOutstanding) {
+                    console.log(`  📦 Bills Outstanding: Syncing...`);
+                    const billsResult = await window.electronAPI.syncBillsOutstanding({
+                        companyId: companyId,
+                        userId: userId,
+                        authToken: authToken,
+                        deviceToken: deviceToken,
+                        tallyPort: tallyPort,
+                        backendUrl: backendUrl,
+                        companyName: companyName
+                    });
+                    if (billsResult.success) {
+                        console.log(`  ✅ Bills Outstanding: Synced successfully`);
+                    } else {
+                        console.warn(`  ⚠️ Bills Outstanding: ${billsResult.message}`);
+                        result.errors.push({ entity: 'Bills Outstanding', message: billsResult.message || 'Bills sync failed' });
+                    }
+                } else {
+                    console.warn('  ⚠️ Bills Outstanding: syncBillsOutstanding API not available');
+                }
+            } catch (bErr) {
+                console.error('  ❌ Bills Outstanding sync error:', bErr);
+                result.errors.push({ entity: 'Bills Outstanding', message: bErr.message || 'Bills sync error' });
+            }
+
+            // Mark overall result based on errors
+            if (result.errors.length > 0) {
+                result.success = false;
             }
         } catch (error) {
             console.error(`❌ Error syncing company ${companyId}:`, error);
@@ -509,6 +644,15 @@ class SyncScheduler {
             }
 
             console.log(`📡 Calling incremental-sync for ${entityType}...`);
+            // Read batchSize from settings
+            let batchSize = 500;
+            try {
+                const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+                if (settings.batchSize && settings.batchSize > 0) {
+                    batchSize = settings.batchSize;
+                }
+            } catch (e) { /* use default */ }
+
             const result = await window.electronAPI.incrementalSync({
                 companyId,
                 companyName,
@@ -518,7 +662,8 @@ class SyncScheduler {
                 authToken,
                 deviceToken,
                 entityType,
-                maxAlterID  // Pass maxAlterID from DB - Python will fetch records with alterID > maxAlterID
+                maxAlterID,  // Pass maxAlterID from DB - Python will fetch records with alterID > maxAlterID
+                batchSize
             });
 
             return result;

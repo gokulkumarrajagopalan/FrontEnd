@@ -437,7 +437,7 @@ class NotificationCenter {
      */
     createUI() {
         console.log('🎨 Creating NotificationCenter UI...');
-        
+
         // Skip creating the badge button - we'll use the header bell icon instead
         console.log('   Skipping badge creation (using header bell icon)');
 
@@ -452,7 +452,7 @@ class NotificationCenter {
                 <div class="notification-center-backdrop">
                     <div class="notification-center-panel">
                         <div class="notification-center-header">
-                            <h2 class="notification-center-title">📋 Notifications</h2>
+                            <h2 class="notification-center-title"><i class="fas fa-bell" style="margin-right:6px"></i> Notifications</h2>
                             <span class="notification-center-close" id="notification-center-close">✕</span>
                         </div>
 
@@ -477,7 +477,7 @@ class NotificationCenter {
             // Event listeners
             const closeBtn = document.getElementById('notification-center-close');
             const clearBtn = document.getElementById('clear-notifications');
-            
+
             if (closeBtn) {
                 closeBtn.addEventListener('click', () => this.close());
                 console.log('   ✅ Close button listener attached');
@@ -486,7 +486,7 @@ class NotificationCenter {
                 clearBtn.addEventListener('click', () => this.clear());
                 console.log('   ✅ Clear button listener attached');
             }
-            
+
             const backdrop = modal.querySelector('.notification-center-backdrop');
             const panel = modal.querySelector('.notification-center-panel');
 
@@ -550,7 +550,7 @@ class NotificationCenter {
             console.log(`Skipping sync status update for ${companyName} - Sync API not available`);
             return;
         }
-        
+
         this.companySyncStatus[companyName] = {
             status: status, // 'success', 'error', 'syncing'
             recordCount: recordCount,
@@ -570,7 +570,7 @@ class NotificationCenter {
         if (!container) return;
 
         const companies = Object.keys(this.companySyncStatus);
-        
+
         if (companies.length === 0) {
             container.innerHTML = '<div class="sync-status-empty">No sync data available</div>';
             return;
@@ -585,17 +585,17 @@ class NotificationCenter {
             const sync = this.companySyncStatus[companyName];
             const statusClass = sync.status;
             const timeAgo = this.getTimeAgo(new Date(sync.lastSync));
-            
-            let icon = '✅';
+
+            let icon = '<i class="fas fa-check-circle" style="color:#10b981"></i>';
             let badgeText = 'Success';
             let details = `${sync.recordCount} records synced`;
-            
+
             if (sync.status === 'error') {
-                icon = '❌';
+                icon = '<i class="fas fa-times-circle" style="color:#ef4444"></i>';
                 badgeText = 'Failed';
                 details = sync.error || 'Sync failed';
             } else if (sync.status === 'syncing') {
-                icon = '🔄';
+                icon = '<i class="fas fa-sync fa-spin" style="color:#3b82f6"></i>';
                 badgeText = 'Syncing...';
                 details = 'Sync in progress';
             }
@@ -620,7 +620,7 @@ class NotificationCenter {
      */
     getTimeAgo(date) {
         const seconds = Math.floor((new Date() - date) / 1000);
-        
+
         if (seconds < 60) return 'just now';
         const minutes = Math.floor(seconds / 60);
         if (minutes < 60) return `${minutes}m ago`;
@@ -645,16 +645,16 @@ class NotificationCenter {
 
         window.syncStateManager.addListener((event) => {
             const { event: eventType, data, timestamp } = event;
-            
+
             console.log(`🎯 NotificationCenter received event: ${eventType}`, { data, initialized: this.initialized });
-            
+
             switch (eventType) {
                 case 'sync-started':
                     this.addNotification(
                         `${data.type === 'full' ? 'Full' : data.type === 'incremental' ? 'Incremental' : 'Company'} Sync Started`,
                         `Syncing ${data.totalCount} companies...`,
                         'info',
-                        '🔄',
+                        '<i class="fas fa-sync fa-spin" style="color:#3b82f6"></i>',
                         timestamp
                     );
                     this.updateBadge();
@@ -663,7 +663,7 @@ class NotificationCenter {
 
                 case 'sync-ended':
                     this.addNotification(
-                        data.success ? '✅ Sync Completed' : '❌ Sync Failed',
+                        data.success ? '<i class="fas fa-check-circle"></i> Sync Completed' : '<i class="fas fa-times-circle"></i> Sync Failed',
                         `${data.syncedCount}/${data.totalCount} companies synced`,
                         data.success ? 'success' : 'error',
                         data.success ? '✓' : '✕',
@@ -686,7 +686,7 @@ class NotificationCenter {
                 'Queued Sync Starting',
                 `Processing queued ${e.detail.type} sync...`,
                 'info',
-                '⏳',
+                '<i class="fas fa-hourglass-half" style="color:#f59e0b"></i>',
                 new Date()
             );
         });
@@ -695,7 +695,7 @@ class NotificationCenter {
     /**
      * Add notification to center
      */
-    addNotification(title, message, type = 'info', icon = 'ℹ', timestamp = null) {
+    addNotification(title, message, type = 'info', icon = '<i class="fas fa-info-circle"></i>', timestamp = null) {
         if (!timestamp) timestamp = new Date();
 
         const notification = {
@@ -737,7 +737,7 @@ class NotificationCenter {
      */
     render() {
         if (!this.initialized) return;
-        
+
         const list = document.getElementById('notification-center-list');
         if (!list) return;
 
@@ -766,7 +766,7 @@ class NotificationCenter {
      */
     updateBadge() {
         if (!this.initialized) return;
-        
+
         const countElem = document.getElementById('notification-count');
         if (!countElem) return;
 
@@ -784,7 +784,7 @@ class NotificationCenter {
      */
     setPulsing(pulsing) {
         if (!this.initialized) return;
-        
+
         const badge = document.getElementById('sync-notification-badge');
         if (!badge) return;
 
@@ -802,12 +802,12 @@ class NotificationCenter {
         console.log('🔄 NotificationCenter.toggle() called');
         console.log('   initialized:', this.initialized);
         console.log('   isOpen:', this.isOpen);
-        
+
         if (!this.initialized) {
             console.error('❌ NotificationCenter not yet initialized');
             return;
         }
-        
+
         if (this.isOpen) {
             console.log('   ▶ Closing...');
             this.close();
@@ -826,10 +826,10 @@ class NotificationCenter {
             console.error('❌ Cannot open - not initialized');
             return;
         }
-        
+
         let modal = document.getElementById('notification-center-modal');
         console.log('   Modal element found:', !!modal);
-        
+
         // If modal doesn't exist, recreate it
         if (!modal) {
             console.warn('⚠️ Modal element missing from DOM, recreating...');
@@ -837,22 +837,22 @@ class NotificationCenter {
             modal = document.getElementById('notification-center-modal');
             console.log('   Modal recreated:', !!modal);
         }
-        
+
         if (modal) {
             console.log('   Modal current display:', window.getComputedStyle(modal).display);
             console.log('   Modal current opacity:', window.getComputedStyle(modal).opacity);
             console.log('   Modal current z-index:', window.getComputedStyle(modal).zIndex);
-            
+
             modal.classList.add('active');
             this.isOpen = true;
-            
+
             console.log('   ✅ Modal opened (active class added)');
             console.log('   Modal classList:', modal.classList.toString());
             console.log('   Modal opacity after:', window.getComputedStyle(modal).opacity);
-            
+
             // Force reflow to ensure transition happens
             modal.offsetHeight;
-            
+
             // Render latest sync status when opening
             this.renderSyncStatus();
         } else {
@@ -865,7 +865,7 @@ class NotificationCenter {
      */
     close() {
         if (!this.initialized) return;
-        
+
         const modal = document.getElementById('notification-center-modal');
         if (modal) {
             modal.classList.remove('active');
@@ -897,7 +897,7 @@ class NotificationCenter {
         if (seconds < 60) return 'just now';
         if (minutes < 60) return `${minutes}m ago`;
         if (hours < 24) return `${hours}h ago`;
-        
+
         return timestamp.toLocaleDateString() + ' ' + timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
@@ -920,11 +920,11 @@ class NotificationCenter {
 window.notificationCenter = new NotificationCenter();
 
 // Add global debug function
-window.testNotificationCenter = function() {
+window.testNotificationCenter = function () {
     console.log('🧪 Testing NotificationCenter...');
     console.log('   Initialized:', window.notificationCenter?.initialized);
     console.log('   IsOpen:', window.notificationCenter?.isOpen);
-    
+
     const modal = document.getElementById('notification-center-modal');
     console.log('   Modal exists:', !!modal);
     if (modal) {
@@ -934,10 +934,10 @@ window.testNotificationCenter = function() {
         console.log('   Modal position:', window.getComputedStyle(modal).position);
         console.log('   Modal classList:', modal.classList.toString());
     }
-    
+
     const badge = document.getElementById('sync-notification-badge');
     console.log('   Badge exists:', !!badge);
-    
+
     console.log('   Calling toggle()...');
     window.notificationCenter.toggle();
 };

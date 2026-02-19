@@ -77,8 +77,6 @@ class SyncManager:
     <BODY>
         <DESC>
             <STATICVARIABLES>
-                <SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE>
-                <SVTODATE TYPE="Date">01-Jan-1970</SVTODATE>
                 <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
                 <SVCURRENTCOMPANY>{self.company_name}</SVCURRENTCOMPANY>
             </STATICVARIABLES>

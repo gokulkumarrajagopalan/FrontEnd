@@ -138,25 +138,28 @@ class App {
         }
     }
 
-    async checkTallyConnection() {
+    async checkTallyConnection(silent = false) {
         try {
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
 
-            console.log('📦 Raw appSettings:', localStorage.getItem('appSettings'));
-            console.log('📊 Parsed appSettings:', appSettings);
-            console.log('🔌 Tally Port to use:', tallyPort, '(type:', typeof tallyPort, ')');
-
-            console.log(`\n[1] CHECKING TALLY CONNECTION (localhost:${tallyPort})`);
-            console.log('-'.repeat(80));
+            if (!silent) {
+                console.log('📦 Raw appSettings:', localStorage.getItem('appSettings'));
+                console.log('📊 Parsed appSettings:', appSettings);
+                console.log('🔌 Tally Port to use:', tallyPort, '(type:', typeof tallyPort, ')');
+                console.log(`\n[1] CHECKING TALLY CONNECTION (localhost:${tallyPort})`);
+                console.log('-'.repeat(80));
+            }
 
             if (window.electronAPI && window.electronAPI.invoke) {
                 const isConnected = await window.electronAPI.invoke('check-tally-connection', { tallyPort });
 
                 if (isConnected) {
-                    console.log('✅ TALLY CONNECTION: SUCCESS');
-                    console.log(`   Server: http://localhost:${tallyPort}`);
-                    console.log('   Status: ONLINE');
+                    if (!silent) {
+                        console.log('✅ TALLY CONNECTION: SUCCESS');
+                        console.log(`   Server: http://localhost:${tallyPort}`);
+                        console.log('   Status: ONLINE');
+                    }
 
                     // Store connection status
                     localStorage.setItem('tallyConnectionStatus', JSON.stringify({
@@ -165,18 +168,149 @@ class App {
                         server: `localhost:${tallyPort}`
                     }));
                     window.tallyConnectionStatus = { connected: true };
+                    this.updateTallyStatusUI(true);
+                    return true;
                 } else {
-                    console.warn('⚠️ TALLY CONNECTION: OFFLINE');
-                    console.log(`   Server: http://localhost:${tallyPort}`);
-                    console.log('   Status: UNREACHABLE');
+                    if (!silent) {
+                        console.warn('⚠️ TALLY CONNECTION: OFFLINE');
+                        console.log(`   Server: http://localhost:${tallyPort}`);
+                        console.log('   Status: UNREACHABLE');
+                    }
                     window.tallyConnectionStatus = { connected: false };
+                    this.updateTallyStatusUI(false);
+                    return false;
                 }
             } else {
-                console.warn('⚠️ electronAPI not available');
+                if (!silent) console.warn('⚠️ electronAPI not available');
+                this.updateTallyStatusUI(false);
+                return false;
             }
         } catch (error) {
-            console.error('❌ Error checking Tally connection:', error);
+            if (!silent) console.error('❌ Error checking Tally connection:', error);
+            this.updateTallyStatusUI(false);
+            return false;
         }
+    }
+
+    /**
+     * Check internet connectivity
+     */
+    async checkInternetConnection(silent = false) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            const response = await fetch('https://www.google.com/favicon.ico', {
+                method: 'HEAD',
+                cache: 'no-cache',
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+            const isConnected = response.ok;
+
+            if (!silent) {
+                console.log(isConnected ? '✅ INTERNET: CONNECTED' : '⚠️ INTERNET: OFFLINE');
+            }
+
+            this.updateInternetStatusUI(isConnected);
+            return isConnected;
+        } catch (error) {
+            if (!silent && error.name !== 'AbortError') {
+                console.warn('⚠️ Internet check failed:', error.message);
+            }
+            this.updateInternetStatusUI(false);
+            return false;
+        }
+    }
+
+    /**
+     * Update Tally status indicator in UI
+     */
+    updateTallyStatusUI(isConnected) {
+        const pill = document.getElementById('tallyStatusPill');
+        if (!pill) return;
+
+        const iconContainer = document.getElementById('tallyStatusIcon');
+        const textLabel = pill.querySelector('.flex-1');
+        const statusDot = pill.querySelector('.ds-status-dot');
+
+        if (isConnected) {
+            pill.className = 'ds-status-pill online';
+            if (iconContainer) iconContainer.innerHTML = '<i class="fas fa-plug"></i>';
+            if (textLabel) textLabel.textContent = 'Tally: Connected';
+            if (statusDot) statusDot.className = 'ds-status-dot online';
+        } else {
+            pill.className = 'ds-status-pill offline';
+            if (iconContainer) iconContainer.innerHTML = '<i class="fas fa-plug-circle-xmark"></i>';
+            if (textLabel) textLabel.textContent = 'Tally: Disconnected';
+            if (statusDot) statusDot.className = 'ds-status-dot offline';
+        }
+    }
+
+    /**
+     * Update Internet status indicator in UI
+     */
+    updateInternetStatusUI(isConnected) {
+        const pill = document.getElementById('internetStatusPill');
+        if (!pill) return;
+
+        const iconContainer = document.getElementById('internetStatusIcon');
+        const textLabel = pill.querySelector('.flex-1');
+        const statusDot = pill.querySelector('.ds-status-dot');
+
+        if (isConnected) {
+            pill.className = 'ds-status-pill online';
+            if (iconContainer) iconContainer.innerHTML = '<i class="fas fa-globe"></i>';
+            if (textLabel) textLabel.textContent = 'Internet: Connected';
+            if (statusDot) statusDot.className = 'ds-status-dot online';
+        } else {
+            pill.className = 'ds-status-pill offline';
+            if (iconContainer) iconContainer.innerHTML = '<i class="fas fa-cloud-slash"></i>';
+            if (textLabel) textLabel.textContent = 'Internet: Disconnected';
+            if (statusDot) statusDot.className = 'ds-status-dot offline';
+        }
+    }
+
+    /**
+     * Start periodic connection monitoring
+     */
+    startConnectionMonitoring() {
+        console.log('🔄 Starting connection monitoring...');
+
+        // Initial check (silent after first run)
+        this.checkTallyConnection(false);
+        this.checkInternetConnection(false);
+
+        // Check Tally connection every 10 seconds
+        this.tallyConnectionInterval = setInterval(() => {
+            // Skip check if sync is in progress to avoid overloading Tally
+            if (window.syncStateManager && typeof window.syncStateManager.isSyncInProgress === 'function' && window.syncStateManager.isSyncInProgress()) {
+                console.log('⏳ Sync in progress, skipping Tally connection check...');
+                return;
+            }
+            this.checkTallyConnection(true);
+        }, 10000);
+
+        // Check Internet connection every 10 seconds
+        this.internetConnectionInterval = setInterval(() => {
+            this.checkInternetConnection(true);
+        }, 10000);
+
+        console.log('✅ Connection monitoring started (Tally: 10s, Internet: 10s)');
+    }
+
+    /**
+     * Stop connection monitoring
+     */
+    stopConnectionMonitoring() {
+        if (this.tallyConnectionInterval) {
+            clearInterval(this.tallyConnectionInterval);
+        }
+        if (this.internetConnectionInterval) {
+            clearInterval(this.internetConnectionInterval);
+        }
+        console.log('🛑 Connection monitoring stopped');
     }
 
     async fetchTallyLicense() {
@@ -277,20 +411,31 @@ class App {
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const syncInterval = appSettings.syncInterval || 0;
 
-            console.log('\n[5] INITIALIZING LEGACY SYNC SCHEDULER (if configured)');
+            console.log('\n[5] INITIALIZING SYNC SCHEDULER');
             console.log('-'.repeat(80));
             console.log('📊 Sync Interval from settings:', syncInterval, 'minutes');
 
-            if (syncInterval <= 0) {
-                console.log('⏸️ Auto-sync disabled (interval is 0 or not set)');
-                return;
-            }
-
-            // Create and start the sync scheduler
+            // Create sync scheduler
             if (window.SyncScheduler) {
                 window.syncScheduler = new window.SyncScheduler();
-                window.syncScheduler.start();
-                console.log(`✅ Sync scheduler started with ${syncInterval} minute interval`);
+
+                if (syncInterval > 0) {
+                    // Start periodic sync with interval
+                    window.syncScheduler.start();
+                    console.log(`✅ Sync scheduler started with ${syncInterval} minute interval`);
+                } else {
+                    // Run initial sync only (no periodic syncs)
+                    console.log('🔄 Running initial sync on app startup...');
+                    window.syncScheduler.isRunning = true; // Mark as running to allow sync
+                    setTimeout(() => {
+                        window.syncScheduler.runSync().then(() => {
+                            if (syncInterval <= 0) {
+                                window.syncScheduler.isRunning = false; // Stop after initial sync
+                            }
+                        });
+                    }, 2000); // 2 second delay after app loads
+                    console.log('✅ Initial sync scheduled (auto-sync disabled)');
+                }
             } else {
                 console.warn('⚠️ SyncScheduler class not available');
             }
@@ -426,39 +571,39 @@ class App {
                     <nav class="ds-sidebar-nav" id="sidebarNav" aria-label="Sidebar navigation">
                         <div class="ds-nav-section-label">Navigation</div>
                         <a class="ds-nav-link" data-route="company-sync" role="link" tabindex="0" aria-label="My Company">
-                            <span class="ds-nav-icon" aria-hidden="true">🏢</span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-building"></i></span>
                             <span class="ds-nav-text">My Company</span>
                         </a>
                         <a class="ds-nav-link" data-route="import-company" role="link" tabindex="0" aria-label="Add Company">
-                            <span class="ds-nav-icon" aria-hidden="true">📥</span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-plus-circle"></i></span>
                             <span class="ds-nav-text">Add Company</span>
                         </a>
                         <a class="ds-nav-link" data-route="settings" role="link" tabindex="0" aria-label="Settings">
-                            <span class="ds-nav-icon" aria-hidden="true">⚙️</span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-cog"></i></span>
                             <span class="ds-nav-text">Settings</span>
                         </a>
                         <a class="ds-nav-link" data-route="profile" role="link" tabindex="0" aria-label="Profile">
-                            <span class="ds-nav-icon" aria-hidden="true">👤</span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-user"></i></span>
                             <span class="ds-nav-text">Profile</span>
                         </a>
                         <a class="ds-nav-link" data-route="system-info" role="link" tabindex="0" aria-label="System Info">
-                            <span class="ds-nav-icon" aria-hidden="true">💻</span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-desktop"></i></span>
                             <span class="ds-nav-text">System Info</span>
                         </a>
                         <a class="ds-nav-link" data-route="tutorial" role="link" tabindex="0" aria-label="Tutorial">
-                            <span class="ds-nav-icon" aria-hidden="true">❓</span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-graduation-cap"></i></span>
                             <span class="ds-nav-text">Tutorial</span>
                         </a>
                         <a class="ds-nav-link" data-route="support" role="link" tabindex="0" aria-label="Support">
-                            <span class="ds-nav-icon" aria-hidden="true">📞</span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-headset"></i></span>
                             <span class="ds-nav-text">Support</span>
                         </a>
                         <a class="ds-nav-link" data-route="update-app" role="link" tabindex="0" aria-label="Update App">
-                            <span class="ds-nav-icon" aria-hidden="true">⬇️</span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-download"></i></span>
                             <span class="ds-nav-text">Update App</span>
                         </a>
                         <a class="ds-nav-link" data-route="purchase" role="link" tabindex="0" aria-label="Purchase">
-                            <span class="ds-nav-icon" aria-hidden="true">💳</span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-credit-card"></i></span>
                             <span class="ds-nav-text">Purchase</span>
                         </a>
                     </nav>
@@ -466,20 +611,22 @@ class App {
                     <!-- Status Bar -->
                     <div class="ds-sidebar-footer">
                         <div class="ds-sidebar-status">
-                            <div class="ds-status-item">
-                                <span class="ds-status-dot online" id="tallyStatusDot"></span>
-                                <span>Tally: Connected</span>
+                            <div id="tallyStatusPill" class="ds-status-pill online">
+                                <span class="ds-status-icon" id="tallyStatusIcon"><i class="fas fa-plug"></i></span>
+                                <span class="flex-1">Tally: Connected</span>
+                                <span class="ds-status-dot online"></span>
                             </div>
-                            <div class="ds-status-item">
-                                <span class="ds-status-dot online" id="internetStatusDot"></span>
-                                <span>Internet: Connected</span>
+                            <div id="internetStatusPill" class="ds-status-pill online">
+                                <span class="ds-status-icon" id="internetStatusIcon"><i class="fas fa-globe"></i></span>
+                                <span class="flex-1">Internet: Connected</span>
+                                <span class="ds-status-dot online"></span>
                             </div>
                         </div>
                         
                         <!-- Logout Button -->
                         <div class="ds-sidebar-logout">
                             <button id="logoutBtn" class="ds-logout-btn" aria-label="Logout">
-                                <span>🚪</span>
+                                <span><i class="fas fa-sign-out-alt"></i></span>
                                 <span>Logout</span>
                             </button>
                         </div>
@@ -520,6 +667,9 @@ class App {
                 this.setupRouter();
                 this.restoreSidebarStates();
             }, 100);
+
+            // Start connection status monitoring
+            this.startConnectionMonitoring();
         } catch (e) {
             console.error('❌ Error in renderAppLayout:', e);
             document.body.innerHTML = `<div style="color: red; padding: 20px;"><h1>Error Rendering App</h1><p>${e.message}</p></div>`;
@@ -542,12 +692,12 @@ class App {
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async () => {
                     const confirmed = await window.Popup.confirm({
-                        title: 'Logout',
-                        message: 'Are you sure you want to logout?',
-                        icon: '⚠️',
+                        title: 'Confirm Logout',
+                        message: 'Are you sure you want to logout? You will need to sign in again to access your data.',
+                        icon: '<i class="fas fa-sign-out-alt" style="color: var(--primary-600);"></i>',
                         confirmText: 'Logout',
                         cancelText: 'Cancel',
-                        confirmVariant: 'danger'
+                        confirmVariant: 'primary'
                     });
                     if (confirmed) {
                         await this.handleLogout();
@@ -572,8 +722,8 @@ class App {
                 window.Popup.alert({
                     title: 'Error',
                     message: 'Profile service not loaded. Please refresh the page.',
-                    icon: '❌',
-                    variant: 'danger'
+                    icon: '<i class="fas fa-times-circle" style="color:var(--primary-500)"></i>',
+                    variant: 'primary'
                 });
             }
         }
@@ -794,7 +944,26 @@ class App {
     async handleLogout() {
         console.log('🔐 App.handleLogout() - Starting logout sequence');
         try {
-            // Stop session monitoring FIRST
+            // Stop connection monitoring
+            this.stopConnectionMonitoring();
+
+            // Stop all sync systems (schedulers, background sync, worker process)
+            console.log('   → Stopping all sync systems');
+            if (window.AppInitializer) {
+                window.AppInitializer.stopAllSyncSystems();
+            }
+            if (window.syncService) {
+                window.syncService.stopSyncSystem();
+            }
+            if (window.electronAPI && window.electronAPI.stopSync) {
+                window.electronAPI.stopSync();
+                console.log('   ✅ Sent stop-sync to main process');
+            }
+
+            // Dispatch user-logout event for any other listeners
+            window.dispatchEvent(new Event('user-logout'));
+
+            // Stop session monitoring
             if (window.sessionManager) {
                 console.log('   → Stopping WebSocket session manager');
                 window.sessionManager.stop();
@@ -941,14 +1110,14 @@ class App {
             if (response.ok) {
                 const result = await response.json();
                 const companies = (result.success && Array.isArray(result.data)) ? result.data : [];
-                
+
                 // If user has companies, go to company-sync, otherwise import-company
                 return companies.length > 0 ? 'company-sync' : 'import-company';
             }
         } catch (error) {
             console.error('Error checking companies:', error);
         }
-        
+
         return 'import-company';
     }
 }

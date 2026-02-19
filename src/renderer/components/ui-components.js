@@ -7,15 +7,6 @@ const UIComponents = {
     /**
      * Input Component
      * @param {Object} options - Input configuration
-     * @param {string} options.id - Input ID
-     * @param {string} options.type - Input type (text, email, password, number, date, etc.)
-     * @param {string} options.placeholder - Placeholder text
-     * @param {string} options.label - Label text
-     * @param {string} options.value - Default value
-     * @param {boolean} options.required - Required field
-     * @param {string} options.icon - Icon emoji or text
-     * @param {string} options.width - Width class (default: w-full)
-     * @param {boolean} options.disabled - Disabled state
      */
     input: (options = {}) => {
         const {
@@ -26,33 +17,33 @@ const UIComponents = {
             value = '',
             required = false,
             icon = '',
+            suffix = '',
             width = 'w-full',
             disabled = false,
             className = ''
         } = options;
 
-        const inputClasses = `${width} px-4 py-3 ${icon ? 'pl-11' : ''} rounded-xl border-2 border-gray-200 
-            focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all 
-            text-gray-900 bg-white text-sm font-medium placeholder-gray-400
-            disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`;
-
         return `
-            ${label ? `<label class="block text-xs font-bold text-gray-800 mb-2">
-                ${label} ${required ? '<span class="text-red-500">*</span>' : ''}
+            ${label ? `<label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">
+                ${label} ${required ? '<span style="color: var(--ds-error-500);">*</span>' : ''}
             </label>` : ''}
-            <div class="relative group">
-                ${icon ? `<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span class="text-lg">${icon}</span>
+            <div style="position: relative; width: ${width === 'w-full' ? '100%' : 'auto'};">
+                ${icon ? `<div style="position: absolute; left: var(--ds-space-4); top: 50%; transform: translateY(-50%); font-size: var(--ds-text-lg); color: var(--ds-text-tertiary); pointer-events: none; display: flex; align-items: center; justify-content: center; width: var(--ds-space-5); height: var(--ds-space-5);">
+                    ${icon}
                 </div>` : ''}
                 <input 
                     type="${type}" 
                     id="${id}" 
-                    class="${inputClasses}"
+                    class="ds-input ${className}"
+                    style="width: 100%; ${icon ? 'padding-left: var(--ds-space-12);' : ''} ${suffix ? 'padding-right: var(--ds-space-12);' : ''}"
                     placeholder="${placeholder}" 
                     value="${value}"
                     ${required ? 'required' : ''}
                     ${disabled ? 'disabled' : ''}
                 >
+                ${suffix ? `<div style="position: absolute; right: var(--ds-space-3); top: 50%; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; z-index: 10;">
+                    ${suffix}
+                </div>` : ''}
             </div>
         `;
     },
@@ -71,55 +62,37 @@ const UIComponents = {
             fullWidth = false,
             disabled = false,
             type = 'button',
-            className = ''
+            className = '',
+            style = ''
         } = options;
 
-        const sizeClasses = {
-            sm: 'px-4 py-2 text-xs',
-            md: 'px-6 py-3 text-sm',
-            lg: 'px-8 py-4 text-base'
+        const variantMap = {
+            primary: 'ds-btn-primary',
+            secondary: 'ds-btn-secondary',
+            success: 'ds-btn-success',
+            danger: 'ds-btn-danger',
+            outline: 'ds-btn-secondary' // Fallback to secondary for outline
         };
 
-        const variantStyles = {
-            primary: 'background: linear-gradient(135deg, #5e86ba 0%, #496da0 100%); color: white; border: none; box-shadow: 0 6px 20px rgba(94, 134, 186, 0.35);',
-            secondary: 'background: linear-gradient(135deg, #395984 0%, #2d4563 100%); color: white; border: none; box-shadow: 0 6px 20px rgba(57, 89, 132, 0.35);',
-            success: 'background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);',
-            danger: 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);',
-            purple: 'background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%); color: white; border: none; box-shadow: 0 6px 20px rgba(147, 51, 234, 0.35);',
-            outline: 'background: transparent; color: #5e86ba; border: 2px solid #5e86ba;'
+        const sizeMap = {
+            sm: 'ds-btn-sm',
+            md: '',
+            lg: 'ds-btn-lg'
         };
 
-        const baseClasses = `${fullWidth ? 'w-full' : ''} ${sizeClasses[size]} rounded-xl font-bold shadow-lg transition-all duration-200 flex items-center justify-center gap-2 ${className}`;
+        const btnClass = `ds-btn ${variantMap[variant] || 'ds-btn-primary'} ${sizeMap[size] || ''} ${fullWidth ? 'w-full' : ''} ${className}`;
 
         return `
             <button 
                 type="${type}" 
                 id="${id}" 
-                class="${baseClasses}"
-                style="${variantStyles[variant]} cursor: pointer;"
+                class="${btnClass}"
+                style="${style}"
                 ${disabled ? 'disabled' : ''}
             >
-                ${icon ? `<span class="text-lg">${icon}</span>` : ''}
-                <span>${text}</span>
+                ${icon ? `<span class="ds-btn-icon">${icon}</span>` : ''}
+                <span class="ds-btn-text">${text}</span>
             </button>
-            <style>
-                #${id}:hover {
-                    ${variant === 'primary' ? 'background: linear-gradient(135deg, #496da0 0%, #37537b 100%); box-shadow: 0 12px 25px rgba(94, 134, 186, 0.5); transform: translateY(-2px);' : ''}
-                    ${variant === 'secondary' ? 'background: linear-gradient(135deg, #2d4563 0%, #1f2e42 100%); box-shadow: 0 12px 25px rgba(57, 89, 132, 0.5); transform: translateY(-2px);' : ''}
-                    ${variant === 'success' ? 'background: linear-gradient(135deg, #059669 0%, #047857 100%); box-shadow: 0 12px 25px rgba(16, 185, 129, 0.5); transform: translateY(-2px);' : ''}
-                    ${variant === 'danger' ? 'background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); box-shadow: 0 12px 25px rgba(239, 68, 68, 0.5); transform: translateY(-2px);' : ''}
-                    ${variant === 'purple' ? 'background: linear-gradient(135deg, #7e22ce 0%, #6b21a8 100%); box-shadow: 0 12px 25px rgba(147, 51, 234, 0.5); transform: translateY(-2px);' : ''}
-                    ${variant === 'outline' ? 'background: rgba(94, 134, 186, 0.1); border-color: #496da0;' : ''}
-                }
-                #${id}:active {
-                    transform: scale(0.98);
-                }
-                #${id}:disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
-                    box-shadow: none;
-                }
-            </style>
         `;
     },
 
@@ -140,18 +113,14 @@ const UIComponents = {
             className = ''
         } = options;
 
-        const selectClasses = `${width} px-4 py-3 rounded-xl border-2 border-gray-200 
-            focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all 
-            text-gray-900 bg-white text-sm font-medium
-            disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`;
-
         return `
-            ${label ? `<label class="block text-xs font-bold text-gray-800 mb-2">
-                ${label} ${required ? '<span class="text-red-500">*</span>' : ''}
+            ${label ? `<label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">
+                ${label} ${required ? '<span style="color: var(--ds-error-500);">*</span>' : ''}
             </label>` : ''}
             <select 
                 id="${id}" 
-                class="${selectClasses}"
+                class="ds-input ${className}"
+                style="width: ${width === 'w-full' ? '100%' : 'auto'};"
                 ${required ? 'required' : ''}
                 ${disabled ? 'disabled' : ''}
             >
@@ -181,20 +150,15 @@ const UIComponents = {
             className = ''
         } = options;
 
-        const textareaClasses = `w-full px-4 py-3 rounded-xl border-2 border-gray-200 
-            focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all 
-            text-gray-900 bg-white text-sm font-medium placeholder-gray-400
-            disabled:bg-gray-100 disabled:cursor-not-allowed resize-none ${className}`;
-
         return `
-            ${label ? `<label class="block text-xs font-bold text-gray-800 mb-2">
-                ${label} ${required ? '<span class="text-red-500">*</span>' : ''}
+            ${label ? `<label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">
+                ${label} ${required ? '<span style="color: var(--ds-error-500);">*</span>' : ''}
             </label>` : ''}
             <textarea 
                 id="${id}" 
-                class="${textareaClasses}"
+                class="ds-input ${className}"
+                style="width: 100%; min-height: ${rows * 24}px; padding: var(--ds-space-3) var(--ds-space-4);"
                 placeholder="${placeholder}"
-                rows="${rows}"
                 ${required ? 'required' : ''}
                 ${disabled ? 'disabled' : ''}
             >${value}</textarea>
@@ -211,21 +175,21 @@ const UIComponents = {
             content = '',
             footer = '',
             className = '',
-            padding = 'p-6'
+            padding = 'var(--ds-space-6)'
         } = options;
 
         return `
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden ${className}">
+            <div class="${className}" style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default); shadow: var(--ds-shadow-sm); overflow: hidden;">
                 ${title ? `
-                    <div class="border-b border-gray-200 px-6 py-4 bg-gray-50">
-                        <h3 class="text-lg font-bold text-gray-900">${title}</h3>
+                    <div style="padding: var(--ds-space-4) var(--ds-space-6); border-bottom: 1px solid var(--ds-border-default); background: var(--ds-bg-surface-sunken);">
+                        <h3 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${title}</h3>
                     </div>
                 ` : ''}
-                <div class="${padding}">
+                <div style="padding: ${padding};">
                     ${content}
                 </div>
                 ${footer ? `
-                    <div class="border-t border-gray-200 px-6 py-4 bg-gray-50">
+                    <div style="padding: var(--ds-space-4) var(--ds-space-6); border-top: 1px solid var(--ds-border-default); background: var(--ds-bg-surface-sunken);">
                         ${footer}
                     </div>
                 ` : ''}
@@ -246,27 +210,20 @@ const UIComponents = {
             id = ''
         } = options;
 
-        const typeStyles = {
-            success: 'background: rgba(16, 185, 129, 0.1); border-color: #10b981; color: #059669;',
-            warning: 'background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #d97706;',
-            danger: 'background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #dc2626;',
-            info: 'background: rgba(59, 130, 246, 0.1); border-color: #3b82f6; color: #2563eb;'
+        const typeMap = {
+            success: { bg: 'var(--ds-success-50)', border: 'var(--ds-success-200)', text: 'var(--ds-success-700)', icon: '<i class="fas fa-check-circle"></i>' },
+            warning: { bg: 'var(--ds-warning-50)', border: 'var(--ds-warning-200)', text: 'var(--ds-warning-700)', icon: '<i class="fas fa-exclamation-triangle"></i>' },
+            danger: { bg: 'var(--ds-error-50)', border: 'var(--ds-error-200)', text: 'var(--ds-error-700)', icon: '<i class="fas fa-times-circle"></i>' },
+            info: { bg: 'var(--ds-primary-50)', border: 'var(--ds-primary-200)', text: 'var(--ds-primary-700)', icon: '<i class="fas fa-info-circle"></i>' }
         };
 
-        const defaultIcons = {
-            success: '✅',
-            warning: '⚠️',
-            danger: '❌',
-            info: 'ℹ️'
-        };
-
-        const displayIcon = icon || defaultIcons[type];
+        const style = typeMap[type] || typeMap.info;
 
         return `
-            <div id="${id}" class="p-4 rounded-2xl border text-sm flex items-start gap-3" style="${typeStyles[type]}">
-                <span class="text-lg">${displayIcon}</span>
-                <span class="flex-1">${message}</span>
-                ${dismissible ? '<button class="text-lg hover:opacity-70" style="background: none; border: none; cursor: pointer;">×</button>' : ''}
+            <div id="${id}" style="padding: var(--ds-space-4); border-radius: var(--ds-radius-xl); border: 1px solid ${style.border}; background: ${style.bg}; color: ${style.text}; font-size: var(--ds-text-sm); display: flex; align-items: flex-start; gap: var(--ds-space-3);">
+                <span style="font-size: var(--ds-text-lg); color: ${style.text}; line-height: 1;">${icon || style.icon}</span>
+                <span style="flex: 1;">${message}</span>
+                ${dismissible ? `<button onclick="this.parentElement.remove()" style="background: none; border: none; color: ${style.text}; cursor: pointer; font-size: var(--ds-text-xl); line-height: 1; padding: 0;">&times;</button>` : ''}
             </div>
         `;
     },
@@ -282,23 +239,11 @@ const UIComponents = {
             size = 'md'
         } = options;
 
-        const variantStyles = {
-            primary: 'background: rgba(94, 134, 186, 0.1); color: var(--primary-600);',
-            success: 'background: rgba(16, 185, 129, 0.1); color: #059669;',
-            warning: 'background: rgba(245, 158, 11, 0.1); color: #d97706;',
-            danger: 'background: rgba(239, 68, 68, 0.1); color: #dc2626;',
-            info: 'background: rgba(59, 130, 246, 0.1); color: #2563eb;',
-            purple: 'background: var(--accent-purple-light); color: var(--accent-purple);'
-        };
-
-        const sizeClasses = {
-            sm: 'px-2 py-0.5 text-xs',
-            md: 'px-3 py-1 text-sm',
-            lg: 'px-4 py-1.5 text-base'
-        };
+        const variantClass = `ds-badge ds-badge-${variant}`;
+        const sizeStyle = size === 'sm' ? 'padding: 2px 8px; font-size: var(--ds-text-3xs);' : '';
 
         return `
-            <span class="inline-flex items-center rounded-full font-semibold ${sizeClasses[size]}" style="${variantStyles[variant]}">
+            <span class="${variantClass}" style="${sizeStyle}">
                 ${text}
             </span>
         `;
@@ -317,22 +262,22 @@ const UIComponents = {
         } = options;
 
         return `
-            <div class="overflow-x-auto rounded-xl border border-gray-200 ${className}">
-                <table id="${id}" class="w-full border-collapse">
-                    <thead class="bg-gray-50">
+            <div class="${className}" style="overflow-x: auto; border-radius: var(--ds-radius-xl); border: 1px solid var(--ds-border-default);">
+                <table id="${id}" style="width: 100%; border-collapse: collapse; background: var(--ds-bg-surface);">
+                    <thead style="background: var(--ds-bg-surface-sunken);">
                         <tr>
                             ${headers.map(header => `
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                <th style="padding: var(--ds-space-4) var(--ds-space-6); text-align: left; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider); border-bottom: 1px solid var(--ds-border-default);">
                                     ${header}
                                 </th>
                             `).join('')}
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody>
                         ${rows.map(row => `
-                            <tr class="hover:bg-gray-50 transition-colors">
+                            <tr style="border-bottom: 1px solid var(--ds-border-default); transition: background var(--ds-duration-base) var(--ds-ease);" onmouseover="this.style.background='var(--ds-bg-surface-sunken)'" onmouseout="this.style.background='transparent'">
                                 ${row.map(cell => `
-                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                    <td style="padding: var(--ds-space-4) var(--ds-space-6); font-size: var(--ds-text-sm); color: var(--ds-text-primary);">
                                         ${cell}
                                     </td>
                                 `).join('')}
@@ -355,22 +300,27 @@ const UIComponents = {
             fullScreen = false
         } = options;
 
-        const sizeClasses = {
-            sm: 'w-6 h-6',
-            md: 'w-10 h-10',
-            lg: 'w-16 h-16'
+        const sizeMap = {
+            sm: '1.5rem',
+            md: '2.5rem',
+            lg: '4rem'
         };
 
+        const spinnerSize = sizeMap[size] || sizeMap.md;
+
         const spinner = `
-            <div class="inline-flex flex-col items-center justify-center gap-3">
-                <div class="${sizeClasses[size]} border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                ${text ? `<p class="text-sm text-gray-600 font-medium">${text}</p>` : ''}
+            <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--ds-space-4);">
+                <div style="width: ${spinnerSize}; height: ${spinnerSize}; border: 3px solid var(--ds-primary-100); border-top-color: var(--ds-primary-500); border-radius: 50%; animat ion: ds-spin 1s linear infinite;"></div>
+                ${text ? `<p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); margin: 0;">${text}</p>` : ''}
             </div>
+            <style>
+                @keyframes ds-spin { to { transform: rotate(360deg); } }
+            </style>
         `;
 
         if (fullScreen) {
             return `
-                <div class="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+                <div style="position: fixed; inset: 0; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999;">
                     ${spinner}
                 </div>
             `;
@@ -393,31 +343,29 @@ const UIComponents = {
             closeable = true
         } = options;
 
-        const sizeClasses = {
-            sm: 'max-w-md',
-            md: 'max-w-2xl',
-            lg: 'max-w-4xl',
-            xl: 'max-w-6xl'
+        const sizeMap = {
+            sm: '400px',
+            md: '600px',
+            lg: '800px',
+            xl: '1100px'
         };
 
+        const maxWidth = sizeMap[size] || sizeMap.md;
+
         return `
-            <div id="${id}" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div class="bg-white rounded-3xl shadow-2xl ${sizeClasses[size]} w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div id="${id}" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; padding: var(--ds-space-4);">
+                <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-3xl); shadow: var(--ds-shadow-xl); width: 100%; max-width: ${maxWidth}; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
                     ${title ? `
-                        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                            <h3 class="text-xl font-bold text-gray-900">${title}</h3>
-                            ${closeable ? `
-                                <button class="text-gray-400 hover:text-gray-600 text-2xl leading-none" onclick="document.getElementById('${id}').classList.add('hidden')">
-                                    ×
-                                </button>
-                            ` : ''}
+                        <div style="padding: var(--ds-space-5) var(--ds-space-8); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; justify-content: space-between;">
+                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${title}</h3>
+                            ${closeable ? `<button onclick="document.getElementById('${id}').style.display='none'" style="background: none; border: none; color: var(--ds-text-tertiary); cursor: pointer; font-size: var(--ds-text-2xl); line-height: 1;">&times;</button>` : ''}
                         </div>
                     ` : ''}
-                    <div class="px-6 py-4 overflow-y-auto flex-1">
+                    <div style="padding: var(--ds-space-8); overflow-y: auto; flex: 1;">
                         ${content}
                     </div>
                     ${footer ? `
-                        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                        <div style="padding: var(--ds-space-6) var(--ds-space-8); border-top: 1px solid var(--ds-border-default); background: var(--ds-bg-surface-sunken);">
                             ${footer}
                         </div>
                     ` : ''}
@@ -434,21 +382,20 @@ const UIComponents = {
         const {
             id = '',
             placeholder = 'Search...',
-            width = 'w-64',
+            width = '300px',
             className = ''
         } = options;
 
         return `
-            <div class="relative ${width} ${className}">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span class="text-gray-400">🔍</span>
+            <div style="position: relative; width: ${width};" class="${className}">
+                <div style="position: absolute; left: var(--ds-space-4); top: 50%; transform: translateY(-50%); color: var(--ds-text-tertiary); pointer-events: none;">
+                    <i class="fas fa-search"></i>
                 </div>
                 <input 
                     type="text" 
                     id="${id}" 
-                    class="w-full pl-10 pr-4 py-2 rounded-xl border-2 border-gray-200 
-                           focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 
-                           transition-all text-gray-900 bg-white text-sm placeholder-gray-400"
+                    class="ds-input"
+                    style="width: 100%; padding-left: var(--ds-space-12);"
                     placeholder="${placeholder}"
                 >
             </div>
@@ -467,12 +414,12 @@ const UIComponents = {
         } = options;
 
         return `
-            <div class="page-header flex justify-between items-center">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: var(--ds-space-8);">
                 <div>
-                    <h2 class="text-2xl font-bold text-white mb-1">${title}</h2>
-                    ${subtitle ? `<p class="text-sm text-blue-100">${subtitle}</p>` : ''}
+                    <h2 style="font-size: var(--ds-text-4xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2);">${title}</h2>
+                    ${subtitle ? `<p style="font-size: var(--ds-text-md); color: var(--ds-text-tertiary); margin: 0;">${subtitle}</p>` : ''}
                 </div>
-                ${actions ? `<div class="flex gap-3">${actions}</div>` : ''}
+                ${actions ? `<div style="display: flex; gap: var(--ds-space-3);">${actions}</div>` : ''}
             </div>
         `;
     },
@@ -483,17 +430,17 @@ const UIComponents = {
      */
     emptyState: (options = {}) => {
         const {
-            icon = '📭',
+            icon = '<i class="fas fa-inbox"></i>',
             title = 'No data available',
             message = 'There are no items to display.',
             action = ''
         } = options;
 
         return `
-            <div class="flex flex-col items-center justify-center py-12 px-6 text-center">
-                <div class="text-6xl mb-4">${icon}</div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">${title}</h3>
-                <p class="text-gray-600 mb-6 max-w-md">${message}</p>
+            <div style="display: flex; flex-direction: column; items-center; justify-content: center; padding: var(--ds-space-12) var(--ds-space-6); text-align: center;">
+                <div style="font-size: var(--ds-text-5xl); color: var(--ds-text-quaternary); margin-bottom: var(--ds-space-5);">${icon}</div>
+                <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2);">${title}</h3>
+                <p style="font-size: var(--ds-text-md); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-8); max-width: 400px; margin-left: auto; margin-right: auto;">${message}</p>
                 ${action ? `<div>${action}</div>` : ''}
             </div>
         `;

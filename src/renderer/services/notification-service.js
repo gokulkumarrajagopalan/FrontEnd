@@ -194,7 +194,22 @@ class NotificationService {
         document.head.appendChild(style);
     }
 
+    _areNotificationsEnabled() {
+        try {
+            const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return settings.notificationsEnabled !== false; // default true
+        } catch {
+            return true;
+        }
+    }
+
     show(type, message, title = '', duration = 5000, options = {}) {
+        // Respect the notifications toggle from settings (system notifications always allowed)
+        if (!this._areNotificationsEnabled() && !options.force) {
+            console.log(`🔕 Notification suppressed (disabled in settings): ${title || type} - ${message}`);
+            return null;
+        }
+
         const notification = this.createNotification(type, message, title, duration, options);
         this.notifications.push(notification);
         this.container.appendChild(notification.element);

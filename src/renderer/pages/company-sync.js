@@ -1,117 +1,62 @@
 (function () {
-    const getTemplate = () => `
-    <style>
-        .metric-card-spacing {
-            margin: 15px;
-        }
-        /* Sync button spinner */
-        .sync-spinner {
-            display: inline-block;
-            vertical-align: middle;
-            width: 16px;
-            height: 16px;
-            margin-right: 8px;
-            color: currentColor;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        /* Global loader styles */
-        #companySyncGlobalLoader .sync-spinner {
-            width: 20px;
-            height: 20px;
-        }
+    const getTemplate = () => {
+        const importBtn = window.UIComponents.button({
+            id: 'importMoreBtn',
+            text: 'Import Companies',
+            icon: '<i class="fas fa-download"></i>',
+            variant: 'primary',
+            onclick: "window.location.hash = '#import-company'"
+        });
 
-        /* Sync Progress Bar Styles */
-        .sync-progress-container {
-            width: 100%;
-            margin-top: 8px;
-            display: none; /* Hidden by default */
-        }
-        
-        .sync-progress-track {
-            width: 100%;
-            height: 6px;
-            background-color: #e5e7eb;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 4px;
-        }
-        
-        .sync-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #1346A8, #5AB3FF);
-            width: 0%;
-            transition: width 0.3s ease-out;
-            border-radius: 3px;
-        }
-        
-        .sync-progress-text {
-            font-size: 0.75rem;
-            color: #6b7280;
-            text-align: center;
-            font-weight: 500;
-        }
-    </style>
-    <div id="companySyncPageContainer" class="space-y-6" style="padding: 2.5rem; max-width: 1400px; margin: 0 auto; box-sizing: border-box;">
-               <!-- Combined Search & Table Section -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b border-blue-100">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">Company and Sync</h3>
-                <div class="flex items-center gap-3">
-                    <div style="width: 50%;">
-                        <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                            <input type="text" id="companySearch" placeholder="Search by name" style="padding-left: 3rem;" class="w-full pr-4 py-2.5 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900 bg-white text-sm">
-                        </div>
+        const searchInput = window.UIComponents.searchInput({
+            id: 'companySearch',
+            placeholder: 'Search by company name, code...',
+            width: '100%'
+        });
+
+        const syncFilter = window.UIComponents.select({
+            id: 'syncStatusFilter',
+            placeholder: 'All Sync Status',
+            options: [
+                { value: 'synced', label: 'Synced' },
+                { value: 'pending', label: 'Pending' },
+                { value: 'error', label: 'Error' }
+            ]
+        });
+
+        const statusFilter = window.UIComponents.select({
+            id: 'companyStatusFilter',
+            placeholder: 'All Status',
+            options: [
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' }
+            ]
+        });
+
+        return window.Layout.page({
+            title: 'Company Synchronization',
+            subtitle: 'Monitor and manage data synchronization for all connected Tally companies',
+            headerActions: importBtn,
+            content: `
+                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                    <div style="display: flex; gap: var(--ds-space-4); background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl);">
+                        <div style="flex: 1;">${searchInput}</div>
+                        <div style="width: 200px;">${syncFilter}</div>
+                        <div style="width: 200px;">${statusFilter}</div>
                     </div>
-                    <select id="syncStatusFilter" style="width: 20%;" class="px-4 py-2.5 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 font-semibold transition-all text-gray-900 bg-white text-sm whitespace-nowrap">
-                        <option value="">All Status</option>
-                        <option value="synced">✓ Synced</option>
-                        <option value="pending">⏳ Pending</option>
-                        <option value="error">⚠ Error</option>
-                    </select>
-                    <select id="companyStatusFilter" style="width: 25%;" class="px-4 py-2.5 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 font-semibold transition-all text-gray-900 bg-white text-sm whitespace-nowrap">
-                        <option value="">All Companies</option>
-                        <option value="active">● Active</option>
-                        <option value="inactive">○ Inactive</option>
-                    </select>
+                    
+                    <div id="companySyncTableContainer">
+                        ${window.UIComponents.spinner({ size: 'md', text: 'Loading companies...' })}
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Companies Table -->
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Company Name</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">State</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Sync Status</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Last Sync</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="companiesTableBody">
-                        <tr><td colspan="5" class="px-6 py-12 text-center">
-                            <div class="flex flex-col items-center gap-3">
-                                <span class="text-6xl">📦</span>
-                                <p class="text-gray-400 text-lg font-semibold">No companies imported yet</p>
-                                <p class="text-gray-500 text-sm">Click 'Import More' to add companies from Tally</p>
-                            </div>
-                        </td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    `;
+            `
+        });
+    };
 
     let companies = [];
     let isSyncing = false;
     let currentSyncingCompanyId = null;
+
 
     function getSyncSpinnerSVG() {
         return `
@@ -124,18 +69,22 @@
 
     function getSyncButtonHTML(progressText) {
         const spinner = getSyncSpinnerSVG();
-        return `${spinner}<span>${progressText ? progressText : 'Syncing...'}</span>`;
+        const text = progressText ? progressText : 'Syncing...';
+        return `
+            <div style="display: flex; align-items: center; justify-content: center; gap: var(--ds-space-2); width: 100%; overflow: hidden;">
+                ${spinner}
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--ds-text-xs); flex: 1; text-align: left;">${text}</span>
+            </div>
+        `;
     }
 
     function getDefaultSyncButtonHTML() {
-        return '🔄 Sync';
+        return '<div style="display: flex; align-items: center; justify-content: center; gap: var(--ds-space-2); width: 100%;"><i class="fas fa-sync-alt"></i> <span>Sync</span></div>';
     }
 
-    // Show or hide the top-level global loader. Text should not contain company names (only step/phase info).
-    function showGlobalLoader(show, text = 'Sync in progress') {
+    // Show or hide the top-level global loader.
+    function showGlobalLoader(show) {
         let loader = document.getElementById('companySyncGlobalLoader');
-        let textEl = document.getElementById('companySyncGlobalLoaderText');
-        let queueEl = document.getElementById('companySyncQueueCount');
 
         // If loader doesn't exist yet, try to create it inside the page container (fallback)
         if (!loader) {
@@ -153,15 +102,11 @@
                                 <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
                                 <path d="M22 12a10 10 0 0 1-10 10" stroke-linecap="round"></path>
                             </svg>
-                            <span id="companySyncGlobalLoaderText">Sync in progress</span>
-                            <span id="companySyncQueueCount" class="text-xs text-gray-500"></span>
                         </div>
                     `;
                     // Insert as first child — safe, avoids querySelector descendant mismatch
                     container.insertBefore(wrapper, container.firstChild);
                     loader = document.getElementById('companySyncGlobalLoader');
-                    textEl = document.getElementById('companySyncGlobalLoaderText');
-                    queueEl = document.getElementById('companySyncQueueCount');
                     console.debug('Global loader created');
                 } else {
                     console.warn('Could not find container to insert global loader into');
@@ -174,28 +119,12 @@
         if (!loader) return;
 
         if (show) {
-            console.debug('Showing global loader:', text);
             loader.style.display = 'block';
             loader.classList.remove('hidden');
-            if (textEl) textEl.textContent = text || 'Sync in progress';
-            // Show queue size if present
-            const queueSize = window.syncStateManager ? window.syncStateManager.getQueueSize() : 0;
-            if (queueEl) queueEl.textContent = queueSize > 0 ? ` · ${queueSize} queued` : '';
         } else {
-            console.debug('Hiding global loader');
             loader.style.display = 'none';
             loader.classList.add('hidden');
-            if (textEl) textEl.textContent = '';
-            if (queueEl) queueEl.textContent = '';
         }
-    }
-
-    // Update queue count indicator independently (useful when queue updated but no active sync)
-    function updateQueueIndicator() {
-        const queueEl = document.getElementById('companySyncQueueCount');
-        if (!queueEl) return;
-        const queueSize = window.syncStateManager ? window.syncStateManager.getQueueSize() : 0;
-        queueEl.textContent = queueSize > 0 ? ` · ${queueSize} queued` : '';
     }
 
     function findCompanyIdBySyncState(currentCompanyString) {
@@ -231,9 +160,11 @@
         const syncInProgress = window.syncStateManager?.isSyncInProgress() || isSyncing;
         let activeCompanyId = currentSyncingCompanyId;
         let progressText = null;
+        let entityProgress = null;
 
         if (window.syncStateManager && window.syncStateManager.isSyncInProgress()) {
             const st = window.syncStateManager.getCurrentStatus();
+            entityProgress = st.entityProgress;
             // st.currentCompany may contain "Company Name - Step"; extract step text after last ' - '
             const currentCompany = st.currentCompany;
             if (currentCompany) {
@@ -246,10 +177,16 @@
                 const dashIndex = asString.lastIndexOf(' - ');
                 progressText = dashIndex !== -1 ? asString.substring(dashIndex + 3) : null;
             }
+
+            // If entity-level progress is available, use it for precise company ID and progress text
+            if (entityProgress) {
+                if (entityProgress.companyId) activeCompanyId = entityProgress.companyId;
+                progressText = `[${entityProgress.entityIndex}/${entityProgress.entityCount}] ${entityProgress.entityName} (${entityProgress.percentage}%)`;
+            }
         }
 
         const loaderShouldShow = syncInProgress;
-        showGlobalLoader(loaderShouldShow, progressText ? progressText : 'Sync in progress');
+        showGlobalLoader(loaderShouldShow);
 
         document.querySelectorAll('.sync-company-btn').forEach(btn => {
             const companyId = btn.getAttribute('data-id');
@@ -334,6 +271,23 @@
     }
 
     async function syncCompanyGroups(company, button) {
+        // Immediate UI feedback to prevent multiple clicks
+        const originalButtonContent = button.innerHTML;
+        if (button) {
+            button.innerHTML = getSyncButtonHTML('Validating...');
+            button.disabled = true;
+            button.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        // Helper to reset button state
+        const resetButton = () => {
+            if (button) {
+                button.innerHTML = originalButtonContent;
+                button.disabled = false;
+                button.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+
         // Validate license before sync
         if (window.LicenseValidator) {
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -344,6 +298,7 @@
             const isValid = await window.LicenseValidator.validateAndNotify(userLicense, tallyPort);
             if (!isValid) {
                 console.error('❌ License validation failed - sync aborted');
+                resetButton();
                 return;
             }
         }
@@ -352,24 +307,26 @@
         if (window.syncStateManager && window.syncStateManager.isSyncInProgress()) {
             window.notificationService.warning('🔄 Another company sync is in progress. Please wait...');
             console.warn('Sync already in progress, queueing request');
+            resetButton();
             return;
         }
 
         // Prevent local isSyncing flag conflicts
         if (isSyncing) {
             window.notificationService.warning('🔄 Sync is already in progress. Please wait...');
+            resetButton();
             return;
         }
 
         // Try to start sync through SyncStateManager
         if (window.syncStateManager && !window.syncStateManager.startSync('company-specific', 1)) {
             window.notificationService.warning('🔄 Sync is already in progress. Request has been queued.');
+            resetButton();
             return;
         }
 
         isSyncing = true;
         currentSyncingCompanyId = company.id;
-        
         // Update all button states
         updateSyncButtonStates();
 
@@ -413,7 +370,8 @@
                 { name: 'Voucher Types', api: window.electronAPI.syncVoucherTypes },
                 { name: 'Currencies', api: window.electronAPI.syncCurrencies },
                 { name: 'Tax Units', api: window.electronAPI.syncTaxUnits },
-                { name: 'Vouchers', api: window.electronAPI.syncVouchers }
+                { name: 'Vouchers', api: window.electronAPI.syncVouchers },
+                { name: 'Bills Outstanding', api: window.electronAPI.syncBillsOutstanding }
             ];
 
             let successCount = 0;
@@ -423,18 +381,22 @@
                 const step = syncSteps[i];
                 const percentage = Math.round(((i + 1) / syncSteps.length) * 100);
 
-                // Update progress in SyncStateManager (loader updated separately below)
+                // Update progress in SyncStateManager with entity-level detail
                 if (window.syncStateManager) {
-                    window.syncStateManager.updateProgress(i, `${company.name} - ${step.name}`);
+                    window.syncStateManager.updateProgress(i, `${company.name} - ${step.name}`, {
+                        companyId: company.id,
+                        companyName: company.name,
+                        entityIndex: i + 1,
+                        entityCount: syncSteps.length,
+                        entityName: step.name,
+                        percentage: percentage
+                    });
                 }
-                
+
                 // Update local progress bar
                 updateCompanySyncProgress(company.id, percentage, step.name);
-                
-                console.log(`   🔄 Syncing ${step.name}...`);
 
-                // Update global loader progress (no company name shown)
-                showGlobalLoader(true, `[${i + 1}/${syncSteps.length}] ${step.name}...`);
+                console.log(`   🔄 Syncing ${step.name}...`);
 
                 if (!step.api) {
                     console.warn(`   ⚠️ API for ${step.name} not available`);
@@ -454,17 +416,17 @@
                 if (step.name === 'Vouchers') {
                     syncParams.companyGuid = company.companyGuid || company.guid || '';
                     // Convert ISO date (2021-04-01) to Tally format (01-Apr-2021)
-                    const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                     const _isoToTally = (iso) => {
                         if (!iso || iso.length < 10) return null;
                         const [y, m, d] = iso.split('-');
-                        return `${d}-${_months[parseInt(m,10)-1]}-${y}`;
+                        return `${d}-${_months[parseInt(m, 10) - 1]}-${y}`;
                     };
                     const fromISO = company.booksStart || company.financialYearStart || '';
                     syncParams.fromDate = _isoToTally(fromISO) || '01-Apr-2024';
                     // Compute toDate: current date in Tally format
                     const _now = new Date();
-                    syncParams.toDate = `${String(_now.getDate()).padStart(2,'0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`;
+                    syncParams.toDate = `${String(_now.getDate()).padStart(2, '0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`;
                     syncParams.lastAlterID = 0;
                     console.log(`   📅 Voucher date range: ${syncParams.fromDate} to ${syncParams.toDate}`);
                     console.log(`   🔑 Company GUID: ${syncParams.companyGuid}`);
@@ -516,8 +478,8 @@
                     window.syncStateManager.endSync(true, `Partial sync: ${successCount}/${syncSteps.length} completed`);
                 }
                 button.innerHTML = getDefaultSyncButtonHTML();
-                 // Hide progress bar after a short delay
-                 setTimeout(() => {
+                // Hide progress bar after a short delay
+                setTimeout(() => {
                     const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
                     if (progressContainer) progressContainer.style.display = 'none';
                 }, 2000);
@@ -529,8 +491,8 @@
                     window.syncStateManager.endSync(false, `Failed to sync ${company.name}`);
                 }
                 button.innerHTML = getDefaultSyncButtonHTML();
-                 // Hide progress bar after a short delay
-                 setTimeout(() => {
+                // Hide progress bar after a short delay
+                setTimeout(() => {
                     const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
                     if (progressContainer) progressContainer.style.display = 'none';
                 }, 2000);
@@ -547,12 +509,11 @@
             }
             button.innerHTML = getDefaultSyncButtonHTML();
             // Hide progress bar in case of error
-             const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
-             if (progressContainer) progressContainer.style.display = 'none';
+            const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
+            if (progressContainer) progressContainer.style.display = 'none';
         } finally {
             isSyncing = false;
             currentSyncingCompanyId = null;
-            
             // Update all button states
             updateSyncButtonStates();
         }
@@ -561,12 +522,10 @@
     function updateCompanySyncProgress(companyId, percentage, stepName) {
         const container = document.getElementById(`sync-progress-container-${companyId}`);
         const fill = document.getElementById(`sync-progress-fill-${companyId}`);
-        const text = document.getElementById(`sync-progress-text-${companyId}`);
 
-        if (container && fill && text) {
+        if (container && fill) {
             container.style.display = 'block';
             fill.style.width = `${percentage}%`;
-            text.textContent = `${percentage}% - ${stepName}`;
         }
     }
 
@@ -577,21 +536,20 @@
 
             const payload = JSON.stringify({
                 syncStatus: syncStatus,
-                status: status,
-                lastSyncDate: new Date().toISOString()
+                lastSyncDate: new Date().toISOString().replace('Z', '')
             });
 
-            // Try PUT first
-            const response = await fetch(window.apiConfig.getUrl(`/companies/${companyId}/status`), {
+            // Try PUT to the correct sync-status endpoint
+            const response = await fetch(window.apiConfig.getUrl(`/companies/${companyId}/sync-status`), {
                 method: 'PUT',
                 headers: headers,
                 body: payload
             });
 
             if (!response.ok) {
-                // Fallback to PATCH on the company resource itself
+                // Fallback to PUT on the company resource itself
                 const patchResponse = await fetch(window.apiConfig.getUrl(`/companies/${companyId}`), {
-                    method: 'PATCH',
+                    method: 'PUT',
                     headers: headers,
                     body: payload
                 });
@@ -606,7 +564,9 @@
     }
 
     function renderTable() {
-        const tableBody = document.getElementById('companiesTableBody');
+        const container = document.getElementById('companySyncTableContainer');
+        if (!container) return;
+
         const searchTerm = document.getElementById('companySearch')?.value.toLowerCase() || '';
         const syncFilter = document.getElementById('syncStatusFilter')?.value || '';
         const statusFilter = document.getElementById('companyStatusFilter')?.value || '';
@@ -614,68 +574,70 @@
         let filtered = companies.filter(company => {
             const matchesSearch = !searchTerm ||
                 (company.name && company.name.toLowerCase().includes(searchTerm)) ||
-                (company.code && company.code.toLowerCase().includes(searchTerm)) ||
-                (company.guid && company.guid.toLowerCase().includes(searchTerm)) ||
-                (company.companyGuid && company.companyGuid.toLowerCase().includes(searchTerm));
+                (company.code && company.code.toLowerCase().includes(searchTerm));
             const matchesSync = !syncFilter || company.syncStatus === syncFilter;
             const matchesStatus = !statusFilter || company.status === statusFilter;
             return matchesSearch && matchesSync && matchesStatus;
         });
 
         if (filtered.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">No companies found</td></tr>';
+            container.innerHTML = window.UIComponents.emptyState({
+                title: 'No companies found',
+                message: 'Connect to Tally Prime to import your companies.'
+            });
             return;
         }
 
-        tableBody.innerHTML = filtered.map(company => {
-            // Determine sync status - check if company has been synced
-            const syncStatus = company.syncStatus || 'pending';
-            const isSynced = syncStatus === 'synced';
-            const isPending = syncStatus === 'pending';
-            const isFailed = syncStatus === 'error' || syncStatus === 'failed';
+        container.innerHTML = window.UIComponents.table({
+            headers: ['Company Name', 'State', 'Sync Status', 'Last Sync', 'Actions'],
+            rows: filtered.map(company => {
+                const syncStatus = company.syncStatus || 'pending';
+                const isSynced = syncStatus === 'synced';
+                const isFailed = syncStatus === 'error' || syncStatus === 'failed';
 
-            // Determine active status - default to active if not specified
-            const status = company.status || 'active';
-            const isActive = status === 'active';
+                let badgeVariant = 'neutral';
+                if (isSynced) badgeVariant = 'success';
+                else if (isFailed) badgeVariant = 'danger';
+                else badgeVariant = 'warning';
 
-            return `
-            <tr class="border-b border-gray-100 hover:bg-blue-50 transition-all">
-                <td class="px-6 py-5">
-                    <div class="flex items-center gap-3">
-                        <div>
-                            <p class="font-bold text-gray-900 text-base">${company.name}</p>
-                        </div>
-                    </div>
-                </td>
-                <td class="px-6 py-5">
-                    <span class="text-sm text-gray-900 font-semibold">${company.state || '--'}</span>
-                </td>
-                <td class="px-6 py-5">
-                    <span class="text-sm font-semibold ${isSynced ? 'text-emerald-700' :
-                    isPending ? 'text-amber-700' :
-                        'text-rose-700'
-                }">
-                        ${isSynced ? '✓ Synced' : isPending ? '⏳ Pending' : '⚠ Failed'}
-                    </span>
-                </td>
-                <td class="px-6 py-5">
-                    <span class="text-sm text-gray-900 font-medium">${company.lastSyncDate ? new Date(company.lastSyncDate).toLocaleString() : '--'}</span>
-                </td>
-                <td class="px-6 py-5">
-                    <div class="flex flex-col items-center">
-                        <button class="sync-company-btn px-4 py-2 text-white rounded-xl shadow-md hover:shadow-lg transition-all font-semibold text-sm" style="background: linear-gradient(135deg, #1346A8 0%, #5AB3FF 100%);" data-id="${company.id}">🔄 Sync</button>
-                        <!-- Progress Bar Container -->
-                        <div id="sync-progress-container-${company.id}" class="sync-progress-container">
-                            <div class="sync-progress-track">
-                                <div id="sync-progress-fill-${company.id}" class="sync-progress-fill"></div>
-                            </div>
-                            <div id="sync-progress-text-${company.id}" class="sync-progress-text">0%</div>
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        `;
-        }).join('');
+                return [
+                    `<div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">${company.name}</div>`,
+                    `<span style="color: var(--ds-text-secondary); font-weight: var(--ds-weight-medium);">${company.state || '--'}</span>`,
+                    window.UIComponents.badge({ text: syncStatus.toUpperCase(), variant: badgeVariant, size: 'sm' }),
+                    `<span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-xs);">${company.lastSyncDate ? new Date(company.lastSyncDate).toLocaleString() : '--'}</span>`,
+                    `<div style="display: flex; gap: var(--ds-space-2); align-items: center;">
+                        ${window.UIComponents.button({
+                        text: 'Sync',
+                        icon: '<i class="fas fa-sync-alt"></i>',
+                        variant: 'primary',
+                        size: 'sm',
+                        className: 'sync-company-btn',
+                        id: `btn-sync-${company.id}`,
+                        style: 'width: 130px; min-width: 130px; max-width: 130px; justify-content: center;'
+                    })}
+                        ${window.UIComponents.button({
+                        text: '',
+                        icon: '<i class="fas fa-info-circle"></i>',
+                        variant: 'secondary',
+                        size: 'sm',
+                        className: 'view-details-btn',
+                        id: `btn-info-${company.id}`
+                    })}
+                    </div>`
+                ];
+            })
+        });
+
+        // Re-attach data-id for sync buttons (since UIComponents.button doesn't support custom data attributes natively yet)
+        filtered.forEach(company => {
+            const btn = document.getElementById(`btn-sync-${company.id}`);
+            if (btn) btn.setAttribute('data-id', company.id);
+
+            const infoBtn = document.getElementById(`btn-info-${company.id}`);
+            if (infoBtn) {
+                infoBtn.onclick = () => showSyncDetails(company);
+            }
+        });
 
         document.querySelectorAll('.sync-company-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -688,7 +650,6 @@
             });
         });
 
-        // Ensure buttons reflect current global sync state (in case a sync was started elsewhere)
         updateSyncButtonStates();
     }
 
@@ -910,7 +871,7 @@
         // Get sync metrics from localStorage or use defaults
         const syncMetrics = JSON.parse(localStorage.getItem('syncMetrics') || '{"avgDuration":"02m 14s","queueSize":0}');
         avgDurationEl.textContent = syncMetrics.avgDuration || '02m 14s';
-        
+
         // Update queue size with pending companies count
         const pendingCount = companies.filter(c => c.syncStatus === 'pending').length;
         queueSizeEl.textContent = pendingCount > 0 ? `${pendingCount} Pending` : 'Ready';
@@ -929,13 +890,13 @@
 
     window.initializeCompanySync = async function () {
         console.log('Initializing My Company Page...');
-        
+
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getTemplate();
             setupEventListeners();
             await loadCompanies();
-            
+
             // Update sync health metrics
             updateCompanySyncHealthMetrics();
             // Update every 10 seconds
@@ -949,7 +910,7 @@
                 window._companySyncListenerAttached = true;
                 window.syncStateManager.addListener(({ event, data }) => {
                     if (event === 'sync-started') {
-                        showGlobalLoader(true, 'Sync in progress');
+                        showGlobalLoader(true);
                         updateSyncButtonStates();
                     }
 
@@ -961,14 +922,18 @@
                             const idx = s.lastIndexOf(' - ');
                             progressText = idx !== -1 ? s.substring(idx + 3) : s;
                         }
-                        showGlobalLoader(true, progressText || 'Processing...');
+                        // Show entity-level progress bar on company row
+                        if (data && data.entityProgress) {
+                            const ep = data.entityProgress;
+                            progressText = `[${ep.entityIndex}/${ep.entityCount}] ${ep.entityName} (${ep.percentage}%)`;
+                            updateCompanySyncProgress(ep.companyId, ep.percentage, ep.entityName);
+                        }
+                        showGlobalLoader(true);
                         updateSyncButtonStates();
                         updateCompanySyncHealthMetrics();
                     }
 
                     if (event === 'queue-updated') {
-                        // Update queue badge
-                        updateQueueIndicator();
                         // If no active sync, display queue indicator so users see pending items
                         if (!window.syncStateManager.isSyncInProgress()) {
                             showGlobalLoader(false);
@@ -980,6 +945,10 @@
                         showGlobalLoader(false);
                         updateSyncButtonStates();
                         updateCompanySyncHealthMetrics();
+                        // Hide all progress bars after sync ends
+                        document.querySelectorAll('.sync-progress-container').forEach(el => {
+                            setTimeout(() => { el.style.display = 'none'; }, 2000);
+                        });
                     }
                 });
 
@@ -1000,8 +969,6 @@
 
             // Keep buttons synced with global state
             updateSyncButtonStates();
-            // Ensure queue indicator is shown on load
-            updateQueueIndicator();
 
             console.log('✅ Company Sync Page initialized');
         }

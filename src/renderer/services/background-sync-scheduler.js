@@ -133,8 +133,69 @@ class BackgroundSyncScheduler {
                                 success: true
                             });
                         }
-                        console.log(`✅ ${company.name}: Synced ${result.totalCount || 0} records`);
-                        
+                        console.log(`✅ ${company.name}: Synced ${result.totalCount || 0} master records`);
+                    } else {
+                        console.warn(`⚠️ ${company.name}: Master sync issue - ${result.message}`);
+                    }
+
+                    // ---- Voucher Sync ----
+                    try {
+                        if (window.electronAPI?.syncVouchers) {
+                            console.log(`  📦 ${company.name}: Syncing Vouchers...`);
+                            const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                            const _isoToTally = (iso) => {
+                                if (!iso || iso.length < 10) return null;
+                                const [y, m, d] = iso.split('-');
+                                return `${d}-${_months[parseInt(m,10)-1]}-${y}`;
+                            };
+                            const fromISO = company.booksStart || company.financialYearStart || '';
+                            const _now = new Date();
+                            const vResult = await window.electronAPI.syncVouchers({
+                                companyId: company.id,
+                                userId: currentUser.userId,
+                                authToken, deviceToken,
+                                tallyPort: appSettings.tallyPort || 9000,
+                                backendUrl: window.apiConfig.baseURL,
+                                companyName: company.name,
+                                companyGuid: company.companyGuid || company.guid || '',
+                                fromDate: _isoToTally(fromISO) || '01-Apr-2024',
+                                toDate: `${String(_now.getDate()).padStart(2,'0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`,
+                                lastAlterID: 0
+                            });
+                            if (vResult.success) {
+                                console.log(`  ✅ ${company.name}: Vouchers synced`);
+                            } else {
+                                console.warn(`  ⚠️ ${company.name}: Voucher sync failed - ${vResult.message}`);
+                            }
+                        }
+                    } catch (vErr) {
+                        console.error(`  ❌ ${company.name}: Voucher sync error:`, vErr.message);
+                    }
+
+                    // ---- Bills Outstanding Sync ----
+                    try {
+                        if (window.electronAPI?.syncBillsOutstanding) {
+                            console.log(`  📦 ${company.name}: Syncing Bills Outstanding...`);
+                            const bResult = await window.electronAPI.syncBillsOutstanding({
+                                companyId: company.id,
+                                userId: currentUser.userId,
+                                authToken, deviceToken,
+                                tallyPort: appSettings.tallyPort || 9000,
+                                backendUrl: window.apiConfig.baseURL,
+                                companyName: company.name
+                            });
+                            if (bResult.success) {
+                                console.log(`  ✅ ${company.name}: Bills Outstanding synced`);
+                            } else {
+                                console.warn(`  ⚠️ ${company.name}: Bills sync failed - ${bResult.message}`);
+                            }
+                        }
+                    } catch (bErr) {
+                        console.error(`  ❌ ${company.name}: Bills sync error:`, bErr.message);
+                    }
+
+                    // Final status reporting
+                    if (result.success) {
                         // Show sync completed notification
                         if (window.notificationService) {
                             window.notificationService.show({

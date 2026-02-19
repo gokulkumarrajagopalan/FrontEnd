@@ -49,6 +49,15 @@ class IncrementalSync:
         fetch_fields = self.MASTERS.get(master_type, 'GUID, MASTERID, ALTERID, Name')
         company_tag = f"<SVCURRENTCOMPANY>{self.company_name}</SVCURRENTCOMPANY>" if self.company_name else ""
         
+        # Use current Indian financial year dates for accurate OpeningBalance
+        now = datetime.now()
+        if now.month >= 4:
+            fy_start = f"01-Apr-{now.year}"
+            fy_end = f"31-Mar-{now.year + 1}"
+        else:
+            fy_start = f"01-Apr-{now.year - 1}"
+            fy_end = f"31-Mar-{now.year}"
+
         return f"""<ENVELOPE>
     <HEADER>
         <VERSION>1</VERSION>
@@ -59,8 +68,8 @@ class IncrementalSync:
     <BODY>
         <DESC>
             <STATICVARIABLES>
-                <SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE>
-                <SVTODATE TYPE="Date">01-Jan-1970</SVTODATE>
+                <SVFROMDATE TYPE="Date">{fy_start}</SVFROMDATE>
+                <SVTODATE TYPE="Date">{fy_end}</SVTODATE>
                 <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
                 {company_tag}
             </STATICVARIABLES>

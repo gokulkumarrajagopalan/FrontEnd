@@ -30,683 +30,379 @@
     };
 
     function loadSettings() {
-        const settings = { ...DEFAULT_SETTINGS };
-        Object.keys(SETTINGS_KEYS).forEach(key => {
-            const settingKey = SETTINGS_KEYS[key];
-            const stored = localStorage.getItem(settingKey);
-            if (stored !== null) {
-                try {
-                    settings[settingKey] = JSON.parse(stored);
-                } catch {
-                    settings[settingKey] = stored;
-                }
-            }
-        });
+        // Read from appSettings JSON blob (single source of truth)
+        const appSettingsRaw = localStorage.getItem('appSettings');
+        const appSettings = appSettingsRaw ? JSON.parse(appSettingsRaw) : {};
+
+        // Theme is stored separately in 'app-theme'
+        const theme = localStorage.getItem('app-theme') || 'light';
+
+        const settings = {
+            [SETTINGS_KEYS.TALLY_PORT]: appSettings.tallyPort ?? DEFAULT_SETTINGS[SETTINGS_KEYS.TALLY_PORT],
+            [SETTINGS_KEYS.BACKEND_URL]: appSettings.backendUrl ?? DEFAULT_SETTINGS[SETTINGS_KEYS.BACKEND_URL],
+            [SETTINGS_KEYS.SYNC_INTERVAL]: appSettings.syncInterval ?? DEFAULT_SETTINGS[SETTINGS_KEYS.SYNC_INTERVAL],
+            [SETTINGS_KEYS.AUTO_SYNC_ON_STARTUP]: appSettings.autoSyncOnStartup ?? DEFAULT_SETTINGS[SETTINGS_KEYS.AUTO_SYNC_ON_STARTUP],
+            [SETTINGS_KEYS.THEME]: theme,
+            [SETTINGS_KEYS.NOTIFICATIONS_ENABLED]: appSettings.notificationsEnabled ?? DEFAULT_SETTINGS[SETTINGS_KEYS.NOTIFICATIONS_ENABLED],
+            [SETTINGS_KEYS.SOUND_ENABLED]: appSettings.soundEnabled ?? DEFAULT_SETTINGS[SETTINGS_KEYS.SOUND_ENABLED],
+            [SETTINGS_KEYS.DEBUG_MODE]: appSettings.debugMode ?? DEFAULT_SETTINGS[SETTINGS_KEYS.DEBUG_MODE],
+            [SETTINGS_KEYS.LOG_RETENTION_DAYS]: appSettings.logRetentionDays ?? DEFAULT_SETTINGS[SETTINGS_KEYS.LOG_RETENTION_DAYS],
+            [SETTINGS_KEYS.BATCH_SIZE]: appSettings.batchSize ?? DEFAULT_SETTINGS[SETTINGS_KEYS.BATCH_SIZE]
+        };
         return settings;
     }
 
     function saveSetting(key, value) {
-        localStorage.setItem(key, JSON.stringify(value));
+        // Save into the appSettings JSON blob (single source of truth)
+        const current = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        current[key] = value;
+        localStorage.setItem('appSettings', JSON.stringify(current));
     }
 
-    function createToggleSwitch(id, checked = false) {
-        return `
-            <label class="toggle-switch">
-                <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
-                <span class="toggle-slider"></span>
-            </label>
-        `;
-    }
 
-    function createSettingsRow(title, description, control) {
-        return `
-            <div class="settings-row">
-                <div class="settings-label">
-                    <div class="settings-label-title">${title}</div>
-                    <div class="settings-label-desc">${description}</div>
-                </div>
-                <div class="settings-control">
-                    ${control}
-                </div>
-            </div>
-        `;
-    }
+
 
     const getSettingsTemplate = () => {
         const settings = loadSettings();
 
-        return `
-            <style>
-                .settings-container {
-                    max-width: 900px;
-                    margin: 0 auto;
-                    padding: var(--ds-space-8);
-                }
+        const tabs = [
+            { id: 'general', label: 'General', icon: 'fas fa-wrench' },
+            { id: 'sync', label: 'Sync', icon: 'fas fa-sync-alt' },
+            { id: 'notifications', label: 'Notifications', icon: 'fas fa-bell' },
+            // { id: 'advanced', label: 'Advanced', icon: 'fas fa-tools' },   // Disabled — uncomment to restore
+            // { id: 'help', label: 'Help', icon: 'fas fa-question-circle' }, // Disabled — uncomment to restore
+            { id: 'about', label: 'About', icon: 'fas fa-info-circle' }
+        ];
 
-                .settings-header {
-                    margin-bottom: var(--ds-space-8);
-                }
+        return window.Layout.page({
+            title: 'Settings',
+            subtitle: 'Manage your application preferences and configurations',
+            icon: 'fas fa-cog',
+            content: `
+                <div class="settings-container" style="max-width: 900px; margin: 0 auto;">
+                    <!-- Modernized Tab Navigation -->
+                    <div class="ds-tabs-wrapper" style="margin-bottom: var(--ds-space-8);">
+                        <div class="tabs" style="display: flex; gap: var(--ds-space-1); background: var(--ds-bg-surface-sunken); padding: var(--ds-space-1-5); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default);">
+                            ${tabs.map(tab => `
+                                <button class="tab ${tab.id === 'general' ? 'active' : ''}" 
+                                        data-tab="${tab.id}" 
+                                        style="flex: 1; display: flex; align-items: center; justify-content: center; gap: var(--ds-space-2); padding: var(--ds-space-3) var(--ds-space-4); border: none; border-radius: var(--ds-radius-xl); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); cursor: pointer; transition: all var(--ds-duration-base); background: transparent; color: var(--ds-text-secondary);">
+                                    <i class="${tab.icon}" style="font-size: 14px;"></i>
+                                    <span>${tab.label}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
 
-                .settings-title {
-                    font-size: var(--ds-text-3xl);
-                    font-weight: var(--ds-weight-bold);
-                    color: var(--ds-text-primary);
-                    margin-bottom: var(--ds-space-2);
-                }
+                    <!-- Tab Contents -->
+                    <div class="tab-contents">
+                        <!-- General Tab -->
+                        <div class="tab-content active" data-content="general">
+                            ${window.UIComponents.card({
+                title: 'Appearance',
+                content: `
+                                    <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                                        <div>
+                                            <label class="ds-label" style="display: block; margin-bottom: var(--ds-space-2); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary);">Theme</label>
+                                            <div style="position: relative;">
+                                                <select id="themeSelect" class="ds-select" style="width: 100%; padding: var(--ds-space-3) var(--ds-space-4); border-radius: var(--ds-radius-xl); border: 2px solid var(--ds-border-default); background: var(--ds-bg-surface); font-size: var(--ds-text-md); color: var(--ds-text-primary); appearance: none; cursor: pointer;">
+                                                    <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>Light</option>
+                                                    <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
+                                                    <option value="auto" ${settings.theme === 'auto' ? 'selected' : ''}>System Auto</option>
+                                                </select>
+                                                <i class="fas fa-chevron-down" style="position: absolute; right: var(--ds-space-4); top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--ds-text-tertiary); font-size: 12px;"></i>
+                                            </div>
+                                            <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-2);">Changes will apply immediately after selection.</p>
+                                        </div>
+                                    </div>
+                                `
+            })}
+                        </div>
 
-                .settings-subtitle {
-                    font-size: var(--ds-text-md);
-                    color: var(--ds-text-secondary);
-                }
+                        <!-- Sync Tab -->
+                        <div class="tab-content" data-content="sync">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-6);">
+                                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                                    ${window.UIComponents.card({
+                title: 'Tally Connection',
+                content: `
+                                            <div style="display: flex; flex-direction: column; gap: var(--ds-space-4);">
+                                                ${window.UIComponents.input({
+                    id: 'tallyPort',
+                    type: 'number',
+                    label: 'Tally Port Number',
+                    value: settings.tallyPort,
+                    icon: '<i class="fas fa-plug"></i>'
+                })}
+                                                <div style="display: flex; align-items: center; gap: var(--ds-space-2); padding: var(--ds-space-3); background: var(--ds-warning-50); border: 1px solid var(--ds-warning-200); border-radius: var(--ds-radius-lg); color: var(--ds-warning-700); font-size: var(--ds-text-xs);">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                    <span>Default port is 9000. Ensure Tally Prime is running on this port.</span>
+                                                </div>
+                                            </div>
+                                        `
+            })}
+                                    
+                                    ${window.UIComponents.card({
+                title: 'Status',
+                content: `
+                                            <div style="display: flex; align-items: center; gap: var(--ds-space-3);">
+                                                <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--ds-success-500); box-shadow: 0 0 10px var(--ds-success-500);"></div>
+                                                <span style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">Ready to sync</span>
+                                            </div>
+                                        `
+            })}
+                                </div>
 
-                .tabs {
-                    display: flex;
-                    gap: 8px;
-                    border-bottom: 2px solid var(--ds-border-default);
-                    margin-bottom: var(--ds-space-6);
-                    overflow-x: auto;
-                }
+                                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                                    ${window.UIComponents.card({
+                title: 'Auto Sync Settings',
+                content: `
+                                            <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                                                <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: var(--ds-space-4); border-bottom: 1px solid var(--ds-border-default);">
+                                                    <div>
+                                                        <div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">Sync on Startup</div>
+                                                        <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">Check for updates when app opens</div>
+                                                    </div>
+                                                    <label class="toggle-switch">
+                                                        <input type="checkbox" id="autoSyncOnStartup" ${settings.autoSyncOnStartup ? 'checked' : ''}>
+                                                        <span class="toggle-slider"></span>
+                                                    </label>
+                                                </div>
 
-                .tab {
-                    padding: 12px 20px;
-                    font-size: var(--ds-text-md);
-                    font-weight: var(--ds-weight-medium);
-                    color: var(--ds-text-secondary);
-                    background: transparent;
-                    border: none;
-                    border-bottom: 2px solid transparent;
-                    margin-bottom: -2px;
-                    cursor: pointer;
-                    transition: all var(--ds-duration-base) var(--ds-ease);
-                    white-space: nowrap;
-                }
+                                                ${window.UIComponents.input({
+                    id: 'syncInterval',
+                    type: 'number',
+                    label: 'Sync Interval (minutes)',
+                    value: settings.syncInterval,
+                    icon: '<i class="fas fa-clock"></i>'
+                })}
 
-                .tab:hover {
-                    color: var(--ds-text-primary);
-                    background-color: var(--ds-bg-hover);
-                }
+                                                <div>
+                                                    <label class="ds-label" style="display: block; margin-bottom: var(--ds-space-2); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary);">Batch Size</label>
+                                                    <div style="position: relative;">
+                                                        <select id="batchSize" class="ds-select" style="width: 100%; padding: var(--ds-space-3) var(--ds-space-4); border-radius: var(--ds-radius-xl); border: 2px solid var(--ds-border-default); background: var(--ds-bg-surface); font-size: var(--ds-text-md); color: var(--ds-text-primary); appearance: none;">
+                                                            <option value="500" ${settings.batchSize === 500 ? 'selected' : ''}>500 (Recommended)</option>
+                                                            <option value="1000" ${settings.batchSize === 1000 ? 'selected' : ''}>1000</option>
+                                                            <option value="2000" ${settings.batchSize === 2000 ? 'selected' : ''}>2000</option>
+                                                        </select>
+                                                        <i class="fas fa-chevron-down" style="position: absolute; right: var(--ds-space-4); top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--ds-text-tertiary); font-size: 12px;"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `
+            })}
+                                </div>
+                            </div>
+                        </div>
 
-                .tab.active {
-                    color: var(--ds-primary-600);
-                    border-bottom-color: var(--ds-primary-600);
-                }
+                        <!-- Notifications Tab -->
+                        <div class="tab-content" data-content="notifications">
+                            ${window.UIComponents.card({
+                title: 'Notification Preferences',
+                content: `
+                                    <div style="display: flex; flex-direction: column; gap: var(--ds-space-4);">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-xl);">
+                                            <div>
+                                                <div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">Enable Notifications</div>
+                                                <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">Show desktop alerts for sync status</div>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="notificationsEnabled" ${settings.notificationsEnabled ? 'checked' : ''}>
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
 
-                .tab-content {
-                    display: none;
-                }
+                                        <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-xl);">
+                                            <div>
+                                                <div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">Sound Effects</div>
+                                                <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">Play sound when tasks complete</div>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="soundEnabled" ${settings.soundEnabled ? 'checked' : ''}>
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                `
+            })}
+                        </div>
 
-                .tab-content.active {
-                    display: block;
-                    animation: fadeIn 200ms ease-out;
-                }
+                        <!-- Advanced Tab -->
+                        <div class="tab-content" data-content="advanced">
+                            <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                                ${window.UIComponents.card({
+                title: 'Developer Options',
+                content: `
+                                        <div style="display: flex; flex-direction: column; gap: var(--ds-space-4);">
+                                            <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-xl);">
+                                                <div>
+                                                    <div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">Debug Mode</div>
+                                                    <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">Enable detailed logging for support</div>
+                                                </div>
+                                                <label class="toggle-switch">
+                                                    <input type="checkbox" id="debugMode" ${settings.debugMode ? 'checked' : ''}>
+                                                    <span class="toggle-slider"></span>
+                                                </label>
+                                            </div>
 
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
+                                            <div>
+                                                <label class="ds-label" style="display: block; margin-bottom: var(--ds-space-2); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary);">Log Retention</label>
+                                                <select id="logRetentionDays" class="ds-select" style="width: 100%; padding: var(--ds-space-3) var(--ds-space-4); border-radius: var(--ds-radius-xl); border: 2px solid var(--ds-border-default); background: var(--ds-bg-surface); font-size: var(--ds-text-md); color: var(--ds-text-primary); appearance: none;">
+                                                    <option value="7" ${settings.logRetentionDays === 7 ? 'selected' : ''}>7 days</option>
+                                                    <option value="14" ${settings.logRetentionDays === 14 ? 'selected' : ''}>14 days</option>
+                                                    <option value="30" ${settings.logRetentionDays === 30 ? 'selected' : ''}>30 days</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    `
+            })}
 
-                .settings-card {
-                    background: var(--ds-bg-surface);
-                    border: 1px solid var(--ds-border-default);
-                    border-radius: var(--ds-radius-xl);
-                    padding: var(--ds-space-6);
-                    margin-bottom: var(--ds-space-6);
-                    box-shadow: var(--ds-shadow-sm);
-                    transition: all var(--ds-duration-base) var(--ds-ease);
-                }
+                                ${window.UIComponents.card({
+                title: 'Data Management',
+                content: `
+                                        <div style="display: flex; gap: var(--ds-space-4); flex-wrap: wrap;">
+                                            <button id="clearCacheBtn" class="ds-btn ds-btn-secondary ds-btn-sm" style="flex: 1; min-width: 150px;">
+                                                <i class="fas fa-eraser mr-2"></i> Clear Cache
+                                            </button>
+                                            <button id="exportLogsBtn" class="ds-btn ds-btn-secondary ds-btn-sm" style="flex: 1; min-width: 150px;">
+                                                <i class="fas fa-file-export mr-2"></i> Export Logs
+                                            </button>
+                                            <button id="factoryResetBtn" class="ds-btn ds-btn-danger ds-btn-sm" style="flex: 1; min-width: 150px;">
+                                                <i class="fas fa-trash-alt mr-2"></i> Factory Reset
+                                            </button>
+                                        </div>
+                                    `
+            })}
+                            </div>
+                        </div>
 
-                .settings-card:hover {
-                    box-shadow: var(--ds-shadow-md);
-                    border-color: var(--ds-border-strong);
-                }
+                        <!-- Help Tab -->
+                        <div class="tab-content" data-content="help">
+                            ${window.UIComponents.card({
+                title: 'Documentation & Support',
+                content: `
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-4);">
+                                        <button id="userGuideBtn" class="ds-btn ds-btn-secondary" style="display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-2); padding: var(--ds-space-6);">
+                                            <i class="fas fa-book-open" style="font-size: 24px; color: var(--ds-primary-600);"></i>
+                                            <span>User Guide</span>
+                                        </button>
+                                        <button id="faqBtn" class="ds-btn ds-btn-secondary" style="display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-2); padding: var(--ds-space-6);">
+                                            <i class="fas fa-question-circle" style="font-size: 24px; color: var(--ds-primary-600);"></i>
+                                            <span>FAQs</span>
+                                        </button>
+                                        <button id="reportBugBtn" class="ds-btn ds-btn-secondary" style="display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-2); padding: var(--ds-space-6);">
+                                            <i class="fas fa-bug" style="font-size: 24px; color: var(--ds-primary-600);"></i>
+                                            <span>Report Bug</span>
+                                        </button>
+                                        <button id="contactSupportBtn" class="ds-btn ds-btn-secondary" style="display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-2); padding: var(--ds-space-6);">
+                                            <i class="fas fa-comments" style="font-size: 24px; color: var(--ds-primary-600);"></i>
+                                            <span>Live Support</span>
+                                        </button>
+                                    </div>
+                                `
+            })}
+                        </div>
 
-                .settings-section-title {
-                    font-size: var(--ds-text-lg);
-                    font-weight: var(--ds-weight-semibold);
-                    color: var(--ds-text-primary);
-                    margin-bottom: var(--ds-space-5);
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
+                        <!-- About Tab -->
+                        <div class="tab-content" data-content="about">
+                            ${window.UIComponents.card({
+                content: `
+                                    <div style="text-align: center; padding: var(--ds-space-8);">
+                                        <div style="width: 80px; height: 80px; border-radius: var(--ds-radius-2xl); background: white; box-shadow: var(--ds-shadow-lg); display: inline-flex; align-items: center; justify-content: center; margin-bottom: var(--ds-space-6);">
+                                            <img src="assets/brand/talliffy-icon.png" style="width: 56px; height: 56px;" />
+                                        </div>
+                                        <h2 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Talliffy Enterprise</h2>
+                                        <p style="color: var(--ds-text-tertiary); margin-top: var(--ds-space-2);">Version 1.0.0 (Build 2024.02.10)</p>
+                                        
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-4); margin-top: var(--ds-space-8);">
+                                            <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-xl); border: 1px solid var(--ds-border-default);">
+                                                <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); text-transform: uppercase;">License</div>
+                                                <div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-top: var(--ds-space-1);">Enterprise</div>
+                                            </div>
+                                            <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-xl); border: 1px solid var(--ds-border-default);">
+                                                <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); text-transform: uppercase;">Platform</div>
+                                                <div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-top: var(--ds-space-1);">Desktop</div>
+                                            </div>
+                                        </div>
 
-                .settings-section-title-icon {
-                    font-size: 24px;
-                }
+                                        <div style="margin-top: var(--ds-space-10);">
+                                            <button id="checkUpdatesBtn" class="ds-btn ds-btn-primary ds-btn-lg" style="width: 100%;">
+                                                <i class="fas fa-sync-alt mr-2"></i> Check for Updates
+                                            </button>
+                                        </div>
+                                    </div>
+                                `
+            })}
+                        </div>
+                    </div>
 
-                .form-group {
-                    margin-bottom: var(--ds-space-5);
-                }
+                </div>
 
-                .form-label {
-                    display: block;
-                    font-size: var(--ds-text-sm);
-                    font-weight: var(--ds-weight-medium);
-                    color: var(--ds-text-primary);
-                    margin-bottom: var(--ds-space-2);
-                }
-
-                .form-input {
-                    width: 100%;
-                    padding: 10px 14px;
-                    border: 1px solid var(--ds-border-default);
-                    border-radius: var(--ds-radius-md);
-                    font-size: var(--ds-text-md);
-                    color: var(--ds-text-primary);
-                    background-color: var(--ds-bg-surface);
-                    transition: all var(--ds-duration-fast) var(--ds-ease);
-                }
-
-                .form-input:focus {
-                    outline: none;
-                    border-color: var(--ds-primary-500);
-                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-                }
-
-                .form-select {
-                    width: 100%;
-                    padding: 10px 14px;
-                    border: 1px solid var(--ds-border-default);
-                    border-radius: var(--ds-radius-md);
-                    font-size: var(--ds-text-md);
-                    color: var(--ds-text-primary);
-                    background-color: var(--ds-bg-surface);
-                    cursor: pointer;
-                    transition: all var(--ds-duration-fast) var(--ds-ease);
-                }
-
-                .form-select:focus {
-                    outline: none;
-                    border-color: var(--ds-primary-500);
-                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-                }
-
-                .form-help {
-                    font-size: var(--ds-text-xs);
-                    color: var(--ds-text-tertiary);
-                    margin-top: var(--ds-space-2);
-                }
-
-                .form-help.warning {
-                    color: var(--ds-warning-600);
-                }
-
-                .form-help.info {
-                    color: var(--ds-info-600);
-                }
-
-                .btn-group {
-                    display: flex;
-                    gap: var(--ds-space-3);
-                    margin-top: var(--ds-space-6);
-                }
-
-                .btn {
-                    padding: 10px 20px;
-                    border-radius: var(--ds-radius-md);
-                    font-size: var(--ds-text-md);
-                    font-weight: var(--ds-weight-medium);
-                    border: none;
-                    cursor: pointer;
-                    transition: all var(--ds-duration-base) var(--ds-ease);
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-
-                .btn-primary {
-                    background-color: var(--ds-primary-600);
-                    color: white;
-                }
-
-                .btn-primary:hover {
-                    background-color: var(--ds-primary-700);
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-                }
-
-                .btn-secondary {
-                    background-color: var(--ds-gray-100);
-                    color: var(--ds-text-primary);
-                }
-
-                .btn-secondary:hover {
-                    background-color: var(--ds-gray-200);
-                }
-
-                .btn-danger {
-                    background-color: var(--ds-danger-600);
-                    color: white;
-                }
-
-                .btn-danger:hover {
-                    background-color: var(--ds-danger-700);
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-                }
-
-                .status-indicator {
-                    display: inline-block;
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    margin-right: 6px;
-                }
-
-                .status-success { background-color: var(--ds-success-500); }
-                .status-warning { background-color: var(--ds-warning-500); }
-                .status-danger { background-color: var(--ds-danger-500); }
-
-                .info-card {
-                    background-color: var(--ds-info-50);
-                    border: 1px solid var(--ds-info-200);
-                    border-radius: var(--ds-radius-lg);
-                    padding: var(--ds-space-4);
-                    margin-top: var(--ds-space-4);
-                }
-
-                .info-card-title {
-                    font-size: var(--ds-text-md);
-                    font-weight: var(--ds-weight-semibold);
-                    color: var(--ds-info-700);
-                    margin-bottom: var(--ds-space-2);
-                }
-
-                .info-card-content {
-                    font-size: var(--ds-text-sm);
-                    color: var(--ds-info-700);
-                }
-
-                .about-app-icon {
-                    font-size: 64px;
-                    text-align: center;
-                    margin-bottom: var(--ds-space-4);
-                }
-
-                .about-app-name {
-                    font-size: var(--ds-text-2xl);
-                    font-weight: var(--ds-weight-bold);
-                    text-align: center;
-                    color: var(--ds-text-primary);
-                    margin-bottom: var(--ds-space-2);
-                }
-
-                .about-app-version {
-                    text-align: center;
-                    font-size: var(--ds-text-md);
-                    color: var(--ds-text-secondary);
-                    margin-bottom: var(--ds-space-6);
-                }
-
-                .about-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                    gap: var(--ds-space-4);
-                    margin-top: var(--ds-space-6);
-                }
-
-                .about-item {
-                    text-align: center;
-                    padding: var(--ds-space-4);
-                    background-color: var(--ds-bg-surface-sunken);
-                    border-radius: var(--ds-radius-lg);
-                }
-
-                .about-item-label {
-                    font-size: var(--ds-text-xs);
-                    color: var(--ds-text-tertiary);
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                    margin-bottom: var(--ds-space-1);
-                }
-
-                .about-item-value {
-                    font-size: var(--ds-text-lg);
-                    font-weight: var(--ds-weight-semibold);
-                    color: var(--ds-text-primary);
-                }
-
-                @media (max-width: 768px) {
-                    .settings-container {
-                        padding: var(--ds-space-4);
+                <style>
+                    /* Premium Tab Styling */
+                    .tab.active {
+                        background: white !important;
+                        color: var(--ds-primary-700) !important;
+                        box-shadow: var(--ds-shadow-md) !important;
+                    }
+                    
+                    .tab-content { display: none; }
+                    .tab-content.active { display: block; animation: dsFadeIn 0.3s ease; }
+                    
+                    @keyframes dsFadeIn {
+                        from { opacity: 0; transform: translateY(4px); }
+                        to { opacity: 1; transform: translateY(0); }
                     }
 
-                    .btn-group {
-                        flex-direction: column;
+                    /* Custom Toggle Switch for DS */
+                    .toggle-switch {
+                        position: relative;
+                        display: inline-block;
+                        width: 48px;
+                        height: 24px;
                     }
 
-                    .btn {
-                        width: 100%;
-                        justify-content: center;
+                    .toggle-switch input {
+                        opacity: 0;
+                        width: 0;
+                        height: 0;
                     }
-                }
-                    .sync-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
-    align-items: start;
-}
 
-.left-column {
-    display: flex;
-    flex-direction: column;
-}
+                    .toggle-slider {
+                        position: absolute;
+                        cursor: pointer;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background-color: var(--ds-gray-300);
+                        transition: .4s;
+                        border-radius: 34px;
+                    }
 
-.settings-card,
-.info-card {
-    height: fit-content;
-}
+                    .toggle-slider:before {
+                        position: absolute;
+                        content: "";
+                        height: 18px;
+                        width: 18px;
+                        left: 3px;
+                        bottom: 3px;
+                        background-color: white;
+                        transition: .4s;
+                        border-radius: 50%;
+                        box-shadow: var(--ds-shadow-sm);
+                    }
 
-/* Mobile fallback */
-@media (max-width: 1024px) {
-    .sync-grid {
-        grid-template-columns: 1fr;
-    }
-}
+                    input:checked + .toggle-slider {
+                        background-color: var(--ds-primary-600);
+                    }
 
-
-            </style>
-
-            <div class="settings-container">
-                <!-- Header -->
-                <div class="settings-header">
-                    <h1 class="settings-title">⚙️ Settings</h1>
-                    <p class="settings-subtitle">Manage your application preferences and configurations</p>
-                </div>
-
-                <!-- Tabs -->
-                <div class="tabs">
-                    <button class="tab active" data-tab="general">
-                        <span>🔧</span> General
-                    </button>
-                    <button class="tab" data-tab="sync">
-                        <span>🔄</span> Sync
-                    </button>
-                    <button class="tab" data-tab="notifications">
-                        <span>🔔</span> Notifications
-                    </button>
-                    <button class="tab" data-tab="about">
-                        <span>ℹ️</span> About
-                    </button>
-                </div>
-
-                <!-- Tab Content: General -->
-                <div class="tab-content active" data-content="general">
-                    <div class="settings-card">
-                        <h3 class="settings-section-title">
-                            <span class="settings-section-title-icon">🎨</span>
-                            Appearance
-                        </h3>
-                        ${createSettingsRow(
-                            'Theme',
-                            'Choose your preferred color scheme',
-                            `<select class="form-select" id="themeSelect">
-                                <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>☀️ Light</option>
-                                <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>🌙 Dark</option>
-                                <option value="auto" ${settings.theme === 'auto' ? 'selected' : ''}>🔄 Auto</option>
-                            </select>`
-                        )}
-                    </div>
-                </div>
-
-                <!-- Tab Content: Sync -->
-<div class="tab-content" data-content="sync">
-    <div class="sync-grid">
-
-        <!-- LEFT COLUMN -->
-        <div class="left-column">
-
-            <!-- Tally Prime Connection -->
-            <div class="settings-card">
-                <h3 class="settings-section-title">
-                    <span class="settings-section-title-icon">🔌</span>
-                    Tally Prime Connection
-                </h3>
-
-                <div class="form-group">
-                    <label class="form-label" for="tallyPort">Tally Port Number</label>
-                    <input 
-                        type="number"
-                        id="tallyPort"
-                        class="form-input"
-                        value="${settings.tallyPort}"
-                        min="1000"
-                        max="65535"
-                    >
-                    <p class="form-help warning">
-                        ⚠️ Changes apply immediately. Default: 9000
-                    </p>
-                </div>
-            </div>
-
-            <!-- 📊 Current Sync Status (MOVED HERE) -->
-            <div class="info-card" style="margin-top: 1rem;">
-                <div class="info-card-title">📊 Current Sync Status</div>
-                <div class="info-card-content">
-                    <span class="status-indicator status-success"></span>
-                    <span>Ready to sync</span>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- RIGHT COLUMN -->
-        <div class="settings-card">
-            <h3 class="settings-section-title">
-                <span class="settings-section-title-icon">⏱️</span>
-                Auto Sync Settings
-            </h3>
-
-            ${createSettingsRow(
-                'Sync on Startup',
-                'Automatically sync data when the application starts',
-                createToggleSwitch('autoSyncOnStartup', settings.autoSyncOnStartup)
-            )}
-
-            <div class="form-group">
-                <label class="form-label" for="syncInterval">
-                    Auto Sync Interval (minutes)
-                </label>
-                <input 
-                    type="number"
-                    id="syncInterval"
-                    class="form-input"
-                    value="${settings.syncInterval}"
-                    min="0"
-                    max="1440"
-                >
-                <p class="form-help info">
-                    💡 0 disables auto-sync. Recommended: 15–30 minutes
-                </p>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="batchSize">Batch Size</label>
-                <select class="form-select" id="batchSize">
-                    <option value="500" ${settings.batchSize === 500 ? 'selected' : ''}>
-                        500 (Recommended)
-                    </option>
-                    <option value="1000" ${settings.batchSize === 1000 ? 'selected' : ''}>
-                        1000
-                    </option>
-                    <option value="2000" ${settings.batchSize === 2000 ? 'selected' : ''}>
-                        2000
-                    </option>
-                </select>
-                <p class="form-help">Records per sync batch</p>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-
-
-                <!-- Tab Content: Notifications -->
-                <div class="tab-content" data-content="notifications">
-                    <div class="settings-card">
-                        <h3 class="settings-section-title">
-                            <span class="settings-section-title-icon">🔔</span>
-                            Notification Preferences
-                        </h3>
-                        
-                        ${createSettingsRow(
-                            'Enable Notifications',
-                            'Show desktop notifications for sync events',
-                            createToggleSwitch('notificationsEnabled', settings.notificationsEnabled)
-                        )}
-
-                        ${createSettingsRow(
-                            'Sound Effects',
-                            'Play sound when sync completes',
-                            createToggleSwitch('soundEnabled', settings.soundEnabled)
-                        )}
-                    </div>
-                </div>
-
-                <!-- Tab Content: Advanced -->
-                <div class="tab-content" data-content="advanced">
-                    <div class="settings-card">
-                        <h3 class="settings-section-title">
-                            <span class="settings-section-title-icon">🛠️</span>
-                            Developer Options
-                        </h3>
-                        
-                        ${createSettingsRow(
-                            'Debug Mode',
-                            'Enable verbose logging for troubleshooting',
-                            createToggleSwitch('debugMode', settings.debugMode)
-                        )}
-
-                        <div class="form-group" style="margin-top: var(--ds-space-5);">
-                            <label class="form-label" for="logRetentionDays">Log Retention (days)</label>
-                            <select class="form-select" id="logRetentionDays">
-                                <option value="7" ${settings.logRetentionDays === 7 ? 'selected' : ''}>7 days</option>
-                                <option value="14" ${settings.logRetentionDays === 14 ? 'selected' : ''}>14 days</option>
-                                <option value="30" ${settings.logRetentionDays === 30 ? 'selected' : ''}>30 days</option>
-                                <option value="90" ${settings.logRetentionDays === 90 ? 'selected' : ''}>90 days</option>
-                            </select>
-                            <p class="form-help">How long to keep application logs</p>
-                        </div>
-                    </div>
-
-                    <div class="settings-card">
-                        <h3 class="settings-section-title">
-                            <span class="settings-section-title-icon">🗑️</span>
-                            Data Management
-                        </h3>
-                        
-                        <div class="btn-group">
-                            <button class="btn btn-secondary" id="clearCacheBtn">
-                                <span>🗑️</span> Clear Cache
-                            </button>
-                            <button class="btn btn-secondary" id="exportLogsBtn">
-                                <span>📥</span> Export Logs
-                            </button>
-                            <button class="btn btn-danger" id="factoryResetBtn">
-                                <span>⚠️</span> Factory Reset
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab Content: Help -->
-                <div class="tab-content" data-content="help">
-                    <div class="settings-card">
-                        <h3 class="settings-section-title">
-                            <span class="settings-section-title-icon">📚</span>
-                            Documentation & Support
-                        </h3>
-                        
-                        <div class="btn-group">
-                            <button class="btn btn-primary" id="userGuideBtn">
-                                <span>📖</span> User Guide
-                            </button>
-                            <button class="btn btn-secondary" id="faqBtn">
-                                <span>❓</span> FAQ
-                            </button>
-                            <button class="btn btn-secondary" id="reportBugBtn">
-                                <span>🐛</span> Report Bug
-                            </button>
-                            <button class="btn btn-secondary" id="contactSupportBtn">
-                                <span>💬</span> Contact Support
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="settings-card">
-                        <h3 class="settings-section-title">
-                            <span class="settings-section-title-icon">⌨️</span>
-                            Keyboard Shortcuts
-                        </h3>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-3);">
-                            <div>
-                                <strong>Ctrl + K</strong> - Command Palette
-                            </div>
-                            <div>
-                                <strong>Ctrl + S</strong> - Save Settings
-                            </div>
-                            <div>
-                                <strong>Ctrl + R</strong> - Refresh Page
-                            </div>
-                            <div>
-                                <strong>Ctrl + ,</strong> - Open Settings
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab Content: About -->
-                <div class="tab-content" data-content="about">
-                    <div class="settings-card">
-                        <div class="about-app-icon">🚀</div>
-                        <div class="about-app-name">Talliffy Enterprise</div>
-                        <div class="about-app-version">Version 1.0.0 • Build 2024.02.10</div>
-
-                        <div class="about-grid">
-                            <div class="about-item">
-                                <div class="about-item-label">License</div>
-                                <div class="about-item-value">MIT</div>
-                            </div>
-                            <div class="about-item">
-                                <div class="about-item-label">Platform</div>
-                                <div class="about-item-value">Windows</div>
-                            </div>
-                            <div class="about-item">
-                                <div class="about-item-label">Technology</div>
-                                <div class="about-item-value">Electron + Spring Boot</div>
-                            </div>
-                        </div>
-
-                        <div style="text-align: center; margin-top: var(--ds-space-8); color: var(--ds-text-tertiary); font-size: var(--ds-text-sm);">
-                            © 2024 Talliffy Team. All rights reserved.
-                        </div>
-
-                        <div class="btn-group" style="margin-top: var(--ds-space-6);">
-                            <button class="btn btn-primary" id="checkUpdatesBtn" style="flex: 1;">
-                                <span>🔄</span> Check for Updates
-                            </button>
-                            <button class="btn btn-secondary" id="viewLicenseBtn" style="flex: 1;">
-                                <span>📜</span> View License
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Save Button (sticky footer) -->
-                <div style="position: sticky; bottom: 0; background: var(--ds-bg-app); padding: var(--ds-space-4) 0; margin-top: var(--ds-space-8); border-top: 1px solid var(--ds-border-default);">
-                    <div class="btn-group">
-                        <button class="btn btn-primary" id="saveAllSettingsBtn" style="flex: 1;">
-                            <span>💾</span> Save All Settings
-                        </button>
-                        <button class="btn btn-secondary" id="resetDefaultsBtn">
-                            <span>🔄</span> Reset to Defaults
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
+                    input:checked + .toggle-slider:before {
+                        transform: translateX(24px);
+                    }
+                </style>
+            `
+        });
     };
 
     function attachEventListeners() {
@@ -717,7 +413,7 @@
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const tabName = tab.dataset.tab;
-                
+
                 // Update active tab
                 tabs.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
@@ -733,29 +429,119 @@
             });
         });
 
+        // Theme - apply immediately on change (live preview)
+        const themeSelect = document.getElementById('themeSelect');
+        if (themeSelect) {
+            themeSelect.addEventListener('change', () => {
+                const selectedTheme = themeSelect.value;
+                if (selectedTheme === 'auto') {
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    window.themeManager?.setTheme(prefersDark ? 'dark' : 'light');
+                } else if (window.themeManager) {
+                    window.themeManager.setTheme(selectedTheme);
+                }
+            });
+        }
+
+        // Notification toggle - apply immediately
+        const notifToggle = document.getElementById('notificationsEnabled');
+        if (notifToggle) {
+            notifToggle.addEventListener('change', () => {
+                const enabled = notifToggle.checked;
+                saveSetting('notificationsEnabled', enabled);
+                console.log(`🔔 Notifications ${enabled ? 'enabled' : 'disabled'}`);
+            });
+        }
+
+        // Sound toggle - apply immediately
+        const soundToggle = document.getElementById('soundEnabled');
+        if (soundToggle) {
+            soundToggle.addEventListener('change', () => {
+                const enabled = soundToggle.checked;
+                saveSetting('soundEnabled', enabled);
+                console.log(`🔊 Sound ${enabled ? 'enabled' : 'disabled'}`);
+                // Play test sound when enabling
+                if (enabled && window.NotificationSound) {
+                    window.NotificationSound.play('success');
+                }
+            });
+        }
+
         // Save all settings
         const saveAllBtn = document.getElementById('saveAllSettingsBtn');
         if (saveAllBtn) {
             saveAllBtn.addEventListener('click', () => {
-                // Save all settings from form
-                saveSetting(SETTINGS_KEYS.TALLY_PORT, parseInt(document.getElementById('tallyPort').value));
-                saveSetting(SETTINGS_KEYS.BACKEND_URL, document.getElementById('backendUrl').value);
-                saveSetting(SETTINGS_KEYS.SYNC_INTERVAL, parseInt(document.getElementById('syncInterval').value));
-                saveSetting(SETTINGS_KEYS.AUTO_SYNC_ON_STARTUP, document.getElementById('autoSyncOnStartup').checked);
-                saveSetting(SETTINGS_KEYS.THEME, document.getElementById('themeSelect').value);
-                saveSetting(SETTINGS_KEYS.NOTIFICATIONS_ENABLED, document.getElementById('notificationsEnabled').checked);
-                saveSetting(SETTINGS_KEYS.SOUND_ENABLED, document.getElementById('soundEnabled').checked);
-                saveSetting(SETTINGS_KEYS.DEBUG_MODE, document.getElementById('debugMode').checked);
-                saveSetting(SETTINGS_KEYS.LOG_RETENTION_DAYS, parseInt(document.getElementById('logRetentionDays').value));
-                saveSetting(SETTINGS_KEYS.BATCH_SIZE, parseInt(document.getElementById('batchSize').value));
+                try {
+                    // Validate port
+                    const tallyPort = parseInt(document.getElementById('tallyPort')?.value) || 9000;
+                    if (tallyPort < 1 || tallyPort > 65535) {
+                        throw new Error('Tally Port must be between 1 and 65535');
+                    }
 
-                // Show success notification
-                if (window.Toast) {
-                    window.Toast.success('Settings saved successfully!');
-                } else if (window.NotificationService) {
-                    window.NotificationService.show('Settings saved successfully!', 'success');
-                } else {
-                    alert('✅ Settings saved successfully!');
+                    const syncInterval = parseInt(document.getElementById('syncInterval')?.value) || 0;
+                    if (syncInterval < 0 || syncInterval > 1440) {
+                        throw new Error('Sync Interval must be between 0 and 1440 minutes');
+                    }
+
+                    const batchSize = parseInt(document.getElementById('batchSize')?.value) || 500;
+                    const autoSyncOnStartup = document.getElementById('autoSyncOnStartup')?.checked || false;
+                    const notificationsEnabled = document.getElementById('notificationsEnabled')?.checked ?? true;
+                    const soundEnabled = document.getElementById('soundEnabled')?.checked ?? true;
+                    const debugMode = document.getElementById('debugMode')?.checked || false;
+                    const logRetentionDays = parseInt(document.getElementById('logRetentionDays')?.value) || 7;
+
+                    // Theme - apply it immediately via themeManager
+                    const themeSelect = document.getElementById('themeSelect');
+                    const selectedTheme = themeSelect?.value || 'light';
+                    if (window.themeManager && (selectedTheme === 'light' || selectedTheme === 'dark')) {
+                        window.themeManager.setTheme(selectedTheme);
+                    } else if (selectedTheme === 'auto') {
+                        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        window.themeManager?.setTheme(prefersDark ? 'dark' : 'light');
+                    }
+
+                    // Save all to appSettings JSON blob
+                    const allSettings = {
+                        tallyPort,
+                        syncInterval,
+                        batchSize,
+                        autoSyncOnStartup,
+                        notificationsEnabled,
+                        soundEnabled,
+                        debugMode,
+                        logRetentionDays
+                    };
+
+                    const current = JSON.parse(localStorage.getItem('appSettings') || '{}');
+                    localStorage.setItem('appSettings', JSON.stringify({ ...current, ...allSettings }));
+
+                    console.log('💾 Settings saved:', allSettings);
+
+                    // Restart sync scheduler with new interval
+                    if (window.syncScheduler) {
+                        console.log('🔄 Restarting sync scheduler with new settings...');
+                        window.syncScheduler.restart();
+                    }
+
+                    // Send settings to main process
+                    if (window.electronAPI && window.electronAPI.send) {
+                        window.electronAPI.send('update-sync-settings', allSettings);
+                    }
+
+                    // Show success notification
+                    if (window.notificationService) {
+                        window.notificationService.success('All settings saved successfully!', 'Settings');
+                    }
+
+                    // Play sound if enabled
+                    if (soundEnabled && window.NotificationSound) {
+                        window.NotificationSound.play('success');
+                    }
+                } catch (error) {
+                    console.error('❌ Error saving settings:', error);
+                    if (window.notificationService) {
+                        window.notificationService.error(error.message, 'Settings Error');
+                    }
                 }
             });
         }
@@ -765,9 +551,22 @@
         if (resetBtn) {
             resetBtn.addEventListener('click', () => {
                 if (confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
-                    Object.keys(DEFAULT_SETTINGS).forEach(key => {
-                        localStorage.removeItem(key);
-                    });
+                    // Reset appSettings to defaults
+                    localStorage.setItem('appSettings', JSON.stringify({
+                        tallyPort: DEFAULT_SETTINGS.tallyPort,
+                        syncInterval: DEFAULT_SETTINGS.syncInterval,
+                        batchSize: DEFAULT_SETTINGS.batchSize,
+                        autoSyncOnStartup: DEFAULT_SETTINGS.autoSyncOnStartup,
+                        notificationsEnabled: DEFAULT_SETTINGS.notificationsEnabled,
+                        soundEnabled: DEFAULT_SETTINGS.soundEnabled,
+                        debugMode: DEFAULT_SETTINGS.debugMode,
+                        logRetentionDays: DEFAULT_SETTINGS.logRetentionDays
+                    }));
+                    // Reset theme to light
+                    if (window.themeManager) {
+                        window.themeManager.setTheme('light');
+                    }
+                    // Reload to reflect changes
                     window.location.reload();
                 }
             });
@@ -871,7 +670,7 @@
         };
 
         // Initialize function for router
-        window.initializeSettings = async function() {
+        window.initializeSettings = async function () {
             const content = document.getElementById('page-content');
             if (content) {
                 content.innerHTML = getSettingsTemplate();

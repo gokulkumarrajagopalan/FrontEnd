@@ -5,6 +5,7 @@ const fs = require("fs");
 const security = require("./security");
 const { findPython } = require("./python-finder");
 const { registerVoucherSyncHandler } = require("./voucher-sync-handler");
+const { registerBillsSyncHandler } = require("./bills-sync-handler");
 
 // Load environment variables from .env file in project root
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
@@ -368,7 +369,8 @@ async function runWorkerCommand(mode, params = {}) {
       deviceToken: '--device-token',
       entityType: '--entity-type',
       maxAlterID: '--max-alter-id',
-      companyName: '--company-name'
+      companyName: '--company-name',
+      batchSize: '--batch-size'
     };
 
     for (const [key, flag] of Object.entries(argMapping)) {
@@ -572,6 +574,10 @@ ipcMain.handle("sync-godowns", async (event, config) => {
 // Register voucher sync handler (sync_vouchers.py)
 registerVoucherSyncHandler();
 if (isDev) console.log("✅ 'sync-vouchers' IPC handler registered successfully");
+
+// Register bills outstanding sync handler (sync_bills_outstanding.py)
+registerBillsSyncHandler();
+if (isDev) console.log("✅ 'sync-bills-outstanding' IPC handler registered successfully");
 
 if (isDev) console.log("🔧 About to register 'incremental-sync' handler...");
 

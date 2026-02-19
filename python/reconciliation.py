@@ -54,7 +54,10 @@ class ReconciliationManager:
     
     BATCH_SIZE = 500
     
-    def __init__(self, backend_url: str, auth_token: str, device_token: str):
+    def __init__(self, backend_url: str, auth_token: str, device_token: str, batch_size: int = None):
+        if batch_size and batch_size > 0:
+            self.BATCH_SIZE = batch_size
+            logger.info(f"📦 Batch size set to {batch_size} (from settings)")
         self.backend_url = backend_url.rstrip('/')
         self.headers = {
             'Content-Type': 'application/json',
@@ -62,7 +65,7 @@ class ReconciliationManager:
             'X-Device-Token': device_token
         }
     
-    def generate_reconciliation_tdl(self, entity_type: str = 'Ledger', company_name: str = None) -> str:
+    def generate_reconciliation_tdl(self, entity_type: str = 'Ledger', company_name: str = None, books_from: str = None) -> str:
         """Generate TDL for reconciliation - fetches ALL records WITHOUT AlterID filter"""
         
         # Map entity type to Tally-specific names
@@ -84,7 +87,7 @@ class ReconciliationManager:
             'Godown': "GUID, MASTERID, ALTERID, Name, Alias, Parent, Address",
             'VoucherType': "GUID, MASTERID, ALTERID, Name, Alias, Parent, NumberingMethod, IsDeemedPositive",
             'TaxUnit': "GUID, MASTERID, ALTERID, Name, Alias, OriginalName",
-            'Ledger': "GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*",
+            'Ledger': "GUID, MASTERID, ALTERID, Name, OnlyAlias, Parent, IsRevenue, LastParent, Description, Narration, IsBillWiseOn, IsCostCentresOn, OpeningBalance, ClosingBalance, LEDGERPHONE, LEDGERCOUNTRYISDCODE, LEDGERMOBILE, LEDGERCONTACT, WEBSITE, EMAIL, CURRENCYNAME, INCOMETAXNUMBER, LEDMAILINGDETAILS.*, VATAPPLICABLEDATE, VATDEALERTYPE, VATTINNUMBER, LEDGSTREGDETAILS.*",
             'StockItem': "GUID, MASTERID, ALTERID, Name, Alias, Parent, Category, Description, BaseUnits, OpeningBalance, OpeningValue, OpeningRate, ReorderLevel, MinimumLevel, HSNCode, GST",
         }
         
@@ -93,9 +96,24 @@ class ReconciliationManager:
         # Add company name to STATICVARIABLES if provided
         company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
         
+        # Date range: use books_from if available for accurate ClosingBalance
+        # When companies don't maintain opening balances, using BooksFrom as SVFROMDATE
+        # ensures ClosingBalance captures ALL transactions since inception
+        now = datetime.now()
+        if books_from:
+            fy_start = books_from
+            fy_end = now.strftime('%d-%b-%Y')
+        else:
+            if now.month >= 4:
+                fy_start = f"01-Apr-{now.year}"
+                fy_end = f"31-Mar-{now.year + 1}"
+            else:
+                fy_start = f"01-Apr-{now.year - 1}"
+                fy_end = f"31-Mar-{now.year}"
+
         # NOTE: NO FILTERS - This fetches ALL records for reconciliation
         return f"""<ENVELOPE>
-    <HEADER>
+        <HEADER>
         <VERSION>1</VERSION>
         <TALLYREQUEST>Export</TALLYREQUEST>
         <TYPE>Collection</TYPE>
@@ -104,8 +122,8 @@ class ReconciliationManager:
     <BODY>
         <DESC>
             <STATICVARIABLES>
-                <SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE>
-                <SVTODATE TYPE="Date">01-Jan-1970</SVTODATE>
+                <SVFROMDATE TYPE="Date">{fy_start}</SVFROMDATE>
+                <SVTODATE TYPE="Date">{fy_end}</SVTODATE>
                 <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>{company_var}
             </STATICVARIABLES>
             <TDL>
@@ -256,13 +274,13 @@ class ReconciliationManager:
             return []
     
     def reconcile_entity(self, company_id: int, user_id: int, entity_type: str, 
-                        tally_port: int, company_name: str = None) -> Dict:
+                        tally_port: int, company_name: str = None, books_from: str = None) -> Dict:
         """Reconcile specific entity type between Tally and Database"""
         
         logger.info(f"\n🔍 Reconciling {entity_type} for company {company_id}")
         
         # Step 1: Fetch ALL records from Tally (NO FILTER)
-        tdl = self.generate_reconciliation_tdl(entity_type, company_name)
+        tdl = self.generate_reconciliation_tdl(entity_type, company_name, books_from)
         xml_response = self.fetch_from_tally(tdl, tally_port)
         
         if not xml_response:
