@@ -64,6 +64,80 @@ class IncrementalSyncManager:
             'X-Device-Token': device_token
         }
     
+    def verify_tally_company(self, tally_port: int, expected_company_name: str) -> tuple:
+        """Verify that the expected company is loaded/open in Tally Prime.
+        
+        Tally's XML API silently returns data from the currently active company
+        if the requested company (via SVCOMPANY/SVCURRENTCOMPANY) is not loaded.
+        This pre-flight check prevents syncing wrong data with wrong company IDs.
+        
+        Returns: (is_loaded: bool, active_companies: list[str])
+        """
+        xml_req = """<ENVELOPE>
+<HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
+<BODY><EXPORTDATA>
+<REQUESTDESC>
+    <REPORTNAME>List of Companies</REPORTNAME>
+    <STATICVARIABLES>
+        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+    </STATICVARIABLES>
+</REQUESTDESC>
+</EXPORTDATA></BODY></ENVELOPE>"""
+
+        tally_url = f"http://localhost:{tally_port}"
+        try:
+            resp = requests.post(tally_url, data=xml_req.encode('utf-8'),
+                                 headers={'Content-Type': 'application/xml'},
+                                 timeout=10)
+            if resp.status_code != 200:
+                logger.warning(f"⚠️ Could not verify Tally companies (HTTP {resp.status_code})")
+                return True, []  # Fail-open
+
+            text = re.sub(r'[^\x09\x0A\x0D\x20-\x7E\x80-\xFF\u0100-\uFFFF]', '', resp.text)
+            root = ET.fromstring(text)
+            
+            companies = []
+            for elem in root.iter('COMPANY'):
+                name = elem.findtext('NAME') or elem.get('NAME', '')
+                if name:
+                    companies.append(name.strip())
+            
+            for elem in root.iter('TALLYMESSAGE'):
+                for child in elem:
+                    if child.tag == 'COMPANY':
+                        name = child.get('NAME', '') or child.text or ''
+                        if name.strip() and name.strip() not in companies:
+                            companies.append(name.strip())
+
+            if not companies:
+                for elem in root.iter():
+                    if elem.text and expected_company_name.lower() in elem.text.lower():
+                        return True, [expected_company_name]
+                logger.warning(f"⚠️ Could not parse company list from Tally (empty)")
+                return True, []
+
+            expected_lower = expected_company_name.strip().lower()
+            for company in companies:
+                if company.lower() == expected_lower:
+                    logger.info(f"✅ Company '{expected_company_name}' is loaded in Tally")
+                    return True, companies
+            
+            for company in companies:
+                if expected_lower in company.lower() or company.lower() in expected_lower:
+                    logger.warning(f"⚠️ Partial company name match: expected='{expected_company_name}', found='{company}'")
+                    return True, companies
+
+            logger.error(f"❌ Company '{expected_company_name}' is NOT loaded in Tally!")
+            logger.error(f"   Loaded companies: {companies}")
+            return False, companies
+
+        except requests.exceptions.ConnectionError:
+            logger.error(f"❌ Cannot connect to Tally at {tally_url}")
+            return False, []
+        except Exception as e:
+            logger.warning(f"⚠️ Error verifying Tally company: {e}")
+            return True, []
+    
     def fetch_companies(self) -> List[Dict]:
         """Fetch all imported companies from backend"""
         try:
@@ -959,6 +1033,15 @@ class IncrementalSyncManager:
             logger.info(f"\n🔄 {sync_type} {entity_type} sync for company {company_id}")
             if company_name:
                 logger.info(f"🏢 Tally Company: {company_name}")
+        
+        # Pre-flight check: verify company is loaded in Tally
+        if company_name:
+            is_loaded, loaded_companies = self.verify_tally_company(tally_port, company_name)
+            if not is_loaded:
+                error_msg = (f"Company '{company_name}' is not loaded in Tally. "
+                           f"Loaded: {loaded_companies}. Aborting to prevent data mismatch.")
+                logger.error(error_msg)
+                return {'success': False, 'message': error_msg, 'count': 0}
         
         # Use provided last_alter_id or fetch from backend (PER ENTITY TYPE)
         if last_alter_id is None:

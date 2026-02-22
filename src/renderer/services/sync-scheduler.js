@@ -3,6 +3,7 @@ class SyncScheduler {
         this.syncInterval = null;
         this.isRunning = false;
         this.lastSyncTime = null;
+        this._settingsListener = null;
     }
 
 
@@ -32,6 +33,17 @@ class SyncScheduler {
         this.isRunning = true;
         this.syncInterval = setInterval(() => this.runSync(), interval);
 
+        // Listen for settings changes to restart with new interval
+        if (!this._settingsListener) {
+            this._settingsListener = (e) => {
+                if (e.key === 'appSettings') {
+                    console.log('🔄 Settings changed, restarting scheduler...');
+                    this.restart();
+                }
+            };
+            window.addEventListener('storage', this._settingsListener);
+        }
+
         this.runSync();
     }
 
@@ -42,6 +54,10 @@ class SyncScheduler {
             this.syncInterval = null;
             this.isRunning = false;
             console.log('⏹️ Sync scheduler stopped');
+        }
+        if (this._settingsListener) {
+            window.removeEventListener('storage', this._settingsListener);
+            this._settingsListener = null;
         }
     }
 
@@ -59,19 +75,7 @@ class SyncScheduler {
             console.log('='.repeat(80));
             this.lastSyncTime = new Date();
 
-            if (window.LicenseValidator) {
-                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                const userLicense = currentUser?.licenceNo || currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
-                const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-                const tallyPort = appSettings.tallyPort || 9000;
-
-                const isValid = await window.LicenseValidator.validateAndNotify(userLicense, tallyPort);
-                if (!isValid) {
-                    console.error('❌ License validation failed - sync aborted');
-                    return;
-                }
-            }
-
+            // Read all settings and auth once
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
@@ -84,6 +88,16 @@ class SyncScheduler {
                 return;
             }
 
+            if (window.LicenseValidator) {
+                const userLicense = currentUser?.licenceNo || currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
+
+                const isValid = await window.LicenseValidator.validateAndNotify(userLicense, tallyPort);
+                if (!isValid) {
+                    console.error('❌ License validation failed - sync aborted');
+                    return;
+                }
+            }
+
             const companies = await this.fetchImportedCompanies(backendUrl, authToken, deviceToken);
             if (companies.length === 0) {
                 console.log('ℹ️ No companies to sync');
@@ -92,7 +106,7 @@ class SyncScheduler {
             }
 
             console.log(`📋 Found ${companies.length} companies to sync (one by one)`);
-            
+
             // Notify user that sync is starting
             if (window.notificationService) {
                 window.notificationService.info(
@@ -309,6 +323,13 @@ class SyncScheduler {
         const result = { success: true, errors: [] };
 
         try {
+            // Validate company ID is present and valid
+            if (!companyId) {
+                console.error(`❌ Company "${companyName}" has no valid ID — skipping sync`);
+                result.success = false;
+                result.errors.push({ entity: 'COMPANY', message: 'Missing company ID' });
+                return result;
+            }
             console.log(`\n📋 Syncing company ${companyId} (${companyName})...`);
 
             const masterMapping = await this.getMasterMapping(companyId, backendUrl, authToken, deviceToken);
@@ -387,14 +408,24 @@ class SyncScheduler {
             try {
                 if (window.electronAPI?.syncVouchers) {
                     console.log(`  📦 Vouchers: Syncing...`);
-                    const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                     const _isoToTally = (iso) => {
                         if (!iso || iso.length < 10) return null;
                         const [y, m, d] = iso.split('-');
-                        return `${d}-${_months[parseInt(m,10)-1]}-${y}`;
+                        return `${d}-${_months[parseInt(m, 10) - 1]}-${y}`;
                     };
                     const fromISO = company.booksStart || company.financialYearStart || '';
                     const _now = new Date();
+
+                    // Retrieve stored lastAlterID for incremental voucher sync
+                    let storedAlterID = 0;
+                    try {
+                        const voucherState = JSON.parse(localStorage.getItem('voucherSyncState') || '{}');
+                        storedAlterID = voucherState[companyId] || 0;
+                    } catch (e) { /* use default 0 */ }
+
+                    console.log(`  📦 Vouchers: Using lastAlterID = ${storedAlterID}${storedAlterID === 0 ? ' (FIRST-TIME SYNC)' : ''}`);
+
                     const voucherResult = await window.electronAPI.syncVouchers({
                         companyId: companyId,
                         userId: userId,
@@ -405,11 +436,20 @@ class SyncScheduler {
                         companyName: companyName,
                         companyGuid: company.companyGuid || company.guid || '',
                         fromDate: _isoToTally(fromISO) || '01-Apr-2024',
-                        toDate: `${String(_now.getDate()).padStart(2,'0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`,
-                        lastAlterID: 0
+                        toDate: `${String(_now.getDate()).padStart(2, '0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`,
+                        lastAlterID: storedAlterID
                     });
                     if (voucherResult.success) {
                         console.log(`  ✅ Vouchers: Synced successfully`);
+                        // Store lastAlterID for next incremental sync
+                        if (voucherResult.lastAlterID) {
+                            try {
+                                const voucherState = JSON.parse(localStorage.getItem('voucherSyncState') || '{}');
+                                voucherState[companyId] = voucherResult.lastAlterID;
+                                localStorage.setItem('voucherSyncState', JSON.stringify(voucherState));
+                                console.log(`  📝 Vouchers: Stored lastAlterID = ${voucherResult.lastAlterID} for next sync`);
+                            } catch (e) { /* ignore storage errors */ }
+                        }
                     } else {
                         console.warn(`  ⚠️ Vouchers: ${voucherResult.message}`);
                         result.errors.push({ entity: 'Vouchers', message: voucherResult.message || 'Voucher sync failed' });
@@ -479,35 +519,60 @@ class SyncScheduler {
     }
 
     async syncEntity(companyId, companyName, userId, entityType, maxAlterID, tallyPort, backendUrl, authToken, deviceToken) {
-        try {
-            const isFirstSync = maxAlterID === 0;
+        const MAX_RETRIES = 2;
+        let lastError = null;
 
-            console.log(`  📦 ${entityType}: Max AlterID in DB = ${maxAlterID}${isFirstSync ? ' (FIRST-TIME SYNC)' : ''}`);
-            const result = await this.callIncrementalSync(
-                companyId,
-                companyName,
-                userId,
-                tallyPort,
-                backendUrl,
-                authToken,
-                deviceToken,
-                entityType,
-                maxAlterID
-            );
-
-            if (result.success) {
-                if (result.count > 0) {
-                    console.log(`  ✅ ${entityType}: Synced ${result.count} records`);
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const isFirstSync = maxAlterID === 0;
+                if (attempt === 1) {
+                    console.log(`  📦 ${entityType}: Max AlterID in DB = ${maxAlterID}${isFirstSync ? ' (FIRST-TIME SYNC)' : ''}`);
+                } else {
+                    console.log(`  🔄 ${entityType}: Retry attempt ${attempt}/${MAX_RETRIES}`);
                 }
-                return { success: true, message: `${result.count} records synced` };
-            } else {
-                console.warn(`  ⚠️ ${entityType}: ${result.message}`);
-                return { success: false, message: result.message };
+
+                const result = await this.callIncrementalSync(
+                    companyId,
+                    companyName,
+                    userId,
+                    tallyPort,
+                    backendUrl,
+                    authToken,
+                    deviceToken,
+                    entityType,
+                    maxAlterID
+                );
+
+                if (result.success) {
+                    if (result.count > 0) {
+                        console.log(`  ✅ ${entityType}: Synced ${result.count} records`);
+                    }
+                    return { success: true, message: `${result.count} records synced` };
+                } else {
+                    lastError = result.message;
+                    // Don't retry on non-transient errors
+                    if (result.message?.includes('mismatch') || result.message?.includes('not found')) {
+                        console.warn(`  ⚠️ ${entityType}: ${result.message} (non-retryable)`);
+                        return { success: false, message: result.message };
+                    }
+                    if (attempt < MAX_RETRIES) {
+                        const delay = attempt * 2000; // 2s, 4s backoff
+                        console.warn(`  ⚠️ ${entityType}: ${result.message} — retrying in ${delay / 1000}s...`);
+                        await new Promise(r => setTimeout(r, delay));
+                    }
+                }
+            } catch (error) {
+                lastError = error.message || 'Unknown error';
+                if (attempt < MAX_RETRIES) {
+                    const delay = attempt * 2000;
+                    console.warn(`  ⚠️ ${entityType}: Error — retrying in ${delay / 1000}s...`, error.message);
+                    await new Promise(r => setTimeout(r, delay));
+                }
             }
-        } catch (error) {
-            console.error(`  ❌ Error syncing ${entityType}:`, error);
-            return { success: false, message: error.message || 'Unknown error' };
         }
+
+        console.error(`  ❌ ${entityType}: Failed after ${MAX_RETRIES} attempts: ${lastError}`);
+        return { success: false, message: lastError || 'Unknown error' };
     }
 
     async getMasterMapping(companyId, backendUrl, authToken, deviceToken) {
@@ -633,25 +698,12 @@ class SyncScheduler {
      */
     async callIncrementalSync(companyId, companyName, userId, tallyPort, backendUrl, authToken, deviceToken, entityType, maxAlterID = 0) {
         try {
-            console.log(`🔍 Checking window.electronAPI:`, window.electronAPI);
-            console.log(`🔍 Checking incrementalSync method:`, window.electronAPI?.incrementalSync);
-
             if (!window.electronAPI?.incrementalSync) {
-                console.warn('⚠️ Electron API not available');
-                console.warn(`   window.electronAPI exists: ${!!window.electronAPI}`);
-                console.warn(`   incrementalSync method exists: ${!!window.electronAPI?.incrementalSync}`);
+                console.warn('⚠️ Electron API not available for incremental sync');
                 return { success: false, message: 'API not available', count: 0 };
             }
 
             console.log(`📡 Calling incremental-sync for ${entityType}...`);
-            // Read batchSize from settings
-            let batchSize = 500;
-            try {
-                const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-                if (settings.batchSize && settings.batchSize > 0) {
-                    batchSize = settings.batchSize;
-                }
-            } catch (e) { /* use default */ }
 
             const result = await window.electronAPI.incrementalSync({
                 companyId,
@@ -662,15 +714,12 @@ class SyncScheduler {
                 authToken,
                 deviceToken,
                 entityType,
-                maxAlterID,  // Pass maxAlterID from DB - Python will fetch records with alterID > maxAlterID
-                batchSize
+                maxAlterID
             });
 
             return result;
         } catch (error) {
-            console.error('❌ Error calling incremental sync:', error);
-            console.error('   Error message:', error.message);
-            console.error('   Error stack:', error.stack);
+            console.error(`❌ Error calling incremental sync for ${entityType}:`, error.message);
             return { success: false, message: error.message, count: 0 };
         }
     }

@@ -660,3 +660,19 @@
         opacity: 1;
     }
 }
+
+/* ==================== SYNC SPINNER ==================== */
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.sync-spinner {
+    animation: spin 1s linear infinite;
+    flex-shrink: 0;
+}

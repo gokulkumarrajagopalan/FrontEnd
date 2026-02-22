@@ -2,8 +2,8 @@
     const getTemplate = () => {
         const importBtn = window.UIComponents.button({
             id: 'importMoreBtn',
-            text: 'Import Companies',
-            icon: '<i class="fas fa-download"></i>',
+            text: 'Add company',
+            icon: '<i class="fas fa-plus"></i>',
             variant: 'primary',
             onclick: "window.location.hash = '#import-company'"
         });
@@ -24,15 +24,6 @@
             ]
         });
 
-        const statusFilter = window.UIComponents.select({
-            id: 'companyStatusFilter',
-            placeholder: 'All Status',
-            options: [
-                { value: 'active', label: 'Active' },
-                { value: 'inactive', label: 'Inactive' }
-            ]
-        });
-
         return window.Layout.page({
             title: 'Company Synchronization',
             subtitle: 'Monitor and manage data synchronization for all connected Tally companies',
@@ -42,7 +33,6 @@
                     <div style="display: flex; gap: var(--ds-space-4); background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl);">
                         <div style="flex: 1;">${searchInput}</div>
                         <div style="width: 200px;">${syncFilter}</div>
-                        <div style="width: 200px;">${statusFilter}</div>
                     </div>
                     
                     <div id="companySyncTableContainer">
@@ -109,7 +99,8 @@
                     loader = document.getElementById('companySyncGlobalLoader');
                     console.debug('Global loader created');
                 } else {
-                    console.warn('Could not find container to insert global loader into');
+                    // Silently return — user may not be on company-sync page
+                    return;
                 }
             } catch (e) {
                 console.error('Error creating global loader:', e);
@@ -383,7 +374,7 @@
 
                 // Update progress in SyncStateManager with entity-level detail
                 if (window.syncStateManager) {
-                    window.syncStateManager.updateProgress(i, `${company.name} - ${step.name}`, {
+                    window.syncStateManager.updateProgress(i, `${company.name} - ${step.name} `, {
                         companyId: company.id,
                         companyName: company.name,
                         entityIndex: i + 1,
@@ -437,7 +428,7 @@
                     successCount++;
                     console.log(`   ✅ ${step.name} synced`);
                 } else {
-                    console.error(`   ❌ ${step.name} sync failed:`, result.message);
+                    console.error(`   ❌ ${step.name} sync failed: `, result.message);
                     companyAllSuccess = false;
 
                     // Step 9: Critical Error Handling (Popups)
@@ -447,7 +438,7 @@
 
                     if (isCritical && window.notificationService) {
                         window.notificationService.error(
-                            `Sync Blocked: ${result.message}`,
+                            `Sync Blocked: ${result.message} `,
                             { title: 'Data Safety Alert', duration: 10000 }
                         );
                         // Stop further steps for safety
@@ -460,6 +451,7 @@
             if (companyAllSuccess) {
                 window.notificationService.success(`✅ Successfully synced all ${successCount} masters for ${company.name}!`);
                 company.syncStatus = 'synced';
+                company.lastSyncDate = new Date().toISOString();
                 await updateCompanyStatus(company.id, 'synced', 'active');
                 if (window.syncStateManager) {
                     window.syncStateManager.endSync(true, `${successCount} masters synced for ${company.name}`);
@@ -473,6 +465,7 @@
             } else if (successCount > 0) {
                 window.notificationService.warning(`⚠️ Partial sync for ${company.name}: ${successCount}/${syncSteps.length} masters succeeded.`);
                 company.syncStatus = 'pending';
+                company.lastSyncDate = new Date().toISOString();
                 await updateCompanyStatus(company.id, 'pending', 'active');
                 if (window.syncStateManager) {
                     window.syncStateManager.endSync(true, `Partial sync: ${successCount}/${syncSteps.length} completed`);
@@ -616,8 +609,8 @@
                         style: 'width: 130px; min-width: 130px; max-width: 130px; justify-content: center;'
                     })}
                         ${window.UIComponents.button({
-                        text: '',
-                        icon: '<i class="fas fa-info-circle"></i>',
+                        text: 'Remove company',
+                        icon: '<i class="fas fa-trash-alt"></i>',
                         variant: 'secondary',
                         size: 'sm',
                         className: 'view-details-btn',

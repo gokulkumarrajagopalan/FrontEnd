@@ -174,7 +174,7 @@
         if (fetchBtn) fetchBtn.onclick = fetchTallyCompanies;
 
         const importMoreBtn = document.getElementById('importMoreBtn');
-        if (importMoreBtn) importMoreBtn.onclick = fetchTallyCompanies;
+        if (importMoreBtn) importMoreBtn.onclick = refreshCompaniesFromDB;
 
         const clearBtn = document.getElementById('clearSelectionBtn');
         if (clearBtn) {
@@ -260,6 +260,46 @@
         } finally {
             fetchBtn.disabled = false;
             fetchBtn.innerHTML = '<span><i class="fas fa-plug"></i></span><span>Fetch from Tally</span>';
+        }
+    }
+
+    async function refreshCompaniesFromDB() {
+        const refreshBtn = document.getElementById('importMoreBtn');
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i></span><span>Loading...</span>';
+        }
+        try {
+            if (!window.authService || !window.authService.isAuthenticated()) {
+                showStatus('Please login to refresh companies', 'error');
+                return;
+            }
+            const headers = window.authService.getHeaders();
+            const response = await fetch(window.apiConfig.getUrl('/companies'), {
+                method: 'GET',
+                headers: headers
+            });
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && Array.isArray(result.data)) {
+                    await displayCompanies(result.data.map(c => ({
+                        ...c,
+                        guid: c.companyGuid || c.guid
+                    })));
+                    showStatus(`Loaded ${result.data.length} companies`, 'success');
+                } else {
+                    showStatus('No companies found', 'info');
+                }
+            } else {
+                showStatus('Failed to load companies', 'error');
+            }
+        } catch (error) {
+            showStatus('Error loading companies: ' + error.message, 'error');
+        } finally {
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = '<span><i class="fas fa-sync-alt"></i></span><span>Refresh</span>';
+            }
         }
     }
 

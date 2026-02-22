@@ -478,9 +478,9 @@
                         throw new Error('Tally Port must be between 1 and 65535');
                     }
 
-                    const syncInterval = parseInt(document.getElementById('syncInterval')?.value) || 0;
-                    if (syncInterval < 0 || syncInterval > 1440) {
-                        throw new Error('Sync Interval must be between 0 and 1440 minutes');
+                    const syncInterval = parseInt(document.getElementById('syncInterval')?.value) || 5;
+                    if (syncInterval < 5 || syncInterval > 1440) {
+                        throw new Error('Sync Interval must be between 5 and 1440 minutes');
                     }
 
                     const batchSize = parseInt(document.getElementById('batchSize')?.value) || 500;

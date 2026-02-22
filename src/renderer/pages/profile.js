@@ -51,7 +51,7 @@
                                 <p id="detailCreatedAt" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">—</p>
                             </div>
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
-                                <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Account Status</label>
+                                <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Plan expired on</label>
                                 <p id="detailEnabled" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">—</p>
                             </div>
                         </div>
@@ -363,9 +363,17 @@
 
         const enabledEl = document.getElementById('detailEnabled');
         if (enabledEl) {
-            enabledEl.innerHTML = data.enabled
-                ? '<span style="color: #16a34a; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-check-circle"></i> Active</span>'
-                : '<span style="color: #dc2626; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-times-circle"></i> Disabled</span>';
+            const expiryRaw = data.planExpiryDate || data.expiryDate || data.subscriptionExpiry || null;
+            if (expiryRaw) {
+                const expiryDate = new Date(expiryRaw);
+                const isPast = expiryDate < new Date();
+                const formatted = expiryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                enabledEl.innerHTML = isPast
+                    ? `<span style="color: #dc2626; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-exclamation-circle"></i> ${formatted} (Expired)</span>`
+                    : `<span style="color: #16a34a; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-calendar-check"></i> ${formatted}</span>`;
+            } else {
+                enabledEl.innerHTML = '<span style="color: var(--ds-text-tertiary);">—</span>';
+            }
         }
 
         // Email

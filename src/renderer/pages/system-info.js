@@ -37,6 +37,18 @@
                         <div style="display: grid; gap: 0;">
                             <div style="display: flex; justify-content: space-between; padding: var(--ds-space-3) 0; border-bottom: 1px solid var(--ds-border-default);">
                                 <span style="color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); font-size: var(--ds-text-sm); display: flex; align-items: center; gap: var(--ds-space-2);">
+                                    <i class="fas fa-network-wired" style="width: 16px;"></i> Hostname
+                                </span>
+                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="sysHostname">—</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: var(--ds-space-3) 0; border-bottom: 1px solid var(--ds-border-default);">
+                                <span style="color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); font-size: var(--ds-text-sm); display: flex; align-items: center; gap: var(--ds-space-2);">
+                                    <i class="fas fa-cpu" style="width: 16px;"></i> Processor
+                                </span>
+                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm); max-width: 60%; text-align: right;" id="sysProcessor">—</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: var(--ds-space-3) 0; border-bottom: 1px solid var(--ds-border-default);">
+                                <span style="color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); font-size: var(--ds-text-sm); display: flex; align-items: center; gap: var(--ds-space-2);">
                                     <i class="fas fa-laptop-code" style="width: 16px;"></i> Operating System
                                 </span>
                                 <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="os">Windows 11</span>
@@ -76,14 +88,17 @@
     };
 
     function loadSystemInfo() {
-        if (window.electronAPI && window.electronAPI.getSystemInfo) {
-            window.electronAPI.getSystemInfo().then(info => {
-                document.getElementById('platform').textContent = info.platform || 'Windows';
-                document.getElementById('os').textContent = info.os || 'Windows 11';
-                document.getElementById('arch').textContent = info.arch || 'x64';
-                document.getElementById('memory').textContent = info.memory || '16 GB';
-                document.getElementById('cpus').textContent = info.cpus || '8';
-            });
+        const api = window.electronAPI || {};
+        // Populate hostname and processor from preload
+        const hostnameEl = document.getElementById('sysHostname');
+        const processorEl = document.getElementById('sysProcessor');
+        if (hostnameEl) hostnameEl.textContent = api.hostname || '—';
+        if (processorEl) processorEl.textContent = api.processor || '—';
+        // Platform display name
+        const platformEl = document.getElementById('platform');
+        if (platformEl) {
+            const p = api.platform || '';
+            platformEl.textContent = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[p] || p || 'Windows';
         }
     }
 })();

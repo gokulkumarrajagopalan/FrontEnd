@@ -143,12 +143,12 @@ class SyncController {
      */
     updateConfig(newConfig) {
         this.config = { ...this.config, ...newConfig };
-        
+
         // Only save to localStorage if available (renderer process)
         if (typeof localStorage !== 'undefined') {
             localStorage.setItem('syncConfig', JSON.stringify(this.config));
         }
-        
+
         console.log('⚙️ Config updated:', this.config);
     }
 
@@ -158,29 +158,33 @@ class SyncController {
     handleSyncUpdate(data) {
         const { internet, tally, host, port, timestamp, companyName, syncType, status: syncOperationStatus } = data;
 
-        // Store last status
-        this.lastStatus = {
-            internet: internet,
-            tally: tally,
-            host: host,
-            port: port,
-            timestamp: new Date(timestamp),
-            companyName: companyName,
-            syncType: syncType,
-            syncStatus: syncOperationStatus
-        };
+        // Selective update to prevent overwriting with undefined
+        if (internet !== undefined) this.lastStatus.internet = internet;
+        if (tally !== undefined) this.lastStatus.tally = tally;
+        if (host !== undefined) this.lastStatus.host = host;
+        if (port !== undefined) this.lastStatus.port = port;
+        if (companyName !== undefined) this.lastStatus.companyName = companyName;
+        if (syncType !== undefined) this.lastStatus.syncType = syncType;
+        if (syncOperationStatus !== undefined) this.lastStatus.syncStatus = syncOperationStatus;
 
-        // Create UI update
+        this.lastStatus.timestamp = timestamp ? new Date(timestamp) : new Date();
+
+        // Create UI status object with safe falling back
+        const currentInternet = this.lastStatus.internet;
+        const currentTally = this.lastStatus.tally;
+        const currentHost = this.lastStatus.host || 'localhost';
+        const currentPort = this.lastStatus.port || 9000;
+
         const syncStatus = {
-            internet: internet ? '✅ Online' : '❌ Offline',
-            tally: tally ? '✅ Connected' : '❌ Disconnected',
-            host: `${host}:${port}`,
-            timestamp: new Date(timestamp).toLocaleTimeString(),
-            internetBool: internet,
-            tallyBool: tally,
-            companyName: companyName,
-            syncType: syncType,
-            syncStatus: syncOperationStatus
+            internet: currentInternet ? '✅ Online' : '❌ Offline',
+            tally: currentTally ? '✅ Connected' : '❌ Disconnected',
+            host: `${currentHost}:${currentPort}`,
+            timestamp: this.lastStatus.timestamp.toLocaleTimeString(),
+            internetBool: currentInternet,
+            tallyBool: currentTally,
+            companyName: this.lastStatus.companyName,
+            syncType: this.lastStatus.syncType,
+            syncStatus: this.lastStatus.syncStatus
         };
 
         console.log('Sync Status:', syncStatus);
@@ -197,7 +201,7 @@ class SyncController {
         if (window.notificationService) {
             let message = '';
             let notifStatus = 'info';
-            
+
             // Build notification message based on sync operation status
             if (syncOperationStatus === 'started' && companyName) {
                 message = `🔄 Syncing ${companyName}...`;
@@ -211,12 +215,12 @@ class SyncController {
             } else {
                 // Default connection status notification
                 const connectionStatus = internet && tally ? 'success' : 'warning';
-                message = companyName 
+                message = companyName
                     ? `${companyName} - Internet: ${syncStatus.internet} | Tally: ${syncStatus.tally}`
                     : `Internet: ${syncStatus.internet} | Tally: ${syncStatus.tally}`;
                 notifStatus = connectionStatus;
             }
-            
+
             window.notificationService.show(message, notifStatus);
         }
     }
@@ -229,7 +233,7 @@ class SyncController {
             if (window.notificationService) {
                 // Extract company name from error if available
                 const companyName = this.lastStatus.companyName;
-                const errorMessage = companyName 
+                const errorMessage = companyName
                     ? `❌ Sync Error (${companyName}): ${error}`
                     : `❌ Sync Error: ${error}`;
                 window.notificationService.show(errorMessage, 'error');
@@ -277,29 +281,29 @@ class SyncController {
         const syncCompanyName = document.getElementById('syncCompanyName');
 
         if (internetStatus) {
-            internetStatus.innerHTML = this.lastStatus.internet 
-                ? '<span class="status-label">🌐 Internet</span><span class="status-badge online">✅ CONNECTED</span>' 
+            internetStatus.innerHTML = this.lastStatus.internet
+                ? '<span class="status-label">🌐 Internet</span><span class="status-badge online">✅ CONNECTED</span>'
                 : '<span class="status-label">🌐 Internet</span><span class="status-badge offline">❌ DISCONNECTED</span>';
         }
 
         if (tallyStatus) {
-            tallyStatus.innerHTML = this.lastStatus.tally 
-                ? '<span class="status-label">🗄️ Tally Server</span><span class="status-badge online">✅ CONNECTED</span>' 
+            tallyStatus.innerHTML = this.lastStatus.tally
+                ? '<span class="status-label">🗄️ Tally Server</span><span class="status-badge online">✅ CONNECTED</span>'
                 : '<span class="status-label">🗄️ Tally Server</span><span class="status-badge offline">❌ DISCONNECTED</span>';
         }
 
         if (lastUpdateTime) {
-            const timeStr = this.lastStatus.timestamp 
-                ? this.lastStatus.timestamp.toLocaleTimeString() 
+            const timeStr = this.lastStatus.timestamp
+                ? this.lastStatus.timestamp.toLocaleTimeString()
                 : 'Never';
             lastUpdateTime.textContent = timeStr;
         }
 
         // Show current company being synced
         if (syncCompanyName && this.lastStatus.companyName) {
-            const statusIcon = this.lastStatus.syncStatus === 'completed' ? '✅' 
-                             : this.lastStatus.syncStatus === 'failed' ? '❌'
-                             : this.lastStatus.syncStatus === 'started' ? '🔄' : '📊';
+            const statusIcon = this.lastStatus.syncStatus === 'completed' ? '✅'
+                : this.lastStatus.syncStatus === 'failed' ? '❌'
+                    : this.lastStatus.syncStatus === 'started' ? '🔄' : '📊';
             syncCompanyName.innerHTML = `<span class="status-label">${statusIcon} Company</span><span class="status-value">${this.lastStatus.companyName}</span>`;
         }
     }

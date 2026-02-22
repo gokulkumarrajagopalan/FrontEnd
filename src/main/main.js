@@ -43,12 +43,12 @@ if (!isDev) {
 
 function createWindow() {
   if (isDev) console.log("🔥 createWindow called");
-  
+
   // Hide menu bar in production
   if (!isDev) {
     Menu.setApplicationMenu(null);
   }
-  
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 750,
@@ -105,10 +105,10 @@ function createWindow() {
   if (!isDev) {
     mainWindow.webContents.on('before-input-event', (event, input) => {
       // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
-      if (input.key === 'F12' || 
-          (input.control && input.shift && (input.key === 'I' || input.key === 'i')) ||
-          (input.control && input.shift && (input.key === 'J' || input.key === 'j')) ||
-          (input.control && (input.key === 'U' || input.key === 'u'))) {
+      if (input.key === 'F12' ||
+        (input.control && input.shift && (input.key === 'I' || input.key === 'i')) ||
+        (input.control && input.shift && (input.key === 'J' || input.key === 'j')) ||
+        (input.control && (input.key === 'U' || input.key === 'u'))) {
         event.preventDefault();
       }
     });
@@ -273,7 +273,7 @@ ipcMain.handle("show-system-notification", async (event, { title, body, urgency 
         silent: false
       });
       notification.show();
-      
+
       // Click to focus app window
       notification.on('click', () => {
         if (mainWindow) {
@@ -281,7 +281,7 @@ ipcMain.handle("show-system-notification", async (event, { title, body, urgency 
           mainWindow.focus();
         }
       });
-      
+
       return { success: true };
     }
     return { success: false, message: 'Notifications not supported' };
@@ -369,8 +369,7 @@ async function runWorkerCommand(mode, params = {}) {
       deviceToken: '--device-token',
       entityType: '--entity-type',
       maxAlterID: '--max-alter-id',
-      companyName: '--company-name',
-      batchSize: '--batch-size'
+      companyName: '--company-name'
     };
 
     for (const [key, flag] of Object.entries(argMapping)) {

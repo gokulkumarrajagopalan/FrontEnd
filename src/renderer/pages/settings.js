@@ -42,7 +42,7 @@
                     <div>
                         ${syncIntervalInput}
                         <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-2);">
-                            Automatically sync data from Tally at specified intervals (0 to disable)
+                            Automatically sync data from Tally at specified intervals (minimum 5 minutes)
                         </p>
                         
                         <div id="autoSyncStatus" style="display: none; margin-top: var(--ds-space-4);">
@@ -152,8 +152,8 @@
         if (isNaN(tallyPort) || tallyPort < 1 || tallyPort > 65535) {
             throw new Error('Port must be between 1 and 65535');
         }
-        if (isNaN(syncInterval) || syncInterval < 0) {
-            throw new Error('Interval must be a positive number');
+        if (isNaN(syncInterval) || syncInterval < 5) {
+            throw new Error('Sync Interval must be at least 5 minutes');
         }
         return true;
     }

@@ -31,6 +31,88 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def verify_tally_company(tally_url, expected_company_name):
+    """Verify that the expected company is loaded/open in Tally Prime.
+    
+    Tally's XML API silently returns data from the currently active company
+    if the requested company (via SVCOMPANY/SVCURRENTCOMPANY) is not loaded.
+    This pre-flight check prevents syncing wrong data with wrong company IDs.
+    
+    Returns: (is_loaded: bool, active_companies: list[str])
+    """
+    xml_req = """<ENVELOPE>
+<HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
+<BODY><EXPORTDATA>
+<REQUESTDESC>
+    <REPORTNAME>List of Companies</REPORTNAME>
+    <STATICVARIABLES>
+        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+    </STATICVARIABLES>
+</REQUESTDESC>
+</EXPORTDATA></BODY></ENVELOPE>"""
+
+    try:
+        resp = requests.post(tally_url, data=xml_req.encode('utf-8'),
+                             headers={'Content-Type': 'application/xml'},
+                             timeout=10)
+        if resp.status_code != 200:
+            logger.warning(f"⚠️ Could not verify Tally companies (HTTP {resp.status_code})")
+            return True, []  # Fail-open: proceed if we can't verify
+
+        text = clean_xml(resp.text)
+        root = ET.fromstring(text)
+        
+        # Extract all company names from Tally's response
+        companies = []
+        for elem in root.iter('COMPANY'):
+            name = elem.findtext('NAME') or elem.get('NAME', '')
+            if name:
+                companies.append(name.strip())
+        
+        # Also check SVCURRENTCOMPANY in TALLYMESSAGE
+        for elem in root.iter('TALLYMESSAGE'):
+            for child in elem:
+                if child.tag == 'COMPANY':
+                    name = child.get('NAME', '') or child.text or ''
+                    if name.strip() and name.strip() not in companies:
+                        companies.append(name.strip())
+
+        if not companies:
+            # Fallback: try finding company names in any text node
+            for elem in root.iter():
+                if elem.text and expected_company_name.lower() in elem.text.lower():
+                    logger.info(f"✅ Found company reference in Tally response")
+                    return True, [expected_company_name]
+            logger.warning(f"⚠️ Could not parse company list from Tally (empty)")
+            return True, []  # Fail-open
+
+        # Check if expected company is loaded (case-insensitive match)
+        expected_lower = expected_company_name.strip().lower()
+        for company in companies:
+            if company.lower() == expected_lower:
+                logger.info(f"✅ Company '{expected_company_name}' is loaded in Tally")
+                return True, companies
+        
+        # Fuzzy match: check for partial/substring matches
+        for company in companies:
+            if expected_lower in company.lower() or company.lower() in expected_lower:
+                logger.warning(f"⚠️ Partial company name match: expected='{expected_company_name}', found='{company}'")
+                logger.warning(f"⚠️ Please ensure company names match exactly between app and Tally")
+                return True, companies  # Allow partial match with warning
+        
+        logger.error(f"❌ Company '{expected_company_name}' is NOT loaded in Tally!")
+        logger.error(f"   Loaded companies: {companies}")
+        logger.error(f"   Tally will return data from the wrong company.")
+        return False, companies
+
+    except requests.exceptions.ConnectionError:
+        logger.error(f"❌ Cannot connect to Tally at {tally_url}")
+        return False, []
+    except Exception as e:
+        logger.warning(f"⚠️ Error verifying Tally company: {e}")
+        return True, []  # Fail-open on unexpected errors
+
+
 def parse_tally_date(date_str):
     """Convert Tally date formats (yyyyMMdd, dd-MMM-yyyy, etc.) to ISO yyyy-MM-dd."""
     if not date_str:
@@ -46,9 +128,16 @@ def parse_tally_date(date_str):
     return None
 
 
-def clean_xml(text):
-    """Remove invalid XML characters."""
-    return re.sub(r'[^\x09\x0A\x0D\x20-\x7E\x80-\xFF\u0100-\uFFFF]', '', text)
+def clean_xml(xml_string):
+    """Remove invalid XML characters and strip namespace prefixes (e.g. UDF:)"""
+    # Strip namespace prefixes like <UDF:FIELD> → <UDF_FIELD>
+    xml_string = re.sub(r'<(/?)([a-zA-Z_]+):([a-zA-Z_]+)', r'<\1\2_\3', xml_string)
+    # Remove invalid XML character entities that are non-printable
+    return re.sub(
+        r'&#([0-9]+);',
+        lambda m: '' if int(m.group(1)) < 32 and int(m.group(1)) not in [9, 10, 13] else m.group(0),
+        xml_string
+    )
 
 
 def fetch_bills_from_tally(tally_url, company_name, report_name):
@@ -63,7 +152,7 @@ def fetch_bills_from_tally(tally_url, company_name, report_name):
 <REQUESTDESC>
     <REPORTNAME>{report_name}</REPORTNAME>
     <STATICVARIABLES>
-        <SVCOMPANY>{company_name}</SVCOMPANY>
+        <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>
         <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
     </STATICVARIABLES>
 </REQUESTDESC>
@@ -185,12 +274,25 @@ def main():
 
         logger.info(f"Bills Outstanding Sync: company={company_name} (ID={company_id}), tally={tally_url}")
 
+        # Pre-flight check: verify company is loaded in Tally
+        if company_name:
+            is_loaded, loaded_companies = verify_tally_company(tally_url, company_name)
+            if not is_loaded:
+                error_msg = (f"Company '{company_name}' is not loaded in Tally. "
+                            f"Loaded companies: {loaded_companies}. "
+                            f"Aborting sync to prevent data mismatch.")
+                logger.error(error_msg)
+                print(json.dumps({'success': False, 'message': error_msg}))
+                return
+        else:
+            logger.warning("⚠️ No company name provided — cannot verify Tally company context")
+
         results = {}
 
         for report_name, report_type in [('Bills Receivable', 'receivable'), ('Bills Payable', 'payable')]:
-            logger.info(f"Fetching {report_name} from Tally...")
+            logger.info(f"Fetching {report_name} for '{company_name}' (forcing context)...")
             bills = fetch_bills_from_tally(tally_url, company_name, report_name)
-            logger.info(f"  -> {len(bills)} bills fetched")
+            logger.info(f"  -> {len(bills)} {report_type} bills fetched from Tally")
 
             if bills:
                 total = sum(b['pendingAmount'] for b in bills)

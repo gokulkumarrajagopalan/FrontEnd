@@ -18,8 +18,8 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(log_file, encoding='utf-8', mode='a'),  # 'a' appends to keep history
-        logging.StreamHandler()
+        logging.FileHandler(log_file, encoding='utf-8', mode='a'),
+        logging.StreamHandler(sys.stdout)  # Explicitly use stdout to avoid stderr being treated as IPC errors
     ]
 )
 logger = logging.getLogger(__name__)
@@ -53,13 +53,45 @@ class SyncWorker:
         except Exception as e:
             logger.error(f"Error reading settings: {e}")
         return False
+
+    def check_connectivity(self):
+        """Check internet and Tally server connectivity"""
+        import socket
+        import http.client
+        
+        internet = False
+        tally = False
+        
+        # Check Internet (Google DNS)
+        try:
+            socket.gethostbyname("www.google.com")
+            internet = True
+        except (socket.gaierror, socket.timeout):
+            internet = False
+            
+        # Check Tally
+        try:
+            conn = http.client.HTTPConnection("localhost", self.tally_port, timeout=2)
+            conn.request("HEAD", "/")
+            conn.getresponse()
+            tally = True
+            conn.close()
+        except Exception:
+            tally = False
+            
+        return internet, tally
     
     def send_status(self, status_type, data=None):
         """Send status update to Electron main process"""
         try:
+            internet, tally = self.check_connectivity()
             message = {
                 'type': status_type,
                 'timestamp': datetime.now().isoformat(),
+                'internet': internet,
+                'tally': tally,
+                'host': 'localhost',
+                'port': self.tally_port,
                 'data': data or {}
             }
             print(json.dumps(message), flush=True)
@@ -105,8 +137,14 @@ class SyncWorker:
         """Main sync loop that runs at specified intervals"""
         logger.info(f"Sync loop started with interval: {self.sync_interval} minutes")
         
+        heartbeat_counter = 0
         while self.running:
             try:
+                # Send heartbeat every 30 seconds (3 iterations of 10s sleep)
+                if heartbeat_counter >= 3:
+                    self.send_status('heartbeat')
+                    heartbeat_counter = 0
+                
                 if self.last_sync_time is None:
                     self.run_sync()
                 else:
@@ -117,6 +155,7 @@ class SyncWorker:
                         self.run_sync()
                 
                 time.sleep(10)
+                heartbeat_counter += 1
                 
             except Exception as e:
                 logger.error(f"Error in sync loop: {e}")

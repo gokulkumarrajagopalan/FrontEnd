@@ -39,6 +39,8 @@ try {
         nodeVersion: process.versions.node,
         chromeVersion: process.versions.chrome,
         electronVersion: process.versions.electron,
+        hostname: (() => { try { return require('os').hostname(); } catch (e) { return 'N/A'; } })(),
+        processor: (() => { try { const c = require('os').cpus(); return c && c.length ? c[0].model : 'N/A'; } catch (e) { return 'N/A'; } })(),
 
         // Configuration
         backendUrl: ipcRenderer.sendSync('get-backend-url-sync'),
@@ -84,12 +86,12 @@ try {
             ipcRenderer.on('sync-status', (event, data) => callback(data));
         },
 
-        fetchLicense: () => {
-            return ipcRenderer.invoke('fetch-license');
+        fetchLicense: (config) => {
+            return ipcRenderer.invoke('fetch-license', config || {});
         },
 
-        checkTallyConnection: () => {
-            return ipcRenderer.invoke('check-tally-connection');
+        checkTallyConnection: (config) => {
+            return ipcRenderer.invoke('check-tally-connection', config || {});
         },
 
         fetchCompanies: () => {
