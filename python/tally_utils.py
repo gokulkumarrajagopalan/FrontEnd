@@ -36,22 +36,24 @@ def get_common_args():
     
     # If positional arguments are provided, map them to named arguments if they are missing
     if args.pos_args:
-        # Expected legacy order: company_id, user_id, auth_token, device_token, tally_port, backend_url
+        # Standardized order: company_id, user_id, tally_host, tally_port, backend_url, auth_token, device_token
         if len(args.pos_args) >= 1 and args.company_id is None:
             try: args.company_id = int(args.pos_args[0])
             except ValueError: pass
         if len(args.pos_args) >= 2 and args.user_id is None:
             try: args.user_id = int(args.pos_args[1])
             except ValueError: pass
-        if len(args.pos_args) >= 3 and args.auth_token is None:
-            args.auth_token = args.pos_args[2]
-        if len(args.pos_args) >= 4 and args.device_token is None:
-            args.device_token = args.pos_args[3]
-        if len(args.pos_args) >= 5 and (args.tally_port == 9000 or args.tally_port is None):
-            try: args.tally_port = int(args.pos_args[4])
+        if len(args.pos_args) >= 3 and (args.tally_host == "localhost" or args.tally_host is None):
+            args.tally_host = args.pos_args[2]
+        if len(args.pos_args) >= 4 and (args.tally_port == 9000 or args.tally_port is None):
+            try: args.tally_port = int(args.pos_args[3])
             except ValueError: pass
-        if len(args.pos_args) >= 6 and (args.backend_url == os.getenv("BACKEND_URL") or args.backend_url is None):
-            args.backend_url = args.pos_args[5]
+        if len(args.pos_args) >= 5 and (args.backend_url == os.getenv("BACKEND_URL") or args.backend_url is None):
+            args.backend_url = args.pos_args[4]
+        if len(args.pos_args) >= 6 and args.auth_token is None:
+            args.auth_token = args.pos_args[5]
+        if len(args.pos_args) >= 7 and args.device_token is None:
+            args.device_token = args.pos_args[6]
             
     return args
 

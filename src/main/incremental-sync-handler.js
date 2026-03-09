@@ -1,6 +1,6 @@
 /**
  * Electron IPC Handler - Incremental Sync with Support for All Entity Types
- * Handles both single entity sync and full sync of all entities
+ * Uses bundled sync_worker.exe in production, Python fallback in dev
  */
 
 const { ipcMain, app } = require('electron');
@@ -8,6 +8,21 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { findPython } = require('./python-finder');
+
+function getWorkerExe() {
+    const isDev = !app.isPackaged;
+    if (isDev) {
+        const devExe = path.join(__dirname, '../../resources/bin/sync_worker.exe');
+        if (fs.existsSync(devExe)) {
+            return { command: devExe, useExe: true, cwd: path.dirname(devExe) };
+        }
+        return { command: findPython(), useExe: false, cwd: path.join(__dirname, '../../python') };
+    } else {
+        const exeName = process.platform === 'win32' ? 'sync_worker.exe' : 'sync_worker';
+        const exePath = path.join(process.resourcesPath, 'bin', exeName);
+        return { command: exePath, useExe: true, cwd: path.join(process.resourcesPath, 'bin') };
+    }
+}
 
 /**
  * Sync all entity types in correct dependency order
@@ -60,7 +75,8 @@ function syncSingleEntity(params) {
         const {
             companyId,
             userId,
-            tallyPort,
+            tallyHost = 'localhost',
+            tallyPort = 9000,
             backendUrl,
             authToken,
             deviceToken,
@@ -70,39 +86,51 @@ function syncSingleEntity(params) {
         } = params;
 
         const isDev = !app.isPackaged;
-        const pythonExe = findPython();
-        const pythonScript = isDev 
-            ? path.join(__dirname, '../../python/incremental_sync.py')
-            : path.join(process.resourcesPath, 'python/incremental_sync.py');
+        const { command, useExe, cwd } = getWorkerExe();
+        let args;
 
-        const args = [
-            pythonScript,
-            companyId.toString(),
-            userId.toString(),
-            tallyPort.toString(),
-            backendUrl,
-            authToken || '',
-            deviceToken || '',
-            entityType,
-            maxAlterID.toString()
-        ];
+        if (useExe) {
+            args = [
+                '--mode', 'incremental-sync',
+                '--company-id', companyId.toString(),
+                '--user-id', userId.toString(),
+                '--host', tallyHost,
+                '--port', tallyPort.toString(),
+                '--backend-url', backendUrl || '',
+                '--auth-token', authToken || '',
+                '--device-token', deviceToken || '',
+                '--entity-type', entityType,
+                '--max-alter-id', maxAlterID.toString()
+            ];
+            if (companyName) args.push('--company-name', companyName);
+        } else {
+            const pythonScript = path.join(__dirname, '../../python/incremental_sync.py');
+            args = [
+                pythonScript,
+                companyId.toString(),
+                userId.toString(),
+                tallyHost,
+                tallyPort.toString(),
+                backendUrl,
+                authToken || '',
+                deviceToken || '',
+                entityType,
+                maxAlterID.toString()
+            ];
+            if (companyName) args.push(companyName);
 
-        // Add company name if provided (for Tally context switching)
-        if (companyName) {
-            args.push(companyName);
+            if (!fs.existsSync(pythonScript)) {
+                resolve({
+                    success: false,
+                    message: `Python script not found: ${pythonScript}`,
+                    count: 0,
+                    exitCode: -1
+                });
+                return;
+            }
         }
 
-        if (!fs.existsSync(pythonScript)) {
-            resolve({
-                success: false,
-                message: `Python script not found: ${pythonScript}`,
-                count: 0,
-                exitCode: -1
-            });
-            return;
-        }
-
-        const python = spawn(pythonExe, args);
+        const python = spawn(command, args, { cwd });
 
         let stdout = '';
         let stderr = '';
@@ -139,7 +167,7 @@ function syncSingleEntity(params) {
         python.on('error', (error) => {
             resolve({
                 success: false,
-                message: `Failed to start Python: ${error.message}`,
+                message: `Failed to start: ${error.message}`,
                 count: 0,
                 exitCode: -1
             });
@@ -154,15 +182,13 @@ function registerIncrementalSyncHandler() {
     ipcMain.handle('incremental-sync', async (event, params) => {
         try {
             const {
-                syncMode = 'single',  // 'single' or 'all'
+                syncMode = 'single',
                 entityType = 'Ledger'
             } = params;
 
-            // If syncMode is 'all', sync all entity types in order
             if (syncMode === 'all') {
                 return await syncAllEntities(params);
             } else {
-                // Sync single entity type
                 return await syncSingleEntity(params);
             }
         } catch (error) {

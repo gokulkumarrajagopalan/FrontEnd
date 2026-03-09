@@ -39,8 +39,7 @@ try {
         nodeVersion: process.versions.node,
         chromeVersion: process.versions.chrome,
         electronVersion: process.versions.electron,
-        hostname: (() => { try { return require('os').hostname(); } catch (e) { return 'N/A'; } })(),
-        processor: (() => { try { const c = require('os').cpus(); return c && c.length ? c[0].model : 'N/A'; } catch (e) { return 'N/A'; } })(),
+        getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
 
         // Configuration
         backendUrl: ipcRenderer.sendSync('get-backend-url-sync'),

@@ -150,6 +150,25 @@ class BackgroundSyncScheduler {
                             };
                             const fromISO = company.booksStart || company.financialYearStart || '';
                             const _now = new Date();
+
+                            // Fetch last AlterID from backend instead of hardcoding 0
+                            // The Python sync_vouchers.py will also fetch it if we pass null/undefined,
+                            // but passing it explicitly avoids an extra HTTP call from the worker
+                            let cachedAlterID = null;
+                            try {
+                                const alterIdResp = await fetch(
+                                    `${window.apiConfig.baseURL}/api/companies/${company.id}/last-alter-id`,
+                                    { headers: { 'Authorization': `Bearer ${authToken}`, 'X-Device-Token': deviceToken } }
+                                );
+                                if (alterIdResp.ok) {
+                                    const alterIdData = await alterIdResp.json();
+                                    cachedAlterID = alterIdData.lastAlterID || 0;
+                                    console.log(`  📌 ${company.name}: Last voucher AlterID = ${cachedAlterID}`);
+                                }
+                            } catch (e) {
+                                console.warn(`  ⚠️ Could not fetch last AlterID, Python worker will handle it`);
+                            }
+
                             const vResult = await window.electronAPI.syncVouchers({
                                 companyId: company.id,
                                 userId: currentUser.userId,
@@ -160,10 +179,10 @@ class BackgroundSyncScheduler {
                                 companyGuid: company.companyGuid || company.guid || '',
                                 fromDate: _isoToTally(fromISO) || '01-Apr-2024',
                                 toDate: `${String(_now.getDate()).padStart(2,'0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`,
-                                lastAlterID: 0
+                                lastAlterID: cachedAlterID
                             });
                             if (vResult.success) {
-                                console.log(`  ✅ ${company.name}: Vouchers synced`);
+                                console.log(`  ✅ ${company.name}: Vouchers synced (count: ${vResult.count || 0})`);
                             } else {
                                 console.warn(`  ⚠️ ${company.name}: Voucher sync failed - ${vResult.message}`);
                             }

@@ -265,36 +265,121 @@
 
     async function refreshCompaniesFromDB() {
         const refreshBtn = document.getElementById('importMoreBtn');
+        const statusText = document.getElementById('tallyConnectionStatus');
+        const countElem = document.getElementById('tallyCompanyCount');
+
         if (refreshBtn) {
             refreshBtn.disabled = true;
-            refreshBtn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i></span><span>Loading...</span>';
+            refreshBtn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i></span><span>Refreshing...</span>';
         }
+
+        let dbCompanies = [];
+        let tallyFetchedCompanies = [];
+        let dbSuccess = false;
+        let tallySuccess = false;
+
+        // Step 1: Fetch from database
         try {
-            if (!window.authService || !window.authService.isAuthenticated()) {
-                showStatus('Please login to refresh companies', 'error');
-                return;
-            }
-            const headers = window.authService.getHeaders();
-            const response = await fetch(window.apiConfig.getUrl('/companies'), {
-                method: 'GET',
-                headers: headers
-            });
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success && Array.isArray(result.data)) {
-                    await displayCompanies(result.data.map(c => ({
-                        ...c,
-                        guid: c.companyGuid || c.guid
-                    })));
-                    showStatus(`Loaded ${result.data.length} companies`, 'success');
-                } else {
-                    showStatus('No companies found', 'info');
+            if (window.authService && window.authService.isAuthenticated()) {
+                const headers = window.authService.getHeaders();
+                const response = await fetch(window.apiConfig.getUrl('/companies'), {
+                    method: 'GET',
+                    headers: headers
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && Array.isArray(result.data)) {
+                        dbCompanies = result.data.map(c => ({
+                            ...c,
+                            guid: c.companyGuid || c.guid,
+                            source: 'db'
+                        }));
+                        dbSuccess = true;
+                    }
                 }
-            } else {
-                showStatus('Failed to load companies', 'error');
             }
         } catch (error) {
-            showStatus('Error loading companies: ' + error.message, 'error');
+            console.error('Error fetching companies from database:', error);
+        }
+
+        // Step 2: Fetch from Tally
+        try {
+            if (statusText) {
+                statusText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Connecting to Tally...';
+                statusText.style.color = 'var(--ds-text-secondary)';
+            }
+
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const tallyPort = appSettings.tallyPort || 9000;
+
+            if (window.electronAPI && window.electronAPI.invoke) {
+                const result = await window.electronAPI.invoke('fetch-companies', { tallyPort });
+                if (result.success && result.data && Array.isArray(result.data)) {
+                    tallyFetchedCompanies = result.data.map(c => ({ ...c, source: 'tally' }));
+                    tallySuccess = true;
+
+                    if (statusText) {
+                        statusText.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Connected';
+                        statusText.style.color = 'var(--ds-success-600)';
+                    }
+                    saveConnectionHistory('success', tallyFetchedCompanies.length, 'Refreshed successfully');
+                } else {
+                    if (statusText) {
+                        statusText.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Tally not reachable';
+                        statusText.style.color = 'var(--ds-error-600)';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching companies from Tally:', error);
+            if (statusText) {
+                statusText.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Tally not reachable';
+                statusText.style.color = 'var(--ds-error-600)';
+            }
+        }
+
+        // Step 3: Merge results — Tally companies take priority, DB companies fill in the rest
+        try {
+            let mergedCompanies = [];
+
+            if (tallySuccess && tallyFetchedCompanies.length > 0) {
+                // Use Tally companies as the primary list
+                mergedCompanies = [...tallyFetchedCompanies];
+                tallyCompanies = tallyFetchedCompanies; // Update the global list for import
+
+                // Add any DB-only companies that are not in Tally (already imported but no longer in Tally)
+                if (dbSuccess && dbCompanies.length > 0) {
+                    const tallyGuids = new Set(tallyFetchedCompanies.map(c => (c.guid || c.companyGuid || '').toUpperCase().trim()));
+                    dbCompanies.forEach(dbComp => {
+                        const dbGuid = (dbComp.guid || dbComp.companyGuid || '').toUpperCase().trim();
+                        if (dbGuid && !tallyGuids.has(dbGuid)) {
+                            mergedCompanies.push(dbComp);
+                        }
+                    });
+                }
+            } else if (dbSuccess && dbCompanies.length > 0) {
+                // Tally unavailable — show DB companies only
+                mergedCompanies = dbCompanies;
+                tallyCompanies = dbCompanies;
+            }
+
+            if (countElem) countElem.textContent = mergedCompanies.length;
+
+            if (mergedCompanies.length > 0) {
+                await displayCompanies(mergedCompanies);
+                const parts = [];
+                if (tallySuccess) parts.push(`${tallyFetchedCompanies.length} from Tally`);
+                if (dbSuccess) parts.push(`${dbCompanies.length} from database`);
+                showStatus(`Refreshed: ${parts.join(', ')} — ${mergedCompanies.length} total companies`, 'success');
+            } else {
+                if (!window.authService || !window.authService.isAuthenticated()) {
+                    showStatus('Please login to refresh companies', 'error');
+                } else {
+                    showStatus('No companies found. Ensure Tally is running and try again.', 'info');
+                }
+            }
+        } catch (error) {
+            showStatus('Error displaying companies: ' + error.message, 'error');
         } finally {
             if (refreshBtn) {
                 refreshBtn.disabled = false;

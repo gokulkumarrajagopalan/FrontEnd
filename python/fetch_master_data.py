@@ -14,7 +14,12 @@ import xml.etree.ElementTree as ET
 import re
 import os
 
-log_dir = os.path.dirname(os.path.abspath(__file__))
+import sys as _sys
+if getattr(_sys, 'frozen', False):
+    log_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Tallify', 'logs')
+else:
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, f'fetch_master_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
 
 logging.basicConfig(
@@ -45,10 +50,11 @@ class MasterDataFetcher:
         'StockItem': 'GUID, MASTERID, ALTERID, Name, UQC, OpeningBalance, OpeningValue'
     }
     
-    def __init__(self, company_name: str, tally_port: int = 9000):
+    def __init__(self, company_name: str, tally_host: str = 'localhost', tally_port: int = 9000):
         self.company_name = company_name
+        self.tally_host = tally_host
         self.tally_port = tally_port
-        self.tally_url = f"http://localhost:{tally_port}"
+        self.tally_url = f"http://{tally_host}:{tally_port}"
     
     def generate_tdl(self, master_type: str) -> str:
         """Generate TDL to fetch all records for a master type"""
@@ -183,12 +189,13 @@ def main():
             raise ValueError("Company name required")
         
         company_name = sys.argv[1]
-        tally_port = int(sys.argv[2]) if len(sys.argv) > 2 else 9000
-        is_first_sync = sys.argv[3].lower() == 'true' if len(sys.argv) > 3 else False
+        tally_host = sys.argv[2] if len(sys.argv) > 2 else 'localhost'
+        tally_port = int(sys.argv[3]) if len(sys.argv) > 3 else 9000
+        is_first_sync = sys.argv[4].lower() == 'true' if len(sys.argv) > 4 else False
         
         logger.info(f"Starting master data fetch for {company_name}")
         
-        fetcher = MasterDataFetcher(company_name, tally_port)
+        fetcher = MasterDataFetcher(company_name, tally_host, tally_port)
         master_data = fetcher.fetch_all()
         
         # Output as JSON

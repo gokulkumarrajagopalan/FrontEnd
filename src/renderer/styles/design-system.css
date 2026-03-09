@@ -358,8 +358,8 @@ body {
 }
 
 .ds-sidebar-header .brand-icon-image {
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
     display: block;
 }
 
@@ -370,7 +370,7 @@ body {
 }
 
 .ds-sidebar-brand-title {
-    font-size: var(--ds-text-lg);
+    font-size: var(--ds-text-xl);
     font-weight: var(--ds-weight-bold);
     color: var(--ds-sidebar-text);
     letter-spacing: var(--ds-tracking-tight);

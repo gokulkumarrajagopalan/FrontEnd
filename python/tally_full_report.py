@@ -1094,11 +1094,12 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Tally Full Report v2")
     parser.add_argument("--company", default=COMPANY_NAME)
+    parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", type=int, default=TALLY_PORT)
     args = parser.parse_args()
     COMPANY_NAME = args.company
     TALLY_PORT = args.port
-    TALLY_URL = f"http://localhost:{TALLY_PORT}"
+    TALLY_URL = f"http://{args.host}:{TALLY_PORT}"
 
     print("=" * 70)
     print(f"  TALLY FULL REPORT GENERATOR v2")

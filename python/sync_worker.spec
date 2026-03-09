@@ -2,11 +2,11 @@
 
 
 a = Analysis(
-    ['..\\..\\python\\sync_worker.py'],
-    pathex=['python'],
+    ['sync_worker.py'],
+    pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=['requests', 'urllib3', 'charset_normalizer', 'idna', 'certifi', 'json', 'xml.etree.ElementTree', 'tally_api', 'incremental_sync', 'reconciliation', 'sync_master', 'fetch_master_data', 'sync_vouchers', 'tally_utils', 'tally_report_generator', 'sync_logger', 'tally_license', 'sync_bills_outstanding', 'incremental_sync_master'],
+    hiddenimports=['requests', 'urllib3', 'charset_normalizer', 'idna', 'certifi'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

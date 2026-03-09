@@ -8,12 +8,18 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from sync_logger import get_sync_logger
+
 # Logging configuration
 LOG_LEVEL = os.getenv('SYNC_LOG_LEVEL', 'INFO')
 VERBOSE_MODE = os.getenv('SYNC_VERBOSE', 'false').lower() == 'true'
 
-# Create logs directory if it doesn't exist
-LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+# Create logs directory - use APPDATA when running as bundled exe
+import sys as _sys
+if getattr(_sys, 'frozen', False):
+    LOG_DIR = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Tallify', 'logs')
+else:
+    LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 RECONCILIATION_LOG_FILE = os.path.join(LOG_DIR, 'reconciliation.log')
 
@@ -138,10 +144,10 @@ class ReconciliationManager:
     </BODY>
 </ENVELOPE>"""
     
-    def fetch_from_tally(self, tdl: str, tally_port: int) -> Optional[str]:
+    def fetch_from_tally(self, tdl: str, tally_host: str, tally_port: int) -> Optional[str]:
         """Fetch data from Tally Prime"""
         try:
-            url = f"http://localhost:{tally_port}"
+            url = f"http://{tally_host}:{tally_port}"
             
             # Log the XML request being sent
             # logger.info(f"📤 Sending XML request to Tally on port {tally_port}")
@@ -274,14 +280,14 @@ class ReconciliationManager:
             return []
     
     def reconcile_entity(self, company_id: int, user_id: int, entity_type: str, 
-                        tally_port: int, company_name: str = None, books_from: str = None) -> Dict:
+                        tally_host: str, tally_port: int, company_name: str = None, books_from: str = None) -> Dict:
         """Reconcile specific entity type between Tally and Database"""
         
         logger.info(f"\n🔍 Reconciling {entity_type} for company {company_id}")
         
         # Step 1: Fetch ALL records from Tally (NO FILTER)
         tdl = self.generate_reconciliation_tdl(entity_type, company_name, books_from)
-        xml_response = self.fetch_from_tally(tdl, tally_port)
+        xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
         
         if not xml_response:
             error_msg = f"Failed to fetch {entity_type} from Tally"
@@ -391,8 +397,28 @@ class ReconciliationManager:
             'updateDetails': needs_update[:10] if needs_update else []
         }
         
-        # Log to reconcilation.txt
+        # Log to reconcilation.txt (legacy)
         self.log_reconciliation(company_id, entity_type, result)
+        
+        # Write to structured reconciliation log
+        try:
+            sync_logger = get_sync_logger()
+            unchanged = tally_count - len(missing_in_db) - len(needs_update)
+            sync_logger.log_reconciliation(
+                company_name=company_name or f'Company {company_id}',
+                entity_type=entity_type,
+                tally_count=tally_count,
+                db_count=db_count,
+                missing=len(missing_in_db),
+                updated=len(needs_update),
+                synced=synced_count,
+                unchanged=max(0, unchanged),
+                status='success',
+                missing_details=missing_in_db[:10] if missing_in_db else None,
+                update_details=needs_update[:10] if needs_update else None,
+            )
+        except Exception as log_err:
+            logger.debug(f"Sync logger write failed: {log_err}")
         
         return result
     

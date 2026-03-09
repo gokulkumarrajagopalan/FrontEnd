@@ -9,12 +9,18 @@ import xml.etree.ElementTree as ET
 import re
 import os
 
+from sync_logger import get_sync_logger
+
 # Production logging configuration
 LOG_LEVEL = os.getenv('SYNC_LOG_LEVEL', 'INFO')
 VERBOSE_MODE = os.getenv('SYNC_VERBOSE', 'false').lower() == 'true'
 
-# Create logs directory if it doesn't exist
-LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+# Create logs directory - use APPDATA when running as bundled exe
+import sys as _sys
+if getattr(_sys, 'frozen', False):
+    LOG_DIR = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Tallify', 'logs')
+else:
+    LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 INCREMENTAL_SYNC_LOG_FILE = os.path.join(LOG_DIR, 'incremental_sync.log')
 
@@ -64,7 +70,7 @@ class IncrementalSyncManager:
             'X-Device-Token': device_token
         }
     
-    def verify_tally_company(self, tally_port: int, expected_company_name: str) -> tuple:
+    def verify_tally_company(self, tally_host: str, tally_port: int, expected_company_name: str) -> tuple:
         """Verify that the expected company is loaded/open in Tally Prime.
         
         Tally's XML API silently returns data from the currently active company
@@ -84,7 +90,7 @@ class IncrementalSyncManager:
 </REQUESTDESC>
 </EXPORTDATA></BODY></ENVELOPE>"""
 
-        tally_url = f"http://localhost:{tally_port}"
+        tally_url = f"http://{tally_host}:{tally_port}"
         try:
             resp = requests.post(tally_url, data=xml_req.encode('utf-8'),
                                  headers={'Content-Type': 'application/xml'},
@@ -241,10 +247,14 @@ class IncrementalSyncManager:
         try:
             url = f"{self.backend_url}/companies/{company_id}/sync-status"
             
+            # Format datetime as yyyy-MM-dd'T'HH:mm:ss.SSS (3-digit millis) to match backend @JsonFormat
+            now = datetime.now()
+            formatted_now = now.strftime('%Y-%m-%dT%H:%M:%S.') + f'{now.microsecond // 1000:03d}'
+            
             payload = {
                 'syncStatus': sync_status if success else 'failed',
-                'lastSyncDate': datetime.now().isoformat() if success else None,
-                'updatedAt': datetime.now().isoformat()
+                'lastSyncDate': formatted_now if success else None,
+                'updatedAt': formatted_now
             }
             
             response = requests.put(url, json=payload, headers=self.headers, timeout=10)
@@ -367,10 +377,10 @@ class IncrementalSyncManager:
     </BODY>
 </ENVELOPE>"""
     
-    def fetch_from_tally(self, tdl: str, tally_port: int) -> Optional[str]:
+    def fetch_from_tally(self, tdl: str, tally_host: str, tally_port: int) -> Optional[str]:
         """Fetch data from Tally Prime"""
         try:
-            url = f"http://localhost:{tally_port}"
+            url = f"http://{tally_host}:{tally_port}"
             
             # Log the XML request being sent
             # logger.info(f"📤 Sending XML request to Tally on port {tally_port}")
@@ -997,7 +1007,7 @@ class IncrementalSyncManager:
             logger.warning(f"⚠️ Error during reconciliation: {e}")
             return {'success': False, 'message': str(e)}
     
-    def sync_incremental(self, company_id: int, user_id: int, tally_port: int, 
+    def sync_incremental(self, company_id: int, user_id: int, tally_host: str, tally_port: int, 
                         entity_type: str = 'Ledger', endpoint: str = None,
                         is_first_sync: bool = False, last_alter_id: int = None, 
                         company_name: str = None, books_from: str = None) -> Dict:
@@ -1036,7 +1046,7 @@ class IncrementalSyncManager:
         
         # Pre-flight check: verify company is loaded in Tally
         if company_name:
-            is_loaded, loaded_companies = self.verify_tally_company(tally_port, company_name)
+            is_loaded, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
             if not is_loaded:
                 error_msg = (f"Company '{company_name}' is not loaded in Tally. "
                            f"Loaded: {loaded_companies}. Aborting to prevent data mismatch.")
@@ -1055,7 +1065,7 @@ class IncrementalSyncManager:
         # Fetch from Tally
         if VERBOSE_MODE:
             logger.debug("Fetching from Tally Prime...")
-        xml_response = self.fetch_from_tally(tdl, tally_port)
+        xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
         
         if not xml_response:
             logger.error(f"Failed to fetch {entity_type} from Tally")
@@ -1110,6 +1120,24 @@ class IncrementalSyncManager:
         if VERBOSE_MODE or total_saved > 0:
             logger.info(f"✅ Synced {total_saved} {entity_type}(s) | Last AlterID: {max_alter_id}")
         
+        # Write to structured incremental sync log
+        try:
+            sync_logger = get_sync_logger()
+            total_tally = len(records)
+            sync_logger.log_incremental(
+                company_name=company_name or f'Company {company_id}',
+                entity_type=entity_type,
+                synced=total_saved,
+                updated=0,
+                unchanged=max(0, total_tally - total_saved),
+                total_tally=total_tally,
+                total_db=total_saved,
+                alter_id=max_alter_id,
+                status='success',
+            )
+        except Exception as log_err:
+            logger.debug(f"Sync logger write failed: {log_err}")
+        
         return {
             'success': True,
             'message': f'Successfully synced {total_saved} {entity_type}s',
@@ -1122,14 +1150,15 @@ def main():
     """Main sync function"""
     try:
         # Parse arguments
-        company_id = sys.argv[1] if len(sys.argv) > 1 else '1'  # Can be 'all' or specific ID
+        company_id = sys.argv[1] if len(sys.argv) > 1 else '1'
         user_id = int(sys.argv[2]) if len(sys.argv) > 2 else 1
-        tally_port = int(sys.argv[3]) if len(sys.argv) > 3 else 9000
-        backend_url = sys.argv[4] if len(sys.argv) > 4 else os.getenv('BACKEND_URL')
-        auth_token = sys.argv[5] if len(sys.argv) > 5 else ''
-        device_token = sys.argv[6] if len(sys.argv) > 6 else ''
-        entity_type = sys.argv[7] if len(sys.argv) > 7 else 'Ledger'
-        max_alter_id = int(sys.argv[8]) if len(sys.argv) > 8 else 0  # Max alterID from database
+        tally_host = sys.argv[3] if len(sys.argv) > 3 else 'localhost'
+        tally_port = int(sys.argv[4]) if len(sys.argv) > 4 else 9000
+        backend_url = sys.argv[5] if len(sys.argv) > 5 else os.getenv('BACKEND_URL')
+        auth_token = sys.argv[6] if len(sys.argv) > 6 else ''
+        device_token = sys.argv[7] if len(sys.argv) > 7 else ''
+        entity_type = sys.argv[8] if len(sys.argv) > 8 else 'Ledger'
+        max_alter_id = int(sys.argv[9]) if len(sys.argv) > 9 else 0
         
         # Log sync start
         logger.info("="*80)
@@ -1238,6 +1267,7 @@ def main():
                         result = sync_manager.sync_incremental(
                             company_id=cmp_id,
                             user_id=user_id,
+                            tally_host=tally_host,
                             tally_port=tally_port,
                             entity_type=sync_entity,
                             endpoint=sync_endpoint,
@@ -1296,6 +1326,7 @@ def main():
                     result = sync_manager.sync_incremental(
                         company_id=cmp_id,
                         user_id=user_id,
+                        tally_host=tally_host,
                         tally_port=tally_port,
                         entity_type=entity_type,
                         endpoint=endpoint,
@@ -1408,6 +1439,7 @@ def main():
                     result = sync_manager.sync_incremental(
                         company_id=company_id,
                         user_id=user_id,
+                        tally_host=tally_host,
                         tally_port=tally_port,
                         entity_type=current_entity_type,
                         endpoint=endpoint,
@@ -1503,6 +1535,7 @@ def main():
             result = sync_manager.sync_incremental(
                 company_id=company_id,
                 user_id=user_id,
+                tally_host=tally_host,
                 tally_port=tally_port,
                 entity_type=entity_type,
                 endpoint=endpoint,

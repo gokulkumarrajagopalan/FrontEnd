@@ -1,10 +1,6 @@
 /**
  * Electron IPC Handler - Bills Outstanding Sync
- * Spawns standalone Python script to fetch bills from Tally's built-in
- * "Bills Receivable" / "Bills Payable" reports and push to Backend.
- *
- * This bypasses sync_worker.exe entirely (the compiled exe doesn't have
- * this mode), mirroring the pattern used by voucher-sync-handler.js.
+ * Uses bundled sync_worker.exe in production, Python fallback in dev
  */
 
 const { ipcMain, app } = require('electron');
@@ -13,6 +9,21 @@ const path = require('path');
 const fs = require('fs');
 const { findPython } = require('./python-finder');
 
+function getWorkerExe() {
+    const isDev = !app.isPackaged;
+    if (isDev) {
+        const devExe = path.join(__dirname, '../../resources/bin/sync_worker.exe');
+        if (fs.existsSync(devExe)) {
+            return { command: devExe, useExe: true, cwd: path.dirname(devExe) };
+        }
+        return { command: findPython(), useExe: false, cwd: path.join(__dirname, '../../python') };
+    } else {
+        const exeName = process.platform === 'win32' ? 'sync_worker.exe' : 'sync_worker';
+        const exePath = path.join(process.resourcesPath, 'bin', exeName);
+        return { command: exePath, useExe: true, cwd: path.join(process.resourcesPath, 'bin') };
+    }
+}
+
 /**
  * Sync bills outstanding for a single company
  */
@@ -20,6 +31,7 @@ function syncBillsOutstanding(params) {
     return new Promise((resolve) => {
         const {
             companyId,
+            tallyHost = 'localhost',
             tallyPort = 9000,
             backendUrl,
             authToken,
@@ -28,42 +40,50 @@ function syncBillsOutstanding(params) {
         } = params;
 
         const isDev = !app.isPackaged;
-        const pythonExe = findPython();
-        const pythonScript = isDev
-            ? path.join(__dirname, '../../python/sync_bills_outstanding.py')
-            : path.join(process.resourcesPath, 'python/sync_bills_outstanding.py');
+        const { command, useExe, cwd } = getWorkerExe();
+        let args;
 
-        const args = [
-            pythonScript,
-            (companyId || 1).toString(),
-            (tallyPort || 9000).toString(),
-            backendUrl || '',
-            authToken || '',
-            deviceToken || '',
-            companyName || ''
-        ];
+        if (useExe) {
+            args = [
+                '--mode', 'sync-bills-outstanding',
+                '--company-id', (companyId || 1).toString(),
+                '--host', tallyHost,
+                '--port', (tallyPort || 9000).toString(),
+                '--backend-url', backendUrl || '',
+                '--auth-token', authToken || '',
+                '--device-token', deviceToken || ''
+            ];
+            if (companyName) args.push('--company-name', companyName);
+        } else {
+            const pythonScript = path.join(__dirname, '../../python/sync_bills_outstanding.py');
+            args = [
+                pythonScript,
+                (companyId || 1).toString(),
+                tallyHost,
+                (tallyPort || 9000).toString(),
+                backendUrl || '',
+                authToken || '',
+                deviceToken || '',
+                companyName || ''
+            ];
+
+            if (!fs.existsSync(pythonScript)) {
+                const errMsg = `Python script not found: ${pythonScript}`;
+                if (isDev) console.error(`❌ ${errMsg}`);
+                resolve({ success: false, message: errMsg });
+                return;
+            }
+        }
 
         if (isDev) {
             console.log(`\n${'='.repeat(60)}`);
             console.log(`💰 BILLS OUTSTANDING SYNC STARTED`);
             console.log(`   Company: ${companyName || companyId}`);
-            console.log(`   Tally Port: ${tallyPort}`);
-            console.log(`   Python: ${pythonExe}`);
+            console.log(`   Using: ${useExe ? 'EXE' : 'Python'}`);
             console.log(`${'='.repeat(60)}`);
         }
 
-        // Verify script exists
-        if (!fs.existsSync(pythonScript)) {
-            const errMsg = `Python script not found: ${pythonScript}`;
-            if (isDev) console.error(`❌ ${errMsg}`);
-            resolve({
-                success: false,
-                message: errMsg
-            });
-            return;
-        }
-
-        const python = spawn(pythonExe, args);
+        const python = spawn(command, args, { cwd });
         let stdout = '';
         let stderr = '';
 
@@ -86,7 +106,6 @@ function syncBillsOutstanding(params) {
             }
 
             try {
-                // Find last JSON line in stdout (Python may log before the JSON)
                 const lines = stdout.trim().split('\n');
                 let resultJson = null;
 
@@ -127,7 +146,7 @@ function syncBillsOutstanding(params) {
             if (isDev) console.error(`❌ Failed to start bills sync: ${error.message}`);
             resolve({
                 success: false,
-                message: `Failed to start Python: ${error.message}`
+                message: `Failed to start: ${error.message}`
             });
         });
     });

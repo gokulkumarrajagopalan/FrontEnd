@@ -49,13 +49,17 @@ class LicenseValidator {
     /**
      * Validate Tally license against user's license
      * @param {string|number} userLicenseNumber - User's license number from authentication
+     * @param {string} tallyHost - Tally host (IP or URL)
      * @param {number} tallyPort - Tally port number
      * @returns {Promise<{isValid: boolean, message: string, tallyLicense?: string, userLicense?: string}>}
      */
-    static async validateLicense(userLicenseNumber, tallyPort = 9000) {
+    static async validateLicense(userLicenseNumber, tallyHost = 'localhost', tallyPort = 9000) {
+        if (/^\d+$/.test(String(tallyHost).trim())) tallyHost = 'localhost';
+        tallyHost = String(tallyHost).replace(/^https?:\/\//i, '');
         try {
             console.log('🔐 Starting license validation...');
             console.log(`   User License: ${userLicenseNumber}`);
+            console.log(`   Tally Host: ${tallyHost}`);
             console.log(`   Tally Port: ${tallyPort}`);
 
             // Get user's license number
@@ -70,7 +74,7 @@ class LicenseValidator {
             }
 
             // Fetch license from Tally
-            const tallyLicense = await this.fetchTallyLicense(tallyPort);
+            const tallyLicense = await this.fetchTallyLicense(tallyHost, tallyPort);
 
             if (!tallyLicense) {
                 return {
@@ -135,16 +139,19 @@ class LicenseValidator {
 
     /**
      * Fetch license number from Tally
+     * @param {string} tallyHost - Tally host
      * @param {number} tallyPort - Tally port number
      * @returns {Promise<string|null>}
      */
-    static async fetchTallyLicense(tallyPort) {
+    static async fetchTallyLicense(tallyHost = 'localhost', tallyPort = 9000) {
+        if (/^\d+$/.test(String(tallyHost).trim())) tallyHost = 'localhost';
+        tallyHost = String(tallyHost).replace(/^https?:\/\//i, '');
         try {
             if (!window.electronAPI || !window.electronAPI.invoke) {
                 throw new Error('Electron API not available');
             }
 
-            const response = await window.electronAPI.invoke('fetch-license', { tallyPort });
+            const response = await window.electronAPI.invoke('fetch-license', { tallyHost, tallyPort });
 
             if (response.success && response.data && response.data.license_number) {
                 return response.data.license_number;
@@ -236,18 +243,19 @@ class LicenseValidator {
     /**
      * Validate and show popup if invalid
      * @param {string|number} userLicenseNumber - User's license number
+     * @param {string} tallyHost - Tally host
      * @param {number} tallyPort - Tally port number
      * @returns {Promise<boolean>} - Returns true if valid, false if invalid
      */
-    static async validateAndNotify(userLicenseNumber, tallyPort = 9000) {
+    static async validateAndNotify(userLicenseNumber, tallyHost = 'localhost', tallyPort = 9000) {
         // First check if Tally is connected/license fetchable
-        const validationResult = await this.validateLicense(userLicenseNumber, tallyPort);
+        const validationResult = await this.validateLicense(userLicenseNumber, tallyHost, tallyPort);
 
         // CASE 1: Tally Not Connected (tallyLicense is null/undefined)
         if (!validationResult.tallyLicense && !validationResult.isValid) {
             const msg = `
                 <div class="text-left">
-                    <p class="mb-2 text-gray-700">Unable to reach Tally on port <strong>${tallyPort}</strong>.</p>
+                    <p class="mb-2 text-gray-700">Unable to reach Tally at <strong>http://${tallyHost}:${tallyPort}</strong>.</p>
                     <p class="text-sm text-blue-900 font-semibold">Tally is not opened, please connect.</p>
                 </div>
             `;

@@ -7,7 +7,12 @@ import xml.etree.ElementTree as ET
 import re
 import os
 
-log_dir = os.path.dirname(os.path.abspath(__file__))
+import sys as _sys
+if getattr(_sys, 'frozen', False):
+    log_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Tallify', 'logs')
+else:
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, f'incremental_sync_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
 
 logging.basicConfig(
@@ -40,7 +45,8 @@ class IncrementalSync:
     
     DEFAULT_ALTER_ID = 219
     
-    def __init__(self, tally_port: int = 9000, company_name: str = None):
+    def __init__(self, tally_host: str = 'localhost', tally_port: int = 9000, company_name: str = None):
+        self.tally_host = tally_host
         self.tally_port = tally_port
         self.company_name = company_name
     
@@ -90,7 +96,7 @@ class IncrementalSync:
     def fetch_from_tally(self, tdl: str) -> Optional[str]:
         """Fetch data from Tally"""
         try:
-            url = f"http://localhost:{self.tally_port}"
+            url = f"http://{self.tally_host}:{self.tally_port}"
             response = requests.post(
                 url,
                 data=tdl,
@@ -187,11 +193,12 @@ class IncrementalSync:
 
 def main():
     try:
-        tally_port = int(sys.argv[1]) if len(sys.argv) > 1 else 9000
-        last_alter_id = int(sys.argv[2]) if len(sys.argv) > 2 else None
-        company_name = sys.argv[3] if len(sys.argv) > 3 else None
+        tally_host = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
+        tally_port = int(sys.argv[2]) if len(sys.argv) > 2 else 9000
+        last_alter_id = int(sys.argv[3]) if len(sys.argv) > 3 else None
+        company_name = sys.argv[4] if len(sys.argv) > 4 else None
         
-        syncer = IncrementalSync(tally_port, company_name)
+        syncer = IncrementalSync(tally_host, tally_port, company_name)
         result = syncer.sync(last_alter_id)
         
         logger.info(f"Result: {result['totalRecords']} records synced")

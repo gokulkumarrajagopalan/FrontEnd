@@ -19,9 +19,22 @@
             placeholder: 'All Sync Status',
             options: [
                 { value: 'synced', label: 'Synced' },
-                { value: 'pending', label: 'Pending' },
-                { value: 'error', label: 'Error' }
+                { value: 'pending', label: 'Pending' }
             ]
+        });
+
+        const syncDetailsModal = window.UIComponents.modal({
+            id: 'syncDetailsModal',
+            title: 'Company Details',
+            content: '<div id="modalContent"></div>',
+            size: 'lg'
+        });
+
+        const removeConfirmModal = window.UIComponents.modal({
+            id: 'removeConfirmModal',
+            title: 'Remove Company',
+            content: '<div id="removeConfirmContent"></div>',
+            size: 'sm'
         });
 
         return window.Layout.page({
@@ -30,6 +43,11 @@
             headerActions: importBtn,
             content: `
                 <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                    <div style="background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default);">
+                        <div style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-1);">Subscription Details</div>
+                        <div style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: var(--ds-text-primary);">Tally License: <span style="font-family: var(--ds-font-mono);">*****2698</span></div>
+                    </div>
+
                     <div style="display: flex; gap: var(--ds-space-4); background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl);">
                         <div style="flex: 1;">${searchInput}</div>
                         <div style="width: 200px;">${syncFilter}</div>
@@ -39,6 +57,8 @@
                         ${window.UIComponents.spinner({ size: 'md', text: 'Loading companies...' })}
                     </div>
                 </div>
+                ${syncDetailsModal}
+                ${removeConfirmModal}
             `
         });
     };
@@ -284,9 +304,12 @@
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             const userLicense = currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            let tallyHost = appSettings.tallyHost || 'localhost';
+            tallyHost = tallyHost.replace(/^https?:\/\//i, '');
+            if (/^\d+$/.test(tallyHost.trim())) tallyHost = 'localhost';
             const tallyPort = appSettings.tallyPort || 9000;
 
-            const isValid = await window.LicenseValidator.validateAndNotify(userLicense, tallyPort);
+            const isValid = await window.LicenseValidator.validateAndNotify(userLicense, tallyHost, tallyPort);
             if (!isValid) {
                 console.error('❌ License validation failed - sync aborted');
                 resetButton();
@@ -343,8 +366,11 @@
                 throw new Error('Authentication required. Please log in again.');
             }
 
-            // Get settings for Tally port and backend URL
+            // Get settings for Tally host, port and backend URL
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            let tallyHost = appSettings.tallyHost || 'localhost';
+            tallyHost = tallyHost.replace(/^https?:\/\//i, '');
+            if (/^\d+$/.test(tallyHost.trim())) tallyHost = 'localhost';
             const tallyPort = appSettings.tallyPort || 9000;
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
 
@@ -400,6 +426,7 @@
                     userId: currentUser?.userId,
                     authToken: authToken,
                     deviceToken: deviceToken,
+                    tallyHost: tallyHost,
                     tallyPort: tallyPort,
                     backendUrl: backendUrl,
                     companyName: company.name
@@ -628,7 +655,7 @@
 
             const infoBtn = document.getElementById(`btn-info-${company.id}`);
             if (infoBtn) {
-                infoBtn.onclick = () => showSyncDetails(company);
+                infoBtn.onclick = () => confirmRemoveCompany(company);
             }
         });
 
@@ -646,9 +673,86 @@
         updateSyncButtonStates();
     }
 
+    async function removeCompany(companyId) {
+        try {
+            const headers = window.authService.getHeaders();
+            const response = await fetch(window.apiConfig.getUrl(`/companies/${companyId}`), {
+                method: 'DELETE',
+                headers: headers
+            });
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    companies = companies.filter(c => c.id !== companyId);
+                    renderTable();
+                    if (window.UIComponents.toast) {
+                        window.UIComponents.toast({ message: 'Company removed successfully', type: 'success' });
+                    }
+                } else {
+                    throw new Error(result.message || 'Failed to remove company');
+                }
+            } else {
+                throw new Error(`Server returned ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error removing company:', error);
+            if (window.UIComponents.toast) {
+                window.UIComponents.toast({ message: `Error: ${error.message}`, type: 'error' });
+            } else {
+                alert(`Failed to remove company: ${error.message}`);
+            }
+        }
+    }
+
+    function confirmRemoveCompany(company) {
+        const modal = document.getElementById('removeConfirmModal');
+        const content = document.getElementById('removeConfirmContent');
+        if (!modal || !content) {
+            if (confirm(`Are you sure you want to remove "${company.name}"? This will delete all synced data for this company.`)) {
+                removeCompany(company.id);
+            }
+            return;
+        }
+
+        content.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: var(--ds-space-4); padding: var(--ds-space-2) 0;">
+                <div style="display: flex; align-items: center; gap: var(--ds-space-3);">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--ds-bg-danger-subtle, #fee2e2); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--ds-text-danger, #dc2626); font-size: 18px;"></i>
+                    </div>
+                    <div>
+                        <p style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Remove "${company.name}"?</p>
+                        <p style="font-size: var(--ds-text-sm); color: var(--ds-text-secondary); margin: 4px 0 0 0;">This will permanently delete all synced data for this company.</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: var(--ds-space-3); justify-content: flex-end; padding-top: var(--ds-space-2);">
+                    <button id="cancelRemoveBtn" class="btn" style="padding: 8px 20px; border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default); background: var(--ds-bg-surface); color: var(--ds-text-primary); cursor: pointer;">Cancel</button>
+                    <button id="confirmRemoveBtn" class="btn" style="padding: 8px 20px; border-radius: var(--ds-radius-lg); background: var(--ds-bg-danger, #dc2626); color: white; border: none; cursor: pointer;">Remove</button>
+                </div>
+            </div>
+        `;
+
+        modal.style.display = 'flex';
+
+        document.getElementById('cancelRemoveBtn').onclick = () => { modal.style.display = 'none'; };
+        document.getElementById('confirmRemoveBtn').onclick = async () => {
+            const confirmBtn = document.getElementById('confirmRemoveBtn');
+            const cancelBtn = document.getElementById('cancelRemoveBtn');
+            // Show loading state
+            confirmBtn.disabled = true;
+            cancelBtn.disabled = true;
+            confirmBtn.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;"><svg class="sync-spinner" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M22 12a10 10 0 0 1-10 10" stroke-linecap="round"></path></svg> Removing...</span>`;
+            confirmBtn.style.opacity = '0.7';
+            cancelBtn.style.opacity = '0.5';
+            await removeCompany(company.id);
+            modal.style.display = 'none';
+        };
+    }
+
     function showSyncDetails(company) {
         const modal = document.getElementById('syncDetailsModal');
         const content = document.getElementById('modalContent');
+        if (!modal || !content) return;
 
         const lastSync = company.lastSyncDate ? new Date(company.lastSyncDate).toLocaleString() : 'Never';
         const imported = company.importedDate ? new Date(company.importedDate).toLocaleString() : '--';

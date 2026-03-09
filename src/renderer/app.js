@@ -559,7 +559,7 @@ class App {
                     <!-- Brand Header -->
                     <div class="ds-sidebar-header" id="expandedHeader">
                         <div class="brand-icon-wrapper" aria-label="Talliffy" title="Talliffy">
-                            <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image" style="width: 36px; height: 36px;" />
+                            <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image" style="width: 48px; height: 48px;" />
                         </div>
                         <div class="ds-sidebar-brand-text">
                             <span class="ds-sidebar-brand-title">Talliffy</span>

@@ -56,7 +56,7 @@ class VoucherSyncManager:
             'X-Device-Token': device_token
         }
     
-    def verify_tally_company(self, tally_port: int, expected_company_name: str) -> tuple:
+    def verify_tally_company(self, tally_host: str, tally_port: int, expected_company_name: str) -> tuple:
         """Verify that the expected company is loaded/open in Tally Prime.
         
         Returns: (is_loaded: bool, active_companies: list[str])
@@ -72,7 +72,7 @@ class VoucherSyncManager:
 </REQUESTDESC>
 </EXPORTDATA></BODY></ENVELOPE>"""
 
-        tally_url = f"http://localhost:{tally_port}"
+        tally_url = f"http://{tally_host}:{tally_port}"
         try:
             resp = requests.post(tally_url, data=xml_req.encode('utf-8'),
                                  headers={'Content-Type': 'application/xml'},
@@ -131,12 +131,12 @@ class VoucherSyncManager:
     def get_last_alter_id(self, company_id: int) -> int:
         """Fetch last synced voucher AlterID from backend"""
         try:
-            url = f"{self.backend_url}/api/companies/{company_id}/voucher-alter-id"
+            url = f"{self.backend_url}/api/companies/{company_id}/last-alter-id"
             response = requests.get(url, headers=self.headers, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
-                last_id = data.get('lastVoucherAlterID', 0)
+                last_id = data.get('lastAlterID', 0)
                 logger.info(f"📌 Last synced voucher AlterID: {last_id}")
                 return last_id
             else:
@@ -149,10 +149,10 @@ class VoucherSyncManager:
     def save_last_alter_id(self, company_id: int, alter_id: int) -> bool:
         """Save last synced voucher AlterID to backend"""
         try:
-            url = f"{self.backend_url}/api/companies/{company_id}/voucher-alter-id"
+            url = f"{self.backend_url}/api/companies/{company_id}/last-alter-id"
             payload = {
-                'lastVoucherAlterID': alter_id,
-                'lastSyncTime': datetime.now().isoformat()
+                'lastAlterID': alter_id,
+                'entityType': 'Voucher'
             }
             response = requests.post(url, json=payload, headers=self.headers, timeout=10)
             return response.status_code in [200, 201]
@@ -366,10 +366,10 @@ class VoucherSyncManager:
     
     # ─── Fetch from Tally ────────────────────────────────────────────
     
-    def fetch_from_tally(self, tdl: str, tally_port: int) -> Optional[str]:
+    def fetch_from_tally(self, tdl: str, tally_host: str, tally_port: int) -> Optional[str]:
         """Fetch voucher XML from Tally"""
         try:
-            url = f"http://localhost:{tally_port}"
+            url = f"http://{tally_host}:{tally_port}"
             response = requests.post(
                 url,
                 data=tdl,
@@ -791,7 +791,7 @@ class VoucherSyncManager:
     # ─── Main Sync Orchestrator ──────────────────────────────────────
     
     def sync_vouchers(self, company_id: int, company_guid: str, user_id: int,
-                      tally_port: int, from_date: str = '01-Apr-2024',
+                      tally_host: str, tally_port: int, from_date: str = '01-Apr-2024',
                       to_date: str = '31-Mar-2025', last_alter_id: int = None,
                       company_name: str = None) -> Dict:
         """Execute incremental voucher sync pipeline:
@@ -809,7 +809,7 @@ class VoucherSyncManager:
         
         # Pre-flight check: verify company is loaded in Tally
         if company_name:
-            is_loaded, loaded_companies = self.verify_tally_company(tally_port, company_name)
+            is_loaded, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
             if not is_loaded:
                 error_msg = (f"Company '{company_name}' is not loaded in Tally. "
                            f"Loaded: {loaded_companies}. Aborting to prevent data mismatch.")
@@ -826,7 +826,7 @@ class VoucherSyncManager:
         tdl = self.generate_voucher_tdl(last_alter_id, from_date, to_date, company_name)
         
         # Step 3: Fetch from Tally
-        xml_response = self.fetch_from_tally(tdl, tally_port)
+        xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
         
         if not xml_response:
             return {
@@ -913,15 +913,16 @@ def main():
         # Parse arguments (same order as incremental_sync.py for consistency)
         company_id = int(sys.argv[1]) if len(sys.argv) > 1 else 1
         company_guid = sys.argv[2] if len(sys.argv) > 2 else ''
-        tally_port = int(sys.argv[3]) if len(sys.argv) > 3 else 9000
-        backend_url = sys.argv[4] if len(sys.argv) > 4 else os.getenv('BACKEND_URL', '')
-        auth_token = sys.argv[5] if len(sys.argv) > 5 else ''
-        device_token = sys.argv[6] if len(sys.argv) > 6 else ''
-        from_date = sys.argv[7] if len(sys.argv) > 7 else '01-Apr-2024'
-        to_date = sys.argv[8] if len(sys.argv) > 8 else '31-Mar-2025'
-        last_alter_id = int(sys.argv[9]) if len(sys.argv) > 9 else None
-        company_name = sys.argv[10] if len(sys.argv) > 10 else None
-        user_id = int(sys.argv[11]) if len(sys.argv) > 11 else 1
+        tally_host = sys.argv[3] if len(sys.argv) > 3 else 'localhost'
+        tally_port = int(sys.argv[4]) if len(sys.argv) > 4 else 9000
+        backend_url = sys.argv[5] if len(sys.argv) > 5 else os.getenv('BACKEND_URL', '')
+        auth_token = sys.argv[6] if len(sys.argv) > 6 else ''
+        device_token = sys.argv[7] if len(sys.argv) > 7 else ''
+        from_date = sys.argv[8] if len(sys.argv) > 8 else '01-Apr-2024'
+        to_date = sys.argv[9] if len(sys.argv) > 9 else '31-Mar-2025'
+        last_alter_id = int(sys.argv[10]) if len(sys.argv) > 10 else None
+        company_name = sys.argv[11] if len(sys.argv) > 11 else None
+        user_id = int(sys.argv[12]) if len(sys.argv) > 12 else 1
         
         if not company_guid:
             logger.error("❌ Company GUID is required (arg 2)")
@@ -940,6 +941,7 @@ def main():
             company_id=company_id,
             company_guid=company_guid,
             user_id=user_id,
+            tally_host=tally_host,
             tally_port=tally_port,
             from_date=from_date,
             to_date=to_date,

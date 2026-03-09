@@ -55,6 +55,7 @@ function createWindow() {
     minWidth: 800,
     minHeight: 600,
     show: false,
+    icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
     autoHideMenuBar: !isDev,  // Auto-hide menu bar in production
     webPreferences: {
       nodeIntegration: false,
@@ -147,6 +148,7 @@ function startSyncWorker(config = {}) {
     });
 
     const settings = {
+      tallyHost: config.tallyHost || 'localhost',
       tallyPort: config.tallyPort || 9000,
       syncInterval: config.syncInterval || 30
     };
@@ -361,6 +363,7 @@ async function runWorkerCommand(mode, params = {}) {
 
     // Map parameters to CLI flags
     const argMapping = {
+      tallyHost: '--host',
       tallyPort: '--port',
       companyId: '--company-id',
       userId: '--user-id',
@@ -369,12 +372,22 @@ async function runWorkerCommand(mode, params = {}) {
       deviceToken: '--device-token',
       entityType: '--entity-type',
       maxAlterID: '--max-alter-id',
-      companyName: '--company-name'
+      companyName: '--company-name',
+      companyGuid: '--company-guid',
+      fromDate: '--from-date',
+      toDate: '--to-date',
+      lastAlterID: '--last-voucher-alter-id',
+      isFirstSync: '--is-first-sync'
     };
 
     for (const [key, flag] of Object.entries(argMapping)) {
       if (params[key] !== undefined && params[key] !== null) {
-        finalArgs.push(flag, params[key].toString());
+        // Boolean flags (store_true in argparse) don't take a value
+        if (flag === '--is-first-sync') {
+          if (params[key]) finalArgs.push(flag);
+        } else {
+          finalArgs.push(flag, params[key].toString());
+        }
       }
     }
 
@@ -404,9 +417,24 @@ async function runWorkerCommand(mode, params = {}) {
           const result = JSON.parse(output.trim());
           resolve(result);
         } catch (e) {
+          // Fallback: find the last valid JSON line in output
+          // (Python logging or print statements may precede the JSON result)
+          const lines = output.trim().split('\n');
+          for (let i = lines.length - 1; i >= 0; i--) {
+            try {
+              const parsed = JSON.parse(lines[i].trim());
+              resolve(parsed);
+              return;
+            } catch (_) {
+              continue;
+            }
+          }
           if (isDev) console.error('Failed to parse worker output:', output);
           reject(new Error('Failed to parse worker output'));
         }
+      } else if (code === 0 && !output.trim()) {
+        // Process exited OK but no stdout — may happen if result was empty
+        reject(new Error(errorOutput || 'Worker produced no output'));
       } else {
         if (isDev) console.error('Worker failed:', errorOutput);
         reject(new Error(errorOutput || `Worker failed with code ${code}`));
@@ -425,12 +453,13 @@ async function runWorkerCommand(mode, params = {}) {
   });
 }
 
-ipcMain.handle("fetch-license", async (event, { tallyPort } = {}) => {
+ipcMain.handle("fetch-license", async (event, { tallyHost, tallyPort } = {}) => {
   try {
+    const host = tallyHost || 'localhost';
     const port = security.validatePort(tallyPort || 9000);
-    if (isDev) console.log(`📥 fetch-license IPC called on port ${port}`);
+    if (isDev) console.log(`📥 fetch-license IPC called on ${host}:${port}`);
 
-    const result = await runWorkerCommand('fetch-license', { tallyPort: port });
+    const result = await runWorkerCommand('fetch-license', { tallyHost: host, tallyPort: port });
     if (isDev) console.log("License fetch result:", result.success ? "success" : "failed");
     return result; // Return full object {success, data, error} for renderer validation
   } catch (error) {
@@ -439,12 +468,13 @@ ipcMain.handle("fetch-license", async (event, { tallyPort } = {}) => {
   }
 });
 
-ipcMain.handle("check-tally-connection", async (event, { tallyPort } = {}) => {
+ipcMain.handle("check-tally-connection", async (event, { tallyHost, tallyPort } = {}) => {
   try {
     const http = require('http');
+    const host = tallyHost || 'localhost';
     const port = security.validatePort(tallyPort || 9000);
-    const url = `http://localhost:${port}/`;
-    if (isDev) console.log(`Checking Tally connection at port ${port}...`);
+    const url = `http://${host}:${port}/`;
+    if (isDev) console.log(`Checking Tally connection at ${host}:${port}...`);
 
     return new Promise((resolve) => {
       const request = http.get(url, { timeout: 3000 }, (response) => {
@@ -505,12 +535,13 @@ ipcMain.on('get-backend-url-sync', (event) => {
 });
 
 // fetch-companies logic moved to use sync_worker
-ipcMain.handle("fetch-companies", async (event, { tallyPort } = {}) => {
+ipcMain.handle("fetch-companies", async (event, { tallyHost, tallyPort } = {}) => {
   try {
+    const host = tallyHost || 'localhost';
     const port = security.validatePort(tallyPort || 9000);
-    if (isDev) console.log(`Fetching companies from Tally on port ${port}...`);
+    if (isDev) console.log(`Fetching companies from ${host}:${port}...`);
 
-    const result = await runWorkerCommand('fetch-companies', { tallyPort: port });
+    const result = await runWorkerCommand('fetch-companies', { tallyHost: host, tallyPort: port });
     if (isDev) console.log("Companies fetch result:", result.success ? "success" : "failed");
     return result;
   } catch (error) {
@@ -627,6 +658,83 @@ ipcMain.handle("reconcile-data", async (event, config) => {
   }
 });
 if (isDev) console.log("✅ 'reconcile-data' IPC handler registered successfully");
+
+ipcMain.handle("get-system-info", async () => {
+  const os = require('os');
+  try {
+    let hostname = 'N/A';
+    try {
+      hostname = os.hostname() || process.env.COMPUTERNAME || process.env.HOSTNAME || 'N/A';
+    } catch (e) {
+      hostname = process.env.COMPUTERNAME || process.env.HOSTNAME || 'N/A';
+    }
+
+    let processor = 'N/A';
+    try {
+      const cpuList = os.cpus();
+      if (cpuList && cpuList.length > 0 && cpuList[0].model) {
+        processor = cpuList[0].model;
+      } else {
+        // Fallback: use WMIC on Windows
+        if (process.platform === 'win32') {
+          try {
+            const { execSync } = require('child_process');
+            const wmicOutput = execSync('wmic cpu get name', { encoding: 'utf8', timeout: 5000 });
+            const lines = wmicOutput.trim().split('\n').filter(l => l.trim() && l.trim() !== 'Name');
+            if (lines.length > 0) processor = lines[0].trim();
+          } catch (_) { /* ignore */ }
+        }
+      }
+    } catch (e) {
+      if (isDev) console.error("Processor detection error:", e);
+    }
+
+    const cpus = os.cpus();
+    const totalMem = os.totalmem();
+    const osRelease = os.release();
+
+    // Determine friendly OS name
+    let osName = `${os.type()} ${osRelease}`;
+    if (process.platform === 'win32') {
+      // Map Windows build numbers to friendly names
+      const buildMatch = osRelease.match(/10\.0\.(\d+)/);
+      if (buildMatch) {
+        const build = parseInt(buildMatch[1], 10);
+        if (build >= 22000) osName = 'Windows 11';
+        else if (build >= 10240) osName = 'Windows 10';
+        else osName = `Windows (Build ${build})`;
+      }
+    } else if (process.platform === 'darwin') {
+      osName = `macOS ${osRelease}`;
+    } else {
+      osName = `Linux ${osRelease}`;
+    }
+
+    const result = {
+      hostname: hostname,
+      processor: processor,
+      platform: process.platform,
+      os: osName,
+      arch: os.arch(),
+      memory: `${Math.round(totalMem / (1024 ** 3))} GB`,
+      cpus: cpus ? cpus.length : 0
+    };
+    if (isDev) console.log("System info result:", JSON.stringify(result));
+    return result;
+  } catch (error) {
+    if (isDev) console.error("System info error:", error);
+    // Return partial info even on error
+    return {
+      hostname: process.env.COMPUTERNAME || process.env.HOSTNAME || 'N/A',
+      processor: 'N/A',
+      platform: process.platform,
+      os: process.platform === 'win32' ? 'Windows' : process.platform,
+      arch: process.arch || 'N/A',
+      memory: 'N/A',
+      cpus: 0
+    };
+  }
+});
 
 async function handleSync(config, scriptName, displayName, entityType) {
   try {

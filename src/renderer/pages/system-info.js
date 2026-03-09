@@ -39,37 +39,37 @@
                                 <span style="color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); font-size: var(--ds-text-sm); display: flex; align-items: center; gap: var(--ds-space-2);">
                                     <i class="fas fa-network-wired" style="width: 16px;"></i> Hostname
                                 </span>
-                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="sysHostname">—</span>
+                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="sysHostname">Loading...</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: var(--ds-space-3) 0; border-bottom: 1px solid var(--ds-border-default);">
                                 <span style="color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); font-size: var(--ds-text-sm); display: flex; align-items: center; gap: var(--ds-space-2);">
-                                    <i class="fas fa-cpu" style="width: 16px;"></i> Processor
+                                    <i class="fas fa-microchip" style="width: 16px;"></i> Processor
                                 </span>
-                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm); max-width: 60%; text-align: right;" id="sysProcessor">—</span>
+                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm); max-width: 60%; text-align: right;" id="sysProcessor">Loading...</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: var(--ds-space-3) 0; border-bottom: 1px solid var(--ds-border-default);">
                                 <span style="color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); font-size: var(--ds-text-sm); display: flex; align-items: center; gap: var(--ds-space-2);">
                                     <i class="fas fa-laptop-code" style="width: 16px;"></i> Operating System
                                 </span>
-                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="os">Windows 11</span>
+                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="os">Loading...</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: var(--ds-space-3) 0; border-bottom: 1px solid var(--ds-border-default);">
                                 <span style="color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); font-size: var(--ds-text-sm); display: flex; align-items: center; gap: var(--ds-space-2);">
                                     <i class="fas fa-fingerprint" style="width: 16px;"></i> Architecture
                                 </span>
-                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="arch">x64</span>
+                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="arch">Loading...</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: var(--ds-space-3) 0; border-bottom: 1px solid var(--ds-border-default);">
                                 <span style="color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); font-size: var(--ds-text-sm); display: flex; align-items: center; gap: var(--ds-space-2);">
                                     <i class="fas fa-memory" style="width: 16px;"></i> Total Memory
                                 </span>
-                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="memory">16 GB</span>
+                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="memory">Loading...</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding: var(--ds-space-3) 0;">
                                 <span style="color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); font-size: var(--ds-text-sm); display: flex; align-items: center; gap: var(--ds-space-2);">
                                     <i class="fas fa-heartbeat" style="width: 16px;"></i> CPU Cores
                                 </span>
-                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="cpus">8</span>
+                                <span style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-sm);" id="cpus">Loading...</span>
                             </div>
                         </div>
                     </div>
@@ -87,18 +87,54 @@
         }
     };
 
-    function loadSystemInfo() {
+    async function loadSystemInfo() {
         const api = window.electronAPI || {};
-        // Populate hostname and processor from preload
-        const hostnameEl = document.getElementById('sysHostname');
-        const processorEl = document.getElementById('sysProcessor');
-        if (hostnameEl) hostnameEl.textContent = api.hostname || '—';
-        if (processorEl) processorEl.textContent = api.processor || '—';
-        // Platform display name
-        const platformEl = document.getElementById('platform');
-        if (platformEl) {
-            const p = api.platform || '';
-            platformEl.textContent = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[p] || p || 'Windows';
+        console.log('loadSystemInfo called, electronAPI available:', !!window.electronAPI, 'getSystemInfo available:', typeof api.getSystemInfo);
+        try {
+            let sysInfo = null;
+            if (typeof api.getSystemInfo === 'function') {
+                sysInfo = await api.getSystemInfo();
+                console.log('System info received:', JSON.stringify(sysInfo));
+            } else if (typeof api.invoke === 'function') {
+                // Fallback: use generic invoke
+                sysInfo = await api.invoke('get-system-info');
+                console.log('System info via invoke:', JSON.stringify(sysInfo));
+            }
+
+            if (sysInfo) {
+                const hostnameEl = document.getElementById('sysHostname');
+                const processorEl = document.getElementById('sysProcessor');
+                const platformEl = document.getElementById('platform');
+                const osEl = document.getElementById('os');
+                const archEl = document.getElementById('arch');
+                const memoryEl = document.getElementById('memory');
+                const cpusEl = document.getElementById('cpus');
+
+                if (hostnameEl) hostnameEl.textContent = sysInfo.hostname || 'N/A';
+                if (processorEl) processorEl.textContent = sysInfo.processor || 'N/A';
+                if (platformEl) {
+                    const p = sysInfo.platform || '';
+                    platformEl.textContent = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[p] || p || 'N/A';
+                }
+                if (osEl) osEl.textContent = sysInfo.os || 'N/A';
+                if (archEl) archEl.textContent = sysInfo.arch || 'N/A';
+                if (memoryEl) memoryEl.textContent = sysInfo.memory || 'N/A';
+                if (cpusEl) cpusEl.textContent = sysInfo.cpus || 'N/A';
+            } else {
+                console.warn('System info returned null/undefined');
+                // Set all fields to N/A
+                ['sysHostname', 'sysProcessor', 'platform', 'os', 'arch', 'memory', 'cpus'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = 'N/A';
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load system info:', error);
+            // Set all fields to error state
+            ['sysHostname', 'sysProcessor', 'platform', 'os', 'arch', 'memory', 'cpus'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = 'Error';
+            });
         }
     }
 })();

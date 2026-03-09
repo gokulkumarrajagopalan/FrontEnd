@@ -1,13 +1,6 @@
 /**
  * Electron IPC Handler - Voucher Sync
- * Spawns Python process to sync vouchers from Tally to Backend
- * 
- * Supports:
- * - Incremental sync via AlterID
- * - Date range filtering
- * - Company context switching
- * - Nested data: Voucher → LedgerEntries → Bills/CostCategories/CostCentres
- *                Voucher → InventoryEntries → BatchAllocations
+ * Uses bundled sync_worker.exe in production, Python fallback in dev
  */
 
 const { ipcMain, app } = require('electron');
@@ -15,6 +8,21 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { findPython } = require('./python-finder');
+
+function getWorkerExe() {
+    const isDev = !app.isPackaged;
+    if (isDev) {
+        const devExe = path.join(__dirname, '../../resources/bin/sync_worker.exe');
+        if (fs.existsSync(devExe)) {
+            return { command: devExe, useExe: true, cwd: path.dirname(devExe) };
+        }
+        return { command: findPython(), useExe: false, cwd: path.join(__dirname, '../../python') };
+    } else {
+        const exeName = process.platform === 'win32' ? 'sync_worker.exe' : 'sync_worker';
+        const exePath = path.join(process.resourcesPath, 'bin', exeName);
+        return { command: exePath, useExe: true, cwd: path.join(process.resourcesPath, 'bin') };
+    }
+}
 
 /**
  * Sync vouchers for a single company
@@ -25,6 +33,7 @@ function syncVouchers(params) {
             companyId,
             companyGuid,
             userId,
+            tallyHost = 'localhost',
             tallyPort = 9000,
             backendUrl,
             authToken,
@@ -36,50 +45,54 @@ function syncVouchers(params) {
         } = params;
 
         const isDev = !app.isPackaged;
-        const pythonExe = findPython();
-        const pythonScript = isDev
-            ? path.join(__dirname, '../../python/sync_vouchers.py')
-            : path.join(process.resourcesPath, 'python/sync_vouchers.py');
+        const { command, useExe, cwd } = getWorkerExe();
+        let args;
 
-        const args = [
-            pythonScript,
-            companyId.toString(),
-            companyGuid || '',
-            tallyPort.toString(),
-            backendUrl || '',
-            authToken || '',
-            deviceToken || '',
-            fromDate,
-            toDate,
-            lastAlterID.toString(),
-            companyName || '',
-            (userId || '').toString()
-        ];
+        if (useExe) {
+            args = [
+                '--mode', 'sync-vouchers',
+                '--company-id', companyId.toString(),
+                '--company-guid', companyGuid || '',
+                '--host', tallyHost,
+                '--port', tallyPort.toString(),
+                '--backend-url', backendUrl || '',
+                '--auth-token', authToken || '',
+                '--device-token', deviceToken || '',
+                '--from-date', fromDate,
+                '--to-date', toDate,
+                '--user-id', (userId || '').toString()
+            ];
+            if (lastAlterID) args.push('--last-voucher-alter-id', lastAlterID.toString());
+            if (companyName) args.push('--company-name', companyName);
+        } else {
+            const pythonScript = path.join(__dirname, '../../python/sync_vouchers.py');
+            args = [
+                pythonScript,
+                companyId.toString(),
+                companyGuid || '',
+                tallyHost,
+                tallyPort.toString(),
+                backendUrl || '',
+                authToken || '',
+                deviceToken || '',
+                fromDate,
+                toDate,
+                lastAlterID.toString(),
+                companyName || '',
+                (userId || '').toString()
+            ];
+        }
 
         if (isDev) {
             console.log(`\n${'='.repeat(60)}`);
             console.log(`🧾 VOUCHER SYNC STARTED`);
             console.log(`   Company: ${companyName || companyId}`);
             console.log(`   Date Range: ${fromDate} to ${toDate}`);
-            console.log(`   Last AlterID: ${lastAlterID}`);
-            console.log(`   Python: ${pythonExe}`);
+            console.log(`   Using: ${useExe ? 'EXE' : 'Python'}`);
             console.log(`${'='.repeat(60)}`);
         }
 
-        // Verify script exists
-        if (!fs.existsSync(pythonScript)) {
-            const errMsg = `Python script not found: ${pythonScript}`;
-            if (isDev) console.error(`❌ ${errMsg}`);
-            resolve({
-                success: false,
-                message: errMsg,
-                count: 0,
-                exitCode: -1
-            });
-            return;
-        }
-
-        const python = spawn(pythonExe, args);
+        const python = spawn(command, args, { cwd });
         let stdout = '';
         let stderr = '';
 
@@ -102,7 +115,6 @@ function syncVouchers(params) {
             }
 
             try {
-                // Find the last JSON line in stdout (Python may log before the JSON)
                 const lines = stdout.trim().split('\n');
                 let resultJson = null;
                 
@@ -146,7 +158,7 @@ function syncVouchers(params) {
             if (isDev) console.error(`❌ Failed to start voucher sync: ${error.message}`);
             resolve({
                 success: false,
-                message: `Failed to start Python: ${error.message}`,
+                message: `Failed to start: ${error.message}`,
                 count: 0,
                 exitCode: -1
             });
@@ -158,7 +170,6 @@ function syncVouchers(params) {
  * Register voucher sync IPC handlers
  */
 function registerVoucherSyncHandler() {
-    // Main voucher sync handler
     ipcMain.handle('sync-vouchers', async (event, params) => {
         try {
             return await syncVouchers(params);

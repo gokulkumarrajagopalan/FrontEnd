@@ -39,7 +39,10 @@ TALLY_PORT = 9000
 TALLY_URL = f"http://localhost:{TALLY_PORT}"
 
 # Output directory
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
+if getattr(sys, 'frozen', False):
+    OUTPUT_DIR = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Tallify', 'reports')
+else:
+    OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Logging
@@ -751,12 +754,13 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Tally Report Generator")
     parser.add_argument("--company", default=COMPANY_NAME, help="Tally company name")
+    parser.add_argument("--host", default="localhost", help="Tally host")
     parser.add_argument("--port", type=int, default=TALLY_PORT, help="Tally port")
     args = parser.parse_args()
     
     COMPANY_NAME = args.company
     TALLY_PORT = args.port
-    TALLY_URL = f"http://localhost:{TALLY_PORT}"
+    TALLY_URL = f"http://{args.host}:{TALLY_PORT}"
     
     from_date, to_date = get_fy_dates()
     

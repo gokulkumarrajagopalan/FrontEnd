@@ -14,12 +14,17 @@ import xml.etree.ElementTree as ET
 import re
 import os
 
-# Setup logging
-log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+# Setup logging - use APPDATA when running as bundled exe
+import sys as _sys
+if getattr(_sys, 'frozen', False):
+    _log_base = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Tallify')
+else:
+    _log_base = os.path.dirname(os.path.abspath(__file__))
+log_dir = os.path.join(_log_base, 'logs')
 os.makedirs(log_dir, exist_ok=True)
 
 log_file = os.path.join(log_dir, f'sync_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
-reconcile_log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reconcilation.txt')
+reconcile_log_file = os.path.join(_log_base, 'reconcilation.txt')
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,11 +55,12 @@ class SyncManager:
         'StockItem': 'GUID, MASTERID, ALTERID, Name, UQC, OpeningBalance, OpeningValue'
     }
     
-    def __init__(self, company_name: str, tally_port: int = 9000, backend_url: str = None,
+    def __init__(self, company_name: str, tally_host: str = 'localhost', tally_port: int = 9000, backend_url: str = None,
                  auth_token: str = None, device_token: str = None):
         self.company_name = company_name
+        self.tally_host = tally_host
         self.tally_port = tally_port
-        self.tally_url = f"http://localhost:{tally_port}"
+        self.tally_url = f"http://{tally_host}:{tally_port}"
         self.backend_url = backend_url or os.getenv('BACKEND_URL')
         self.auth_token = auth_token
         self.device_token = device_token
@@ -526,12 +532,13 @@ def main():
         company_name = sys.argv[1]
         cmp_id = int(sys.argv[2])
         user_id = int(sys.argv[3])
-        tally_port = int(sys.argv[4])
-        backend_url = sys.argv[5] if len(sys.argv) > 5 else os.getenv("BACKEND_URL")
-        auth_token = sys.argv[6] if len(sys.argv) > 6 else None
-        device_token = sys.argv[7] if len(sys.argv) > 7 else None
+        tally_host = sys.argv[4] if len(sys.argv) > 4 else 'localhost'
+        tally_port = int(sys.argv[5]) if len(sys.argv) > 5 else 9000
+        backend_url = sys.argv[6] if len(sys.argv) > 6 else os.getenv("BACKEND_URL")
+        auth_token = sys.argv[7] if len(sys.argv) > 7 else None
+        device_token = sys.argv[8] if len(sys.argv) > 8 else None
         
-        manager = SyncManager(company_name, tally_port, backend_url, auth_token, device_token)
+        manager = SyncManager(company_name, tally_host, tally_port, backend_url, auth_token, device_token)
         result = manager.sync_all(cmp_id, user_id, "INITIAL")
         
         print(json.dumps(result))

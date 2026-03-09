@@ -1,10 +1,8 @@
-"""
-Quick script to list all companies in Tally
-"""
+import sys
 import requests
 import xml.etree.ElementTree as ET
 
-def list_companies():
+def list_companies(host='localhost', port=9000):
     """List all companies from Tally"""
     
     tdl = """<ENVELOPE>
@@ -32,8 +30,9 @@ def list_companies():
 </ENVELOPE>"""
     
     try:
-        url = "http://localhost:9000"
-        print(f"Connecting to Tally at {url}...")
+        url = f"http://{host}:{port}"
+        # logger or print (keeping print as it seems to be used for stdout communication)
+        # However, it's better to use logger if available, but this script is simple.
         
         response = requests.post(
             url,
@@ -43,8 +42,6 @@ def list_companies():
         )
         
         if response.status_code == 200:
-            print("\n✅ Connected to Tally successfully!\n")
-            
             root = ET.fromstring(response.text)
             companies = []
             
@@ -53,24 +50,22 @@ def list_companies():
                 if name_elem is not None and name_elem.text:
                     companies.append(name_elem.text.strip())
             
-            print(f"📋 Found {len(companies)} companies:\n")
-            for idx, company in enumerate(companies, 1):
-                print(f"{idx}. {company}")
-            
+            # Print specifically the JSON output for the handler to parse if needed, 
+            # or just the names. The current JS handler likely expects a specific format.
             return companies
         else:
-            print(f"❌ Error: HTTP {response.status_code}")
             return []
     
     except requests.exceptions.ConnectionError:
-        print("❌ Could not connect to Tally. Make sure:")
-        print("   1. Tally is running")
-        print("   2. ODBC/HTTP is enabled in Tally (F12)")
-        print("   3. Port 9000 is accessible")
         return []
     except Exception as e:
-        print(f"❌ Error: {e}")
         return []
 
 if __name__ == '__main__':
-    list_companies()
+    host = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
+    port = int(sys.argv[2]) if len(sys.argv) > 2 else 9000
+    
+    companies = list_companies(host, port)
+    import json
+    print(json.dumps(companies))
+

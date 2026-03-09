@@ -46,10 +46,10 @@
   "build": {
     "appId": "com.tallify.desktop",
     "productName": "Tallify",
+    "copyright": "Copyright © 2025 Tallify Team",
     "removePackageScripts": true,
     "files": [
       "src/**/*",
-      "python/**/*",
       "assets/**/*",
       ".env"
     ],
@@ -64,25 +64,13 @@
         "filter": [
           "**/*"
         ]
-      },
-      {
-        "from": "python",
-        "to": "python",
-        "filter": [
-          "**/*.py"
-        ]
       }
     ],
     "win": {
+      "icon": "assets/icon.png",
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "portable",
           "arch": [
             "x64"
           ]
@@ -91,13 +79,19 @@
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Tallify"
-    },
-    "portable": {
-      "artifactName": "Tallify-${version}.exe"
+      "shortcutName": "Tallify",
+      "uninstallDisplayName": "Tallify - Professional Accounting & ERP",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "installerSidebar": "assets/installer-sidebar.bmp",
+      "license": "assets/license.txt"
     }
   }
 }

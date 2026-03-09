@@ -4,6 +4,7 @@
     // ============================================
 
     const SETTINGS_KEYS = {
+        TALLY_HOST: 'tallyHost',
         TALLY_PORT: 'tallyPort',
         BACKEND_URL: 'backendUrl',
         SYNC_INTERVAL: 'syncInterval',
@@ -17,6 +18,7 @@
     };
 
     const DEFAULT_SETTINGS = {
+        [SETTINGS_KEYS.TALLY_HOST]: 'localhost',
         [SETTINGS_KEYS.TALLY_PORT]: 9000,
         [SETTINGS_KEYS.BACKEND_URL]: 'http://localhost:8080',
         [SETTINGS_KEYS.SYNC_INTERVAL]: 30,
@@ -38,6 +40,7 @@
         const theme = localStorage.getItem('app-theme') || 'light';
 
         const settings = {
+            [SETTINGS_KEYS.TALLY_HOST]: appSettings.tallyHost ?? DEFAULT_SETTINGS[SETTINGS_KEYS.TALLY_HOST],
             [SETTINGS_KEYS.TALLY_PORT]: appSettings.tallyPort ?? DEFAULT_SETTINGS[SETTINGS_KEYS.TALLY_PORT],
             [SETTINGS_KEYS.BACKEND_URL]: appSettings.backendUrl ?? DEFAULT_SETTINGS[SETTINGS_KEYS.BACKEND_URL],
             [SETTINGS_KEYS.SYNC_INTERVAL]: appSettings.syncInterval ?? DEFAULT_SETTINGS[SETTINGS_KEYS.SYNC_INTERVAL],
@@ -128,6 +131,13 @@
                 content: `
                                             <div style="display: flex; flex-direction: column; gap: var(--ds-space-4);">
                                                 ${window.UIComponents.input({
+                    id: 'tallyHost',
+                    type: 'text',
+                    label: 'Tally Host (IP or URL)',
+                    value: settings.tallyHost,
+                    icon: '<i class="fas fa-network-wired"></i>'
+                })}
+                                                ${window.UIComponents.input({
                     id: 'tallyPort',
                     type: 'number',
                     label: 'Tally Port Number',
@@ -136,18 +146,8 @@
                 })}
                                                 <div style="display: flex; align-items: center; gap: var(--ds-space-2); padding: var(--ds-space-3); background: var(--ds-warning-50); border: 1px solid var(--ds-warning-200); border-radius: var(--ds-radius-lg); color: var(--ds-warning-700); font-size: var(--ds-text-xs);">
                                                     <i class="fas fa-exclamation-triangle"></i>
-                                                    <span>Default port is 9000. Ensure Tally Prime is running on this port.</span>
+                                                    <span>Ensure Tally Prime is running and accessible at this address.</span>
                                                 </div>
-                                            </div>
-                                        `
-            })}
-                                    
-                                    ${window.UIComponents.card({
-                title: 'Status',
-                content: `
-                                            <div style="display: flex; align-items: center; gap: var(--ds-space-3);">
-                                                <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--ds-success-500); box-shadow: 0 0 10px var(--ds-success-500);"></div>
-                                                <span style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">Ready to sync</span>
                                             </div>
                                         `
             })}
@@ -192,6 +192,12 @@
                                         `
             })}
                                 </div>
+                            </div>
+                            <!-- Save Settings Button ONLY in Sync Tab -->
+                            <div style="display: flex; justify-content: flex-end; margin-top: var(--ds-space-6);">
+                                <button id="saveAllSettingsBtn" class="ds-btn ds-btn-primary" style="min-width: 150px; font-weight: var(--ds-weight-bold); box-shadow: var(--ds-shadow-md);">
+                                    <i class="fas fa-save mr-2"></i> Save Settings
+                                </button>
                             </div>
                         </div>
 
@@ -405,27 +411,115 @@
         });
     };
 
-    function attachEventListeners() {
-        // Tab switching
+    // ── Dirty-state tracking for the Sync tab ──
+    let syncTabSnapshot = {};
+    let syncTabDirty = false;
+
+    function captureSyncSnapshot() {
+        syncTabSnapshot = {
+            tallyHost: document.getElementById('tallyHost')?.value || '',
+            tallyPort: document.getElementById('tallyPort')?.value || '',
+            syncInterval: document.getElementById('syncInterval')?.value || '',
+            batchSize: document.getElementById('batchSize')?.value || '',
+            autoSyncOnStartup: document.getElementById('autoSyncOnStartup')?.checked || false
+        };
+        syncTabDirty = false;
+    }
+
+    function isSyncDirty() {
+        const current = {
+            tallyHost: document.getElementById('tallyHost')?.value || '',
+            tallyPort: document.getElementById('tallyPort')?.value || '',
+            syncInterval: document.getElementById('syncInterval')?.value || '',
+            batchSize: document.getElementById('batchSize')?.value || '',
+            autoSyncOnStartup: document.getElementById('autoSyncOnStartup')?.checked || false
+        };
+        return Object.keys(syncTabSnapshot).some(k => String(current[k]) !== String(syncTabSnapshot[k]));
+    }
+
+    function getActiveTabName() {
+        const active = document.querySelector('.tab.active');
+        return active ? active.dataset.tab : 'general';
+    }
+
+    function switchToTab(tabName) {
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(c => {
+            if (c.dataset.content === tabName) c.classList.add('active');
+            else c.classList.remove('active');
+        });
+        const target = document.querySelector(`.tab[data-tab="${tabName}"]`);
+        if (target) target.classList.add('active');
+    }
+
+    function showUnsavedChangesPopup(targetTab) {
+        // Build inline dialog
+        let overlay = document.getElementById('unsavedChangesOverlay');
+        if (overlay) overlay.remove();
+
+        overlay = document.createElement('div');
+        overlay.id = 'unsavedChangesOverlay';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);animation:dsFadeIn .15s ease;';
+        overlay.innerHTML = `
+            <div style="background:var(--ds-bg-surface,#fff);border-radius:var(--ds-radius-2xl,16px);box-shadow:var(--ds-shadow-xl);max-width:400px;width:90%;padding:var(--ds-space-6,24px);display:flex;flex-direction:column;gap:var(--ds-space-4,16px);">
+                <div style="display:flex;align-items:center;gap:var(--ds-space-3,12px);">
+                    <div style="width:40px;height:40px;border-radius:50%;background:var(--ds-warning-50,#fffbeb);display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-exclamation-triangle" style="color:var(--ds-warning-600,#d97706);font-size:18px;"></i>
+                    </div>
+                    <div>
+                        <p style="font-weight:var(--ds-weight-bold,700);color:var(--ds-text-primary);margin:0;">Unsaved Changes</p>
+                        <p style="font-size:var(--ds-text-sm,14px);color:var(--ds-text-secondary);margin:4px 0 0 0;">You have unsaved sync settings. What would you like to do?</p>
+                    </div>
+                </div>
+                <div style="display:flex;gap:var(--ds-space-3,12px);justify-content:flex-end;">
+                    <button id="unsavedDiscardBtn" style="padding:8px 20px;border-radius:var(--ds-radius-lg,12px);border:1px solid var(--ds-border-default);background:var(--ds-bg-surface);color:var(--ds-text-primary);cursor:pointer;font-weight:600;">Discard</button>
+                    <button id="unsavedSaveBtn" style="padding:8px 20px;border-radius:var(--ds-radius-lg,12px);background:var(--ds-primary-600,#2563eb);color:white;border:none;cursor:pointer;font-weight:600;"><i class="fas fa-save" style="margin-right:6px;"></i>Save</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // Close on backdrop click
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+        document.getElementById('unsavedDiscardBtn').onclick = () => {
+            overlay.remove();
+            captureSyncSnapshot(); // reset dirty state
+            switchToTab(targetTab);
+        };
+
+        document.getElementById('unsavedSaveBtn').onclick = () => {
+            overlay.remove();
+            document.getElementById('saveAllSettingsBtn')?.click();
+            switchToTab(targetTab);
+        };
+    }
+
+    function attachEventListeners() {
+        // Tab switching with unsaved-changes guard
+        const tabs = document.querySelectorAll('.tab');
 
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                const tabName = tab.dataset.tab;
+                const targetTab = tab.dataset.tab;
+                const currentTab = getActiveTabName();
 
-                // Update active tab
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
+                if (currentTab === targetTab) return; // same tab, ignore
 
-                // Show corresponding content
-                tabContents.forEach(content => {
-                    if (content.dataset.content === tabName) {
-                        content.classList.add('active');
-                    } else {
-                        content.classList.remove('active');
-                    }
-                });
+                // If leaving the sync tab with unsaved changes, prompt
+                if (currentTab === 'sync' && isSyncDirty()) {
+                    showUnsavedChangesPopup(targetTab);
+                    return;
+                }
+
+                switchToTab(targetTab);
+
+                // Capture snapshot when entering sync tab
+                if (targetTab === 'sync') {
+                    captureSyncSnapshot();
+                }
             });
         });
 
@@ -472,7 +566,12 @@
         if (saveAllBtn) {
             saveAllBtn.addEventListener('click', () => {
                 try {
-                    // Validate port
+                    // Validate Host & Port
+                    let tallyHost = (document.getElementById('tallyHost')?.value || '').trim() || 'localhost';
+                    tallyHost = tallyHost.replace(/^https?:\/\//i, '');
+                    if (/^\d+$/.test(tallyHost)) {
+                        throw new Error('Tally Host must be a valid IP or hostname (e.g. localhost), not a port number.');
+                    }
                     const tallyPort = parseInt(document.getElementById('tallyPort')?.value) || 9000;
                     if (tallyPort < 1 || tallyPort > 65535) {
                         throw new Error('Tally Port must be between 1 and 65535');
@@ -502,6 +601,7 @@
 
                     // Save all to appSettings JSON blob
                     const allSettings = {
+                        tallyHost,
                         tallyPort,
                         syncInterval,
                         batchSize,
@@ -516,6 +616,9 @@
                     localStorage.setItem('appSettings', JSON.stringify({ ...current, ...allSettings }));
 
                     console.log('💾 Settings saved:', allSettings);
+
+                    // Mark sync tab as clean after successful save
+                    captureSyncSnapshot();
 
                     // Restart sync scheduler with new interval
                     if (window.syncScheduler) {
@@ -553,6 +656,7 @@
                 if (confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
                     // Reset appSettings to defaults
                     localStorage.setItem('appSettings', JSON.stringify({
+                        tallyHost: DEFAULT_SETTINGS.tallyHost,
                         tallyPort: DEFAULT_SETTINGS.tallyPort,
                         syncInterval: DEFAULT_SETTINGS.syncInterval,
                         batchSize: DEFAULT_SETTINGS.batchSize,
@@ -675,6 +779,8 @@
             if (content) {
                 content.innerHTML = getSettingsTemplate();
                 attachEventListeners();
+                // Capture initial sync snapshot so dirty detection works from the start
+                captureSyncSnapshot();
             }
         };
     }

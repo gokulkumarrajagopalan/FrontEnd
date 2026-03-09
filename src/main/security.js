@@ -28,16 +28,16 @@ function validateScriptPath(scriptName, baseDir) {
   if (!/^[a-zA-Z0-9_]+\.py$/.test(scriptName)) {
     throw new Error('Invalid script name');
   }
-  
+
   const fullPath = path.join(baseDir, scriptName);
   const resolvedPath = path.resolve(fullPath);
   const resolvedBase = path.resolve(baseDir);
-  
+
   // Ensure path is within base directory (prevent directory traversal)
   if (!resolvedPath.startsWith(resolvedBase)) {
     throw new Error('Invalid script path');
   }
-  
+
   return resolvedPath;
 }
 
@@ -52,15 +52,19 @@ function validateSettings(settings) {
   if (!settings || typeof settings !== 'object') {
     throw new Error('Invalid settings object');
   }
-  
+
+  if (settings.tallyHost !== undefined && typeof settings.tallyHost !== 'string') {
+    throw new Error('Invalid tallyHost: must be a string');
+  }
+
   if (settings.tallyPort !== undefined) {
     validatePort(settings.tallyPort);
   }
-  
+
   if (settings.syncInterval !== undefined) {
     validateInterval(settings.syncInterval);
   }
-  
+
   return true;
 }
 

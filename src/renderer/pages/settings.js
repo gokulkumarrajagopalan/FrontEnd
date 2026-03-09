@@ -1,9 +1,19 @@
 (function () {
     const getSettingsTemplate = () => {
+        const tallyHostInput = window.UIComponents.input({
+            id: 'tallyHost',
+            type: 'text',
+            label: 'Tally Server Host/IP',
+            icon: '<i class="fas fa-server"></i>',
+            placeholder: 'localhost',
+            value: 'localhost',
+            required: true
+        });
+
         const tallyPortInput = window.UIComponents.input({
             id: 'tallyPort',
             type: 'number',
-            label: 'Tally Prime Port',
+            label: 'Tally Server Port',
             icon: '<i class="fas fa-plug"></i>',
             placeholder: '9000',
             value: '9000',
@@ -29,15 +39,20 @@
         });
 
         const connectionCard = window.UIComponents.card({
-            title: 'Tally Prime Connection',
+            title: 'Tally Connection',
             content: `
                 <form id="connectionForm" style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
-                    <div>
-                        ${tallyPortInput}
-                        <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-2);">
-                            Port number for Tally Prime ODBC/HTTP Server (default: 9000)
-                        </p>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--ds-space-4);">
+                        <div>
+                            ${tallyHostInput}
+                        </div>
+                        <div>
+                            ${tallyPortInput}
+                        </div>
                     </div>
+                    <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space--4);">
+                        Enter the host/IP address and port where Tally Prime is running (default: localhost:9000)
+                    </p>
                     
                     <div>
                         ${syncIntervalInput}
@@ -143,12 +158,19 @@
             const data = JSON.parse(settings);
             const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
 
+            setVal('tallyHost', data.tallyHost || 'localhost');
             setVal('tallyPort', data.tallyPort || '9000');
             setVal('syncInterval', data.syncInterval || '30');
         }
     }
 
-    function validateSettings(tallyPort, syncInterval) {
+    function validateSettings(tallyHost, tallyPort, syncInterval) {
+        if (!tallyHost || tallyHost.trim() === '') {
+            throw new Error('Tally Host cannot be empty');
+        }
+        if (/^\d+$/.test(tallyHost.trim())) {
+            throw new Error('Tally Host must be a valid IP or hostname (e.g. localhost), not a port number.');
+        }
         if (isNaN(tallyPort) || tallyPort < 1 || tallyPort > 65535) {
             throw new Error('Port must be between 1 and 65535');
         }
@@ -245,16 +267,20 @@
         if (saveConnectionBtn) {
             saveConnectionBtn.addEventListener('click', () => {
                 try {
+                    let tallyHost = document.getElementById('tallyHost').value.trim() || 'localhost';
+                    tallyHost = tallyHost.replace(/^https?:\/\//i, '');
                     const tallyPort = parseInt(document.getElementById('tallyPort').value, 10);
                     const syncInterval = parseInt(document.getElementById('syncInterval').value, 10) || 30;
 
-                    validateSettings(tallyPort, syncInterval);
+                    validateSettings(tallyHost, tallyPort, syncInterval);
 
                     console.log('💾 Saving Settings:');
+                    console.log('   Tally Host:', tallyHost);
                     console.log('   Tally Port:', tallyPort);
                     console.log('   Sync Interval:', syncInterval, 'minutes');
 
                     const settings = {
+                        tallyHost: tallyHost,
                         tallyPort: tallyPort,
                         syncInterval: syncInterval
                     };

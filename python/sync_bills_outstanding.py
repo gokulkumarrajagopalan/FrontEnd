@@ -259,13 +259,14 @@ def main():
     try:
         # Parse positional arguments (same pattern as sync_vouchers.py)
         company_id = int(sys.argv[1]) if len(sys.argv) > 1 else 1
-        tally_port = int(sys.argv[2]) if len(sys.argv) > 2 else 9000
-        backend_url = (sys.argv[3] if len(sys.argv) > 3 else os.getenv('BACKEND_URL', '')).rstrip('/')
-        auth_token = sys.argv[4] if len(sys.argv) > 4 else ''
-        device_token = sys.argv[5] if len(sys.argv) > 5 else ''
-        company_name = sys.argv[6] if len(sys.argv) > 6 else ''
+        tally_host = sys.argv[2] if len(sys.argv) > 2 else 'localhost'
+        tally_port = int(sys.argv[3]) if len(sys.argv) > 3 else 9000
+        backend_url = (sys.argv[4] if len(sys.argv) > 4 else os.getenv('BACKEND_URL', '')).rstrip('/')
+        auth_token = sys.argv[5] if len(sys.argv) > 5 else ''
+        device_token = sys.argv[6] if len(sys.argv) > 6 else ''
+        company_name = sys.argv[7] if len(sys.argv) > 7 else ''
 
-        tally_url = f"http://localhost:{tally_port}"
+        tally_url = f"http://{tally_host}:{tally_port}"
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {auth_token}' if auth_token else '',

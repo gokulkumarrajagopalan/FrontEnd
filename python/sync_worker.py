@@ -8,18 +8,22 @@ import logging
 from datetime import datetime
 import os
 
-# Setup logging
-log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
-os.makedirs(log_dir, exist_ok=True)
+# Setup logging - use %APPDATA%/Tallify for bundled exe (Program Files is read-only)
+if getattr(sys, 'frozen', False):
+    _base_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Tallify')
+else:
+    _base_dir = os.path.dirname(os.path.abspath(__file__))
 
-log_file = os.path.join(log_dir, 'sync_worker.log')
+log_dir = os.path.join(_base_dir, 'logs')
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, 'sync_report.log')
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(log_file, encoding='utf-8', mode='a'),
-        logging.StreamHandler(sys.stdout)  # Explicitly use stdout to avoid stderr being treated as IPC errors
+        logging.StreamHandler(sys.stderr)  # Use stderr so stdout stays clean for JSON IPC output
     ]
 )
 logger = logging.getLogger(__name__)
@@ -29,6 +33,9 @@ import argparse
 from tally_api import TallyAPIClient
 from incremental_sync import IncrementalSyncManager
 from reconciliation import ReconciliationManager
+from sync_master import SyncManager
+from fetch_master_data import MasterDataFetcher
+from sync_vouchers import VoucherSyncManager
 
 class SyncWorker:
     """Manages periodic sync operations"""
@@ -36,6 +43,7 @@ class SyncWorker:
     def __init__(self):
         self.running = False
         self.sync_thread = None
+        self.tally_host = 'localhost'
         self.tally_port = 9000
         self.sync_interval = 1  # minutes
         self.last_sync_time = None
@@ -46,9 +54,10 @@ class SyncWorker:
             settings_json = sys.stdin.readline().strip()
             if settings_json:
                 settings = json.loads(settings_json)
+                self.tally_host = settings.get('tallyHost', 'localhost')
                 self.tally_port = settings.get('tallyPort', 9000)
                 self.sync_interval = settings.get('syncInterval', 1)
-                logger.info(f"Settings loaded: Port={self.tally_port}, Interval={self.sync_interval} minutes")
+                logger.info(f"Settings loaded: Host={self.tally_host}, Port={self.tally_port}, Interval={self.sync_interval} minutes")
                 return True
         except Exception as e:
             logger.error(f"Error reading settings: {e}")
@@ -71,7 +80,7 @@ class SyncWorker:
             
         # Check Tally
         try:
-            conn = http.client.HTTPConnection("localhost", self.tally_port, timeout=2)
+            conn = http.client.HTTPConnection(self.tally_host, self.tally_port, timeout=2)
             conn.request("HEAD", "/")
             conn.getresponse()
             tally = True
@@ -90,7 +99,7 @@ class SyncWorker:
                 'timestamp': datetime.now().isoformat(),
                 'internet': internet,
                 'tally': tally,
-                'host': 'localhost',
+                'host': self.tally_host,
                 'port': self.tally_port,
                 'data': data or {}
             }
@@ -203,9 +212,9 @@ class SyncWorker:
         })
 
 
-def fetch_license(port):
+def fetch_license(host, port):
     try:
-        client = TallyAPIClient(host='localhost', port=port, timeout=10)
+        client = TallyAPIClient(host=host, port=port, timeout=10)
         success, result = client.get_license_info()
         print(json.dumps({
             'success': success,
@@ -224,9 +233,9 @@ def fetch_license(port):
         except OSError:
             pass
 
-def fetch_companies(port):
+def fetch_companies(host, port):
     try:
-        client = TallyAPIClient(host='localhost', port=port, timeout=10)
+        client = TallyAPIClient(host=host, port=port, timeout=10)
         success, result = client.get_companies()
         print(json.dumps({
             'success': success,
@@ -255,6 +264,7 @@ def run_incremental_sync(args):
         result = manager.sync_incremental(
             company_id=int(args.company_id),
             user_id=args.user_id,
+            tally_host=args.host,
             tally_port=args.port,
             entity_type=args.entity_type,
             # endpoint map logic is inside manager or we can pass default
@@ -295,6 +305,7 @@ def run_reconciliation(args):
                     company_id=int(args.company_id),
                     user_id=args.user_id,
                     entity_type=entity,
+                    tally_host=args.host,
                     tally_port=args.port,
                     company_name=args.company_name
                 )
@@ -324,6 +335,7 @@ def run_reconciliation(args):
                 company_id=int(args.company_id),
                 user_id=args.user_id,
                 entity_type=args.entity_type,
+                tally_host=args.host,
                 tally_port=args.port,
                 company_name=args.company_name
             )
@@ -349,9 +361,10 @@ def run_bills_outstanding_sync(args):
     voucher-based computation which gives wrong Receivables/Payables totals.
     """
     try:
+        import requests
         import xml.etree.ElementTree as ET
         
-        tally_url = f"http://localhost:{args.port}"
+        tally_url = f"http://{args.host}:{args.port}"
         backend_url = args.backend_url.rstrip('/')
         company_id = int(args.company_id)
         company_name = args.company_name or ''
@@ -517,9 +530,107 @@ def run_bills_outstanding_sync(args):
         print(json.dumps({'success': False, 'message': str(e)}))
 
 
+def run_sync_master(args):
+    """Run master data sync (sync_master.py logic)."""
+    try:
+        company_name = args.company_name
+        cmp_id = int(args.company_id) if args.company_id else 1
+        user_id = args.user_id or 1
+        tally_host = args.host
+        tally_port = args.port
+        backend_url = args.backend_url or os.getenv("BACKEND_URL")
+        auth_token = args.auth_token
+        device_token = args.device_token
+
+        if not company_name:
+            print(json.dumps({'success': False, 'error': 'Company name is required'}))
+            return
+
+        manager = SyncManager(company_name, tally_host, tally_port, backend_url, auth_token, device_token)
+        result = manager.sync_all(cmp_id, user_id, "INITIAL")
+        print(json.dumps(result))
+    except Exception as e:
+        logger.error(f"Sync master error: {e}", exc_info=True)
+        print(json.dumps({'success': False, 'error': str(e)}))
+
+
+def run_fetch_master_data(args):
+    """Run master data fetch (fetch_master_data.py logic)."""
+    try:
+        company_name = args.company_name
+        tally_host = args.host
+        tally_port = args.port
+        is_first_sync = args.is_first_sync
+
+        if not company_name:
+            print(json.dumps({'success': False, 'data': {}, 'message': 'Company name is required'}))
+            return
+
+        fetcher = MasterDataFetcher(company_name, tally_host, tally_port)
+        master_data = fetcher.fetch_all()
+
+        result = {
+            'success': True,
+            'company': company_name,
+            'data': master_data,
+            'message': 'Master data fetched successfully'
+        }
+        print(json.dumps(result))
+    except Exception as e:
+        logger.error(f"Fetch master data error: {e}", exc_info=True)
+        print(json.dumps({'success': False, 'data': {}, 'message': str(e)}))
+
+
+def run_sync_vouchers(args):
+    """Run voucher sync (sync_vouchers.py logic)."""
+    try:
+        company_id = int(args.company_id) if args.company_id else 1
+        company_guid = args.company_guid or ''
+        tally_host = args.host
+        tally_port = args.port
+        backend_url = args.backend_url or os.getenv('BACKEND_URL', '')
+        auth_token = args.auth_token or ''
+        device_token = args.device_token or ''
+        from_date = args.from_date or '01-Apr-2024'
+        to_date = args.to_date or '31-Mar-2025'
+        last_alter_id = args.last_voucher_alter_id
+        company_name = args.company_name
+        user_id = args.user_id or 1
+
+        if not company_guid:
+            print(json.dumps({'success': False, 'message': 'Company GUID required', 'count': 0}))
+            return
+
+        if not backend_url:
+            print(json.dumps({'success': False, 'message': 'Backend URL required', 'count': 0}))
+            return
+
+        sync_manager = VoucherSyncManager(backend_url, auth_token, device_token)
+        result = sync_manager.sync_vouchers(
+            company_id=company_id,
+            company_guid=company_guid,
+            user_id=user_id,
+            tally_host=tally_host,
+            tally_port=tally_port,
+            from_date=from_date,
+            to_date=to_date,
+            last_alter_id=last_alter_id,
+            company_name=company_name
+        )
+        print(json.dumps(result))
+    except Exception as e:
+        logger.error(f"Voucher sync error: {e}", exc_info=True)
+        print(json.dumps({'success': False, 'message': str(e), 'count': 0}))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Tallify Sync Worker')
-    parser.add_argument('--mode', choices=['daemon', 'fetch-license', 'fetch-companies', 'incremental-sync', 'reconcile', 'sync-bills-outstanding'], default='daemon', help='Operation mode')
+    parser.add_argument('--mode', choices=[
+        'daemon', 'fetch-license', 'fetch-companies', 'incremental-sync',
+        'reconcile', 'sync-bills-outstanding', 'sync-master',
+        'fetch-master-data', 'sync-vouchers'
+    ], default='daemon', help='Operation mode')
+    parser.add_argument('--host', type=str, default='localhost', help='Tally server host/IP')
     parser.add_argument('--port', type=int, default=9000, help='Tally port number')
     
     # Arguments for sync/reconciliation
@@ -532,19 +643,32 @@ if __name__ == '__main__':
     parser.add_argument('--max-alter-id', type=int, default=0, help='Max Alter ID')
     parser.add_argument('--company-name', help='Company Name')
     parser.add_argument('--batch-size', type=int, default=500, help='Batch size for sync operations')
+    
+    # Additional arguments for new modes
+    parser.add_argument('--company-guid', help='Company GUID (for voucher sync)')
+    parser.add_argument('--from-date', help='From date (e.g., 01-Apr-2024)')
+    parser.add_argument('--to-date', help='To date (e.g., 31-Mar-2025)')
+    parser.add_argument('--last-voucher-alter-id', type=int, help='Last voucher alter ID')
+    parser.add_argument('--is-first-sync', action='store_true', help='Is first sync (for fetch-master-data)')
 
     args = parser.parse_args()
     
     if args.mode == 'fetch-license':
-        fetch_license(args.port)
+        fetch_license(args.host, args.port)
     elif args.mode == 'fetch-companies':
-        fetch_companies(args.port)
+        fetch_companies(args.host, args.port)
     elif args.mode == 'incremental-sync':
         run_incremental_sync(args)
     elif args.mode == 'reconcile':
         run_reconciliation(args)
     elif args.mode == 'sync-bills-outstanding':
         run_bills_outstanding_sync(args)
+    elif args.mode == 'sync-master':
+        run_sync_master(args)
+    elif args.mode == 'fetch-master-data':
+        run_fetch_master_data(args)
+    elif args.mode == 'sync-vouchers':
+        run_sync_vouchers(args)
     else:
         # Default daemon mode
         worker = SyncWorker()
