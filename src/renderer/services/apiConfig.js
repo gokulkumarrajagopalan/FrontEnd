@@ -1,25 +1,34 @@
-// Support both module and non-module environments
 const apiConfig = {
+    async initialize() {
+        if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.getBackendUrl) {
+            try {
+                window._backendUrl = await window.electronAPI.getBackendUrl();
+                console.log('✅ apiConfig: Backend URL initialized asynchronously:', window._backendUrl);
+            } catch (error) {
+                console.error('❌ apiConfig: Failed to initialize Backend URL:', error);
+            }
+        }
+    },
+
     get BASE_URL() {
-        // Use exposed backend URL from main process
+        // 1. Check cached value from async initialization
+        if (typeof window !== 'undefined' && window._backendUrl) {
+            return window._backendUrl;
+        }
+
+        // 2. Fallback to exposed property (legacy/sync)
         if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.backendUrl) {
             return window.electronAPI.backendUrl;
         }
-        // Fallback to AppConfig from config.js
+
+        // 3. Fallback to AppConfig from config.js
         if (typeof window !== 'undefined' && window.AppConfig && window.AppConfig.API_BASE_URL) {
             return window.AppConfig.API_BASE_URL;
         }
-        
-        // Provide detailed error message
-        console.error('❌ Backend URL not configured!');
-        console.error('window.electronAPI.backendUrl:', typeof window !== 'undefined' && window.electronAPI ? window.electronAPI.backendUrl : 'undefined');
-        console.error('window.AppConfig.API_BASE_URL:', typeof window !== 'undefined' && window.AppConfig ? window.AppConfig.API_BASE_URL : 'undefined');
-        console.error('Please ensure:');
-        console.error('1. .env file exists in project root');
-        console.error('2. BACKEND_URL is set in .env file (e.g., BACKEND_URL=http://3.80.124.37:8080)');
-        console.error('3. Application has been restarted after .env changes');
-        
-        throw new Error('Backend URL not configured. Please set BACKEND_URL in .env file');
+
+        // Provide detailed error message if everything fails
+        console.warn('⚠️ apiConfig: Backend URL not yet initialized, returning empty string');
+        return '';
     },
 
     endpoints: {

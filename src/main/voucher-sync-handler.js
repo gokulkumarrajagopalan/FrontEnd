@@ -62,7 +62,10 @@ function syncVouchers(params) {
                 '--to-date', toDate,
                 '--user-id', (userId || '').toString()
             ];
-            if (lastAlterID) args.push('--last-voucher-alter-id', lastAlterID.toString());
+            // Forward explicit 0 as well; otherwise worker falls back to backend lookup.
+            if (lastAlterID !== undefined && lastAlterID !== null) {
+                args.push('--last-voucher-alter-id', lastAlterID.toString());
+            }
             if (companyName) args.push('--company-name', companyName);
         } else {
             const pythonScript = path.join(__dirname, '../../python/sync_vouchers.py');

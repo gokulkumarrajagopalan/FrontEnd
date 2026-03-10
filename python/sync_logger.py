@@ -70,13 +70,31 @@ class SyncLogger:
 
     @staticmethod
     def _timestamp():
+        from datetime import datetime
         return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     @staticmethod
     def _write(filepath, text):
-        """Append text to a log file, creating it if needed."""
-        with open(filepath, 'a', encoding='utf-8') as f:
-            f.write(text)
+        """Append text to a log file using a rotating file handler."""
+        import logging
+        from logging.handlers import RotatingFileHandler
+        
+        # Create a logger specific to this file to handle rotation
+        logger_name = f'sync_logger_{os.path.basename(filepath)}'
+        file_logger = logging.getLogger(logger_name)
+        
+        # Only add the handler once
+        if not file_logger.handlers:
+            file_logger.setLevel(logging.INFO)
+            # 10 MB per file, keep 5 backups
+            handler = RotatingFileHandler(filepath, maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+            # Custom formatter that just passes the text through without prepending timestamps 
+            # (since the text already has it)
+            handler.setFormatter(logging.Formatter('%(message)s'))
+            file_logger.addHandler(handler)
+            file_logger.propagate = False
+            
+        file_logger.info(text.rstrip('\n'))
 
     # ── Incremental Sync Log ─────────────────────────────────────────────────
 
@@ -415,6 +433,6 @@ if __name__ == '__main__':
         duration_seconds=38,
     )
 
-    print(f"✅ Test logs written to:")
+    print(f"Test logs written to:")
     print(f"   {INCREMENTAL_LOG_FILE}")
     print(f"   {RECONCILIATION_LOG_FILE}")

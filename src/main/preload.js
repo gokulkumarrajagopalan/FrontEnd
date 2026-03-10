@@ -42,7 +42,8 @@ try {
         getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
 
         // Configuration
-        backendUrl: ipcRenderer.sendSync('get-backend-url-sync'),
+        getBackendUrl: () => ipcRenderer.invoke('get-backend-url'),
+        backendUrl: ipcRenderer.sendSync('get-backend-url-sync'), // Deprecated: uses sendSync (Synchronous)
 
         // Sync API
         startSync: (config) => {

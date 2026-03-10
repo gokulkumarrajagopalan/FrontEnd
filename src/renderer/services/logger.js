@@ -12,6 +12,30 @@ class Logger {
         this.maxBufferSize = 1000;
         this.enablePersistence = true;
         this.initializeStorage();
+        this.setupGlobalHandlers();
+    }
+
+    /**
+     * Setup global error and rejection handlers
+     */
+    setupGlobalHandlers() {
+        if (typeof window === 'undefined') return;
+
+        // Catch uncaught errors
+        const originalOnError = window.onerror;
+        window.onerror = (message, source, lineno, colno, error) => {
+            this.critical(`Uncaught Error: ${message}`, {
+                source, lineno, colno,
+                stack: error?.stack
+            });
+            if (originalOnError) return originalOnError(message, source, lineno, colno, error);
+            return false;
+        };
+
+        // Catch unhandled promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+            this.critical(`Unhandled Promise Rejection: ${event.reason}`, event.reason);
+        });
     }
 
     /**
@@ -76,6 +100,12 @@ class Logger {
         }
 
         this.saveToStorage();
+
+        // Send to Main Process for persistent file logging (Production Grade)
+        if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.send) {
+            window.electronAPI.send('log-renderer', entry);
+        }
+
         return entry;
     }
 

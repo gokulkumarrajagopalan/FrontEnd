@@ -68,6 +68,12 @@ class App {
 
     async init() {
         console.log('🚀 App.init() called');
+
+        // Initialize API configuration asynchronously (Production Grade)
+        if (window.apiConfig && window.apiConfig.initialize) {
+            await window.apiConfig.initialize();
+        }
+
         if (this.initialized) {
             console.log('⚠️ App already initialized, skipping...');
             return;

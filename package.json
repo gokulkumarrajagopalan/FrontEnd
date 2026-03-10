@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "electron": "^39.2.0",
-    "electron-builder": "^24.9.1",
+    "electron-builder": "^26.8.1",
     "electron-packager": "^17.1.2",
     "tailwindcss": "^3.4.16"
   },
@@ -50,8 +50,7 @@
     "removePackageScripts": true,
     "files": [
       "src/**/*",
-      "assets/**/*",
-      ".env"
+      "assets/**/*"
     ],
     "directories": {
       "buildResources": "assets",

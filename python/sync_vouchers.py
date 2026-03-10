@@ -131,7 +131,7 @@ class VoucherSyncManager:
     def get_last_alter_id(self, company_id: int) -> int:
         """Fetch last synced voucher AlterID from backend"""
         try:
-            url = f"{self.backend_url}/api/companies/{company_id}/last-alter-id"
+            url = f"{self.backend_url}/api/companies/{company_id}/last-voucher-alter-id"
             response = requests.get(url, headers=self.headers, timeout=10)
             
             if response.status_code == 200:
@@ -149,10 +149,9 @@ class VoucherSyncManager:
     def save_last_alter_id(self, company_id: int, alter_id: int) -> bool:
         """Save last synced voucher AlterID to backend"""
         try:
-            url = f"{self.backend_url}/api/companies/{company_id}/last-alter-id"
+            url = f"{self.backend_url}/api/companies/{company_id}/last-voucher-alter-id"
             payload = {
-                'lastAlterID': alter_id,
-                'entityType': 'Voucher'
+                'lastAlterID': alter_id
             }
             response = requests.post(url, json=payload, headers=self.headers, timeout=10)
             return response.status_code in [200, 201]

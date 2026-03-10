@@ -501,12 +501,11 @@ if (isDev) console.log("🔥 Registering IPC handlers...");
 const { registerMasterDataHandler } = require('./master-data-handler');
 registerMasterDataHandler();
 
-// Provide backend URL to renderer synchronously
-ipcMain.on('get-backend-url-sync', (event) => {
+// Provide backend URL to renderer asynchronously (Production Grade)
+ipcMain.handle('get-backend-url', async () => {
   let backendUrl = process.env.BACKEND_URL;
 
   if (!backendUrl) {
-    if (isDev) console.warn('⚠️ BACKEND_URL not found in process.env, attempting to reload .env...');
     try {
       const envPath = path.join(__dirname, '../../.env');
       if (fs.existsSync(envPath)) {
@@ -514,23 +513,28 @@ ipcMain.on('get-backend-url-sync', (event) => {
         if (envConfig.BACKEND_URL) {
           backendUrl = envConfig.BACKEND_URL;
           process.env.BACKEND_URL = backendUrl;
-          if (isDev) console.log('✅ BACKEND_URL loaded from .env re-read:', backendUrl);
         }
       }
     } catch (e) {
       if (isDev) console.error('❌ Failed to reload .env:', e);
     }
   }
+  return backendUrl;
+});
 
+// Provide backend URL to renderer synchronously (Deprecated - causes UI freeze)
+ipcMain.on('get-backend-url-sync', (event) => {
+  let backendUrl = process.env.BACKEND_URL;
+  // ... existing sync logic simplified for brevity here, but I'll keep it functional
   if (!backendUrl) {
-    if (isDev) {
-      console.error('❌ BACKEND_URL not set in .env file!');
-      console.error('Please create a .env file in the project root with: BACKEND_URL=http://your-backend-url:8080');
-    }
-  } else {
-    if (isDev) console.log('✅ Sending BACKEND_URL to renderer:', backendUrl);
+    try {
+      const envPath = path.join(__dirname, '../../.env');
+      if (fs.existsSync(envPath)) {
+        const envConfig = require('dotenv').parse(fs.readFileSync(envPath));
+        backendUrl = envConfig.BACKEND_URL;
+      }
+    } catch (e) { }
   }
-
   event.returnValue = backendUrl;
 });
 
@@ -812,3 +816,17 @@ if (!gotTheLock) {
     }
   });
 }
+
+// Unified Renderer Logging (Production Grade)
+ipcMain.on('log-renderer', (event, { level, message, data, timestamp }) => {
+  const formattedData = data ? (typeof data === 'object' ? JSON.stringify(data) : data) : '';
+  const logLine = `[RENDERER] [${level}] [${timestamp}] ${message} ${formattedData}\n`;
+
+  // Use the same log file as python worker for unified debugging
+  const logPath = path.join(app.getPath('userData'), 'sync_report.log');
+  try {
+    fs.appendFileSync(logPath, logLine);
+  } catch (err) {
+    console.error('Failed to write renderer log to file:', err);
+  }
+});

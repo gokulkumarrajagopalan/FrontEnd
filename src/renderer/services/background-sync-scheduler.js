@@ -157,7 +157,7 @@ class BackgroundSyncScheduler {
                             let cachedAlterID = null;
                             try {
                                 const alterIdResp = await fetch(
-                                    `${window.apiConfig.baseURL}/api/companies/${company.id}/last-alter-id`,
+                                    `${window.apiConfig.baseURL}/api/companies/${company.id}/last-voucher-alter-id`,
                                     { headers: { 'Authorization': `Bearer ${authToken}`, 'X-Device-Token': deviceToken } }
                                 );
                                 if (alterIdResp.ok) {
