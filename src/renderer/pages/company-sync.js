@@ -433,21 +433,137 @@
                 };
                 if (step.name === 'Vouchers') {
                     syncParams.companyGuid = company.companyGuid || company.guid || '';
-                    // Convert ISO date (2021-04-01) to Tally format (01-Apr-2021)
                     const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                    const _isoToTally = (iso) => {
-                        if (!iso || iso.length < 10) return null;
-                        const [y, m, d] = iso.split('-');
-                        return `${d}-${_months[parseInt(m, 10) - 1]}-${y}`;
-                    };
-                    const fromISO = company.booksStart || company.financialYearStart || '';
-                    syncParams.fromDate = _isoToTally(fromISO) || '01-Apr-2024';
-                    // Compute toDate: current date in Tally format
-                    const _now = new Date();
-                    syncParams.toDate = `${String(_now.getDate()).padStart(2, '0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`;
-                    syncParams.lastAlterID = 0;
-                    console.log(`   📅 Voucher date range: ${syncParams.fromDate} to ${syncParams.toDate}`);
-                    console.log(`   🔑 Company GUID: ${syncParams.companyGuid}`);
+                    const _formatTallyDate = (dt) => `${String(dt.getDate()).padStart(2, '0')}-${_months[dt.getMonth()]}-${dt.getFullYear()}`;
+
+                    const isFirstTime = !company.firstTimeSyncDone;
+
+                    if (isFirstTime) {
+                        // ---- FIRST-TIME: Monthly chunks + adaptive weekly ----
+                        const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
+                        const _now = new Date();
+                        const toISO = company.syncToDate || _now.toISOString().split('T')[0];
+
+                        let vStartDate = fromISO ? new Date(fromISO + 'T00:00:00') : null;
+                        let vEndDate = toISO ? new Date(toISO + 'T00:00:00') : _now;
+
+                        if (!vStartDate || isNaN(vStartDate.getTime())) {
+                            const fyYear = _now.getMonth() >= 3 ? _now.getFullYear() : _now.getFullYear() - 1;
+                            vStartDate = new Date(fyYear, 3, 1);
+                        }
+                        if (!vEndDate || isNaN(vEndDate.getTime())) vEndDate = _now;
+
+                        // Generate 1-month chunks
+                        const vChunks = [];
+                        let vChunkStart = new Date(vStartDate);
+                        while (vChunkStart <= vEndDate) {
+                            let vChunkEnd = new Date(vChunkStart.getFullYear(), vChunkStart.getMonth() + 1, 0);
+                            if (vChunkEnd > vEndDate) vChunkEnd = vEndDate;
+                            vChunks.push({ from: new Date(vChunkStart), to: new Date(vChunkEnd) });
+                            vChunkStart = new Date(vChunkEnd.getFullYear(), vChunkEnd.getMonth() + 1, 1);
+                        }
+
+                        console.log(`   📅 First-time voucher sync: ${vChunks.length} monthly chunk(s)`);
+
+                        let vTotalSuccess = true;
+                        let vTotalMsg = '';
+                        for (let ci = 0; ci < vChunks.length; ci++) {
+                            const vc = vChunks[ci];
+                            const cFrom = _formatTallyDate(vc.from);
+                            const cTo = _formatTallyDate(vc.to);
+                            console.log(`   📅 Month ${ci + 1}/${vChunks.length}: ${cFrom} → ${cTo}`);
+
+                            const chunkStartTime = Date.now();
+                            const chunkResult = await step.api({
+                                ...syncParams,
+                                fromDate: cFrom,
+                                toDate: cTo,
+                                lastAlterID: 0
+                            });
+                            const chunkElapsed = Date.now() - chunkStartTime;
+
+                            if (chunkResult.success) {
+                                console.log(`   ✅ Month ${ci + 1}: synced (${(chunkElapsed / 1000).toFixed(1)}s)`);
+                                // Adaptive weekly retry if month took >30s
+                                if (chunkElapsed > 30000) {
+                                    console.log(`   ⏱️ Month ${ci + 1} took >30s, re-syncing weekly...`);
+                                    let weekStart = new Date(vc.from);
+                                    while (weekStart <= vc.to) {
+                                        let weekEnd = new Date(weekStart);
+                                        weekEnd.setDate(weekEnd.getDate() + 6);
+                                        if (weekEnd > vc.to) weekEnd = new Date(vc.to);
+                                        await step.api({
+                                            ...syncParams,
+                                            fromDate: _formatTallyDate(weekStart),
+                                            toDate: _formatTallyDate(weekEnd),
+                                            lastAlterID: 0
+                                        });
+                                        weekStart = new Date(weekEnd);
+                                        weekStart.setDate(weekStart.getDate() + 1);
+                                    }
+                                }
+                            } else {
+                                vTotalSuccess = false;
+                                vTotalMsg = chunkResult.message;
+                            }
+                        }
+
+                        const result = { success: vTotalSuccess, message: vTotalMsg || 'Voucher sync completed' };
+                        if (result.success) {
+                            successCount++;
+                            console.log(`   ✅ ${step.name} synced (first-time)`);
+                            // Mark first-time sync done with response validation
+                            try {
+                                const headers = {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${authToken}`,
+                                    'X-Device-Token': deviceToken
+                                };
+                                const updatePayload = JSON.stringify({ firstTimeSyncDone: true });
+                                const candidates = [
+                                    `${backendUrl}/api/companies/${company.id}`,
+                                    `${backendUrl}/companies/${company.id}`
+                                ];
+
+                                let updated = false;
+                                let lastStatus = 'n/a';
+                                for (const url of candidates) {
+                                    const resp = await fetch(url, { method: 'PUT', headers, body: updatePayload });
+                                    if (resp.ok) {
+                                        updated = true;
+                                        console.log(`   📝 firstTimeSyncDone updated for ${company.name} via ${url}`);
+                                        break;
+                                    }
+                                    lastStatus = String(resp.status);
+                                }
+                                if (!updated) {
+                                    console.warn(`⚠️ firstTimeSyncDone update failed for ${company.name} (last status: ${lastStatus})`);
+                                }
+                            } catch (e) {
+                                console.warn('⚠️ Could not update firstTimeSyncDone:', e.message);
+                            }
+                        } else {
+                            console.error(`   ❌ ${step.name} sync failed: `, result.message);
+                            companyAllSuccess = false;
+                        }
+                    } else {
+                        // ---- INCREMENTAL: Single call with lastAlterID ----
+                        console.log(`   📦 Incremental voucher sync (alterId mode)`);
+                        const chunkResult = await step.api({
+                            ...syncParams,
+                            fromDate: '',
+                            toDate: '',
+                            lastAlterID: 0 // Python worker will fetch latest from backend
+                        });
+                        if (chunkResult.success) {
+                            successCount++;
+                            console.log(`   ✅ ${step.name} synced (incremental)`);
+                        } else {
+                            console.error(`   ❌ ${step.name} sync failed: `, chunkResult.message);
+                            companyAllSuccess = false;
+                        }
+                    }
+                    continue; // Skip the generic step.api call below
                 }
                 const result = await step.api(syncParams);
 
@@ -476,7 +592,7 @@
 
             // Update UI and Status based on results
             if (companyAllSuccess) {
-                window.notificationService.success(`✅ Successfully synced all ${successCount} masters for ${company.name}!`);
+                window.notificationService.success(`✅ Successfully synced all ${successCount} masters for ${company.name}! Reconciliation running in background...`);
                 company.syncStatus = 'synced';
                 company.lastSyncDate = new Date().toISOString();
                 await updateCompanyStatus(company.id, 'synced', 'active');
@@ -489,6 +605,50 @@
                     const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
                     if (progressContainer) progressContainer.style.display = 'none';
                 }, 2000);
+
+                // Run reconciliation in BACKGROUND (fire-and-forget, non-blocking)
+                (async () => {
+                    try {
+                        console.log(`🔍 Background reconciliation started for ${company.name}`);
+                        const _reconMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        const _reconNow = new Date();
+                        const _reconFromDate = _reconNow.getMonth() >= 3 
+                            ? `01-Apr-${_reconNow.getFullYear()}` 
+                            : `01-Apr-${_reconNow.getFullYear() - 1}`;
+                        const _reconToDate = `${String(_reconNow.getDate()).padStart(2, '0')}-${_reconMonths[_reconNow.getMonth()]}-${_reconNow.getFullYear()}`;
+                        
+                        const reconResult = await window.electronAPI.reconcileData({
+                            companyId: company.id,
+                            companyName: company.name,
+                            companyGuid: company.companyGuid || company.guid || '',
+                            userId: currentUser.userId,
+                            tallyHost: tallyHost,
+                            tallyPort: tallyPort,
+                            backendUrl: backendUrl,
+                            authToken: authToken,
+                            deviceToken: deviceToken,
+                            entityType: 'all',
+                            fromDate: _reconFromDate,
+                            toDate: _reconToDate
+                        });
+
+                        if (reconResult.success && reconResult.totalSynced > 0) {
+                            console.log(`✅ Reconciliation complete for ${company.name}: ${reconResult.totalSynced} records auto-synced`);
+                            window.notificationService?.show({
+                                type: 'info',
+                                message: `Reconciliation complete for ${company.name}`,
+                                details: `${reconResult.totalSynced} missing records auto-synced`,
+                                duration: 4000
+                            });
+                        } else if (reconResult.success) {
+                            console.log(`✅ Reconciliation complete for ${company.name}: All records in sync`);
+                        } else {
+                            console.warn(`⚠️ Reconciliation completed with warnings for ${company.name}`);
+                        }
+                    } catch (reconError) {
+                        console.error(`❌ Background reconciliation error for ${company.name}:`, reconError.message);
+                    }
+                })();
             } else if (successCount > 0) {
                 window.notificationService.warning(`⚠️ Partial sync for ${company.name}: ${successCount}/${syncSteps.length} masters succeeded.`);
                 company.syncStatus = 'pending';

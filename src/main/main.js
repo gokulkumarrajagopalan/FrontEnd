@@ -319,7 +319,20 @@ function getWorkerCommand() {
   if (isDev) console.log(`🔍 Environment Check: isDev=${isDev} (NODE_ENV=${process.env.NODE_ENV}, isPackaged=${app.isPackaged}, defaultApp=${process.defaultApp})`);
 
   if (isDev) {
-    // In dev, prefer bundled executable if available (no Python install needed)
+    // In dev, prefer Python source so code changes take effect immediately
+    const scriptPath = path.join(__dirname, "../..", "python", "sync_worker.py");
+    if (fs.existsSync(scriptPath)) {
+      try {
+        const pythonPath = findPython();
+        const cwd = path.join(__dirname, "../..", "python");
+        if (isDev) console.log(`✅ Using Python source: ${pythonPath} ${scriptPath}`);
+        return { command: pythonPath, args: [scriptPath], cwd };
+      } catch (e) {
+        if (isDev) console.log(`⚠️ Python not found, falling back to bundled EXE`);
+      }
+    }
+
+    // Fallback to bundled executable if Python source or interpreter not available
     const devExeCandidates = [
       path.join(__dirname, "../..", "resources", "bin", "sync_worker.exe"),
       path.join(__dirname, "../..", "resources", "python", "dist", "sync_worker.exe")
@@ -333,12 +346,7 @@ function getWorkerCommand() {
       }
     }
 
-    // Fallback to system python only if no exe is available
-    const pythonPath = findPython();
-    const scriptPath = path.join(__dirname, "../..", "python", "sync_worker.py");
-    // Explicitly set CWD to the python directory
-    const cwd = path.join(__dirname, "../..", "python");
-    return { command: pythonPath, args: [scriptPath], cwd };
+    throw new Error('No Python interpreter or bundled sync_worker.exe found');
   } else {
     // In prod, use the bundled executable
     // The executable is in resources/bin/sync_worker.exe
@@ -397,6 +405,13 @@ async function runWorkerCommand(mode, params = {}) {
       cwd: cwd
     });
 
+    // 10 minute timeout to prevent UI indefinite hang
+    const timeoutHandle = setTimeout(() => {
+      if (isDev) console.error(`Worker timeout exceeded (10m) for ${mode}`);
+      child.kill();
+      reject(new Error(`Process timed out after 10 minutes for ${mode}`));
+    }, 10 * 60 * 1000);
+
     let output = '';
     let errorOutput = '';
 
@@ -411,6 +426,7 @@ async function runWorkerCommand(mode, params = {}) {
     });
 
     child.on('close', (code) => {
+      clearTimeout(timeoutHandle);
       // console.log(`Worker exited with code ${code}`);
       if (code === 0 && output.trim()) {
         try {
@@ -442,6 +458,7 @@ async function runWorkerCommand(mode, params = {}) {
     });
 
     child.on('error', (err) => {
+      clearTimeout(timeoutHandle);
       if (isDev) console.error('Failed to spawn worker:', err);
       // Fallback for dev environment if python is missing or path issues
       if (err.code === 'ENOENT') {

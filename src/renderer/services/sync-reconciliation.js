@@ -55,6 +55,16 @@ class SyncReconciliation {
                 return true;
             }
         });
+
+        // Voucher verification
+        this.verificationRules.set('Voucher', {
+            requiredFields: ['guid', 'alterID', 'voucherTypeName'],
+            validation: (record) => {
+                if (!record.guid || record.guid.trim() === '') return false;
+                if (record.alterID === null || record.alterID === undefined) return false;
+                return true;
+            }
+        });
     }
 
     /**

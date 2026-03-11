@@ -20,7 +20,7 @@ if getattr(_sys, 'frozen', False):
 else:
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
 os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, f'fetch_master_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+log_file = os.path.join(log_dir, 'sync_worker.log')
 
 logging.basicConfig(
     level=logging.INFO,

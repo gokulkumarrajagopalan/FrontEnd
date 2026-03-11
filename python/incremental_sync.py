@@ -22,7 +22,7 @@ if getattr(_sys, 'frozen', False):
 else:
     LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
-INCREMENTAL_SYNC_LOG_FILE = os.path.join(LOG_DIR, 'incremental_sync.log')
+INCREMENTAL_SYNC_LOG_FILE = os.path.join(LOG_DIR, 'sync_worker.log')
 
 # Configure logging with both file and console handlers
 logger = logging.getLogger(__name__)
@@ -390,7 +390,7 @@ class IncrementalSyncManager:
                 url,
                 data=tdl,
                 headers={'Content-Type': 'application/xml'},
-                timeout=30
+                timeout=300
             )
             
             if response.status_code == 200:

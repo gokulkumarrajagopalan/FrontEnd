@@ -18,6 +18,7 @@ import re
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
+from sync_logger import get_sync_logger
 import xml.etree.ElementTree as ET
 
 # Production logging configuration
@@ -373,7 +374,7 @@ class VoucherSyncManager:
                 url,
                 data=tdl,
                 headers={'Content-Type': 'application/xml'},
-                timeout=120  # Longer timeout for large voucher sets
+                timeout=300  # Longer timeout for large voucher sets
             )
             if response.status_code == 200:
                 logger.info(f"✅ Fetched voucher data from Tally ({len(response.text):,} bytes)")
@@ -769,7 +770,7 @@ class VoucherSyncManager:
                 url,
                 json=backend_vouchers,
                 headers=self.headers,
-                timeout=120
+                timeout=300
             )
             
             if response.status_code in [200, 201]:
@@ -806,6 +807,8 @@ class VoucherSyncManager:
         logger.info(f"🚀 Starting voucher sync for company {company_id}")
         logger.info(f"📅 Date Range: {from_date} to {to_date}")
         
+        sync_start_time = time.time()
+        
         # Pre-flight check: verify company is loaded in Tally
         if company_name:
             is_loaded, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
@@ -828,6 +831,15 @@ class VoucherSyncManager:
         xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
         
         if not xml_response:
+            elapsed_ms = int((time.time() - sync_start_time) * 1000)
+            try:
+                get_sync_logger().log_voucher_sync_single(
+                    company_name=company_name or f'Company {company_id}',
+                    from_date=from_date, to_date=to_date,
+                    count=0, elapsed_ms=elapsed_ms,
+                    error='Failed to fetch vouchers from Tally')
+            except Exception:
+                pass
             return {
                 'success': False,
                 'message': 'Failed to fetch vouchers from Tally',
@@ -891,11 +903,23 @@ class VoucherSyncManager:
         
         logger.info(f"🎉 Voucher sync complete: {total_saved}/{len(vouchers)} vouchers saved")
         
+        elapsed_ms = int((time.time() - sync_start_time) * 1000)
+        
+        try:
+            get_sync_logger().log_voucher_sync_single(
+                company_name=company_name or f'Company {company_id}',
+                from_date=from_date, to_date=to_date,
+                count=total_saved, elapsed_ms=elapsed_ms,
+                last_alter_id=max_alter_id)
+        except Exception:
+            pass
+        
         return {
             'success': True,
             'message': f'Successfully synced {total_saved} vouchers',
             'count': total_saved,
             'lastAlterID': max_alter_id,
+            'elapsedMs': elapsed_ms,
             'stats': {
                 'vouchers': len(vouchers),
                 'ledgerEntries': total_ledger,
@@ -903,6 +927,202 @@ class VoucherSyncManager:
                 'inventoryEntries': total_inventory,
                 'batchAllocations': total_batch_alloc
             }
+        }
+
+    # ─── Monthly Chunked Sync (with Adaptive Weekly) ─────────────
+
+    def sync_vouchers_chunked(self, company_id: int, company_guid: str, user_id: int,
+                              tally_host: str, tally_port: int, from_date: str = '01-Apr-2024',
+                              to_date: str = '31-Mar-2025', last_alter_id: int = None,
+                              company_name: str = None) -> Dict:
+        """Sync vouchers in 1-month chunks to avoid Tally memory errors.
+        
+        Breaks the full date range into months and calls sync_vouchers() for each.
+        If a month takes >30 seconds, it is re-synced using weekly sub-chunks.
+        """
+        import calendar
+        from datetime import timedelta
+        
+        months_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+        months_rev = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        
+        def parse_tally_date(d):
+            """Parse dd-Mon-yyyy to datetime"""
+            parts = d.split('-')
+            return datetime(int(parts[2]), months_map[parts[1]], int(parts[0]))
+        
+        def format_tally_date(dt):
+            """Format datetime to dd-Mon-yyyy"""
+            return f"{dt.day:02d}-{months_rev[dt.month]}-{dt.year}"
+        
+        start_dt = parse_tally_date(from_date)
+        end_dt = parse_tally_date(to_date)
+        
+        # Generate 1-month chunks
+        chunks = []
+        chunk_start = start_dt
+        while chunk_start <= end_dt:
+            _, last_day = calendar.monthrange(chunk_start.year, chunk_start.month)
+            chunk_end = datetime(chunk_start.year, chunk_start.month, last_day)
+            if chunk_end > end_dt:
+                chunk_end = end_dt
+            chunks.append((chunk_start, chunk_end))
+            next_month = chunk_start.month + 1
+            next_year = chunk_start.year
+            if next_month > 12:
+                next_month = 1
+                next_year += 1
+            chunk_start = datetime(next_year, next_month, 1)
+        
+        logger.info(f"📅 Monthly chunked sync: {len(chunks)} chunk(s) from {from_date} to {to_date}")
+        
+        try:
+            get_sync_logger().log_voucher_sync_start(
+                company_name=company_name or f'Company {company_id}',
+                from_date=from_date, to_date=to_date,
+                sync_type='First-Time (Monthly + Adaptive Weekly)',
+                chunk_count=len(chunks))
+        except Exception:
+            pass
+        
+        chunked_start_time = time.time()
+        total_count = 0
+        total_stats = {'vouchers': 0, 'ledgerEntries': 0, 'billAllocations': 0,
+                       'inventoryEntries': 0, 'batchAllocations': 0}
+        chunk_errors = []
+        last_alter = last_alter_id
+        
+        for i, (c_start, c_end) in enumerate(chunks):
+            c_from = format_tally_date(c_start)
+            c_to = format_tally_date(c_end)
+            logger.info(f"📅 Month {i+1}/{len(chunks)}: {c_from} → {c_to}")
+            
+            result = self.sync_vouchers(
+                company_id=company_id,
+                company_guid=company_guid,
+                user_id=user_id,
+                tally_host=tally_host,
+                tally_port=tally_port,
+                from_date=c_from,
+                to_date=c_to,
+                last_alter_id=last_alter,
+                company_name=company_name
+            )
+            
+            if result.get('success'):
+                total_count += result.get('count', 0)
+                if result.get('lastAlterID'):
+                    last_alter = result['lastAlterID']
+                stats = result.get('stats', {})
+                for k in total_stats:
+                    total_stats[k] += stats.get(k, 0)
+                elapsed_ms = result.get('elapsedMs', 0)
+                logger.info(f"   ✅ Month {i+1}: {result.get('count', 0)} vouchers ({elapsed_ms}ms)")
+                
+                try:
+                    get_sync_logger().log_voucher_sync_chunk(
+                        chunk_num=i+1, total_chunks=len(chunks),
+                        from_date=c_from, to_date=c_to,
+                        count=result.get('count', 0), elapsed_ms=elapsed_ms,
+                        chunk_type='Month')
+                except Exception:
+                    pass
+                
+                # Adaptive weekly retry if month took >30s
+                if elapsed_ms > 30000:
+                    logger.info(f"   ⏱️ Month {i+1} took {elapsed_ms}ms (>30s), re-syncing weekly...")
+                    week_start = c_start
+                    week_num = 0
+                    while week_start <= c_end:
+                        week_num += 1
+                        week_end = week_start + timedelta(days=6)
+                        if week_end > c_end:
+                            week_end = c_end
+                        w_from = format_tally_date(week_start)
+                        w_to = format_tally_date(week_end)
+                        logger.info(f"      📅 Week {week_num}: {w_from} → {w_to}")
+                        
+                        w_result = self.sync_vouchers(
+                            company_id=company_id,
+                            company_guid=company_guid,
+                            user_id=user_id,
+                            tally_host=tally_host,
+                            tally_port=tally_port,
+                            from_date=w_from,
+                            to_date=w_to,
+                            last_alter_id=last_alter,
+                            company_name=company_name
+                        )
+                        if w_result.get('success'):
+                            total_count += w_result.get('count', 0)
+                            if w_result.get('lastAlterID'):
+                                last_alter = w_result['lastAlterID']
+                            w_stats = w_result.get('stats', {})
+                            for k in total_stats:
+                                total_stats[k] += w_stats.get(k, 0)
+                            logger.info(f"      ✅ Week {week_num}: {w_result.get('count', 0)} vouchers")
+                            try:
+                                get_sync_logger().log_voucher_sync_chunk(
+                                    chunk_num=week_num, total_chunks=0,
+                                    from_date=w_from, to_date=w_to,
+                                    count=w_result.get('count', 0),
+                                    elapsed_ms=w_result.get('elapsedMs', 0),
+                                    chunk_type=f'  Week (Month {i+1})')
+                            except Exception:
+                                pass
+                        else:
+                            logger.error(f"      ❌ Week {week_num} failed: {w_result.get('message')}")
+                            try:
+                                get_sync_logger().log_voucher_sync_chunk(
+                                    chunk_num=week_num, total_chunks=0,
+                                    from_date=w_from, to_date=w_to,
+                                    count=0, elapsed_ms=0,
+                                    chunk_type=f'  Week (Month {i+1})',
+                                    error=w_result.get('message', 'Unknown'))
+                            except Exception:
+                                pass
+                        
+                        week_start = week_end + timedelta(days=1)
+            else:
+                chunk_errors.append(f"Month {i+1} ({c_from}-{c_to}): {result.get('message', 'Unknown error')}")
+                logger.error(f"   ❌ Month {i+1} failed: {result.get('message')}")
+                try:
+                    get_sync_logger().log_voucher_sync_chunk(
+                        chunk_num=i+1, total_chunks=len(chunks),
+                        from_date=c_from, to_date=c_to,
+                        count=0, elapsed_ms=0,
+                        chunk_type='Month',
+                        error=result.get('message', 'Unknown error'))
+                except Exception:
+                    pass
+        
+        chunked_elapsed = int((time.time() - chunked_start_time) * 1000)
+        try:
+            get_sync_logger().log_voucher_sync_complete(
+                company_name=company_name or f'Company {company_id}',
+                total_vouchers=total_count, total_chunks=len(chunks),
+                errors=len(chunk_errors), duration_ms=chunked_elapsed)
+        except Exception:
+            pass
+        
+        if chunk_errors:
+            return {
+                'success': len(chunk_errors) < len(chunks),
+                'message': f'Synced {total_count} vouchers with {len(chunk_errors)} month error(s)',
+                'count': total_count,
+                'lastAlterID': last_alter,
+                'stats': total_stats,
+                'chunkErrors': chunk_errors
+            }
+        
+        return {
+            'success': True,
+            'message': f'Successfully synced {total_count} vouchers in {len(chunks)} month(s)',
+            'count': total_count,
+            'lastAlterID': last_alter,
+            'stats': total_stats
         }
 
 

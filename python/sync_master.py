@@ -23,8 +23,8 @@ else:
 log_dir = os.path.join(_log_base, 'logs')
 os.makedirs(log_dir, exist_ok=True)
 
-log_file = os.path.join(log_dir, f'sync_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
-reconcile_log_file = os.path.join(_log_base, 'reconcilation.txt')
+log_file = os.path.join(log_dir, 'sync_worker.log')
+reconcile_log_file = os.path.join(log_dir, 'sync_worker.log')
 
 logging.basicConfig(
     level=logging.INFO,
@@ -108,7 +108,7 @@ class SyncManager:
                 self.tally_url,
                 data=tdl,
                 headers={'Content-Type': 'application/xml'},
-                timeout=30
+                timeout=300
             )
             
             if response.status_code == 200:
@@ -356,7 +356,7 @@ class SyncManager:
                 'unchanged': unchanged
             }
             
-            # Log to reconcilation.txt
+            # Log to consolidated sync_worker.log
             self.log_reconciliation(
                 cmp_id=cmp_id,
                 entity_type=entity_type,
@@ -393,7 +393,7 @@ class SyncManager:
     
     def log_reconciliation(self, cmp_id: int, entity_type: str, sync_type: str, 
                           tally_count: int, result: Dict):
-        """Log reconciliation results to reconcilation.txt with detailed counts"""
+        """Log reconciliation results to consolidated sync_worker.log with detailed counts"""
         try:
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             

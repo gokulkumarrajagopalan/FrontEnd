@@ -5,6 +5,7 @@ import sys
 import time
 import threading
 import logging
+import subprocess
 from datetime import datetime
 import os
 
@@ -16,7 +17,7 @@ else:
 
 log_dir = os.path.join(_base_dir, 'logs')
 os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, 'sync_report.log')
+log_file = os.path.join(log_dir, 'sync_worker.log')
 
 from logging.handlers import RotatingFileHandler
 
@@ -294,15 +295,75 @@ def run_reconciliation(args):
         # Create sync manager for updating company status
         sync_manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
         
+        def run_voucher_reconciliation_script() -> dict:
+            # When running as frozen EXE, always use in-process (no .py scripts available)
+            if getattr(sys, 'frozen', False):
+                logger.info('🧾 Running voucher reconciliation in-process (frozen EXE mode)')
+                return manager.reconcile_vouchers(
+                    company_id=int(args.company_id),
+                    user_id=args.user_id,
+                    company_guid=args.company_guid or '',
+                    tally_host=args.host,
+                    tally_port=args.port,
+                    company_name=args.company_name,
+                    from_date=args.from_date,
+                    to_date=args.to_date
+                )
+
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'voucher_reconciliation.py')
+            if not os.path.exists(script_path):
+                logger.warning('voucher_reconciliation.py not found, using in-process fallback')
+                return manager.reconcile_vouchers(
+                    company_id=int(args.company_id),
+                    user_id=args.user_id,
+                    company_guid=args.company_guid or '',
+                    tally_host=args.host,
+                    tally_port=args.port,
+                    company_name=args.company_name,
+                    from_date=args.from_date,
+                    to_date=args.to_date
+                )
+
+            cmd = [
+                sys.executable,
+                script_path,
+                '--company-id', str(args.company_id),
+                '--user-id', str(args.user_id),
+                '--backend-url', str(args.backend_url),
+                '--auth-token', str(args.auth_token),
+                '--device-token', str(args.device_token),
+                '--host', str(args.host),
+                '--port', str(args.port),
+                '--company-name', str(args.company_name or ''),
+                '--company-guid', str(args.company_guid or '')
+            ]
+
+            if args.from_date:
+                cmd.extend(['--from-date', str(args.from_date)])
+            if args.to_date:
+                cmd.extend(['--to-date', str(args.to_date)])
+
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+            if proc.returncode != 0:
+                logger.error(f'Voucher reconciliation script failed: {proc.stderr.strip()}')
+                raise RuntimeError('Voucher reconciliation script failed')
+
+            try:
+                return json.loads(proc.stdout.strip() or '{}')
+            except Exception:
+                logger.error(f'Invalid JSON from voucher reconciliation script: {proc.stdout.strip()}')
+                raise RuntimeError('Voucher reconciliation script returned invalid JSON')
+
         if args.entity_type.lower() == 'all':
-            # Reconcile all entities
-            ALL_ENTITIES = [
+            results = []
+
+            # First reconcile all master entities
+            ALL_MASTER_ENTITIES = [
                 'Group', 'Currency', 'Unit', 'StockGroup', 'StockCategory',
                 'CostCategory', 'CostCenter', 'Godown', 'VoucherType',
                 'TaxUnit', 'Ledger', 'StockItem'
             ]
-            results = []
-            for entity in ALL_ENTITIES:
+            for entity in ALL_MASTER_ENTITIES:
                 res = manager.reconcile_entity(
                     company_id=int(args.company_id),
                     user_id=args.user_id,
@@ -312,6 +373,11 @@ def run_reconciliation(args):
                     company_name=args.company_name
                 )
                 results.append(res)
+
+            # Then run voucher reconciliation via dedicated script
+            logger.info('🧾 Starting voucher reconciliation via voucher_reconciliation.py...')
+            voucher_res = run_voucher_reconciliation_script()
+            results.append(voucher_res)
             
             total_missing = sum(r.get('missing', 0) for r in results if r.get('success'))
             total_updated = sum(r.get('updated', 0) for r in results if r.get('success'))
@@ -332,6 +398,17 @@ def run_reconciliation(args):
                 'totalSynced': total_synced,
                 'details': results
             }))
+        elif args.entity_type.lower() == 'voucher':
+            # Reconcile vouchers only via dedicated script
+            result = run_voucher_reconciliation_script()
+            
+            sync_manager.update_company_sync_status(
+                int(args.company_id),
+                'synced' if result.get('success') else 'failed',
+                result.get('success', False)
+            )
+            
+            print(json.dumps(result))
         else:
             result = manager.reconcile_entity(
                 company_id=int(args.company_id),
@@ -593,8 +670,18 @@ def run_sync_vouchers(args):
         backend_url = args.backend_url or os.getenv('BACKEND_URL', '')
         auth_token = args.auth_token or ''
         device_token = args.device_token or ''
-        from_date = args.from_date or '01-Apr-2024'
-        to_date = args.to_date or '31-Mar-2025'
+        
+        # Compute sensible date defaults based on Indian financial year (Apr-Mar)
+        now = datetime.now()
+        if now.month >= 4:
+            default_from = f"01-Apr-{now.year}"
+            default_to = f"31-Mar-{now.year + 1}"
+        else:
+            default_from = f"01-Apr-{now.year - 1}"
+            default_to = f"31-Mar-{now.year}"
+        
+        from_date = args.from_date or default_from
+        to_date = args.to_date or default_to
         last_alter_id = args.last_voucher_alter_id
         company_name = args.company_name
         user_id = args.user_id or 1

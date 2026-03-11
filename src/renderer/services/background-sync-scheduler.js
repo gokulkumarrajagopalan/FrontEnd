@@ -138,53 +138,157 @@ class BackgroundSyncScheduler {
                         console.warn(`⚠️ ${company.name}: Master sync issue - ${result.message}`);
                     }
 
-                    // ---- Voucher Sync ----
+                    // ---- Voucher Sync (firstTimeSyncDone branching) ----
                     try {
                         if (window.electronAPI?.syncVouchers) {
-                            console.log(`  📦 ${company.name}: Syncing Vouchers...`);
                             const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                            const _isoToTally = (iso) => {
-                                if (!iso || iso.length < 10) return null;
-                                const [y, m, d] = iso.split('-');
-                                return `${d}-${_months[parseInt(m,10)-1]}-${y}`;
-                            };
-                            const fromISO = company.booksStart || company.financialYearStart || '';
-                            const _now = new Date();
+                            const _formatTallyDate = (dt) => `${String(dt.getDate()).padStart(2, '0')}-${_months[dt.getMonth()]}-${dt.getFullYear()}`;
 
-                            // Fetch last AlterID from backend instead of hardcoding 0
-                            // The Python sync_vouchers.py will also fetch it if we pass null/undefined,
-                            // but passing it explicitly avoids an extra HTTP call from the worker
-                            let cachedAlterID = null;
-                            try {
-                                const alterIdResp = await fetch(
-                                    `${window.apiConfig.baseURL}/api/companies/${company.id}/last-voucher-alter-id`,
-                                    { headers: { 'Authorization': `Bearer ${authToken}`, 'X-Device-Token': deviceToken } }
-                                );
-                                if (alterIdResp.ok) {
-                                    const alterIdData = await alterIdResp.json();
-                                    cachedAlterID = alterIdData.lastAlterID || 0;
-                                    console.log(`  📌 ${company.name}: Last voucher AlterID = ${cachedAlterID}`);
+                            const isFirstTime = !company.firstTimeSyncDone;
+
+                            if (isFirstTime) {
+                                // ---- FIRST-TIME: Monthly chunks + adaptive weekly ----
+                                console.log(`  📦 ${company.name}: First-time voucher sync (monthly chunks)...`);
+                                const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
+                                const _now = new Date();
+                                const toISO = company.syncToDate || _now.toISOString().split('T')[0];
+
+                                let vStartDate = fromISO ? new Date(fromISO + 'T00:00:00') : null;
+                                let vEndDate = toISO ? new Date(toISO + 'T00:00:00') : _now;
+
+                                if (!vStartDate || isNaN(vStartDate.getTime())) {
+                                    const fyYear = _now.getMonth() >= 3 ? _now.getFullYear() : _now.getFullYear() - 1;
+                                    vStartDate = new Date(fyYear, 3, 1);
                                 }
-                            } catch (e) {
-                                console.warn(`  ⚠️ Could not fetch last AlterID, Python worker will handle it`);
-                            }
+                                if (!vEndDate || isNaN(vEndDate.getTime())) vEndDate = _now;
 
-                            const vResult = await window.electronAPI.syncVouchers({
-                                companyId: company.id,
-                                userId: currentUser.userId,
-                                authToken, deviceToken,
-                                tallyPort: appSettings.tallyPort || 9000,
-                                backendUrl: window.apiConfig.baseURL,
-                                companyName: company.name,
-                                companyGuid: company.companyGuid || company.guid || '',
-                                fromDate: _isoToTally(fromISO) || '01-Apr-2024',
-                                toDate: `${String(_now.getDate()).padStart(2,'0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`,
-                                lastAlterID: cachedAlterID
-                            });
-                            if (vResult.success) {
-                                console.log(`  ✅ ${company.name}: Vouchers synced (count: ${vResult.count || 0})`);
+                                const vChunks = [];
+                                let vChunkStart = new Date(vStartDate);
+                                while (vChunkStart <= vEndDate) {
+                                    let vChunkEnd = new Date(vChunkStart.getFullYear(), vChunkStart.getMonth() + 1, 0);
+                                    if (vChunkEnd > vEndDate) vChunkEnd = vEndDate;
+                                    vChunks.push({ from: new Date(vChunkStart), to: new Date(vChunkEnd) });
+                                    vChunkStart = new Date(vChunkEnd.getFullYear(), vChunkEnd.getMonth() + 1, 1);
+                                }
+
+                                console.log(`  📅 ${company.name}: ${vChunks.length} monthly chunk(s)`);
+
+                                let allSuccess = true;
+                                for (let ci = 0; ci < vChunks.length; ci++) {
+                                    const vc = vChunks[ci];
+                                    const cFrom = _formatTallyDate(vc.from);
+                                    const cTo = _formatTallyDate(vc.to);
+                                    console.log(`  📅 Month ${ci + 1}/${vChunks.length}: ${cFrom} → ${cTo}`);
+
+                                    const chunkStartTime = Date.now();
+                                    const vResult = await window.electronAPI.syncVouchers({
+                                        companyId: company.id,
+                                        userId: currentUser.userId,
+                                        authToken, deviceToken,
+                                        tallyPort: appSettings.tallyPort || 9000,
+                                        backendUrl: window.apiConfig.baseURL,
+                                        companyName: company.name,
+                                        companyGuid: company.companyGuid || company.guid || '',
+                                        fromDate: cFrom, toDate: cTo, lastAlterID: 0
+                                    });
+                                    const chunkElapsed = Date.now() - chunkStartTime;
+
+                                    if (vResult.success) {
+                                        console.log(`  ✅ ${company.name}: Month ${ci + 1} synced (${(chunkElapsed / 1000).toFixed(1)}s)`);
+                                        if (chunkElapsed > 30000) {
+                                            console.log(`  ⏱️ Month ${ci + 1} took >30s, re-syncing weekly...`);
+                                            let weekStart = new Date(vc.from);
+                                            while (weekStart <= vc.to) {
+                                                let weekEnd = new Date(weekStart);
+                                                weekEnd.setDate(weekEnd.getDate() + 6);
+                                                if (weekEnd > vc.to) weekEnd = new Date(vc.to);
+                                                await window.electronAPI.syncVouchers({
+                                                    companyId: company.id,
+                                                    userId: currentUser.userId,
+                                                    authToken, deviceToken,
+                                                    tallyPort: appSettings.tallyPort || 9000,
+                                                    backendUrl: window.apiConfig.baseURL,
+                                                    companyName: company.name,
+                                                    companyGuid: company.companyGuid || company.guid || '',
+                                                    fromDate: _formatTallyDate(weekStart),
+                                                    toDate: _formatTallyDate(weekEnd),
+                                                    lastAlterID: 0
+                                                });
+                                                weekStart = new Date(weekEnd);
+                                                weekStart.setDate(weekStart.getDate() + 1);
+                                            }
+                                        }
+                                    } else {
+                                        allSuccess = false;
+                                        console.warn(`  ⚠️ ${company.name}: Month ${ci + 1} failed - ${vResult.message}`);
+                                    }
+                                }
+
+                                if (allSuccess) {
+                                    try {
+                                        const headers = {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${authToken}`,
+                                            'X-Device-Token': deviceToken
+                                        };
+                                        const updatePayload = JSON.stringify({ firstTimeSyncDone: true });
+                                        const candidates = [
+                                            `${window.apiConfig.baseURL}/api/companies/${company.id}`,
+                                            `${window.apiConfig.baseURL}/companies/${company.id}`
+                                        ];
+
+                                        let updated = false;
+                                        let lastStatus = 'n/a';
+                                        for (const url of candidates) {
+                                            const resp = await fetch(url, { method: 'PUT', headers, body: updatePayload });
+                                            if (resp.ok) {
+                                                updated = true;
+                                                console.log(`  📝 ${company.name}: firstTimeSyncDone flag set via ${url}`);
+                                                break;
+                                            }
+                                            lastStatus = String(resp.status);
+                                        }
+                                        if (!updated) {
+                                            console.warn(`⚠️ ${company.name}: firstTimeSyncDone update failed (last status: ${lastStatus})`);
+                                        }
+                                    } catch (e) {
+                                        console.warn('⚠️ Could not update firstTimeSyncDone:', e.message);
+                                    }
+                                }
                             } else {
-                                console.warn(`  ⚠️ ${company.name}: Voucher sync failed - ${vResult.message}`);
+                                // ---- INCREMENTAL: Single call with lastAlterID ----
+                                console.log(`  📦 ${company.name}: Incremental voucher sync (alterId mode)...`);
+                                let cachedAlterID = 0;
+                                try {
+                                    const alterIdResp = await fetch(
+                                        `${window.apiConfig.baseURL}/api/companies/${company.id}/last-voucher-alter-id`,
+                                        { headers: { 'Authorization': `Bearer ${authToken}`, 'X-Device-Token': deviceToken } }
+                                    );
+                                    if (alterIdResp.ok) {
+                                        const alterIdData = await alterIdResp.json();
+                                        cachedAlterID = alterIdData.lastAlterID || 0;
+                                        console.log(`  📌 ${company.name}: Last voucher AlterID = ${cachedAlterID}`);
+                                    }
+                                } catch (e) {
+                                    console.warn(`  ⚠️ Could not fetch last AlterID, Python worker will handle it`);
+                                }
+
+                                const vResult = await window.electronAPI.syncVouchers({
+                                    companyId: company.id,
+                                    userId: currentUser.userId,
+                                    authToken, deviceToken,
+                                    tallyPort: appSettings.tallyPort || 9000,
+                                    backendUrl: window.apiConfig.baseURL,
+                                    companyName: company.name,
+                                    companyGuid: company.companyGuid || company.guid || '',
+                                    fromDate: '', toDate: '',
+                                    lastAlterID: cachedAlterID
+                                });
+                                if (vResult.success) {
+                                    console.log(`  ✅ ${company.name}: Incremental voucher sync completed (count: ${vResult.count || 0})`);
+                                } else {
+                                    console.warn(`  ⚠️ ${company.name}: Voucher sync failed - ${vResult.message}`);
+                                }
                             }
                         }
                     } catch (vErr) {
@@ -361,15 +465,23 @@ class BackgroundSyncScheduler {
         for (const company of companies) {
             try {
                 console.log(`🔍 Reconciling: ${company.name}`);
+                const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const _now = new Date();
+                const _fyStart = _now.getMonth() >= 3 ? `01-Apr-${_now.getFullYear()}` : `01-Apr-${_now.getFullYear() - 1}`;
+                const _today = `${String(_now.getDate()).padStart(2, '0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`;
                 const result = await window.electronAPI.reconcileData({
                     companyId: company.id,
                     companyName: company.name,
+                    companyGuid: company.companyGuid || company.guid || '',
                     userId: currentUser.userId,
+                    tallyHost: appSettings.tallyHost || 'localhost',
                     tallyPort: appSettings.tallyPort || 9000,
                     backendUrl: window.apiConfig.baseURL,
                     authToken: authToken,
                     deviceToken: deviceToken,
-                    entityType: 'all'
+                    entityType: 'all',
+                    fromDate: _fyStart,
+                    toDate: _today
                 });
 
                 if (result.success) {

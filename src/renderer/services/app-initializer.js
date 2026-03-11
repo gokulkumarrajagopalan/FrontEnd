@@ -383,15 +383,23 @@ class AppInitializer {
                 try {
                     console.log(`🔍 Reconciling: ${company.name}`);
                     
+                    const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const _now = new Date();
+                    const _fyStart = _now.getMonth() >= 3 ? `01-Apr-${_now.getFullYear()}` : `01-Apr-${_now.getFullYear() - 1}`;
+                    const _today = `${String(_now.getDate()).padStart(2, '0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`;
                     const result = await window.electronAPI.reconcileData({
                         companyId: company.id,
                         companyName: company.name,
+                        companyGuid: company.companyGuid || company.guid || '',
                         userId: currentUser.userId,
+                        tallyHost: appSettings.tallyHost || 'localhost',
                         tallyPort: appSettings.tallyPort || 9000,
                         backendUrl: window.apiConfig.baseURL,
                         authToken: authToken,
                         deviceToken: deviceToken,
-                        entityType: 'all'
+                        entityType: 'all',
+                        fromDate: _fyStart,
+                        toDate: _today
                     });
                     
                     if (result.success) {

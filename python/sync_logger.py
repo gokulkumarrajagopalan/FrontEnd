@@ -2,9 +2,8 @@
 Talliffy Sync Logger
 ====================
 Provides structured logging for incremental sync and reconciliation operations.
-Writes to two log files (appends if they already exist):
-  - logs/incremental_sync_report.log
-  - logs/reconciliation_report.log
+Writes to one consolidated file (appends if it already exists):
+    - logs/sync_worker.log
 
 Each log entry includes: timestamp, master name, synced count, updated count, unchanged count.
 
@@ -51,9 +50,11 @@ else:
     LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 
-SYNC_LOG_FILE = os.path.join(LOG_DIR, 'sync_report.log')
+SYNC_LOG_FILE = os.path.join(LOG_DIR, 'sync_worker.log')
 INCREMENTAL_LOG_FILE = SYNC_LOG_FILE
 RECONCILIATION_LOG_FILE = SYNC_LOG_FILE
+VOUCHER_SYNC_LOG_FILE = SYNC_LOG_FILE
+VOUCHER_RECONCILE_LOG_FILE = SYNC_LOG_FILE
 
 
 class SyncLogger:
@@ -342,6 +343,173 @@ class SyncLogger:
 
         self._write(self.reconciliation_log, ''.join(lines))
 
+    # ── Voucher Sync Log ─────────────────────────────────────────────────────
+
+    def log_voucher_sync_start(self, company_name: str, from_date: str, to_date: str,
+                                sync_type: str = 'Single', chunk_count: int = 0):
+        """Log the start of a voucher sync session.
+        
+        sync_type: 'First-Time (Monthly+Weekly)', 'Incremental (AlterID)', 'Single', 'Chunked'
+        """
+        lines = [
+            f"\n{'═' * 90}\n",
+            f"  🚀 VOUCHER SYNC STARTED  |  {self._timestamp()}\n",
+            f"{'═' * 90}\n",
+            f"  Company       : {company_name}\n",
+            f"  Sync Type     : {sync_type}\n",
+            f"  Date Range    : {from_date} → {to_date}\n",
+        ]
+        if chunk_count > 0:
+            lines.append(f"  Total Chunks  : {chunk_count}\n")
+        lines.append(f"{'─' * 90}\n")
+        self._write(VOUCHER_SYNC_LOG_FILE, ''.join(lines))
+
+    def log_voucher_sync_chunk(self, chunk_num: int, total_chunks: int,
+                                from_date: str, to_date: str, count: int,
+                                elapsed_ms: int, chunk_type: str = 'Month',
+                                error: str = None):
+        """Log a single chunk's result during voucher sync."""
+        icon = '✅' if not error else '❌'
+        lines = [
+            f"  {icon} {chunk_type} {chunk_num}/{total_chunks}  |  {self._timestamp()}\n",
+            f"     Date Range  : {from_date} → {to_date}\n",
+        ]
+        if error:
+            lines.append(f"     Error       : {error}\n")
+        else:
+            lines.append(f"     Vouchers    : {count}\n")
+            lines.append(f"     Duration    : {elapsed_ms}ms ({elapsed_ms / 1000:.1f}s)\n")
+            if elapsed_ms > 30000 and chunk_type == 'Month':
+                lines.append(f"     ⏱️  SLOW CHUNK (>{elapsed_ms / 1000:.0f}s) → will retry with weekly sub-chunks\n")
+        self._write(VOUCHER_SYNC_LOG_FILE, ''.join(lines))
+
+    def log_voucher_sync_complete(self, company_name: str, total_vouchers: int,
+                                   total_chunks: int, errors: int, duration_ms: int,
+                                   first_time_flag_set: bool = None):
+        """Log the completion of a voucher sync session."""
+        icon = '✅' if errors == 0 else '⚠'
+        lines = [
+            f"{'─' * 90}\n",
+            f"  {icon} VOUCHER SYNC COMPLETE  |  {self._timestamp()}\n",
+            f"{'─' * 90}\n",
+            f"  Company        : {company_name}\n",
+            f"  Total Vouchers : {total_vouchers}\n",
+            f"  Chunks Run     : {total_chunks}\n",
+            f"  Chunk Errors   : {errors}\n",
+            f"  Duration       : {duration_ms}ms ({duration_ms / 1000:.1f}s)\n",
+        ]
+        if first_time_flag_set is not None:
+            lines.append(f"  First-Time Done: {'✅ Flag set to true' if first_time_flag_set else '❌ Not set (errors occurred)'}\n")
+        lines.append(f"{'═' * 90}\n\n")
+        self._write(VOUCHER_SYNC_LOG_FILE, ''.join(lines))
+
+    def log_voucher_sync_single(self, company_name: str, from_date: str, to_date: str,
+                                 count: int, elapsed_ms: int, last_alter_id: int = 0,
+                                 error: str = None):
+        """Log a single (non-chunked) voucher sync call result."""
+        icon = '✅' if not error else '❌'
+        lines = [
+            f"\n{'─' * 90}\n",
+            f"  {icon} VOUCHER SYNC  |  {self._timestamp()}\n",
+            f"{'─' * 90}\n",
+            f"  Company       : {company_name}\n",
+            f"  Date Range    : {from_date} → {to_date}\n",
+        ]
+        if error:
+            lines.append(f"  Status        : FAILED\n")
+            lines.append(f"  Error         : {error}\n")
+        else:
+            lines.append(f"  Vouchers      : {count}\n")
+            lines.append(f"  Last AlterID  : {last_alter_id}\n")
+            lines.append(f"  Duration      : {elapsed_ms}ms ({elapsed_ms / 1000:.1f}s)\n")
+        lines.append(f"{'─' * 90}\n")
+        self._write(VOUCHER_SYNC_LOG_FILE, ''.join(lines))
+
+    # ── Voucher Reconciliation Log ───────────────────────────────────────────
+
+    def log_voucher_reconcile_start(self, company_name: str, from_date: str, to_date: str):
+        """Log the start of a voucher reconciliation session."""
+        lines = [
+            f"\n{'═' * 90}\n",
+            f"  🔍 VOUCHER RECONCILIATION STARTED  |  {self._timestamp()}\n",
+            f"{'═' * 90}\n",
+            f"  Company       : {company_name}\n",
+            f"  Date Range    : {from_date} → {to_date}\n",
+            f"{'─' * 90}\n",
+            f"  📅 Fetching vouchers from Tally (month by month):\n",
+        ]
+        self._write(VOUCHER_RECONCILE_LOG_FILE, ''.join(lines))
+
+    def log_voucher_reconcile_fetch(self, chunk_from: str, chunk_to: str, count: int,
+                                     error: str = None):
+        """Log a single Tally fetch chunk during reconciliation."""
+        if error:
+            line = f"     ❌ {chunk_from} → {chunk_to} : FAILED ({error})\n"
+        else:
+            line = f"     ✅ {chunk_from} → {chunk_to} : {count} vouchers fetched\n"
+        self._write(VOUCHER_RECONCILE_LOG_FILE, line)
+
+    def log_voucher_reconcile_compare(self, company_name: str, tally_count: int,
+                                       db_count: int, missing: int, needs_update: int,
+                                       extra_in_db: int):
+        """Log the comparison results between Tally and DB."""
+        lines = [
+            f"\n  📊 COMPARISON RESULTS:\n",
+            f"  ┌──────────────────────────────────────────────┐\n",
+            f"  │  Tally Vouchers     :  {str(tally_count).rjust(8)}              │\n",
+            f"  │  DB Vouchers        :  {str(db_count).rjust(8)}              │\n",
+            f"  │  ──────────────────────────────────────────── │\n",
+            f"  │  Missing in DB      :  {str(missing).rjust(8)}              │\n",
+            f"  │  Needs Update       :  {str(needs_update).rjust(8)}              │\n",
+            f"  │  Extra in DB        :  {str(extra_in_db).rjust(8)}              │\n",
+            f"  │  In Sync            :  {str(tally_count - missing - needs_update).rjust(8)}              │\n",
+            f"  └──────────────────────────────────────────────┘\n",
+        ]
+        if missing == 0 and needs_update == 0:
+            lines.append(f"  ✅ All vouchers are in sync!\n")
+        else:
+            lines.append(f"  ⚠️  {missing + needs_update} voucher(s) need re-syncing\n")
+        self._write(VOUCHER_RECONCILE_LOG_FILE, ''.join(lines))
+
+    def log_voucher_reconcile_resync_start(self, total_to_sync: int, chunk_count: int):
+        """Log the start of re-sync for missing/stale vouchers."""
+        lines = [
+            f"\n  🔄 RE-SYNCING {total_to_sync} VOUCHERS in {chunk_count} monthly chunk(s):\n",
+        ]
+        self._write(VOUCHER_RECONCILE_LOG_FILE, ''.join(lines))
+
+    def log_voucher_reconcile_resync_chunk(self, chunk_num: int, total_chunks: int,
+                                            from_date: str, to_date: str,
+                                            found: int, synced: int, remaining: int):
+        """Log a single re-sync chunk during reconciliation."""
+        lines = [
+            f"     📅 Chunk {chunk_num}/{total_chunks}: {from_date} → {to_date}\n",
+            f"        Found: {found} matching vouchers | Synced: {synced} | Remaining: {remaining}\n",
+        ]
+        self._write(VOUCHER_RECONCILE_LOG_FILE, ''.join(lines))
+
+    def log_voucher_reconcile_complete(self, company_name: str, tally_count: int,
+                                        db_count: int, missing: int, updated: int,
+                                        synced: int, duration_seconds: float = 0):
+        """Log the completion of a voucher reconciliation session."""
+        icon = '✅' if (missing == 0 and updated == 0) or synced > 0 else '⚠'
+        lines = [
+            f"\n{'─' * 90}\n",
+            f"  {icon} VOUCHER RECONCILIATION COMPLETE  |  {self._timestamp()}\n",
+            f"{'─' * 90}\n",
+            f"  Company        : {company_name}\n",
+            f"  Tally Count    : {tally_count}\n",
+            f"  DB Count       : {db_count}\n",
+            f"  Missing        : {missing}\n",
+            f"  Needs Update   : {updated}\n",
+            f"  Re-synced      : {synced}\n",
+        ]
+        if duration_seconds > 0:
+            mins, secs = divmod(int(duration_seconds), 60)
+            lines.append(f"  Duration       : {mins}m {secs}s\n")
+        lines.append(f"{'═' * 90}\n\n")
+        self._write(VOUCHER_RECONCILE_LOG_FILE, ''.join(lines))
+
 
 # ── Singleton instance (import-ready) ───────────────────────────────────────────
 _default_logger = None
@@ -434,5 +602,4 @@ if __name__ == '__main__':
     )
 
     print(f"Test logs written to:")
-    print(f"   {INCREMENTAL_LOG_FILE}")
-    print(f"   {RECONCILIATION_LOG_FILE}")
+    print(f"   {SYNC_LOG_FILE}")

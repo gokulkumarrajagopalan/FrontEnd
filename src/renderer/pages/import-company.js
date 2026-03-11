@@ -388,6 +388,113 @@
         }
     }
 
+    async function openDateRangePopup(index) {
+        const company = tallyCompanies[index];
+        const card = document.querySelector(`.company-card[data-index="${index}"]`);
+        const checkbox = document.querySelector(`.company-checkbox[data-index="${index}"]`);
+        const fromEl = document.querySelector(`.sync-from-date[data-index="${index}"]`);
+        const toEl = document.querySelector(`.sync-to-date[data-index="${index}"]`);
+        const rangeDisplay = document.querySelector(`.selected-range-display[data-index="${index}"]`);
+
+        if (!company || !card || !checkbox) return;
+
+        // Current values
+        const currentFrom = fromEl ? fromEl.value : '';
+        const currentTo = toEl ? toEl.value : '';
+
+        // Default values if not set
+        const now = new Date();
+        const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+        const defaultFrom = `${fyStartYear}-04-01`;
+        const defaultTo = now.toISOString().split('T')[0];
+
+        const popupContent = `
+            <div style="display: flex; flex-direction: column; gap: var(--ds-space-4);">
+                <div style="display: flex; align-items: center; gap: var(--ds-space-3); padding: var(--ds-space-4); background: var(--ds-primary-50); border: 1px solid var(--ds-primary-100); border-radius: var(--ds-radius-xl);">
+                    <div style="font-size: var(--ds-text-2xl); color: var(--ds-primary-600);"><i class="fas fa-building"></i></div>
+                    <div>
+                        <div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">${company.name}</div>
+                        <div style="font-size: var(--ds-text-xs); color: var(--ds-text-secondary);">Select the period for which you want to sync vouchers</div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-4);">
+                    ${window.UIComponents.input({
+            id: 'popupSyncFrom',
+            type: 'date',
+            label: 'Sync From',
+            value: currentFrom || defaultFrom,
+            required: true
+        })}
+                    ${window.UIComponents.input({
+            id: 'popupSyncTo',
+            type: 'date',
+            label: 'Sync To',
+            value: currentTo || defaultTo,
+            required: true
+        })}
+                </div>
+                
+                <div style="padding: var(--ds-space-3); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-xs); color: var(--ds-text-secondary); line-height: 1.5;">
+                    <i class="fas fa-info-circle" style="color: var(--ds-primary-500); margin-right: 4px;"></i>
+                    Vouchers will be fetched in monthly chunks (with weekly retry for slow months) to ensure stability. This range only affects the initial voucher sync.
+                </div>
+            </div>
+        `;
+
+        window.Popup.show({
+            title: 'Set Sync Date Range',
+            content: popupContent,
+            size: 'sm',
+            buttons: [
+                {
+                    text: 'Cancel',
+                    variant: 'secondary',
+                    onClick: () => {
+                        // If it wasn't checked before, keep it unchecked
+                        if (!card.hasAttribute('data-has-range')) {
+                            checkbox.checked = false;
+                            updateSelection();
+                        }
+                    }
+                },
+                {
+                    text: 'Select Range',
+                    variant: 'primary',
+                    onClick: () => {
+                        const newFrom = document.getElementById('popupSyncFrom').value;
+                        const newTo = document.getElementById('popupSyncTo').value;
+
+                        if (newFrom && newTo) {
+                            if (fromEl) fromEl.value = newFrom;
+                            if (toEl) toEl.value = newTo;
+
+                            // Update range display on card
+                            if (rangeDisplay) {
+                                const fromParts = newFrom.split('-');
+                                const toParts = newTo.split('-');
+                                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                const fromStr = `${fromParts[2]} ${months[parseInt(fromParts[1]) - 1]} ${fromParts[0]}`;
+                                const toStr = `${toParts[2]} ${months[parseInt(toParts[1]) - 1]} ${toParts[0]}`;
+                                rangeDisplay.innerHTML = `
+                                    <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ds-primary-700); font-weight: 500;">
+                                        <i class="fas fa-calendar-check"></i>
+                                        <span>${fromStr} — ${toStr}</span>
+                                    </div>
+                                `;
+                                rangeDisplay.style.display = 'block';
+                            }
+
+                            card.setAttribute('data-has-range', 'true');
+                            checkbox.checked = true;
+                            updateSelection();
+                        }
+                    }
+                }
+            ]
+        });
+    }
+
     async function displayCompanies(companies) {
         const container = document.getElementById('companiesContainer');
         const listSection = document.getElementById('companiesListSection');
@@ -426,6 +533,12 @@
             return;
         }
 
+        // Compute default date range (current FY start → today)
+        const _defaultNow = new Date();
+        const _defaultFyStartYear = _defaultNow.getMonth() >= 3 ? _defaultNow.getFullYear() : _defaultNow.getFullYear() - 1;
+        const _defaultFromDate = `${_defaultFyStartYear}-04-01`;
+        const _defaultToDate = _defaultNow.toISOString().split('T')[0];
+
         container.innerHTML = companies.map((company, index) => {
             const companyGuid = (company.guid || company.companyGuid || '').toUpperCase().trim();
             const isImported = companyGuid ? importedGuids.has(companyGuid) : false;
@@ -436,32 +549,41 @@
                         border: 1px solid var(--ds-border-default); 
                         border-radius: var(--ds-radius-2xl); 
                         padding: var(--ds-space-5); 
-                        display: flex; 
-                        align-items: center; 
-                        gap: var(--ds-space-4); 
                         cursor: ${isImported ? 'default' : 'pointer'}; 
                         transition: all var(--ds-duration-base) var(--ds-ease);
                         ${isImported ? 'opacity: 0.7;' : ''}"
                  onmouseover="${isImported ? '' : "this.style.borderColor='var(--ds-primary-500)'; this.style.shadow='var(--ds-shadow-md)';"}"
                  onmouseout="${isImported ? '' : "this.style.borderColor='var(--ds-border-default)'; this.style.shadow='none';"}"
             >
-                <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--ds-radius-lg); background: ${isImported ? 'var(--ds-bg-surface)' : 'var(--ds-primary-50)'}; color: ${isImported ? 'var(--ds-text-tertiary)' : 'var(--ds-primary-600)'}; font-size: var(--ds-text-xl);">
-                    <i class="fas fa-building"></i>
-                </div>
-                
-                <div style="flex: 1; min-width: 0;">
-                    <div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); font-size: var(--ds-text-base); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${company.name}
+                <div style="display: flex; align-items: center; gap: var(--ds-space-4);">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; min-width: 40px; border-radius: var(--ds-radius-lg); background: ${isImported ? 'var(--ds-bg-surface)' : 'var(--ds-primary-50)'}; color: ${isImported ? 'var(--ds-text-tertiary)' : 'var(--ds-primary-600)'}; font-size: var(--ds-text-xl);">
+                        <i class="fas fa-building"></i>
                     </div>
-                    <div style="display: flex; align-items: center; gap: var(--ds-space-2); margin-top: var(--ds-space-1);">
-                        <span style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);"><i class="fas fa-map-marker-alt"></i> ${company.state || 'N/A'}</span>
-                        ${isImported
+                    
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); font-size: var(--ds-text-base); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${company.name}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: var(--ds-space-2); margin-top: var(--ds-space-1);">
+                            <span style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);"><i class="fas fa-map-marker-alt"></i> ${company.state || 'N/A'}</span>
+                            ${isImported
                     ? window.UIComponents.badge({ text: 'IMPORTED', variant: 'neutral', size: 'sm' })
                     : window.UIComponents.badge({ text: 'AVAILABLE', variant: 'success', size: 'sm' })}
+                        </div>
                     </div>
+
+                    <input type="checkbox" class="company-checkbox" data-index="${index}" ${isImported ? 'disabled style="display:none;"' : 'style="width: 20px; height: 20px; accent-color: var(--ds-primary-600); cursor: pointer;"'}>
                 </div>
 
-                <input type="checkbox" class="company-checkbox" data-index="${index}" ${isImported ? 'disabled style="display:none;"' : 'style="width: 20px; height: 20px; accent-color: var(--ds-primary-600); cursor: pointer;"'}>
+                <!-- Selected Range Display (visible after selection) -->
+                ${isImported ? '' : `
+                <div class="selected-range-display" data-index="${index}" style="display: none; margin-top: var(--ds-space-3); padding-top: var(--ds-space-2); border-top: 1px dotted var(--ds-border-default);">
+                </div>
+                `}
+
+                <!-- Hidden inputs to store selection -->
+                <input type="hidden" class="sync-from-date" data-index="${index}" value="${_defaultFromDate}">
+                <input type="hidden" class="sync-to-date" data-index="${index}" value="${_defaultToDate}">
             </div>
         `;
         }).join('');
@@ -473,17 +595,29 @@
 
             if (!isImported) {
                 card.onclick = (e) => {
-                    if (e.target.tagName !== 'INPUT') {
-                        const checkbox = card.querySelector('.company-checkbox');
-                        checkbox.checked = !checkbox.checked;
+                    const checkbox = card.querySelector('.company-checkbox');
+                    if (e.target !== checkbox) {
+                        const isChecked = checkbox.checked;
+                        if (!isChecked) {
+                            // If unselected, triggered popup to set range
+                            openDateRangePopup(index);
+                        } else {
+                            // If already selected, just toggle off
+                            checkbox.checked = false;
+                            updateSelection();
+                        }
+                    }
+                };
+
+                const checkbox = card.querySelector('.company-checkbox');
+                checkbox.onchange = (e) => {
+                    if (checkbox.checked) {
+                        openDateRangePopup(index);
+                    } else {
                         updateSelection();
                     }
                 };
             }
-        });
-
-        document.querySelectorAll('.company-checkbox').forEach(checkbox => {
-            checkbox.onchange = updateSelection;
         });
 
         listSection.style.display = 'block';
@@ -492,9 +626,31 @@
 
     function updateSelection() {
         selectedCompanies = [];
-        document.querySelectorAll('.company-checkbox:checked').forEach(checkbox => {
+        document.querySelectorAll('.company-checkbox').forEach(checkbox => {
             const index = parseInt(checkbox.getAttribute('data-index'));
-            selectedCompanies.push(tallyCompanies[index]);
+            const rangeDisplay = document.querySelector(`.selected-range-display[data-index="${index}"]`);
+            const card = checkbox.closest('.company-card');
+
+            if (checkbox.checked) {
+                selectedCompanies.push(tallyCompanies[index]);
+                if (card) {
+                    card.style.borderColor = 'var(--ds-primary-500)';
+                    card.style.background = 'var(--ds-primary-50)';
+                    card.style.boxShadow = 'var(--ds-shadow-md)';
+                }
+                // Range display is managed by the popup confirm button
+            } else {
+                if (card) {
+                    card.style.borderColor = 'var(--ds-border-default)';
+                    card.style.background = 'var(--ds-bg-surface)';
+                    card.style.boxShadow = 'none';
+                    card.removeAttribute('data-has-range');
+                }
+                if (rangeDisplay) {
+                    rangeDisplay.style.display = 'none';
+                    rangeDisplay.innerHTML = '';
+                }
+            }
         });
     }
 
@@ -656,7 +812,7 @@
 
     /**
      * Trigger first-time full sync for a newly imported company
-     * Scenario 1: First-time Import → Full Sync → Reconcile
+     * Scenario 1: First-time Import → Full Master Sync → Voucher Sync → Bills Sync → Reconcile
      */
     async function triggerFirstTimeSync(companyId, companyData) {
         console.log(`🔄 Starting first-time sync for: ${companyData.name}`);
@@ -666,33 +822,232 @@
         const deviceToken = localStorage.getItem('deviceToken');
         const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
 
+        let tallyHost = appSettings.tallyHost || 'localhost';
+        tallyHost = tallyHost.replace(/^https?:\/\//i, '');
+        if (/^\d+$/.test(tallyHost.trim())) tallyHost = 'localhost';
+        const tallyPort = appSettings.tallyPort || 9000;
+        const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
+
+        const syncParams = {
+            companyId: companyId,
+            companyName: companyData.name,
+            userId: currentUser.userId,
+            tallyHost: tallyHost,
+            tallyPort: tallyPort,
+            backendUrl: backendUrl,
+            authToken: authToken,
+            deviceToken: deviceToken
+        };
+
+        let totalCount = 0;
+        const errors = [];
+
         try {
-            // Call sync_master.py via Electron IPC for full sync
-            if (!window.electronAPI || !window.electronAPI.syncMasterData) {
+            // ============= STEP 1: MASTER ENTITY SYNC (12 entities) =============
+            if (!window.electronAPI || !window.electronAPI.incrementalSync) {
                 throw new Error('Sync API not available');
             }
 
-            const result = await window.electronAPI.syncMasterData({
-                companyName: companyData.name,
-                cmpId: companyId,
-                userId: currentUser.userId,
-                tallyPort: appSettings.tallyPort || 9000,
-                backendUrl: window.apiConfig.baseURL,
-                authToken: authToken,
-                deviceToken: deviceToken
+            addImportLog(`   🔄 Syncing master entities...`, 'info');
+            const masterResult = await window.electronAPI.incrementalSync({
+                ...syncParams,
+                syncMode: 'all'
             });
 
-            if (result.success) {
-                console.log('✅ Full sync completed');
-                addImportLog(`   📊 Sync results: ${JSON.stringify(result.results)}`, 'info');
-
-                // Trigger reconciliation for all entity types
-                await runFirstTimeReconciliation(companyId);
-
-                return result;
+            if (masterResult.success) {
+                totalCount += masterResult.totalCount || 0;
+                console.log(`✅ Master sync completed: ${masterResult.totalCount || 0} records`);
+                addImportLog(`   📊 Master sync: ${masterResult.totalCount || 0} records synced`, 'success');
             } else {
-                throw new Error(result.error || 'Sync failed');
+                console.warn(`⚠️ Master sync issue: ${masterResult.message}`);
+                errors.push({ entity: 'MasterEntities', message: masterResult.message || 'Master sync failed' });
             }
+
+            // ============= STEP 2: VOUCHER SYNC (Monthly Chunking + Adaptive Weekly) =============
+            try {
+                if (window.electronAPI?.syncVouchers) {
+                    const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const _isoToTally = (iso) => {
+                        if (!iso || iso.length < 10) return null;
+                        const [y, m, d] = iso.split('-');
+                        return `${d}-${_months[parseInt(m, 10) - 1]}-${y}`;
+                    };
+                    const _formatTallyDate = (dt) => `${String(dt.getDate()).padStart(2, '0')}-${_months[dt.getMonth()]}-${dt.getFullYear()}`;
+
+                    // Determine the full date range from user-specified or company defaults
+                    const syncFrom = companyData.syncFromDate || companyData.booksStart || companyData.financialYearStart || '';
+                    const _now = new Date();
+                    const syncTo = companyData.syncToDate || _now.toISOString().split('T')[0];
+
+                    // Parse the ISO dates into Date objects
+                    let startDate = syncFrom ? new Date(syncFrom + 'T00:00:00') : null;
+                    let endDate = syncTo ? new Date(syncTo + 'T00:00:00') : _now;
+
+                    // Fallback defaults
+                    if (!startDate || isNaN(startDate.getTime())) {
+                        const fyYear = _now.getMonth() >= 3 ? _now.getFullYear() : _now.getFullYear() - 1;
+                        startDate = new Date(fyYear, 3, 1); // Apr 1
+                    }
+                    if (!endDate || isNaN(endDate.getTime())) {
+                        endDate = _now;
+                    }
+
+                    // Generate 1-month chunks
+                    const chunks = [];
+                    let chunkStart = new Date(startDate);
+                    while (chunkStart <= endDate) {
+                        let chunkEnd = new Date(chunkStart.getFullYear(), chunkStart.getMonth() + 1, 0); // last day of this month
+                        if (chunkEnd > endDate) chunkEnd = endDate;
+                        chunks.push({ from: new Date(chunkStart), to: new Date(chunkEnd) });
+                        // Move to 1st of next month
+                        chunkStart = new Date(chunkEnd.getFullYear(), chunkEnd.getMonth() + 1, 1);
+                    }
+
+                    addImportLog(`   🔄 Syncing vouchers in ${chunks.length} monthly chunk(s)...`, 'info');
+                    let totalVouchers = 0;
+                    let chunkErrors = 0;
+
+                    for (let ci = 0; ci < chunks.length; ci++) {
+                        const chunk = chunks[ci];
+                        const fromTally = _formatTallyDate(chunk.from);
+                        const toTally = _formatTallyDate(chunk.to);
+
+                        addImportLog(`   📅 Month ${ci + 1}/${chunks.length}: ${fromTally} → ${toTally}`, 'info');
+
+                        const chunkStartTime = Date.now();
+                        const voucherResult = await window.electronAPI.syncVouchers({
+                            ...syncParams,
+                            companyGuid: companyData.companyGuid || companyData.guid || '',
+                            fromDate: fromTally,
+                            toDate: toTally,
+                            lastAlterID: 0
+                        });
+                        const chunkElapsed = Date.now() - chunkStartTime;
+
+                        if (voucherResult.success) {
+                            const cnt = voucherResult.count || 0;
+                            totalVouchers += cnt;
+                            addImportLog(`   ✅ Month ${ci + 1}: ${cnt} vouchers synced (${(chunkElapsed / 1000).toFixed(1)}s)`, 'success');
+
+                            // Adaptive weekly retry: if month took >30s, re-sync with weekly chunks
+                            if (chunkElapsed > 30000) {
+                                addImportLog(`   ⏱️ Month ${ci + 1} took ${(chunkElapsed / 1000).toFixed(1)}s (>30s), re-syncing as weekly chunks...`, 'info');
+                                let weekStart = new Date(chunk.from);
+                                let weekNum = 0;
+                                while (weekStart <= chunk.to) {
+                                    weekNum++;
+                                    let weekEnd = new Date(weekStart);
+                                    weekEnd.setDate(weekEnd.getDate() + 6);
+                                    if (weekEnd > chunk.to) weekEnd = new Date(chunk.to);
+
+                                    const wFrom = _formatTallyDate(weekStart);
+                                    const wTo = _formatTallyDate(weekEnd);
+                                    addImportLog(`      📅 Week ${weekNum}: ${wFrom} → ${wTo}`, 'info');
+
+                                    const weekResult = await window.electronAPI.syncVouchers({
+                                        ...syncParams,
+                                        companyGuid: companyData.companyGuid || companyData.guid || '',
+                                        fromDate: wFrom,
+                                        toDate: wTo,
+                                        lastAlterID: 0
+                                    });
+
+                                    if (weekResult.success) {
+                                        const wCnt = weekResult.count || 0;
+                                        totalVouchers += wCnt;
+                                        addImportLog(`      ✅ Week ${weekNum}: ${wCnt} vouchers`, 'success');
+                                    } else {
+                                        addImportLog(`      ⚠️ Week ${weekNum}: ${weekResult.message}`, 'info');
+                                    }
+
+                                    // Move to next week
+                                    weekStart = new Date(weekEnd);
+                                    weekStart.setDate(weekStart.getDate() + 1);
+                                }
+                            }
+                        } else {
+                            chunkErrors++;
+                            addImportLog(`   ⚠️ Month ${ci + 1}: ${voucherResult.message}`, 'info');
+                        }
+                    }
+
+                    if (chunkErrors === 0) {
+                        console.log(`✅ Voucher sync completed: ${totalVouchers} vouchers in ${chunks.length} months`);
+                        addImportLog(`   📊 Voucher sync total: ${totalVouchers} vouchers synced`, 'success');
+
+                        // Mark first-time sync as done on backend with response validation
+                        try {
+                            const headers = {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${authToken}`,
+                                'X-Device-Token': deviceToken
+                            };
+                            const updatePayload = JSON.stringify({ firstTimeSyncDone: true });
+                            const candidates = [
+                                `${syncParams.backendUrl}/api/companies/${companyId}`,
+                                `${syncParams.backendUrl}/companies/${companyId}`
+                            ];
+
+                            let updated = false;
+                            let lastStatus = 'n/a';
+                            for (const url of candidates) {
+                                const resp = await fetch(url, { method: 'PUT', headers, body: updatePayload });
+                                if (resp.ok) {
+                                    updated = true;
+                                    console.log(`✅ firstTimeSyncDone flag set for company ${companyId} via ${url}`);
+                                    break;
+                                }
+                                lastStatus = String(resp.status);
+                            }
+                            if (!updated) {
+                                console.warn(`⚠️ firstTimeSyncDone update failed for company ${companyId} (last status: ${lastStatus})`);
+                            }
+                        } catch (flagErr) {
+                            console.warn('⚠️ Could not update firstTimeSyncDone flag:', flagErr.message);
+                        }
+                    } else {
+                        addImportLog(`   ⚠️ Voucher sync: ${totalVouchers} synced, ${chunkErrors} month(s) had issues`, 'info');
+                        errors.push({ entity: 'Vouchers', message: `${chunkErrors} month(s) failed` });
+                    }
+                } else {
+                    console.warn('⚠️ syncVouchers API not available');
+                }
+            } catch (vErr) {
+                console.error('❌ Voucher sync error:', vErr);
+                addImportLog(`   ❌ Voucher sync error: ${vErr.message}`, 'error');
+                errors.push({ entity: 'Vouchers', message: vErr.message });
+            }
+
+            // ============= STEP 3: BILLS OUTSTANDING SYNC =============
+            try {
+                if (window.electronAPI?.syncBillsOutstanding) {
+                    addImportLog(`   🔄 Syncing bills outstanding...`, 'info');
+                    const billsResult = await window.electronAPI.syncBillsOutstanding({
+                        ...syncParams
+                    });
+
+                    if (billsResult.success) {
+                        console.log(`✅ Bills Outstanding sync completed`);
+                        addImportLog(`   📊 Bills Outstanding: synced successfully`, 'success');
+                    } else {
+                        console.warn(`⚠️ Bills sync issue: ${billsResult.message}`);
+                        addImportLog(`   ⚠️ Bills Outstanding: ${billsResult.message}`, 'info');
+                        errors.push({ entity: 'Bills Outstanding', message: billsResult.message || 'Bills sync failed' });
+                    }
+                } else {
+                    console.warn('⚠️ syncBillsOutstanding API not available');
+                }
+            } catch (bErr) {
+                console.error('❌ Bills Outstanding sync error:', bErr);
+                addImportLog(`   ❌ Bills Outstanding error: ${bErr.message}`, 'error');
+                errors.push({ entity: 'Bills Outstanding', message: bErr.message });
+            }
+
+            return {
+                success: errors.length === 0,
+                totalCount: totalCount,
+                errors: errors
+            };
         } catch (error) {
             console.error('First-time sync error:', error);
             throw error;
@@ -709,7 +1064,7 @@
             'Group', 'Currency', 'Unit', 'StockGroup',
             'StockCategory', 'CostCategory', 'CostCenter',
             'Godown', 'VoucherType', 'TaxUnit',
-            'Ledger', 'StockItem'
+            'Ledger', 'StockItem', 'Voucher'
         ];
 
         let totalDiscrepancies = 0;
@@ -838,6 +1193,8 @@
 
             addImportLog(`Authenticated as: ${currentUser.username} (ID: ${currentUser.userId})`, 'success');
 
+            // Per-company sync dates will be read from each card's date pickers during the loop
+
             // Fetch existing companies from database to check for duplicates
             let existingCompanyGuids = new Set();
             try {
@@ -877,6 +1234,16 @@
                     addImportLog(`Skipped: ${company.name} (already exists in database)`, 'info');
                     skippedCount++;
                 } else {
+                    // Read per-company sync date range from the card's date pickers
+                    const companyIndex = tallyCompanies.indexOf(company);
+                    const fromEl = document.querySelector(`.sync-from-date[data-index="${companyIndex}"]`);
+                    const toEl = document.querySelector(`.sync-to-date[data-index="${companyIndex}"]`);
+                    const companySyncFromDate = fromEl ? fromEl.value : '';
+                    const companySyncToDate = toEl ? toEl.value : '';
+                    if (companySyncFromDate && companySyncToDate) {
+                        addImportLog(`📅 ${company.name}: Voucher sync ${companySyncFromDate} → ${companySyncToDate}`, 'info');
+                    }
+
                     // Create company object for our database
                     // Using exact field names and types expected by backend
                     const newCompany = {
@@ -909,6 +1276,8 @@
                         panNumber: company.panNumber || '',
                         financialYearStart: formatTallyDate(company.financialYearStart) || '',
                         booksStart: formatTallyDate(company.booksStart) || '',
+                        syncFromDate: companySyncFromDate || '',
+                        syncToDate: companySyncToDate || '',
                         currencySymbol: company.currencySymbol || '₹',
                         currencyFormalName: company.currencyFormalName || 'INR',
                         currencyDecimalPlaces: company.currencyDecimalPlaces || 2,
@@ -963,6 +1332,10 @@
                         try {
                             addImportLog(`Starting first-time full sync for ${company.name}...`, 'info');
 
+                            // Attach per-company sync dates for triggerFirstTimeSync
+                            company.syncFromDate = companySyncFromDate || '';
+                            company.syncToDate = companySyncToDate || '';
+
                             // Mark as syncing in notification center
                             if (window.notificationCenter) {
                                 window.notificationCenter.updateCompanySyncStatus(
@@ -984,42 +1357,66 @@
                                 );
                             }
 
-                            // CASE 1: Run reconciliation after company import
-                            addImportLog(`Running reconciliation for ${company.name}...`, 'info');
-                            try {
-                                const reconResult = await window.electronAPI.reconcileData({
-                                    companyId: backendResponse.backendId,
-                                    companyName: company.name,
-                                    userId: currentUser.userId,
-                                    tallyPort: appSettings.tallyPort || 9000,
-                                    backendUrl: window.apiConfig.baseURL,
-                                    authToken: authToken,
-                                    deviceToken: deviceToken,
-                                    entityType: 'all'
-                                });
-
-                                if (reconResult.success) {
-                                    if (reconResult.totalSynced > 0) {
-                                        addImportLog(`Reconciliation: ${reconResult.totalSynced} records auto-synced`, 'success');
-                                    } else {
-                                        addImportLog(`Reconciliation: All records in sync`, 'success');
-                                    }
-                                } else {
-                                    addImportLog(`Reconciliation completed with warnings`, 'info');
-                                }
-                            } catch (reconError) {
-                                addImportLog(`Reconciliation skipped: ${reconError.message}`, 'info');
-                            }
-
-                            // Show success notification
+                            // Show success notification IMMEDIATELY after sync
                             if (window.notificationService) {
                                 window.notificationService.show({
                                     type: 'success',
                                     message: `${company.name} imported & synced successfully`,
-                                    details: `All data synchronized from Tally`,
+                                    details: `Data synchronized. Reconciliation running in background...`,
                                     duration: 5000
                                 });
                             }
+
+                            // Run reconciliation in BACKGROUND (fire-and-forget, non-blocking)
+                            addImportLog(`Reconciliation started in background for ${company.name}...`, 'info');
+                            (async () => {
+                                try {
+                                    const _reconMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                    const _reconIsoToTally = (iso) => {
+                                        if (!iso || iso.length < 10) return null;
+                                        const [y, m, d] = iso.split('-');
+                                        return `${d}-${_reconMonths[parseInt(m, 10) - 1]}-${y}`;
+                                    };
+                                    const _reconNow = new Date();
+                                    // Use user-specified sync dates if available, otherwise fallback to FY
+                                    const _reconFromDate = (companySyncFromDate && _reconIsoToTally(companySyncFromDate))
+                                        || (_reconNow.getMonth() >= 3 ? `01-Apr-${_reconNow.getFullYear()}` : `01-Apr-${_reconNow.getFullYear() - 1}`);
+                                    const _reconToDate = (companySyncToDate && _reconIsoToTally(companySyncToDate))
+                                        || `${String(_reconNow.getDate()).padStart(2, '0')}-${_reconMonths[_reconNow.getMonth()]}-${_reconNow.getFullYear()}`;
+                                    
+                                    console.log(`🔍 Background reconciliation started for ${company.name}`);
+                                    const reconResult = await window.electronAPI.reconcileData({
+                                        companyId: backendResponse.backendId,
+                                        companyName: company.name,
+                                        companyGuid: company.companyGuid || company.guid || '',
+                                        userId: currentUser.userId,
+                                        tallyHost: appSettings.tallyHost || 'localhost',
+                                        tallyPort: appSettings.tallyPort || 9000,
+                                        backendUrl: window.apiConfig.baseURL,
+                                        authToken: authToken,
+                                        deviceToken: deviceToken,
+                                        entityType: 'all',
+                                        fromDate: _reconFromDate,
+                                        toDate: _reconToDate
+                                    });
+
+                                    if (reconResult.success) {
+                                        console.log(`✅ Reconciliation complete for ${company.name}: ${reconResult.totalMissing || 0} missing, ${reconResult.totalSynced || 0} synced`);
+                                        if (reconResult.totalSynced > 0) {
+                                            window.notificationService?.show({
+                                                type: 'info',
+                                                message: `Reconciliation complete for ${company.name}`,
+                                                details: `${reconResult.totalSynced} records auto-synced`,
+                                                duration: 4000
+                                            });
+                                        }
+                                    } else {
+                                        console.warn(`⚠️ Reconciliation completed with warnings for ${company.name}`);
+                                    }
+                                } catch (reconError) {
+                                    console.error(`❌ Reconciliation error for ${company.name}:`, reconError.message);
+                                }
+                            })();
                         } catch (syncError) {
                             addImportLog(`First-time sync failed: ${syncError.message}`, 'error');
 
