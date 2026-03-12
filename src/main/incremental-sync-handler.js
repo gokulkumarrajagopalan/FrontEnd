@@ -20,6 +20,9 @@ function getWorkerExe() {
     } else {
         const exeName = process.platform === 'win32' ? 'sync_worker.exe' : 'sync_worker';
         const exePath = path.join(process.resourcesPath, 'bin', exeName);
+        if (!fs.existsSync(exePath)) {
+            throw new Error(`Bundled sync worker not found at: ${exePath}. Please reinstall the application.`);
+        }
         return { command: exePath, useExe: true, cwd: path.join(process.resourcesPath, 'bin') };
     }
 }

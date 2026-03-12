@@ -2,12 +2,30 @@ const apiConfig = {
     async initialize() {
         if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.getBackendUrl) {
             try {
-                window._backendUrl = await window.electronAPI.getBackendUrl();
-                console.log('✅ apiConfig: Backend URL initialized asynchronously:', window._backendUrl);
+                const url = await window.electronAPI.getBackendUrl();
+                if (url) {
+                    window._backendUrl = url;
+                    console.log('✅ apiConfig: Backend URL initialized from main process:', window._backendUrl);
+                    return;
+                }
             } catch (error) {
-                console.error('❌ apiConfig: Failed to initialize Backend URL:', error);
+                console.error('❌ apiConfig: Failed to get Backend URL from main process:', error);
             }
         }
+
+        // Fallback: read from localStorage (set by settings page)
+        try {
+            const saved = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            if (saved.backendUrl) {
+                window._backendUrl = saved.backendUrl;
+                console.log('✅ apiConfig: Backend URL loaded from localStorage:', window._backendUrl);
+                return;
+            }
+        } catch (_) {}
+
+        // Final fallback: hardcoded default
+        window._backendUrl = 'http://localhost:8080';
+        console.log('✅ apiConfig: Using default Backend URL:', window._backendUrl);
     },
 
     get BASE_URL() {
@@ -26,9 +44,14 @@ const apiConfig = {
             return window.AppConfig.API_BASE_URL;
         }
 
-        // Provide detailed error message if everything fails
-        console.warn('⚠️ apiConfig: Backend URL not yet initialized, returning empty string');
-        return '';
+        // 4. Fallback to localStorage (user-configured in settings)
+        try {
+            const saved = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            if (saved.backendUrl) return saved.backendUrl;
+        } catch (_) {}
+
+        // 5. Hardcoded default — ensures login always has a target URL
+        return 'http://localhost:8080';
     },
 
     endpoints: {

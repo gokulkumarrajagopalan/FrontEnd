@@ -2,22 +2,50 @@
 
 /**
  * Python Bundle Script
- * Bundles sync_worker.py into a standalone executable using PyInstaller
+ * Bundles sync_worker.py into a standalone executable using PyInstaller.
+ *
+ * Usage:
+ *   node build-scripts/bundle-python.js          # skip if exe is up-to-date
+ *   node build-scripts/bundle-python.js --force   # always rebuild
  */
 
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+const FORCE_REBUILD = process.argv.includes('--force');
+
 const PROJECT_ROOT = path.resolve(__dirname, '..');
-// Fixed: Python source is in 'python' directory
-const PYTHON_SOURCE = path.join(PROJECT_ROOT, 'python', 'sync_worker.py');
+const PYTHON_DIR = path.join(PROJECT_ROOT, 'python');
+const PYTHON_SOURCE = path.join(PYTHON_DIR, 'sync_worker.py');
+const SPEC_FILE = path.join(PYTHON_DIR, 'sync_worker.spec');
 const BUNDLE_DIR = path.join(PROJECT_ROOT, 'resources', 'python');
 const RESOURCES_BIN = path.join(PROJECT_ROOT, 'resources', 'bin');
 const DIST_EXE = path.join(BUNDLE_DIR, 'dist', 'sync_worker.exe');
 const DIST_UNIX = path.join(BUNDLE_DIR, 'dist', 'sync_worker');
 const BIN_EXE = path.join(RESOURCES_BIN, 'sync_worker.exe');
 const BIN_UNIX = path.join(RESOURCES_BIN, 'sync_worker');
+
+/**
+ * Returns true when all Python source files are older than the existing exe.
+ * Avoids unnecessary re-bundling when code hasn't changed.
+ */
+function isExeUpToDate(exePath) {
+    if (!fs.existsSync(exePath)) return false;
+    const exeMtime = fs.statSync(exePath).mtimeMs;
+
+    const pyFiles = fs.readdirSync(PYTHON_DIR)
+        .filter(f => f.endsWith('.py') || f.endsWith('.spec'))
+        .map(f => path.join(PYTHON_DIR, f));
+
+    for (const pyFile of pyFiles) {
+        if (fs.statSync(pyFile).mtimeMs > exeMtime) {
+            console.log(`  ↳ Modified source detected: ${path.basename(pyFile)}`);
+            return false;
+        }
+    }
+    return true;
+}
 
 function resolvePython() {
     const candidates = [];
@@ -53,24 +81,20 @@ function resolvePython() {
 
 console.log('🐍 Python Bundling Script');
 console.log('='.repeat(50));
+if (FORCE_REBUILD) console.log('⚡ --force flag set: will always rebuild');
 
-// Step 0: If a bundled executable already exists, skip Python entirely
+// Step 0: Check if an up-to-date exe already exists
 console.log('\n📦 Step 0: Checking for existing bundled worker...');
-if (fs.existsSync(BIN_EXE) || fs.existsSync(BIN_UNIX)) {
-    console.log(`✅ Found existing worker in resources/bin. Skipping Python bundling.`);
-    process.exit(0);
-}
+const existingExe = fs.existsSync(BIN_EXE) ? BIN_EXE : (fs.existsSync(BIN_UNIX) ? BIN_UNIX : null);
 
-// If dist output exists, copy it into resources/bin and exit
-if (fs.existsSync(DIST_EXE) || fs.existsSync(DIST_UNIX)) {
-    if (!fs.existsSync(RESOURCES_BIN)) {
-        fs.mkdirSync(RESOURCES_BIN, { recursive: true });
-    }
-    const source = fs.existsSync(DIST_EXE) ? DIST_EXE : DIST_UNIX;
-    const destination = path.join(RESOURCES_BIN, path.basename(source));
-    fs.copyFileSync(source, destination);
-    console.log(`✅ Copied existing worker to: ${destination}`);
+if (!FORCE_REBUILD && existingExe && isExeUpToDate(existingExe)) {
+    console.log(`✅ Bundled worker is up-to-date: ${existingExe}`);
+    console.log('   Use --force to rebuild anyway.');
     process.exit(0);
+} else if (existingExe && !FORCE_REBUILD) {
+    console.log(`🔄 Python sources changed — rebuilding exe...`);
+} else if (!existingExe) {
+    console.log('🆕 No bundled worker found — building for the first time...');
 }
 
 // Step 1: Check if Python is available
@@ -124,22 +148,35 @@ if (!fs.existsSync(BUNDLE_DIR)) {
     console.log(`✅ Directory exists: ${BUNDLE_DIR}`);
 }
 
-// Step 4: Check if source file exists
-console.log('\n🔍 Step 4: Checking source file...');
+// Step 4: Check if source and spec files exist
+console.log('\n🔍 Step 4: Checking source files...');
 if (!fs.existsSync(PYTHON_SOURCE)) {
     console.error(`❌ Source file not found: ${PYTHON_SOURCE}`);
     process.exit(1);
 }
 console.log(`✅ Source file found: ${PYTHON_SOURCE}`);
 
-// Step 5: Run PyInstaller
-console.log('\n⚙️  Step 5: Running PyInstaller...');
+if (!fs.existsSync(SPEC_FILE)) {
+    console.error(`❌ Spec file not found: ${SPEC_FILE}`);
+    process.exit(1);
+}
+console.log(`✅ Spec file found: ${SPEC_FILE}`);
+
+// Step 5: Run PyInstaller using the spec file
+console.log('\n⚙️  Step 5: Running PyInstaller (using spec file)...');
 try {
-    // Using python -m PyInstaller to be safe
-    const command = `"${pythonCmd}" -m PyInstaller --onefile --distpath "${path.join(BUNDLE_DIR, 'dist')}" --workpath "${path.join(BUNDLE_DIR, 'build')}" --specpath "${BUNDLE_DIR}" --name "sync_worker" "${PYTHON_SOURCE}"`;
+    // Build using the spec file for reproducible, fully-configured builds.
+    // --distpath and --workpath are relative to the spec file location.
+    const command = [
+        `"${pythonCmd}" -m PyInstaller`,
+        `--distpath "${path.join(BUNDLE_DIR, 'dist')}"`,
+        `--workpath "${path.join(BUNDLE_DIR, 'build')}"`,
+        `--noconfirm`,
+        `"${SPEC_FILE}"`
+    ].join(' ');
 
     console.log(`Executing: ${command}`);
-    execSync(command, { stdio: 'inherit' });
+    execSync(command, { stdio: 'inherit', cwd: PYTHON_DIR });
     console.log('✅ PyInstaller completed successfully');
 } catch (e) {
     console.error('❌ PyInstaller failed');

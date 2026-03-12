@@ -44,6 +44,7 @@ try {
         // Configuration
         getBackendUrl: () => ipcRenderer.invoke('get-backend-url'),
         backendUrl: ipcRenderer.sendSync('get-backend-url-sync'), // Deprecated: uses sendSync (Synchronous)
+        saveConfig: (config) => ipcRenderer.invoke('save-config', config),
 
         // Sync API
         startSync: (config) => {

@@ -7,16 +7,37 @@ const { findPython } = require("./python-finder");
 const { registerVoucherSyncHandler } = require("./voucher-sync-handler");
 const { registerBillsSyncHandler } = require("./bills-sync-handler");
 
-// Load environment variables from .env file in project root
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+// Load environment variables — try project .env (dev) then packaged resources .env (prod)
+const _envPaths = [
+  path.join(__dirname, '../../.env'),                          // dev: project root
+  path.join(process.resourcesPath || '', '.env'),              // prod: resources folder
+];
+for (const _ep of _envPaths) {
+  try { if (fs.existsSync(_ep)) { require('dotenv').config({ path: _ep }); break; } } catch (_) {}
+}
 
 // Check if running in development mode
 const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
 
+// Also load from persistent userData config.json (written by settings page)
+// This runs before app.ready so we use a sync read. appDataPath is defined below.
+function _loadUserConfig() {
+  try {
+    const cfgPath = path.join(app.getPath('appData'), 'DesktopApp', 'config.json');
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+      if (cfg.backendUrl && !process.env.BACKEND_URL) {
+        process.env.BACKEND_URL = cfg.backendUrl;
+      }
+    }
+  } catch (_) {}
+}
+_loadUserConfig();
+
 // Only log in development mode
 if (isDev) {
   console.log("🔥 main.js loaded");
-  console.log("🔧 BACKEND_URL from .env:", process.env.BACKEND_URL);
+  console.log("🔧 BACKEND_URL:", process.env.BACKEND_URL);
 }
 
 let mainWindow;
@@ -359,6 +380,13 @@ function getWorkerCommand() {
     const exePath = path.join(resourcesPath, "bin", exeName);
     const cwd = path.join(resourcesPath, "bin");
 
+    if (!fs.existsSync(exePath)) {
+      throw new Error(
+        `Bundled sync worker not found at: ${exePath}\n` +
+        `Please reinstall the application.`
+      );
+    }
+
     return { command: exePath, args: [], cwd };
   }
 }
@@ -518,41 +546,70 @@ if (isDev) console.log("🔥 Registering IPC handlers...");
 const { registerMasterDataHandler } = require('./master-data-handler');
 registerMasterDataHandler();
 
-// Provide backend URL to renderer asynchronously (Production Grade)
-ipcMain.handle('get-backend-url', async () => {
-  let backendUrl = process.env.BACKEND_URL;
+// Helper: read backend URL from all possible sources (priority order)
+function _resolveBackendUrl() {
+  // 1. Already in env (set by dotenv or previous call)
+  if (process.env.BACKEND_URL) return process.env.BACKEND_URL;
 
-  if (!backendUrl) {
+  // 2. userData config.json (written by settings page)
+  try {
+    const cfgPath = path.join(app.getPath('userData'), 'config.json');
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+      if (cfg.backendUrl) {
+        process.env.BACKEND_URL = cfg.backendUrl;
+        return cfg.backendUrl;
+      }
+    }
+  } catch (e) { if (isDev) console.error('config.json read error:', e); }
+
+  // 3. .env file in resources (bundled) or project root (dev)
+  const envPaths = [
+    path.join(__dirname, '../../.env'),
+    path.join(process.resourcesPath || '', '.env'),
+  ];
+  for (const ep of envPaths) {
     try {
-      const envPath = path.join(__dirname, '../../.env');
-      if (fs.existsSync(envPath)) {
-        const envConfig = require('dotenv').parse(fs.readFileSync(envPath));
-        if (envConfig.BACKEND_URL) {
-          backendUrl = envConfig.BACKEND_URL;
-          process.env.BACKEND_URL = backendUrl;
+      if (fs.existsSync(ep)) {
+        const cfg = require('dotenv').parse(fs.readFileSync(ep));
+        if (cfg.BACKEND_URL) {
+          process.env.BACKEND_URL = cfg.BACKEND_URL;
+          return cfg.BACKEND_URL;
         }
       }
-    } catch (e) {
-      if (isDev) console.error('❌ Failed to reload .env:', e);
-    }
+    } catch (_) {}
   }
-  return backendUrl;
+
+  // 4. Hardcoded fallback
+  return 'http://localhost:8080';
+}
+
+// Provide backend URL to renderer asynchronously
+ipcMain.handle('get-backend-url', async () => {
+  return _resolveBackendUrl();
 });
 
-// Provide backend URL to renderer synchronously (Deprecated - causes UI freeze)
+// Provide backend URL to renderer synchronously (legacy)
 ipcMain.on('get-backend-url-sync', (event) => {
-  let backendUrl = process.env.BACKEND_URL;
-  // ... existing sync logic simplified for brevity here, but I'll keep it functional
-  if (!backendUrl) {
-    try {
-      const envPath = path.join(__dirname, '../../.env');
-      if (fs.existsSync(envPath)) {
-        const envConfig = require('dotenv').parse(fs.readFileSync(envPath));
-        backendUrl = envConfig.BACKEND_URL;
-      }
-    } catch (e) { }
+  event.returnValue = _resolveBackendUrl();
+});
+
+// Save user config (backend URL, etc.) to persistent userData storage
+ipcMain.handle('save-config', async (event, config) => {
+  try {
+    const cfgPath = path.join(app.getPath('userData'), 'config.json');
+    const existing = fs.existsSync(cfgPath)
+      ? JSON.parse(fs.readFileSync(cfgPath, 'utf-8'))
+      : {};
+    const updated = { ...existing, ...config };
+    fs.writeFileSync(cfgPath, JSON.stringify(updated, null, 2), 'utf-8');
+    // Also update live env so sync workers spawned later get the new URL
+    if (config.backendUrl) process.env.BACKEND_URL = config.backendUrl;
+    return { success: true };
+  } catch (e) {
+    if (isDev) console.error('save-config error:', e);
+    return { success: false, error: e.message };
   }
-  event.returnValue = backendUrl;
 });
 
 // fetch-companies logic moved to use sync_worker

@@ -60,6 +60,17 @@
         const current = JSON.parse(localStorage.getItem('appSettings') || '{}');
         current[key] = value;
         localStorage.setItem('appSettings', JSON.stringify(current));
+
+        // When backend URL changes, also persist to main process userData/config.json
+        // so it survives app reinstalls and is available before localStorage loads
+        if (key === SETTINGS_KEYS.BACKEND_URL && window.electronAPI && window.electronAPI.saveConfig) {
+            window.electronAPI.saveConfig({ backendUrl: value })
+                .catch(e => console.warn('Failed to persist backendUrl to main process:', e));
+            // Also update the live apiConfig cache immediately
+            if (window._backendUrl !== undefined) {
+                window._backendUrl = value;
+            }
+        }
     }
 
 

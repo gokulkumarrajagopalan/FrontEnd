@@ -14,6 +14,7 @@
     "pack": "npm run bundle-python && electron-builder --dir",
     "dist": "npm run bundle-python && electron-builder",
     "bundle-python": "node build-scripts/bundle-python.js",
+    "rebuild-python": "node build-scripts/bundle-python.js --force",
     "css:build": "tailwindcss -i ./src/renderer/styles/input.css -o ./src/renderer/styles/output.css -c ./config/tailwind.config.js",
     "css:watch": "tailwindcss -i ./src/renderer/styles/input.css -o ./src/renderer/styles/output.css -c ./config/tailwind.config.js --watch"
   },
@@ -57,6 +58,11 @@
       "output": "dist"
     },
     "extraResources": [
+      {
+        "from": ".env",
+        "to": ".env",
+        "filter": ["**/*"]
+      },
       {
         "from": "resources/bin",
         "to": "bin",
