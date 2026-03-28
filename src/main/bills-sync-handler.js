@@ -89,6 +89,20 @@ function syncBillsOutstanding(params) {
         const python = spawn(command, args, { cwd });
         let stdout = '';
         let stderr = '';
+        let resolved = false;
+
+        // 5 minute timeout to prevent indefinite hang
+        const timeoutHandle = setTimeout(() => {
+            if (!resolved) {
+                resolved = true;
+                if (isDev) console.error('❌ Bills outstanding sync timed out after 5 minutes');
+                python.kill();
+                resolve({
+                    success: false,
+                    message: 'Bills outstanding sync timed out after 5 minutes'
+                });
+            }
+        }, 5 * 60 * 1000);
 
         python.stdout.on('data', (data) => {
             const output = data.toString();
@@ -103,6 +117,10 @@ function syncBillsOutstanding(params) {
         });
 
         python.on('close', (code) => {
+            clearTimeout(timeoutHandle);
+            if (resolved) return;
+            resolved = true;
+
             if (isDev) {
                 console.log(`✅ Bills outstanding sync exited with code: ${code}`);
                 console.log(`${'='.repeat(60)}\n`);
@@ -146,6 +164,9 @@ function syncBillsOutstanding(params) {
         });
 
         python.on('error', (error) => {
+            clearTimeout(timeoutHandle);
+            if (resolved) return;
+            resolved = true;
             if (isDev) console.error(`❌ Failed to start bills sync: ${error.message}`);
             resolve({
                 success: false,

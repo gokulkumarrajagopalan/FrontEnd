@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     // API Base URL
     if (typeof window.API_BASE_URL === 'undefined') {
         window.API_BASE_URL = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
@@ -1445,13 +1445,15 @@
             if (loginBtnText) loginBtnText.textContent = 'Signing In...';
 
             try {
-                const response = await fetch(`${window.API_BASE_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                // Use PublicApiService to ensure no auth headers interfere with login
+                const apiResult = await window.publicApiService.post('/auth/login', payload);
+                
+                if (!apiResult.success) {
+                    throw new Error(apiResult.error || 'Login failed');
+                }
 
-                const result = await response.json();
+                const response = apiResult.data;
+                const result = response;
 
                 // Handle 403 - Verification required
                 if (response.status === 403) {
@@ -1489,10 +1491,9 @@
 
                         // Send email OTP explicitly
                         try {
-                            const otpSendResponse = await fetch(`${window.API_BASE_URL}/auth/send-email-otp`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ username: pendingUsername })
+                            const otpSendResult = await window.publicApiService.post('/auth/send-email-otp', { username: pendingUsername });
+                            const otpSendResponse = new Response(JSON.stringify(otpSendResult.data || otpSendResult.error), {
+                                status: otpSendResult.success ? 200 : 500
                             });
 
                             const otpSendData = await otpSendResponse.json();
@@ -1523,10 +1524,9 @@
 
                         // Send mobile OTP
                         try {
-                            const mobileOtpResponse = await fetch(`${window.API_BASE_URL}/sns/send-mobile-otp`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ username: pendingUsername })
+                            const mobileOtpResult = await window.publicApiService.post('/sns/send-mobile-otp', { username: pendingUsername });
+                            const mobileOtpResponse = new Response(JSON.stringify(mobileOtpResult.data || mobileOtpResult.error), {
+                                status: mobileOtpResult.success ? 200 : 500
                             });
 
                             const mobileOtpData = await mobileOtpResponse.json();
@@ -1556,10 +1556,6 @@
                     errorMessage.querySelector('span:last-child').textContent = result.message || 'Verification required.';
                     errorMessage.classList.remove('hidden');
                     return;
-                }
-
-                if (!response.ok) {
-                    throw new Error(result.message || result.error || 'Login failed');
                 }
 
                 // Extract data from response
@@ -1996,17 +1992,13 @@
                     mobile: mobile.replace(/\D/g, '')
                 };
 
-                const response = await fetch(`${window.API_BASE_URL}/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(registrationPayload)
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'Registration failed');
+                const apiResult = await window.publicApiService.post('/auth/register', registrationPayload);
+                
+                if (!apiResult.success) {
+                    throw new Error(apiResult.error || 'Registration failed');
                 }
+
+                const data = apiResult.data || apiResult;
 
                 if (successMessage) {
                     const msgText = successMessage.querySelector('.msg-text') || successMessage.querySelector('.msg-content');
@@ -2023,15 +2015,10 @@
                 localStorage.setItem('pendingVerificationCountryCode', registrationPayload.countryCode);
 
                 // Explicitly send email OTP using username
-                const emailOtpResponse = await fetch(`${window.API_BASE_URL}/auth/send-email-otp`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: registrationPayload.username })
-                });
+                const emailOtpResult = await window.publicApiService.post('/auth/send-email-otp', { username: registrationPayload.username });
 
-                const emailOtpData = await emailOtpResponse.json();
-                if (!emailOtpResponse.ok || emailOtpData.success === false) {
-                    throw new Error(emailOtpData.message || 'Failed to send email OTP');
+                if (!emailOtpResult.success) {
+                    throw new Error(emailOtpResult.error || 'Failed to send email OTP');
                 }
 
                 if (successMessage) {
@@ -2184,17 +2171,13 @@
             verifyBtn.disabled = true;
 
             try {
-                const response = await fetch(`${window.API_BASE_URL}/auth/verify-email-otp`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, otp })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'OTP verification failed');
+                const apiResult = await window.publicApiService.post('/auth/verify-email-otp', { username, otp });
+                
+                if (!apiResult.success) {
+                    throw new Error(apiResult.error || 'OTP verification failed');
                 }
+
+                const data = apiResult.data || apiResult;
 
                 clearInterval(timerInterval);
 
@@ -2250,20 +2233,12 @@
                 // Trigger mobile OTP
                 setTimeout(async () => {
                     try {
-                        const mobileOtpResponse = await fetch(`${window.API_BASE_URL}/sns/send-mobile-otp`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                username: username
-                            })
+                        const mobileOtpResult = await window.publicApiService.post('/sns/send-mobile-otp', {
+                            username: username
                         });
 
-                        const mobileOtpData = await mobileOtpResponse.json();
-
-                        if (!mobileOtpResponse.ok || !mobileOtpData.success) {
-                            throw new Error(mobileOtpData.message || 'Failed to send mobile OTP');
+                        if (!mobileOtpResult.success) {
+                            throw new Error(mobileOtpResult.error || 'Failed to send mobile OTP');
                         }
 
                         // Initialize mobile OTP verification
@@ -2307,16 +2282,10 @@
             resendBtn.disabled = true;
 
             try {
-                const response = await fetch(`${window.API_BASE_URL}/auth/send-email-otp`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username })
-                });
+                const apiResult = await window.publicApiService.post('/auth/send-email-otp', { username });
 
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'Failed to resend OTP');
+                if (!apiResult.success) {
+                    throw new Error(apiResult.error || 'Failed to resend OTP');
                 }
 
                 resendAttempts--;
@@ -2501,22 +2470,16 @@
             errorMessage.classList.add('hidden');
 
             try {
-                const response = await fetch(`${window.API_BASE_URL}/sns/verify-mobile-otp`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        username: username,
-                        otp: otp
-                    })
+                const apiResult = await window.publicApiService.post('/sns/verify-mobile-otp', {
+                    username: username,
+                    otp: otp
                 });
 
-                const data = await response.json();
-
-                if (!response.ok || !data.success) {
-                    throw new Error(data.message || 'Mobile OTP verification failed');
+                if (!apiResult.success) {
+                    throw new Error(apiResult.error || 'Mobile OTP verification failed');
                 }
+
+                const data = apiResult.data || apiResult;
 
                 clearInterval(timerInterval);
                 successMessage.querySelector('span:last-child').textContent = '✅ Mobile verified successfully! Redirecting to login...';
@@ -2562,20 +2525,12 @@
             errorMessage.classList.add('hidden');
 
             try {
-                const response = await fetch(`${window.API_BASE_URL}/sns/send-mobile-otp`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        username: username
-                    })
+                const apiResult = await window.publicApiService.post('/sns/send-mobile-otp', {
+                    username: username
                 });
 
-                const data = await response.json();
-
-                if (!response.ok || !data.success) {
-                    throw new Error(data.message || 'Failed to resend OTP');
+                if (!apiResult.success) {
+                    throw new Error(apiResult.error || 'Failed to resend OTP');
                 }
 
                 attemptsLeft--;

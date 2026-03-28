@@ -28,18 +28,18 @@ const Popup = {
                 <div id="${popupId}" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-all duration-500">
                     <div class="bg-white max-w-sm w-full animate-premium-pop border border-gray-100" 
                          style="border-radius: 16px; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2);">
-                        <div class="px-8 pt-8 pb-4 text-center">
+                        <div class="px-8 pt-8 pb-6 text-center">
                             ${icon ? `
-                                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 relative"
+                                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 relative"
                                      style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.06);">
                                     <div class="absolute inset-0 rounded-full border border-white/80 shadow-sm"></div>
                                     <div class="text-3xl relative z-10 text-gray-700">${icon}</div>
                                 </div>
                             ` : ''}
-                            <h3 class="text-2xl font-bold text-gray-900 mb-2 tracking-tight">${title}</h3>
-                            <p class="text-gray-500 text-sm leading-relaxed px-2">${message}</p>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-3 tracking-tight">${title}</h3>
+                            <p class="text-gray-500 text-sm leading-relaxed px-4">${message}</p>
                         </div>
-                        <div class="px-8 pb-6 flex gap-3 ${footerClasses}">
+                        <div class="px-8 pb-8 pt-2 flex gap-4 ${footerClasses}">
                             ${showCancel && cancelText ? `
                             <button id="${popupId}_cancel" class="flex-1 px-4 py-3 text-sm bg-gray-500 border border-gray-500 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-gray-400 focus:outline-none"
                                     style="border-radius: 8px;">

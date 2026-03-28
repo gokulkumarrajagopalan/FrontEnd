@@ -66,6 +66,8 @@
     let companies = [];
     let isSyncing = false;
     let currentSyncingCompanyId = null;
+    let isReconciling = false;
+    let currentReconcilingCompanyId = null;
 
 
     function getSyncSpinnerSVG() {
@@ -90,6 +92,21 @@
 
     function getDefaultSyncButtonHTML() {
         return '<div style="display: flex; align-items: center; justify-content: center; gap: var(--ds-space-2); width: 100%;"><i class="fas fa-sync-alt"></i> <span>Sync</span></div>';
+    }
+
+    function getSyncedButtonHTML() {
+        return `<div style="display: flex; align-items: center; justify-content: center; gap: var(--ds-space-2); width: 100%;">
+            <i class="fas fa-check-circle" style="color: #10b981;"></i>
+            <span style="color: #10b981; font-weight: 600;">Synced</span>
+        </div>`;
+    }
+
+    function getReconcilingButtonHTML() {
+        const spinner = getSyncSpinnerSVG();
+        return `<div style="display: flex; align-items: center; justify-content: center; gap: var(--ds-space-2); width: 100%; overflow: hidden;">
+            ${spinner}
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--ds-text-xs); flex: 1; text-align: left; color: #6366f1;">Reconciling...</span>
+        </div>`;
     }
 
     // Show or hide the top-level global loader.
@@ -196,7 +213,7 @@
             }
         }
 
-        const loaderShouldShow = syncInProgress;
+        const loaderShouldShow = syncInProgress && !isReconciling;
         showGlobalLoader(loaderShouldShow);
 
         document.querySelectorAll('.sync-company-btn').forEach(btn => {
@@ -205,7 +222,22 @@
             // Ensure button is visible by default
             btn.style.display = '';
 
-            if (syncInProgress) {
+            if (isReconciling) {
+                // Reconciliation takes priority — sync has ended, reconciliation is running
+                if (String(companyId) === String(currentReconcilingCompanyId)) {
+                    // Active reconciling company - show "Synced" state until reconciliation finishes
+                    btn.innerHTML = getSyncedButtonHTML();
+                    btn.disabled = true;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.removeAttribute('aria-busy');
+                } else {
+                    // Other companies - still disabled while reconciliation runs
+                    btn.innerHTML = getDefaultSyncButtonHTML();
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.removeAttribute('aria-busy');
+                }
+            } else if (syncInProgress) {
                 if (String(companyId) === String(activeCompanyId)) {
                     // Active company - show inline spinner and progress text
                     btn.innerHTML = getSyncButtonHTML(progressText);
@@ -221,7 +253,7 @@
                     btn.removeAttribute('aria-busy');
                 }
             } else {
-                // No sync in progress - default state
+                // No sync or reconciliation in progress - default state
                 btn.innerHTML = getDefaultSyncButtonHTML();
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -596,20 +628,41 @@
                 company.syncStatus = 'synced';
                 company.lastSyncDate = new Date().toISOString();
                 await updateCompanyStatus(company.id, 'synced', 'active');
+
+                // Transition from syncing → reconciling state BEFORE endSync() fires sync-ended event.
+                // This ensures when the sync-ended listener calls updateSyncButtonStates(),
+                // it sees isSyncing=false + isReconciling=true → shows "✓ Synced" (disabled)
+                isSyncing = false;
+                currentSyncingCompanyId = null;
+                isReconciling = true;
+                currentReconcilingCompanyId = company.id;
+
                 if (window.syncStateManager) {
                     window.syncStateManager.endSync(true, `${successCount} masters synced for ${company.name}`);
                 }
-                button.innerHTML = getDefaultSyncButtonHTML();
+
                 // Hide progress bar after a short delay
                 setTimeout(() => {
                     const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
                     if (progressContainer) progressContainer.style.display = 'none';
                 }, 2000);
 
-                // Run reconciliation in BACKGROUND (fire-and-forget, non-blocking)
+                // Capture values needed for reconciliation before loadCompanies() re-renders
+                const reconCompanyId = company.id;
+                const reconCompanyName = company.name;
+                const reconCompanyGuid = company.companyGuid || company.guid || '';
+                const reconUserId = currentUser.userId;
+                const reconTallyHost = tallyHost;
+                const reconTallyPort = tallyPort;
+                const reconBackendUrl = backendUrl;
+                const reconAuthToken = authToken;
+                const reconDeviceToken = deviceToken;
+
+                // Run reconciliation in background (fire-and-forget)
+                // isReconciling is already set, so updateSyncButtonStates() will show "Synced" on this company
                 (async () => {
                     try {
-                        console.log(`🔍 Background reconciliation started for ${company.name}`);
+                        console.log(`🔍 Background reconciliation started for ${reconCompanyName}`);
                         const _reconMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                         const _reconNow = new Date();
                         const _reconFromDate = _reconNow.getMonth() >= 3 
@@ -618,35 +671,40 @@
                         const _reconToDate = `${String(_reconNow.getDate()).padStart(2, '0')}-${_reconMonths[_reconNow.getMonth()]}-${_reconNow.getFullYear()}`;
                         
                         const reconResult = await window.electronAPI.reconcileData({
-                            companyId: company.id,
-                            companyName: company.name,
-                            companyGuid: company.companyGuid || company.guid || '',
-                            userId: currentUser.userId,
-                            tallyHost: tallyHost,
-                            tallyPort: tallyPort,
-                            backendUrl: backendUrl,
-                            authToken: authToken,
-                            deviceToken: deviceToken,
+                            companyId: reconCompanyId,
+                            companyName: reconCompanyName,
+                            companyGuid: reconCompanyGuid,
+                            userId: reconUserId,
+                            tallyHost: reconTallyHost,
+                            tallyPort: reconTallyPort,
+                            backendUrl: reconBackendUrl,
+                            authToken: reconAuthToken,
+                            deviceToken: reconDeviceToken,
                             entityType: 'all',
                             fromDate: _reconFromDate,
                             toDate: _reconToDate
                         });
 
                         if (reconResult.success && reconResult.totalSynced > 0) {
-                            console.log(`✅ Reconciliation complete for ${company.name}: ${reconResult.totalSynced} records auto-synced`);
+                            console.log(`✅ Reconciliation complete for ${reconCompanyName}: ${reconResult.totalSynced} records auto-synced`);
                             window.notificationService?.show({
                                 type: 'info',
-                                message: `Reconciliation complete for ${company.name}`,
+                                message: `Reconciliation complete for ${reconCompanyName}`,
                                 details: `${reconResult.totalSynced} missing records auto-synced`,
                                 duration: 4000
                             });
                         } else if (reconResult.success) {
-                            console.log(`✅ Reconciliation complete for ${company.name}: All records in sync`);
+                            console.log(`✅ Reconciliation complete for ${reconCompanyName}: All records in sync`);
                         } else {
-                            console.warn(`⚠️ Reconciliation completed with warnings for ${company.name}`);
+                            console.warn(`⚠️ Reconciliation completed with warnings for ${reconCompanyName}`);
                         }
                     } catch (reconError) {
-                        console.error(`❌ Background reconciliation error for ${company.name}:`, reconError.message);
+                        console.error(`❌ Background reconciliation error for ${reconCompanyName}:`, reconError.message);
+                    } finally {
+                        // Reset reconciliation state — buttons return to "Sync" (clickable)
+                        isReconciling = false;
+                        currentReconcilingCompanyId = null;
+                        updateSyncButtonStates();
                     }
                 })();
             } else if (successCount > 0) {
@@ -694,7 +752,7 @@
         } finally {
             isSyncing = false;
             currentSyncingCompanyId = null;
-            // Update all button states
+            // Update all button states — if isReconciling is true, buttons stay in "Synced" state
             updateSyncButtonStates();
         }
     }
@@ -1200,12 +1258,16 @@
 
                     if (event === 'sync-ended') {
                         showGlobalLoader(false);
+                        // Only update button states — isReconciling may be true,
+                        // in which case buttons stay in "Synced" (disabled) state
                         updateSyncButtonStates();
                         updateCompanySyncHealthMetrics();
-                        // Hide all progress bars after sync ends
-                        document.querySelectorAll('.sync-progress-container').forEach(el => {
-                            setTimeout(() => { el.style.display = 'none'; }, 2000);
-                        });
+                        // Hide all progress bars after sync ends (only if not reconciling)
+                        if (!isReconciling) {
+                            document.querySelectorAll('.sync-progress-container').forEach(el => {
+                                setTimeout(() => { el.style.display = 'none'; }, 2000);
+                            });
+                        }
                     }
                 });
 
