@@ -289,7 +289,153 @@ class VoucherSyncManager:
         )
     
     # ─── TDL Generation ─────────────────────────────────────────────
-    
+
+    def generate_voucher_identity_tdl(self, from_date: str, to_date: str,
+                                       company_name: str = None) -> str:
+        """Generate lightweight TDL to fetch ALL voucher identity records (NO AlterID filter).
+        Used for reconciliation — only GUID, MASTERID, ALTERID, voucher number/type."""
+        company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
+        return f"""<ENVELOPE>
+    <HEADER>
+        <VERSION>1</VERSION>
+        <TALLYREQUEST>Export</TALLYREQUEST>
+        <TYPE>Collection</TYPE>
+        <ID>Collection of Vouchers</ID>
+    </HEADER>
+    <BODY>
+        <DESC>
+            <STATICVARIABLES>
+                <SVFROMDATE TYPE="Date">{from_date}</SVFROMDATE>
+                <SVTODATE TYPE="Date">{to_date}</SVTODATE>
+                <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>{company_var}
+            </STATICVARIABLES>
+            <TDL>
+                <TDLMESSAGE>
+                    <COLLECTION NAME="Collection of Vouchers" ISMODIFY="No">
+                        <TYPE>Voucher</TYPE>
+                        <FETCH>GUID, MASTERID, ALTERID, VOUCHERNUMBER, VOUCHERTYPENAME, DATE</FETCH>
+                    </COLLECTION>
+                </TDLMESSAGE>
+            </TDL>
+        </DESC>
+    </BODY>
+</ENVELOPE>"""
+
+    def _parse_voucher_identity_xml(self, xml_string: str) -> List[Dict]:
+        """Parse lightweight voucher identity XML for reconciliation"""
+        try:
+            xml_string = self.clean_xml(xml_string)
+            root = ET.fromstring(xml_string)
+            records = []
+            for elem in root.iter('VOUCHER'):
+                guid = (elem.findtext('GUID') or '').strip()
+                master_id = (elem.findtext('MASTERID') or '').strip()
+                alter_id_str = (elem.findtext('ALTERID') or '0').strip()
+                try:
+                    alter_id = int(alter_id_str)
+                except (ValueError, TypeError):
+                    alter_id = 0
+                if not guid or alter_id == 0:
+                    continue
+                voucher_number = (elem.findtext('VOUCHERNUMBER') or '').strip()
+                voucher_type = (elem.findtext('VOUCHERTYPENAME') or '').strip()
+                records.append({
+                    'guid': guid,
+                    'masterID': master_id,
+                    'alterID': alter_id,
+                    'name': f"{voucher_type} {voucher_number}".strip() or guid
+                })
+            return records
+        except Exception as e:
+            logger.error(f"❌ Error parsing voucher identity XML: {e}")
+            return []
+
+    def _fetch_db_vouchers(self, company_id: int) -> List[Dict]:
+        """Fetch ALL voucher records from database for reconciliation comparison"""
+        try:
+            url = f"{self.backend_url}/vouchers/company/{company_id}"
+            response = requests.get(url, headers=self.headers, timeout=300)
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    return data
+                elif isinstance(data, dict):
+                    return data.get('data', data.get('content', []))
+                return []
+            else:
+                logger.error(f"❌ Failed to fetch DB vouchers: HTTP {response.status_code}")
+                return []
+        except Exception as e:
+            logger.error(f"❌ Error fetching DB vouchers: {e}")
+            return []
+
+    def _reconcile_vouchers_inline(self, company_id: int, tally_host: str, tally_port: int,
+                                    from_date: str, to_date: str, company_name: str = None) -> Dict:
+        """Inline voucher reconciliation: ONE Tally identity fetch + DB comparison.
+        
+        Returns reconciliation results: {tallyCount, dbCount, missing, updated, synced}
+        """
+        logger.info(f"   🔍 Voucher reconciliation: fetching identity records from Tally...")
+
+        # 1. Fetch ALL voucher identities from Tally (lightweight, 1 HTTP call)
+        tdl = self.generate_voucher_identity_tdl(from_date, to_date, company_name)
+        xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
+        if not xml_response:
+            logger.warning(f"   ⚠️ Could not fetch voucher identities for reconciliation")
+            return {'tallyCount': 0, 'dbCount': 0, 'missing': 0, 'updated': 0, 'synced': 0, 'error': 'Tally fetch failed'}
+
+        tally_records = self._parse_voucher_identity_xml(xml_response)
+        tally_count = len(tally_records)
+
+        # 2. Fetch ALL vouchers from DB
+        db_records = self._fetch_db_vouchers(company_id)
+        db_count = len(db_records)
+
+        logger.info(f"   📊 Reconciliation: Tally={tally_count}, DB={db_count}")
+
+        if tally_count == 0 and db_count > 0:
+            logger.warning(f"   ⚠️ Tally returned 0 vouchers but DB has {db_count} — skipping reconciliation")
+            return {'tallyCount': 0, 'dbCount': db_count, 'missing': 0, 'updated': 0, 'synced': 0}
+
+        # 3. Compare by GUID
+        tally_guid_map = {r['guid']: r for r in tally_records}
+        db_guid_set = set()
+        db_alter_map = {}
+        for rec in db_records:
+            guid = rec.get('guid') or rec.get('GUID') or ''
+            if guid:
+                db_guid_set.add(guid)
+                alter_val = rec.get('alterId') or rec.get('alterID') or rec.get('alter_id') or 0
+                if isinstance(alter_val, str):
+                    try:
+                        alter_val = int(alter_val)
+                    except (ValueError, TypeError):
+                        alter_val = 0
+                db_alter_map[guid] = alter_val
+
+        missing_count = 0
+        stale_count = 0
+        for guid, tally_rec in tally_guid_map.items():
+            if guid in db_guid_set:
+                if tally_rec['alterID'] > db_alter_map.get(guid, 0):
+                    stale_count += 1
+            else:
+                missing_count += 1
+
+        total_issues = missing_count + stale_count
+        if total_issues > 0:
+            logger.info(f"   ⚠️ Reconciliation found: {missing_count} missing, {stale_count} stale")
+        else:
+            logger.info(f"   ✅ Reconciliation: all vouchers in sync")
+
+        return {
+            'tallyCount': tally_count,
+            'dbCount': db_count,
+            'missing': missing_count,
+            'updated': stale_count,
+            'synced': 0  # Not auto-syncing vouchers inline (too complex with nested data)
+        }
+
     def generate_voucher_tdl(self, last_alter_id: int, from_date: str, to_date: str,
                               company_name: str = None) -> str:
         """Generate TDL to fetch ALL voucher fields with 7 nested collections"""
@@ -855,7 +1001,8 @@ class VoucherSyncManager:
                 'success': True,
                 'message': 'No new vouchers',
                 'count': 0,
-                'lastAlterID': last_alter_id
+                'lastAlterID': last_alter_id,
+                'tallyRecords': []
             }
         
         # Log stats
@@ -914,12 +1061,25 @@ class VoucherSyncManager:
         except Exception:
             pass
         
+        # Build tallyRecords cache for reconciliation (identity fields only)
+        tally_records_cache = []
+        for v in vouchers:
+            tally_records_cache.append({
+                'guid': v['guid'],
+                'masterID': v.get('master_id', ''),
+                'alterID': v.get('alter_id', 0),
+                'name': f"{v.get('voucher_type', '')} {v.get('voucher_number', '')}".strip() or v['guid'],
+                'ledgerEntryCount': len(v.get('all_ledger_entries', [])),
+                'inventoryEntryCount': len(v.get('all_inventory_entries', []))
+            })
+        
         return {
             'success': True,
             'message': f'Successfully synced {total_saved} vouchers',
             'count': total_saved,
             'lastAlterID': max_alter_id,
             'elapsedMs': elapsed_ms,
+            'tallyRecords': tally_records_cache,
             'stats': {
                 'vouchers': len(vouchers),
                 'ledgerEntries': total_ledger,
@@ -993,6 +1153,7 @@ class VoucherSyncManager:
                        'inventoryEntries': 0, 'batchAllocations': 0}
         chunk_errors = []
         last_alter = last_alter_id
+        all_tally_records = []  # Accumulate tallyRecords across chunks
         
         for i, (c_start, c_end) in enumerate(chunks):
             c_from = format_tally_date(c_start)
@@ -1018,6 +1179,10 @@ class VoucherSyncManager:
                 stats = result.get('stats', {})
                 for k in total_stats:
                     total_stats[k] += stats.get(k, 0)
+                # Accumulate tallyRecords from each chunk
+                chunk_tally = result.get('tallyRecords', [])
+                if chunk_tally:
+                    all_tally_records.extend(chunk_tally)
                 elapsed_ms = result.get('elapsedMs', 0)
                 logger.info(f"   ✅ Month {i+1}: {result.get('count', 0)} vouchers ({elapsed_ms}ms)")
                 
@@ -1114,6 +1279,7 @@ class VoucherSyncManager:
                 'count': total_count,
                 'lastAlterID': last_alter,
                 'stats': total_stats,
+                'tallyRecords': all_tally_records,
                 'chunkErrors': chunk_errors
             }
         
@@ -1122,7 +1288,8 @@ class VoucherSyncManager:
             'message': f'Successfully synced {total_count} vouchers in {len(chunks)} month(s)',
             'count': total_count,
             'lastAlterID': last_alter,
-            'stats': total_stats
+            'stats': total_stats,
+            'tallyRecords': all_tally_records
         }
 
 

@@ -140,6 +140,7 @@ function syncVouchers(params) {
                         count: resultJson.count || 0,
                         lastAlterID: resultJson.lastAlterID,
                         stats: resultJson.stats,
+                        tallyRecords: resultJson.tallyRecords || [],
                         exitCode: code
                     });
                 } else {

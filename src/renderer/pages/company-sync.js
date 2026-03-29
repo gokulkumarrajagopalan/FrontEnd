@@ -185,7 +185,9 @@
     }
 
     function updateSyncButtonStates() {
-        const syncInProgress = window.syncStateManager?.isSyncInProgress() || isSyncing;
+        // Use local isSyncing flag for UI state — syncStateManager.isSyncInProgress()
+        // includes background syncs which should NOT show spinners or disable buttons
+        const syncInProgress = isSyncing;
         let activeCompanyId = currentSyncingCompanyId;
         let progressText = null;
         let entityProgress = null;
@@ -407,24 +409,25 @@
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
 
             const syncSteps = [
-                { name: 'Units', api: window.electronAPI.syncUnits },
-                { name: 'Stock Groups', api: window.electronAPI.syncStockGroups },
-                { name: 'Stock Categories', api: window.electronAPI.syncStockCategories },
-                { name: 'Stock Items', api: window.electronAPI.syncStockItems },
-                { name: 'Godowns', api: window.electronAPI.syncGodowns },
-                { name: 'Groups', api: window.electronAPI.syncGroups },
-                { name: 'Ledgers', api: window.electronAPI.syncLedgers },
-                { name: 'Cost Categories', api: window.electronAPI.syncCostCategories },
-                { name: 'Cost Centres', api: window.electronAPI.syncCostCenters },
-                { name: 'Voucher Types', api: window.electronAPI.syncVoucherTypes },
-                { name: 'Currencies', api: window.electronAPI.syncCurrencies },
-                { name: 'Tax Units', api: window.electronAPI.syncTaxUnits },
-                { name: 'Vouchers', api: window.electronAPI.syncVouchers },
-                { name: 'Bills Outstanding', api: window.electronAPI.syncBillsOutstanding }
+                { name: 'Units', api: window.electronAPI.syncUnits, entityType: 'Unit' },
+                { name: 'Stock Groups', api: window.electronAPI.syncStockGroups, entityType: 'StockGroup' },
+                { name: 'Stock Categories', api: window.electronAPI.syncStockCategories, entityType: 'StockCategory' },
+                { name: 'Stock Items', api: window.electronAPI.syncStockItems, entityType: 'StockItem' },
+                { name: 'Godowns', api: window.electronAPI.syncGodowns, entityType: 'Godown' },
+                { name: 'Groups', api: window.electronAPI.syncGroups, entityType: 'Group' },
+                { name: 'Ledgers', api: window.electronAPI.syncLedgers, entityType: 'Ledger' },
+                { name: 'Cost Categories', api: window.electronAPI.syncCostCategories, entityType: 'CostCategory' },
+                { name: 'Cost Centres', api: window.electronAPI.syncCostCenters, entityType: 'CostCenter' },
+                { name: 'Voucher Types', api: window.electronAPI.syncVoucherTypes, entityType: 'VoucherType' },
+                { name: 'Currencies', api: window.electronAPI.syncCurrencies, entityType: 'Currency' },
+                { name: 'Tax Units', api: window.electronAPI.syncTaxUnits, entityType: 'TaxUnit' },
+                { name: 'Vouchers', api: window.electronAPI.syncVouchers, entityType: 'Voucher' },
+                { name: 'Bills Outstanding', api: window.electronAPI.syncBillsOutstanding, entityType: 'BillsOutstanding' }
             ];
 
             let successCount = 0;
             let companyAllSuccess = true;
+            let allTallyRecords = []; // Accumulate voucher tallyRecords for reconciliation
 
             for (let i = 0; i < syncSteps.length; i++) {
                 const step = syncSteps[i];
@@ -499,6 +502,7 @@
 
                         let vTotalSuccess = true;
                         let vTotalMsg = '';
+                        allTallyRecords = [];
                         for (let ci = 0; ci < vChunks.length; ci++) {
                             const vc = vChunks[ci];
                             const cFrom = _formatTallyDate(vc.from);
@@ -515,6 +519,10 @@
                             const chunkElapsed = Date.now() - chunkStartTime;
 
                             if (chunkResult.success) {
+                                // Accumulate tallyRecords from each chunk for reconciliation
+                                if (chunkResult.tallyRecords && Array.isArray(chunkResult.tallyRecords)) {
+                                    allTallyRecords = allTallyRecords.concat(chunkResult.tallyRecords);
+                                }
                                 console.log(`   ✅ Month ${ci + 1}: synced (${(chunkElapsed / 1000).toFixed(1)}s)`);
                                 // Adaptive weekly retry if month took >30s
                                 if (chunkElapsed > 30000) {
@@ -581,6 +589,7 @@
                     } else {
                         // ---- INCREMENTAL: Single call with lastAlterID ----
                         console.log(`   📦 Incremental voucher sync (alterId mode)`);
+                        allTallyRecords = [];
                         const chunkResult = await step.api({
                             ...syncParams,
                             fromDate: '',
@@ -589,6 +598,9 @@
                         });
                         if (chunkResult.success) {
                             successCount++;
+                            if (chunkResult.tallyRecords && Array.isArray(chunkResult.tallyRecords)) {
+                                allTallyRecords = chunkResult.tallyRecords;
+                            }
                             console.log(`   ✅ ${step.name} synced (incremental)`);
                         } else {
                             console.error(`   ❌ ${step.name} sync failed: `, chunkResult.message);
@@ -602,6 +614,11 @@
                 if (result.success) {
                     successCount++;
                     console.log(`   ✅ ${step.name} synced`);
+                    // Log inline reconciliation results if present
+                    if (result.reconciliation) {
+                        const r = result.reconciliation;
+                        console.log(`   📊 ${step.name} reconciliation: Tally=${r.tallyCount} DB=${r.dbCount} missing=${r.missing} stale=${r.updated} synced=${r.synced}`);
+                    }
                 } else {
                     console.error(`   ❌ ${step.name} sync failed: `, result.message);
                     companyAllSuccess = false;
@@ -657,12 +674,21 @@
                 const reconBackendUrl = backendUrl;
                 const reconAuthToken = authToken;
                 const reconDeviceToken = deviceToken;
-
                 // Run reconciliation in background (fire-and-forget)
-                // isReconciling is already set, so updateSyncButtonStates() will show "Synced" on this company
+                // Master reconciliation is already done inline during sync.
+                // Only voucher reconciliation needs a separate call.
+                // Safety timeout: auto-reset reconciling state after 3 minutes in case IIFE gets stuck
+                const reconSafetyTimeout = setTimeout(() => {
+                    if (isReconciling) {
+                        console.warn('⚠️ Reconciliation safety timeout — resetting state after 3 minutes');
+                        isReconciling = false;
+                        currentReconcilingCompanyId = null;
+                        updateSyncButtonStates();
+                    }
+                }, 3 * 60 * 1000);
                 (async () => {
                     try {
-                        console.log(`🔍 Background reconciliation started for ${reconCompanyName}`);
+                        console.log(`🔍 Background voucher reconciliation started for ${reconCompanyName}`);
                         const _reconMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                         const _reconNow = new Date();
                         const _reconFromDate = _reconNow.getMonth() >= 3 
@@ -680,9 +706,10 @@
                             backendUrl: reconBackendUrl,
                             authToken: reconAuthToken,
                             deviceToken: reconDeviceToken,
-                            entityType: 'all',
+                            entityType: 'Voucher',
                             fromDate: _reconFromDate,
-                            toDate: _reconToDate
+                            toDate: _reconToDate,
+                            voucherCache: allTallyRecords.length > 0 ? allTallyRecords : undefined
                         });
 
                         if (reconResult.success && reconResult.totalSynced > 0) {
@@ -702,6 +729,7 @@
                         console.error(`❌ Background reconciliation error for ${reconCompanyName}:`, reconError.message);
                     } finally {
                         // Reset reconciliation state — buttons return to "Sync" (clickable)
+                        clearTimeout(reconSafetyTimeout);
                         isReconciling = false;
                         currentReconcilingCompanyId = null;
                         updateSyncButtonStates();
@@ -1225,7 +1253,10 @@
                 window._companySyncListenerAttached = true;
                 window.syncStateManager.addListener(({ event, data }) => {
                     if (event === 'sync-started') {
-                        showGlobalLoader(true);
+                        // Only show global loader for user-initiated syncs, not background syncs
+                        if (isSyncing || (data && data.type !== 'background')) {
+                            showGlobalLoader(true);
+                        }
                         updateSyncButtonStates();
                     }
 
@@ -1243,7 +1274,10 @@
                             progressText = `[${ep.entityIndex}/${ep.entityCount}] ${ep.entityName} (${ep.percentage}%)`;
                             updateCompanySyncProgress(ep.companyId, ep.percentage, ep.entityName);
                         }
-                        showGlobalLoader(true);
+                        // Only show global loader for user-initiated syncs
+                        if (isSyncing) {
+                            showGlobalLoader(true);
+                        }
                         updateSyncButtonStates();
                         updateCompanySyncHealthMetrics();
                     }

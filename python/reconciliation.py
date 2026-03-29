@@ -279,30 +279,72 @@ class ReconciliationManager:
             return []
     
     def reconcile_entity(self, company_id: int, user_id: int, entity_type: str, 
-                        tally_host: str, tally_port: int, company_name: str = None, books_from: str = None) -> Dict:
-        """Reconcile specific entity type between Tally and Database"""
+                        tally_host: str, tally_port: int, company_name: str = None, books_from: str = None,
+                        tally_cache: list = None, skip_tally: bool = False) -> Dict:
+        """Reconcile specific entity type between Tally and Database
+        
+        Args:
+            tally_cache: Optional list of cached tally records [{masterID, guid, alterID, name}, ...]
+                         from the sync step. If provided, skips Tally fetch.
+            skip_tally: If True and tally_cache is None, skip Tally fetch entirely
+                        (used when sync just completed successfully with no changes).
+        """
         
         logger.info(f"\n{'─'*80}")
         logger.info(f"🔍 Reconciling {entity_type} for company {company_id} ({company_name or 'N/A'})")
         logger.info(f"{'─'*80}")
         
-        # Step 1: Fetch ALL records from Tally (NO FILTER)
-        tdl = self.generate_reconciliation_tdl(entity_type, company_name, books_from)
-        xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
-        
-        if not xml_response:
-            error_msg = f"Failed to fetch {entity_type} from Tally"
-            logger.error(f"❌ {error_msg}")
-            return {
-                'success': False,
+        # If sync just completed successfully and no cache data, skip reconciliation
+        if skip_tally and tally_cache is None:
+            logger.info(f"   ⚡ Skipping Tally fetch — {entity_type} just synced successfully")
+            db_records = self.fetch_db_data(company_id, entity_type)
+            db_count = len(db_records)
+            logger.info(f"   📊 DB has {db_count} records — marking as reconciled")
+            result = {
+                'success': True,
                 'entityType': entity_type,
-                'error': error_msg,
-                'tallyCount': 0,
-                'dbCount': 0
+                'tallyCount': db_count,
+                'dbCount': db_count,
+                'missing': 0,
+                'updated': 0,
+                'synced': 0,
+                'skippedTally': True
             }
+            self.log_reconciliation(company_id, entity_type, result)
+            try:
+                sync_logger = get_sync_logger()
+                sync_logger.log_reconciliation(
+                    company_name=company_name or f'Company {company_id}',
+                    entity_type=entity_type,
+                    tally_count=db_count,
+                    db_count=db_count,
+                    missing=0, updated=0, synced=0, unchanged=db_count,
+                    status='success (skip-tally)',
+                )
+            except Exception:
+                pass
+            return result
         
-        # Parse Tally records
-        tally_records = self.parse_xml_response(xml_response, entity_type)
+        # Step 1: Get Tally records — use cache if available, otherwise fetch from Tally
+        if tally_cache is not None:
+            tally_records = tally_cache
+            logger.info(f"   📦 Using cached Tally data ({len(tally_records)} records) — skipping Tally fetch")
+        else:
+            tdl = self.generate_reconciliation_tdl(entity_type, company_name, books_from)
+            xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
+            
+            if not xml_response:
+                error_msg = f"Failed to fetch {entity_type} from Tally"
+                logger.error(f"❌ {error_msg}")
+                return {
+                    'success': False,
+                    'entityType': entity_type,
+                    'error': error_msg,
+                    'tallyCount': 0,
+                    'dbCount': 0
+                }
+            
+            tally_records = self.parse_xml_response(xml_response, entity_type)
         
         # Step 2: Fetch ALL records from Database
         db_records = self.fetch_db_data(company_id, entity_type)
@@ -823,17 +865,50 @@ class ReconciliationManager:
 
     def reconcile_vouchers(self, company_id: int, user_id: int, company_guid: str,
                            tally_host: str, tally_port: int, company_name: str = None,
-                           from_date: str = None, to_date: str = None) -> Dict:
-        """Reconcile vouchers between Tally and Database using month-wise DataFrame approach.
+                           from_date: str = None, to_date: str = None,
+                           tally_cache: list = None, skip_tally: bool = False,
+                           single_fetch: bool = False) -> Dict:
+        """Reconcile vouchers between Tally and Database.
         
-        Pulls data from Tally month by month (from_date → current date), stores each
-        month's records in a pandas DataFrame, then reconciles against the full DB dataset.
-        Generates a detailed month-wise report in voucher_reconciliation.log.
+        When single_fetch=True (default for post-sync reconciliation):
+            Uses ONE Tally HTTP call for the full date range instead of 12 monthly calls.
+            Much faster (~5s vs ~90s). Suitable when called after sync completes.
+        
+        When single_fetch=False (legacy/full reconciliation):
+            Pulls data from Tally month by month, generates detailed month-wise report.
+        
+        Args:
+            tally_cache: Optional list of cached voucher identity records from sync step.
+                         If provided, skips all Tally HTTP fetches.
+            skip_tally: If True and tally_cache is None, skip Tally fetch entirely
+                        (used when sync just completed successfully with no changes).
         """
         import calendar
         import time as _time
         from datetime import datetime, timedelta
         import pandas as pd
+
+        # If sync just completed successfully and no cache data, skip reconciliation
+        if skip_tally and tally_cache is None:
+            logger.info(f"\n{'='*80}")
+            logger.info(f"⚡ VOUCHER RECONCILIATION SKIPPED — vouchers just synced successfully")
+            logger.info(f"   Company: {company_name or 'N/A'} (ID: {company_id})")
+            logger.info(f"{'='*80}")
+            db_records = self.fetch_db_vouchers(company_id)
+            db_count = len(db_records)
+            logger.info(f"   📊 DB has {db_count} vouchers — marking as reconciled")
+            result = {
+                'success': True,
+                'entityType': 'Voucher',
+                'tallyCount': db_count,
+                'dbCount': db_count,
+                'missing': 0,
+                'updated': 0,
+                'synced': 0,
+                'skippedTally': True
+            }
+            self.log_reconciliation(company_id, 'Voucher', result)
+            return result
 
         logger.info(f"\n{'='*80}")
         logger.info(f"🔍 VOUCHER RECONCILIATION STARTED (Month-Wise DataFrame)")
@@ -867,6 +942,169 @@ class ReconciliationManager:
         except Exception:
             pass
 
+        # ── SINGLE-FETCH fast path ───────────────────────────────────────
+        # One Tally HTTP call for the full date range instead of 12 monthly calls
+        # Uses lightweight TDL (no COMPUTE sub-table counts) to avoid Tally timeout
+        if single_fetch:
+            # ── IN-MEMORY CACHE path (no Tally call at all) ──────────────
+            # When tally_cache is provided (from sync step), use it directly
+            if tally_cache and len(tally_cache) > 0:
+                logger.info(f"   📦 Using in-memory cache — {len(tally_cache)} records (NO Tally fetch)")
+                tally_records = []
+                for rec in tally_cache:
+                    g = rec.get('guid', '')
+                    if g:
+                        tally_records.append({
+                            'guid': g,
+                            'masterID': rec.get('masterID', ''),
+                            'alterID': rec.get('alterID', 0),
+                            'name': rec.get('name', g)
+                        })
+                tally_count = len(tally_records)
+                logger.info(f"   📊 Cache: {tally_count} vouchers (from sync)")
+            else:
+                # ── TALLY FETCH fallback ─────────────────────────────────────
+                logger.info(f"   ⚡ Single-fetch mode — 1 Tally call for full date range")
+                tally_from = start_dt.strftime("%d-%b-%Y")
+                tally_to = end_dt.strftime("%d-%b-%Y")
+
+                # Lightweight TDL — identity fields only, NO COMPUTE (sub-table counts kill performance)
+                company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
+                lightweight_tdl = f"""<ENVELOPE>
+    <HEADER>
+        <VERSION>1</VERSION>
+        <TALLYREQUEST>Export</TALLYREQUEST>
+        <TYPE>Collection</TYPE>
+        <ID>Collection of Vouchers</ID>
+    </HEADER>
+    <BODY>
+        <DESC>
+            <STATICVARIABLES>
+                <SVFROMDATE TYPE="Date">{tally_from}</SVFROMDATE>
+                <SVTODATE TYPE="Date">{tally_to}</SVTODATE>
+                <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>{company_var}
+            </STATICVARIABLES>
+            <TDL>
+                <TDLMESSAGE>
+                    <COLLECTION NAME="Collection of Vouchers" ISMODIFY="No">
+                        <TYPE>Voucher</TYPE>
+                        <FETCH>GUID, MASTERID, ALTERID, VOUCHERNUMBER, VOUCHERTYPENAME, DATE</FETCH>
+                    </COLLECTION>
+                </TDLMESSAGE>
+            </TDL>
+        </DESC>
+    </BODY>
+</ENVELOPE>"""
+
+                xml_response = self.fetch_from_tally(lightweight_tdl, tally_host, tally_port)
+
+                if not xml_response:
+                    error_msg = "Single-fetch: failed to fetch vouchers from Tally"
+                    logger.error(f"   ❌ {error_msg}")
+                    result = {'success': False, 'entityType': 'Voucher', 'error': error_msg,
+                              'tallyCount': 0, 'dbCount': 0, 'missing': 0, 'updated': 0, 'synced': 0}
+                    self.log_reconciliation(company_id, 'Voucher', result)
+                    return result
+
+                tally_records = self.parse_voucher_reconciliation_xml(xml_response)
+                tally_count = len(tally_records)
+                logger.info(f"   📊 Tally: {tally_count} vouchers (single fetch)")
+
+            # Fetch DB vouchers
+            db_records = self.fetch_db_vouchers(company_id)
+            db_count = len(db_records) if db_records else 0
+            logger.info(f"   📊 DB: {db_count} vouchers")
+
+            # Build lookup maps
+            tally_guid_map = {}
+            for rec in tally_records:
+                g = rec.get('guid', '')
+                if g:
+                    tally_guid_map[g] = rec
+
+            db_guid_map = {}
+            if db_records:
+                for rec in db_records:
+                    g = rec.get('guid', rec.get('GUID', ''))
+                    if g:
+                        db_guid_map[g] = rec
+
+            # Find missing and stale
+            missing_in_db = []
+            needs_update = []
+            for guid, trec in tally_guid_map.items():
+                if guid not in db_guid_map:
+                    missing_in_db.append({
+                        'guid': guid,
+                        'masterID': trec.get('masterID', ''),
+                        'name': trec.get('name', guid),
+                        'alterID': trec.get('alterID', 0)
+                    })
+                else:
+                    db_alter = db_guid_map[guid].get('alterId', db_guid_map[guid].get('alterID', 0)) or 0
+                    if isinstance(db_alter, str):
+                        try:
+                            db_alter = int(db_alter)
+                        except (ValueError, TypeError):
+                            db_alter = 0
+                    tally_alter = trec.get('alterID', 0)
+                    if tally_alter > db_alter:
+                        needs_update.append({
+                            'guid': guid,
+                            'masterID': trec.get('masterID', ''),
+                            'name': trec.get('name', guid),
+                            'tallyAlterID': tally_alter,
+                            'dbAlterID': db_alter
+                        })
+
+            extra_in_db = [{'guid': g, 'name': db_guid_map[g].get('voucherNumber', g)}
+                           for g in db_guid_map if g not in tally_guid_map]
+
+            total_to_sync = len(missing_in_db) + len(needs_update)
+            logger.info(f"   📝 Missing: {len(missing_in_db)} | Stale: {len(needs_update)} | Extra: {len(extra_in_db)}")
+
+            # Re-sync missing/stale vouchers
+            synced_count = 0
+            if total_to_sync > 0:
+                synced_count = self._trigger_voucher_resync(
+                    company_id, user_id, company_guid,
+                    tally_host, tally_port, company_name,
+                    missing_in_db, needs_update,
+                    from_date, to_date
+                )
+
+            reconcile_duration = _time.time() - reconcile_start
+            logger.info(f"   ✅ Single-fetch reconciliation complete in {reconcile_duration:.1f}s")
+            logger.info(f"      Synced: {synced_count} | Missing: {len(missing_in_db)} | Stale: {len(needs_update)}")
+
+            result = {
+                'success': True,
+                'entityType': 'Voucher',
+                'tallyCount': tally_count,
+                'dbCount': db_count,
+                'missing': len(missing_in_db),
+                'updated': len(needs_update),
+                'extra': len(extra_in_db),
+                'synced': synced_count,
+                'singleFetch': True
+            }
+            self.log_reconciliation(company_id, 'Voucher', result)
+
+            try:
+                sync_logger = get_sync_logger()
+                sync_logger.log_reconciliation(
+                    company_name=company_name or f'Company {company_id}',
+                    entity_type='Voucher',
+                    tally_count=tally_count, db_count=db_count,
+                    missing=len(missing_in_db), updated=len(needs_update),
+                    synced=synced_count,
+                    unchanged=max(0, tally_count - len(missing_in_db) - len(needs_update)),
+                    status='success')
+            except Exception:
+                pass
+
+            return result
+
         # ── Setup dedicated voucher reconciliation log file ──────────────
         recon_log_path = os.path.join(LOG_DIR, 'voucher_reconciliation.log')
         def write_recon_log(line: str):
@@ -895,43 +1133,53 @@ class ReconciliationManager:
 
         logger.info(f"   📅 {len(month_chunks)} month(s) to fetch from Tally")
 
-        # ── Step 2: Fetch Tally vouchers month by month into DataFrame ───
+        # ── Step 2: Get Tally voucher data — use cache if available ───
         all_tally_rows = []
         month_fetch_summary = []
         fetch_success = True
 
-        for chunk_start, chunk_end in month_chunks:
-            month_label = chunk_start.strftime('%b-%Y')
-            chunk_from_tally = chunk_start.strftime("%Y%m%d")
-            chunk_to_tally = chunk_end.strftime("%Y%m%d")
+        if tally_cache is not None:
+            # Use cached data from sync step — skip all Tally HTTP fetches
+            logger.info(f"   📦 Using cached Tally data ({len(tally_cache)} records) — skipping {len(month_chunks)} monthly Tally fetches")
+            all_tally_rows = list(tally_cache)
+            for rec in all_tally_rows:
+                if 'month' not in rec:
+                    rec['month'] = 'Cached'
+            month_fetch_summary = [{'month': 'Cached', 'count': len(all_tally_rows), 'status': 'CACHED'}]
+        else:
+            # Fetch from Tally month by month (original flow)
+            for chunk_start, chunk_end in month_chunks:
+                month_label = chunk_start.strftime('%b-%Y')
+                chunk_from_tally = chunk_start.strftime("%Y%m%d")
+                chunk_to_tally = chunk_end.strftime("%Y%m%d")
 
-            logger.info(f"   📅 [{month_label}] Fetching Tally vouchers {chunk_from_tally} → {chunk_to_tally}")
-            tdl = self.generate_voucher_reconciliation_tdl(company_name, chunk_from_tally, chunk_to_tally)
-            xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
+                logger.info(f"   📅 [{month_label}] Fetching Tally vouchers {chunk_from_tally} → {chunk_to_tally}")
+                tdl = self.generate_voucher_reconciliation_tdl(company_name, chunk_from_tally, chunk_to_tally)
+                xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
 
-            if xml_response:
-                month_records = self.parse_voucher_reconciliation_xml(xml_response)
-                for rec in month_records:
-                    rec['month'] = month_label
-                all_tally_rows.extend(month_records)
-                month_fetch_summary.append({'month': month_label, 'count': len(month_records), 'status': 'OK'})
-                logger.info(f"   📅 [{month_label}] Fetched {len(month_records)} vouchers")
-                try:
-                    get_sync_logger().log_voucher_reconcile_fetch(
-                        chunk_from=chunk_from_tally, chunk_to=chunk_to_tally, count=len(month_records))
-                except Exception:
-                    pass
-            else:
-                logger.error(f"   ❌ [{month_label}] Failed to fetch vouchers from Tally")
-                month_fetch_summary.append({'month': month_label, 'count': 0, 'status': 'FAILED'})
-                try:
-                    get_sync_logger().log_voucher_reconcile_fetch(
-                        chunk_from=chunk_from_tally, chunk_to=chunk_to_tally,
-                        count=0, error='Failed to fetch from Tally')
-                except Exception:
-                    pass
-                fetch_success = False
-                break
+                if xml_response:
+                    month_records = self.parse_voucher_reconciliation_xml(xml_response)
+                    for rec in month_records:
+                        rec['month'] = month_label
+                    all_tally_rows.extend(month_records)
+                    month_fetch_summary.append({'month': month_label, 'count': len(month_records), 'status': 'OK'})
+                    logger.info(f"   📅 [{month_label}] Fetched {len(month_records)} vouchers")
+                    try:
+                        get_sync_logger().log_voucher_reconcile_fetch(
+                            chunk_from=chunk_from_tally, chunk_to=chunk_to_tally, count=len(month_records))
+                    except Exception:
+                        pass
+                else:
+                    logger.error(f"   ❌ [{month_label}] Failed to fetch vouchers from Tally")
+                    month_fetch_summary.append({'month': month_label, 'count': 0, 'status': 'FAILED'})
+                    try:
+                        get_sync_logger().log_voucher_reconcile_fetch(
+                            chunk_from=chunk_from_tally, chunk_to=chunk_to_tally,
+                            count=0, error='Failed to fetch from Tally')
+                    except Exception:
+                        pass
+                    fetch_success = False
+                    break
 
         if not fetch_success and not all_tally_rows:
             error_msg = "Failed to fetch vouchers from Tally"

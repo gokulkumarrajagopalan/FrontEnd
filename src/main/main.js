@@ -58,6 +58,9 @@ app.commandLine.appendSwitch('no-default-browser-check');
 app.commandLine.appendSwitch('disable-sync');
 app.commandLine.appendSwitch('disable-extensions');
 
+// Set app identity for Windows notifications (shows "Talliffy" instead of "electron.app.Electron")
+app.setAppUserModelId('Talliffy');
+
 if (!isDev) {
   app.commandLine.appendSwitch('disable-dev-tools');
 }
@@ -288,12 +291,17 @@ ipcMain.handle("get-sync-status", async () => {
 ipcMain.handle("show-system-notification", async (event, { title, body, urgency }) => {
   try {
     if (Notification.isSupported()) {
+      const _escXml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const _title = _escXml(title || 'Talliffy');
+      const _body = _escXml(body || '');
+      const _iconPath = path.join(__dirname, 'assets', 'brand', 'talliffy-icon.png').replace(/\\/g, '/');
       const notification = new Notification({
         title: title || 'Talliffy',
         body: body || '',
-        icon: path.join(__dirname, '../assets/brand/talliffy-icon.png'),
-        urgency: urgency || 'normal', // 'normal', 'critical', 'low'
-        silent: false
+        icon: path.join(__dirname, 'assets', 'brand', 'talliffy-icon.png'),
+        urgency: urgency || 'normal',
+        silent: false,
+        toastXml: `<toast><visual><binding template="ToastGeneric"><text>${_title}</text><text>${_body}</text><image placement="appLogoOverride" src="${_iconPath}" hint-crop="circle"/></binding></visual></toast>`
       });
       notification.show();
 
@@ -413,7 +421,8 @@ async function runWorkerCommand(mode, params = {}) {
       fromDate: '--from-date',
       toDate: '--to-date',
       lastAlterID: '--last-voucher-alter-id',
-      isFirstSync: '--is-first-sync'
+      isFirstSync: '--is-first-sync',
+      syncCacheFile: '--sync-cache-file'
     };
 
     for (const [key, flag] of Object.entries(argMapping)) {
@@ -718,21 +727,39 @@ if (isDev) console.log("✅ 'incremental-sync' IPC handler registered successful
 // Reconciliation IPC handler
 ipcMain.handle("reconcile-data", async (event, config) => {
   if (isDev) console.log('📡 Received reconcile-data IPC call');
+  let syncCacheFile = null;
   try {
-    const { companyId, entityType } = config;
+    const { companyId, entityType, voucherCache, ...restConfig } = config;
 
     if (isDev) {
       console.log(`\n${'='.repeat(60)}`);
       console.log(`🔍 RECONCILIATION STARTED: ${entityType.toUpperCase()}`);
       console.log(`   Company: ${companyId}`);
+      if (voucherCache) console.log(`   📦 Using in-memory voucher cache (${voucherCache.length} records)`);
       console.log(`${'='.repeat(60)}`);
     }
 
-    const result = await runWorkerCommand('reconcile', config);
+    const reconConfig = { ...restConfig, companyId, entityType };
+
+    // Write voucher cache to temp file for Python worker
+    if (voucherCache && Array.isArray(voucherCache) && voucherCache.length > 0) {
+      const os = require('os');
+      syncCacheFile = path.join(os.tmpdir(), `talliffy_voucher_cache_${companyId}_${Date.now()}.json`);
+      fs.writeFileSync(syncCacheFile, JSON.stringify(voucherCache), 'utf8');
+      reconConfig.syncCacheFile = syncCacheFile;
+      if (isDev) console.log(`   💾 Wrote ${voucherCache.length} cached records to ${syncCacheFile}`);
+    }
+
+    const result = await runWorkerCommand('reconcile', reconConfig);
     return result;
   } catch (error) {
     if (isDev) console.error(`❌ RECONCILIATION ERROR: ${error.message}`);
     return { success: false, error: error.message };
+  } finally {
+    // Clean up temp cache file
+    if (syncCacheFile) {
+      try { fs.unlinkSync(syncCacheFile); } catch (_) {}
+    }
   }
 });
 if (isDev) console.log("✅ 'reconcile-data' IPC handler registered successfully");

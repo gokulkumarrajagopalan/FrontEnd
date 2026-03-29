@@ -120,8 +120,7 @@ class SyncStateManager {
 
         console.log(`✅ Sync Completed - Type: ${this.syncType}, Duration: ${duration}ms, Success: ${success}`);
 
-        this.notifyListeners('sync-ended', syncRecord);
-
+        // Reset state BEFORE firing event so listeners see correct isSyncInProgress() = false
         this.syncInProgress = false;
         this.syncType = null;
         this.syncStartTime = null;
@@ -129,6 +128,8 @@ class SyncStateManager {
         this.totalCount = 0;
         this.currentSyncCompany = null;
         this.entityProgress = null;
+
+        this.notifyListeners('sync-ended', syncRecord);
 
         this.hideSyncNotification();
 

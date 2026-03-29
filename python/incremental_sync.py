@@ -1082,7 +1082,7 @@ class IncrementalSyncManager:
             if is_first_sync:
                 self.reconcile_records(company_id, entity_type, endpoint)
             
-            return {'success': True, 'message': 'No new records', 'count': 0, 'lastAlterID': last_alter_id}
+            return {'success': True, 'message': 'No new records', 'count': 0, 'lastAlterID': last_alter_id, 'tallyRecords': []}
         
         # Prepare for database
         prepared_records = self.prepare_for_database(records, company_id, user_id, entity_type)
@@ -1138,11 +1138,232 @@ class IncrementalSyncManager:
         except Exception as log_err:
             logger.debug(f"Sync logger write failed: {log_err}")
         
+        # Build tallyRecords cache for reconciliation (identity + prepared records)
+        tally_records_cache = []
+        for rec in records:
+            tally_records_cache.append({
+                'masterID': rec.get('masterID', ''),
+                'guid': rec.get('guid', ''),
+                'alterID': rec.get('alterID', 0),
+                'name': rec.get('name', '')
+            })
+        
         return {
             'success': True,
             'message': f'Successfully synced {total_saved} {entity_type}s',
             'count': total_saved,
-            'lastAlterID': max_alter_id
+            'lastAlterID': max_alter_id,
+            'tallyRecords': tally_records_cache
+        }
+
+    # ─── DB Fetch for Reconciliation ─────────────────────────────────
+
+    def _fetch_db_records(self, company_id: int, entity_type: str) -> List[Dict]:
+        """Fetch ALL records from database for a specific entity type and company"""
+        endpoint_map = {
+            'Group': 'groups', 'Currency': 'currencies', 'Unit': 'units',
+            'StockGroup': 'stock-groups', 'StockCategory': 'stock-categories',
+            'CostCategory': 'cost-categories', 'CostCenter': 'cost-centers',
+            'Godown': 'godowns', 'VoucherType': 'voucher-types',
+            'TaxUnit': 'tax-units', 'Ledger': 'ledgers', 'StockItem': 'stock-items'
+        }
+        endpoint_path = endpoint_map.get(entity_type)
+        if not endpoint_path:
+            logger.error(f"Unknown entity type for DB fetch: {entity_type}")
+            return []
+        url = f"{self.backend_url}/{endpoint_path}/company/{company_id}"
+        try:
+            response = requests.get(url, headers=self.headers, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    return data
+                elif isinstance(data, dict):
+                    return data.get('data', [])
+            else:
+                logger.error(f"❌ DB fetch failed: HTTP {response.status_code}")
+            return []
+        except Exception as e:
+            logger.error(f"❌ Error fetching DB records: {e}")
+            return []
+
+    # ─── Combined Sync + Reconcile (Single Tally Fetch) ──────────────
+
+    def sync_and_reconcile(self, company_id: int, user_id: int, tally_host: str, tally_port: int,
+                           entity_type: str = 'Ledger', company_name: str = None,
+                           books_from: str = None) -> Dict:
+        """Execute sync + reconciliation with a SINGLE Tally HTTP call.
+        
+        1. Fetch ALL records from Tally (no AlterID filter) — ONE HTTP call
+        2. Records with alterID > lastAlterID → sync (insert/update) to DB
+        3. Compare ALL Tally records with ALL DB records → find missing/stale
+        4. Auto-sync missing/stale records (data already in memory, no re-fetch)
+        5. Return combined sync + reconciliation result
+        """
+        endpoint_map = {
+            'Group': '/groups', 'Currency': '/currencies', 'Unit': '/units',
+            'StockGroup': '/stock-groups', 'StockCategory': '/stock-categories',
+            'CostCategory': '/cost-categories', 'CostCenter': '/cost-centers',
+            'Godown': '/godowns', 'VoucherType': '/voucher-types',
+            'TaxUnit': '/tax-units', 'Ledger': '/ledgers', 'StockItem': '/stock-items',
+        }
+        endpoint = endpoint_map.get(entity_type, '/ledgers')
+
+        logger.info(f"\n{'─'*80}")
+        logger.info(f"🔄 Sync + Reconcile: {entity_type} for company {company_id} ({company_name or 'N/A'})")
+        logger.info(f"{'─'*80}")
+
+        # Pre-flight: verify company is loaded in Tally
+        if company_name:
+            is_loaded, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
+            if not is_loaded:
+                error_msg = (f"Company '{company_name}' is not loaded in Tally. "
+                             f"Loaded: {loaded_companies}. Aborting to prevent data mismatch.")
+                logger.error(error_msg)
+                return {'success': False, 'message': error_msg, 'count': 0}
+
+        # 1. Get lastAlterID from backend
+        last_alter_id = self.get_last_alter_id(company_id, entity_type)
+
+        # 2. Fetch ALL records from Tally (no AlterID filter → pass 0)
+        tdl = self.generate_incremental_tdl(0, entity_type, company_name, books_from)
+        xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
+        if not xml_response:
+            logger.error(f"❌ Failed to fetch {entity_type} from Tally")
+            return {'success': False, 'message': f'Failed to fetch {entity_type} from Tally', 'count': 0}
+
+        # 3. Parse ALL records
+        all_records = self.parse_xml_response(xml_response, entity_type)
+        tally_count = len(all_records)
+        logger.info(f"   📊 Tally: {tally_count} total {entity_type} records")
+
+        if tally_count == 0:
+            return {
+                'success': True, 'message': f'No {entity_type} records in Tally', 'count': 0,
+                'lastAlterID': last_alter_id,
+                'reconciliation': {
+                    'tallyCount': 0, 'dbCount': 0, 'missing': 0, 'updated': 0, 'synced': 0
+                }
+            }
+
+        # 4. Identify NEW records (alterID > lastAlterID) → sync to DB
+        new_records = [r for r in all_records if r.get('alterID', 0) > last_alter_id]
+        total_saved = 0
+        new_max_alter = last_alter_id
+
+        if new_records:
+            logger.info(f"   🔄 {len(new_records)} new/updated records (AlterID > {last_alter_id})")
+            prepared = self.prepare_for_database(new_records, company_id, user_id, entity_type)
+            for i in range(0, len(prepared), self.BATCH_SIZE):
+                batch = prepared[i:i + self.BATCH_SIZE]
+                success, count = self.save_batch_to_database(batch, company_id, endpoint)
+                if success:
+                    total_saved += count
+                else:
+                    error_detail = getattr(self, '_last_batch_error', '') or 'Unknown error'
+                    logger.error(f"❌ Batch failed during sync: {error_detail}")
+                if i + self.BATCH_SIZE < len(prepared):
+                    time.sleep(self.BATCH_DELAY)
+            new_max_alter = max(r['alterID'] for r in new_records)
+            self.save_last_alter_id(company_id, new_max_alter, entity_type)
+            logger.info(f"   ✅ Synced {total_saved} new records | AlterID: {new_max_alter}")
+        else:
+            logger.info(f"   ✅ No new records (AlterID > {last_alter_id})")
+
+        # 5. Reconcile: compare ALL Tally records with DB
+        db_records = self._fetch_db_records(company_id, entity_type)
+        db_count = len(db_records)
+        logger.info(f"   📊 DB: {db_count} records")
+
+        # Build lookups by masterID_guid
+        tally_lookup = {}
+        for rec in all_records:
+            mid = rec.get('masterID', '')
+            guid = rec.get('guid', '')
+            if mid and guid:
+                tally_lookup[f"{mid}_{guid}"] = rec
+
+        db_lookup = {}
+        for rec in db_records:
+            mid = str(rec.get('masterId') or rec.get('masterID') or '')
+            guid = str(rec.get('guid') or '')
+            if mid and guid:
+                db_lookup[f"{mid}_{guid}"] = rec
+
+        # Find missing (in Tally, not in DB) and stale (DB alterID < Tally alterID)
+        missing_records = []
+        stale_records = []
+        for key, tally_rec in tally_lookup.items():
+            if key in db_lookup:
+                db_rec = db_lookup[key]
+                db_alter = db_rec.get('alterId') or db_rec.get('alterID') or 0
+                if isinstance(db_alter, str):
+                    try:
+                        db_alter = int(db_alter)
+                    except (ValueError, TypeError):
+                        db_alter = 0
+                if tally_rec.get('alterID', 0) > db_alter:
+                    stale_records.append(tally_rec)
+            else:
+                missing_records.append(tally_rec)
+
+        # Auto-sync missing/stale (data already in memory — NO additional Tally fetch!)
+        recon_synced = 0
+        all_to_sync = missing_records + stale_records
+        if all_to_sync:
+            logger.info(f"   🔧 Reconciliation: {len(missing_records)} missing, {len(stale_records)} stale → auto-syncing")
+            prepared = self.prepare_for_database(all_to_sync, company_id, user_id, entity_type)
+            for i in range(0, len(prepared), self.BATCH_SIZE):
+                batch = prepared[i:i + self.BATCH_SIZE]
+                success, count = self.save_batch_to_database(batch, company_id, endpoint)
+                if success:
+                    recon_synced += count
+                if i + self.BATCH_SIZE < len(prepared):
+                    time.sleep(self.BATCH_DELAY)
+            logger.info(f"   ✅ Auto-synced {recon_synced} reconciliation records")
+        else:
+            logger.info(f"   ✅ Reconciliation: all records in sync")
+
+        # Write to structured logs
+        try:
+            sync_logger = get_sync_logger()
+            sync_logger.log_incremental(
+                company_name=company_name or f'Company {company_id}',
+                entity_type=entity_type,
+                synced=total_saved,
+                updated=0,
+                unchanged=max(0, tally_count - len(new_records)),
+                total_tally=tally_count,
+                total_db=db_count,
+                alter_id=new_max_alter,
+                status='success',
+            )
+            sync_logger.log_reconciliation(
+                company_name=company_name or f'Company {company_id}',
+                entity_type=entity_type,
+                tally_count=tally_count,
+                db_count=db_count,
+                missing=len(missing_records),
+                updated=len(stale_records),
+                synced=recon_synced,
+                unchanged=max(0, tally_count - len(missing_records) - len(stale_records)),
+                status='success',
+            )
+        except Exception as log_err:
+            logger.debug(f"Sync logger write failed: {log_err}")
+
+        return {
+            'success': True,
+            'message': f'Synced {total_saved}, reconciled {recon_synced} {entity_type}(s)',
+            'count': total_saved,
+            'lastAlterID': new_max_alter if new_records else last_alter_id,
+            'reconciliation': {
+                'tallyCount': tally_count,
+                'dbCount': db_count,
+                'missing': len(missing_records),
+                'updated': len(stale_records),
+                'synced': recon_synced
+            }
         }
 
 

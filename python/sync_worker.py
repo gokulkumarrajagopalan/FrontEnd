@@ -261,18 +261,14 @@ def run_incremental_sync(args):
     try:
         manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
         
-        # If max_alter_id is not provided (0), usage depends on logic inside sync_incremental
-        # It will fetch from backend if 0/None
-        
-        result = manager.sync_incremental(
+        # Use sync_and_reconcile: fetches ALL from Tally in 1 call,
+        # syncs new records + reconciles against DB (no separate reconciliation needed)
+        result = manager.sync_and_reconcile(
             company_id=int(args.company_id),
             user_id=args.user_id,
             tally_host=args.host,
             tally_port=args.port,
             entity_type=args.entity_type,
-            # endpoint map logic is inside manager or we can pass default
-            # simplified: let manager handle defaults based on entity_type
-            last_alter_id=args.max_alter_id if args.max_alter_id > 0 else None,
             company_name=args.company_name
         )
         
@@ -289,127 +285,64 @@ def run_incremental_sync(args):
         print(json.dumps({'success': False, 'message': str(e), 'count': 0}))
 
 def run_reconciliation(args):
+    """Run reconciliation. Master entities are already reconciled inline during sync.
+    This function now only handles voucher reconciliation (single Tally identity fetch)."""
     try:
         manager = ReconciliationManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
-        
-        # Create sync manager for updating company status
         sync_manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
-        
-        def run_voucher_reconciliation_script() -> dict:
-            # When running as frozen EXE, always use in-process (no .py scripts available)
-            if getattr(sys, 'frozen', False):
-                logger.info('🧾 Running voucher reconciliation in-process (frozen EXE mode)')
-                return manager.reconcile_vouchers(
-                    company_id=int(args.company_id),
-                    user_id=args.user_id,
-                    company_guid=args.company_guid or '',
-                    tally_host=args.host,
-                    tally_port=args.port,
-                    company_name=args.company_name,
-                    from_date=args.from_date,
-                    to_date=args.to_date
-                )
 
-            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'voucher_reconciliation.py')
-            if not os.path.exists(script_path):
-                logger.warning('voucher_reconciliation.py not found, using in-process fallback')
-                return manager.reconcile_vouchers(
-                    company_id=int(args.company_id),
-                    user_id=args.user_id,
-                    company_guid=args.company_guid or '',
-                    tally_host=args.host,
-                    tally_port=args.port,
-                    company_name=args.company_name,
-                    from_date=args.from_date,
-                    to_date=args.to_date
-                )
-
-            cmd = [
-                sys.executable,
-                script_path,
-                '--company-id', str(args.company_id),
-                '--user-id', str(args.user_id),
-                '--backend-url', str(args.backend_url),
-                '--auth-token', str(args.auth_token),
-                '--device-token', str(args.device_token),
-                '--host', str(args.host),
-                '--port', str(args.port),
-                '--company-name', str(args.company_name or ''),
-                '--company-guid', str(args.company_guid or '')
-            ]
-
-            if args.from_date:
-                cmd.extend(['--from-date', str(args.from_date)])
-            if args.to_date:
-                cmd.extend(['--to-date', str(args.to_date)])
-
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
-            if proc.returncode != 0:
-                logger.error(f'Voucher reconciliation script failed: {proc.stderr.strip()}')
-                raise RuntimeError('Voucher reconciliation script failed')
-
+        # Load voucher cache from temp file if provided (avoids re-fetching from Tally)
+        voucher_cache = None
+        cache_file = getattr(args, 'sync_cache_file', None)
+        if cache_file and os.path.isfile(cache_file):
             try:
-                return json.loads(proc.stdout.strip() or '{}')
-            except Exception:
-                logger.error(f'Invalid JSON from voucher reconciliation script: {proc.stdout.strip()}')
-                raise RuntimeError('Voucher reconciliation script returned invalid JSON')
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    voucher_cache = json.load(f)
+                logger.info(f"📦 Loaded voucher cache from file: {len(voucher_cache)} records")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to load voucher cache file: {e}")
+                voucher_cache = None
 
-        if args.entity_type.lower() == 'all':
-            results = []
-
-            # First reconcile all master entities
-            ALL_MASTER_ENTITIES = [
-                'Group', 'Currency', 'Unit', 'StockGroup', 'StockCategory',
-                'CostCategory', 'CostCenter', 'Godown', 'VoucherType',
-                'TaxUnit', 'Ledger', 'StockItem'
-            ]
-            for entity in ALL_MASTER_ENTITIES:
-                res = manager.reconcile_entity(
-                    company_id=int(args.company_id),
-                    user_id=args.user_id,
-                    entity_type=entity,
-                    tally_host=args.host,
-                    tally_port=args.port,
-                    company_name=args.company_name
-                )
-                results.append(res)
-
-            # Then run voucher reconciliation via dedicated script
-            logger.info('🧾 Starting voucher reconciliation via voucher_reconciliation.py...')
-            voucher_res = run_voucher_reconciliation_script()
-            results.append(voucher_res)
+        if args.entity_type.lower() == 'all' or args.entity_type.lower() == 'voucher':
+            # Masters are already reconciled inline during sync_and_reconcile().
+            # Only voucher reconciliation remains — use in-memory cache when available.
+            if voucher_cache:
+                logger.info('🧾 Voucher reconciliation (using in-memory cache from sync)...')
+            else:
+                logger.info('🧾 Voucher reconciliation (single identity fetch from Tally)...')
             
-            total_missing = sum(r.get('missing', 0) for r in results if r.get('success'))
-            total_updated = sum(r.get('updated', 0) for r in results if r.get('success'))
-            total_synced = sum(r.get('synced', 0) for r in results if r.get('success'))
-            
-            # Update company sync status after reconciliation
-            all_success = all(r.get('success', False) for r in results)
+            voucher_result = manager.reconcile_vouchers(
+                company_id=int(args.company_id),
+                user_id=args.user_id,
+                company_guid=args.company_guid or '',
+                tally_host=args.host,
+                tally_port=args.port,
+                company_name=args.company_name,
+                from_date=args.from_date,
+                to_date=args.to_date,
+                tally_cache=voucher_cache,
+                single_fetch=True  # Fallback: 1 Tally call if no cache
+            )
+
             sync_manager.update_company_sync_status(
                 int(args.company_id),
-                'synced' if all_success else 'failed',
-                all_success
+                'synced' if voucher_result.get('success') else 'failed',
+                voucher_result.get('success', False)
             )
-            
-            print(json.dumps({
-                'success': True,
-                'totalMissing': total_missing,
-                'totalUpdated': total_updated,
-                'totalSynced': total_synced,
-                'details': results
-            }))
-        elif args.entity_type.lower() == 'voucher':
-            # Reconcile vouchers only via dedicated script
-            result = run_voucher_reconciliation_script()
-            
-            sync_manager.update_company_sync_status(
-                int(args.company_id),
-                'synced' if result.get('success') else 'failed',
-                result.get('success', False)
-            )
-            
-            print(json.dumps(result))
+
+            if args.entity_type.lower() == 'all':
+                # Wrap as combined result (masters already done, only voucher result here)
+                print(json.dumps({
+                    'success': voucher_result.get('success', False),
+                    'totalMissing': voucher_result.get('missing', 0),
+                    'totalUpdated': voucher_result.get('updated', 0),
+                    'totalSynced': voucher_result.get('synced', 0),
+                    'details': [voucher_result]
+                }))
+            else:
+                print(json.dumps(voucher_result))
         else:
+            # Single master entity reconciliation (standalone, not called during normal sync)
             result = manager.reconcile_entity(
                 company_id=int(args.company_id),
                 user_id=args.user_id,
@@ -419,7 +352,6 @@ def run_reconciliation(args):
                 company_name=args.company_name
             )
             
-            # Update company sync status after reconciliation
             sync_manager.update_company_sync_status(
                 int(args.company_id),
                 'synced' if result.get('success') else 'failed',
@@ -739,6 +671,7 @@ if __name__ == '__main__':
     parser.add_argument('--to-date', help='To date (e.g., 31-Mar-2025)')
     parser.add_argument('--last-voucher-alter-id', type=int, help='Last voucher alter ID')
     parser.add_argument('--is-first-sync', action='store_true', help='Is first sync (for fetch-master-data)')
+    parser.add_argument('--sync-cache-file', help='Path to sync cache JSON file (for reconciliation optimization)')
 
     args = parser.parse_args()
     

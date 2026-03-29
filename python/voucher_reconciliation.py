@@ -39,6 +39,24 @@ def run(args):
     logger.info('🧾 Voucher reconciliation script started')
     logger.info(f'🧾 Voucher reconciliation log file: {voucher_recon_log_file}')
 
+    # Load voucher cache from sync cache file if provided
+    voucher_cache = None
+    voucher_just_synced = False
+    cache_file = getattr(args, 'sync_cache_file', None)
+    if cache_file and os.path.isfile(cache_file):
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                sync_cache = json.load(f)
+            voucher_cache = sync_cache.get('Voucher', None)
+            synced_entities = sync_cache.get('_syncedEntities', [])
+            voucher_just_synced = 'Voucher' in synced_entities
+            if voucher_cache:
+                logger.info(f'📦 Loaded voucher cache from {cache_file} ({len(voucher_cache)} records)')
+            elif voucher_just_synced:
+                logger.info(f'⚡ Voucher was just synced successfully — will skip Tally fetch')
+        except Exception as cache_err:
+            logger.warning(f'⚠️ Failed to load voucher cache: {cache_err}')
+
     result = manager.reconcile_vouchers(
         company_id=int(args.company_id),
         user_id=int(args.user_id),
@@ -48,6 +66,8 @@ def run(args):
         company_name=args.company_name,
         from_date=args.from_date,
         to_date=args.to_date,
+        tally_cache=voucher_cache,
+        skip_tally=voucher_just_synced and voucher_cache is None,
     )
 
     logger.info('🧾 Voucher reconciliation script completed')
@@ -67,6 +87,7 @@ def main():
     parser.add_argument('--company-guid', default='')
     parser.add_argument('--from-date')
     parser.add_argument('--to-date')
+    parser.add_argument('--sync-cache-file', help='Path to sync cache JSON file')
 
     args = parser.parse_args()
 
