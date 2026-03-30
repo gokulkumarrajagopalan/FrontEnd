@@ -1560,6 +1560,15 @@
 
                 // Extract data from response
                 const data = result.data || result;
+                
+                // Enforce Beta Trial Expiration Lock
+                if (data.subscription && data.subscription.isExpired) {
+                    errorMessage.querySelector('span:last-child').textContent = 'Your 30-day beta trial has expired. Please upgrade to continue using Talliffy.';
+                    errorMessage.classList.remove('hidden');
+                    loadingSpinner.classList.add('hidden');
+                    loginBtn.disabled = false;
+                    return;
+                }
 
                 if (!data.token) {
                     throw new Error('No authentication token received');

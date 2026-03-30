@@ -8,6 +8,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { findPython } = require('./python-finder');
+const security = require('./security');
 
 function getWorkerExe() {
     const isDev = !app.isPackaged;
@@ -30,8 +31,21 @@ function getWorkerExe() {
 /**
  * Sync vouchers for a single company
  */
-function syncVouchers(params) {
+function syncVouchers(params, processRegistry) {
     return new Promise((resolve) => {
+        // Validate inputs
+        try {
+            if (params.tallyHost) security.validateHost(params.tallyHost);
+            if (params.tallyPort) security.validatePort(params.tallyPort);
+            if (params.companyId) security.validateCompanyId(params.companyId);
+            if (params.backendUrl) security.validateBackendUrl(params.backendUrl);
+            if (params.fromDate) security.validateDateString(params.fromDate);
+            if (params.toDate) security.validateDateString(params.toDate);
+        } catch (validationError) {
+            resolve({ success: false, message: `Validation error: ${validationError.message}` });
+            return;
+        }
+
         const {
             companyId,
             companyGuid,
@@ -99,6 +113,7 @@ function syncVouchers(params) {
         }
 
         const python = spawn(command, args, { cwd });
+        if (processRegistry) processRegistry.add(python);
         let stdout = '';
         let stderr = '';
 
@@ -115,6 +130,7 @@ function syncVouchers(params) {
         });
 
         python.on('close', (code) => {
+            if (processRegistry) processRegistry.delete(python);
             if (isDev) {
                 console.log(`✅ Voucher sync process exited with code: ${code}`);
                 console.log(`${'='.repeat(60)}\n`);
@@ -162,6 +178,7 @@ function syncVouchers(params) {
         });
 
         python.on('error', (error) => {
+            if (processRegistry) processRegistry.delete(python);
             if (isDev) console.error(`❌ Failed to start voucher sync: ${error.message}`);
             resolve({
                 success: false,
@@ -176,10 +193,10 @@ function syncVouchers(params) {
 /**
  * Register voucher sync IPC handlers
  */
-function registerVoucherSyncHandler() {
+function registerVoucherSyncHandler(processRegistry) {
     ipcMain.handle('sync-vouchers', async (event, params) => {
         try {
-            return await syncVouchers(params);
+            return await syncVouchers(params, processRegistry);
         } catch (error) {
             return {
                 success: false,

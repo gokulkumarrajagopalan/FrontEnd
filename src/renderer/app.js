@@ -91,6 +91,9 @@ class App {
                 console.log('✅ Auth token found - rendering app layout');
                 this.renderAppLayout();
 
+                console.log('🔄 Initializing Auto-Updater...');
+                this.initializeAutoUpdater();
+
                 console.log('🔄 Initializing Tally data on startup...');
                 this.initializeTallyData();
             }
@@ -103,6 +106,116 @@ class App {
             console.error('Stack:', error.stack);
             document.body.innerHTML = `<div style="padding: 20px; color: red;"><h1>Error Loading App</h1><p>${error.message}</p><pre style="font-size: 10px; white-space: pre-wrap;">${error.stack}</pre></div>`;
         }
+    }
+
+    initializeAutoUpdater() {
+        if (!window.electronAPI) {
+            console.warn('⚠️ electronAPI not available for auto-upgrades');
+            return;
+        }
+
+        console.log('📡 Registering auto-updater listeners...');
+
+        // Start update process silently
+        setTimeout(() => {
+            window.electronAPI.send('check-for-updates');
+        }, 5000); // 5 seconds after boot
+
+        const createOrUpdateOverlay = (text, progress = null) => {
+            let overlay = document.getElementById('update-overlay-panel');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'update-overlay-panel';
+                overlay.style.position = 'fixed';
+                overlay.style.bottom = 'var(--ds-space-6)';
+                overlay.style.right = 'var(--ds-space-6)';
+                overlay.style.width = '300px';
+                overlay.style.padding = 'var(--ds-space-4)';
+                overlay.style.background = 'var(--ds-bg-surface)';
+                overlay.style.border = '1px solid var(--ds-border-default)';
+                overlay.style.borderRadius = 'var(--ds-radius-xl)';
+                overlay.style.boxShadow = 'var(--ds-shadow-xl)';
+                overlay.style.zIndex = '9999';
+                overlay.style.display = 'flex';
+                overlay.style.flexDirection = 'column';
+                overlay.style.gap = 'var(--ds-space-2)';
+                overlay.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--ds-border-default); padding-bottom: var(--ds-space-2); margin-bottom: var(--ds-space-2);">
+                        <span style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); font-size: var(--ds-text-sm);">
+                            <i class="fas fa-download" style="color: var(--ds-primary-600); margin-right: var(--ds-space-2);"></i>
+                            App Update
+                        </span>
+                        <button id="close-update-btn" style="background: none; border: none; cursor: pointer; color: var(--ds-text-tertiary);">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="update-msg" style="font-size: var(--ds-text-xs); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2);">Initializing...</div>
+                    <div id="update-progress-container" style="display: none; width: 100%; height: 6px; background: var(--ds-bg-surface-sunken); border-radius: 99px; overflow: hidden;">
+                        <div id="update-progress-bar" style="width: 0%; height: 100%; background: var(--ds-primary-500); transition: width 0.2s;"></div>
+                    </div>
+                    <div id="update-actions" style="display: none; gap: var(--ds-space-2); margin-top: var(--ds-space-2);">
+                        <button id="restart-update-btn" style="flex: 1; padding: var(--ds-space-2); background: var(--ds-primary-600); color: white; border: none; border-radius: var(--ds-radius-lg); font-size: var(--ds-text-xs); font-weight: var(--ds-weight-medium); cursor: pointer;">
+                            Restart & Install
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+
+                document.getElementById('close-update-btn').addEventListener('click', () => {
+                    overlay.style.display = 'none';
+                });
+
+                const restartBtn = document.getElementById('restart-update-btn');
+                restartBtn.addEventListener('click', () => {
+                    restartBtn.innerText = 'Restarting...';
+                    window.electronAPI.send('quit-and-install-update');
+                });
+            }
+
+            overlay.style.display = 'flex';
+            const msgEl = document.getElementById('update-msg');
+            const progressContainer = document.getElementById('update-progress-container');
+            const progressBar = document.getElementById('update-progress-bar');
+            const actions = document.getElementById('update-actions');
+
+            if (msgEl) msgEl.innerText = text;
+
+            if (progress !== null) {
+                progressContainer.style.display = 'block';
+                progressBar.style.width = `${progress.percent}%`;
+            }
+
+            return { overlay, msgEl, progressContainer, actions };
+        };
+
+        window.electronAPI.on('update-available', (info) => {
+            console.log('Update available:', info);
+            createOrUpdateOverlay('Version ' + info.version + ' available. Downloading...');
+            if (window.notificationService) {
+                window.notificationService.success('A new version of Talliffy is downloading in the background.', 'Update Available');
+            }
+        });
+
+        window.electronAPI.on('download-progress', (progressObj) => {
+            const speed = Math.round(progressObj.bytesPerSecond / 1024 / 1024 * 10) / 10;
+            const text = `Downloading... ${Math.floor(progressObj.percent)}% (${speed} MB/s)`;
+            createOrUpdateOverlay(text, progressObj);
+        });
+
+        window.electronAPI.on('update-downloaded', (info) => {
+            console.log('Update downloaded:', info);
+            const ui = createOrUpdateOverlay('Update ready to install. Restart application to apply updates.');
+            ui.progressContainer.style.display = 'none';
+            ui.actions.style.display = 'flex';
+        });
+
+        window.electronAPI.on('update-error', (err) => {
+            console.error('Update error:', err);
+            // We usually don't want to bother the user if an update fails silently, 
+            // but we can log it or show a subtle notification.
+            const overlay = document.getElementById('update-overlay-panel');
+            if (overlay) overlay.style.display = 'none';
+        });
     }
 
     async initializeTallyData() {
@@ -592,6 +705,13 @@ class App {
                             <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-user"></i></span>
                             <span class="ds-nav-text">Profile</span>
                         </a>
+                        <a class="ds-nav-link" id="sidebarNotificationLink" role="link" tabindex="0" aria-label="Notifications" style="cursor: pointer;">
+                            <span class="ds-nav-icon" aria-hidden="true" style="position: relative;">
+                                <i class="fas fa-bell"></i>
+                                <span id="sidebarNotificationBadge" style="display: none; position: absolute; top: -2px; right: -4px; width: 8px; height: 8px; background: var(--ds-danger-500); border-radius: 50%;"></span>
+                            </span>
+                            <span class="ds-nav-text">Notifications</span>
+                        </a>
                         <a class="ds-nav-link" data-route="system-info" role="link" tabindex="0" aria-label="System Info">
                             <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-desktop"></i></span>
                             <span class="ds-nav-text">System Info</span>
@@ -639,6 +759,21 @@ class App {
                     </div>
                 </aside>
                 <main class="flex-1 flex flex-col min-w-0" style="height: 100vh; overflow: hidden;">
+                    <!-- Top Header Area (hidden) -->
+                    <header class="ds-top-header" style="display: none;">
+                        <div style="display: flex; align-items: center; gap: var(--ds-space-4);">
+                            <div id="pageContextTitle" style="display: none;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: var(--ds-space-4);">
+                            <button id="notificationBell" style="display: none;">
+                                <i class="fas fa-bell"></i>
+                                <span id="notificationBadge" style="display: none;"></span>
+                            </button>
+                            <div data-route="profile" style="display: none;">
+                                <span id="headerUsername">User</span>
+                            </div>
+                        </div>
+                    </header>
                     <div id="page-content" class="flex-1 overflow-y-auto" style="height: 100%; min-height: 0; background: var(--ds-bg-app); padding: 0;">Loading...</div>
                 </main>
             `;
@@ -922,28 +1057,44 @@ class App {
     setupNotificationBell() {
         console.log('🔍 Setting up notification bell...');
         const bell = document.getElementById('notificationBell');
+        const sidebarNotif = document.getElementById('sidebarNotificationLink');
         console.log('   Bell element found:', !!bell);
+        console.log('   Sidebar notification link found:', !!sidebarNotif);
+
+        const handleNotificationClick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔔 Notification clicked!');
+            if (window.notificationCenter) {
+                console.log('   ▶ Calling toggle()...');
+                window.notificationCenter.toggle();
+                console.log('   isOpen after toggle:', window.notificationCenter.isOpen);
+            } else {
+                console.error('❌ NotificationCenter not available!');
+                alert('Notification center not loaded yet. Please wait a moment and try again.');
+            }
+        };
 
         if (bell) {
-            bell.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('🔔 Notification bell clicked!');
-                console.log('   notificationCenter exists:', !!window.notificationCenter);
-                console.log('   notificationCenter initialized:', window.notificationCenter?.initialized);
-
-                if (window.notificationCenter) {
-                    console.log('   ▶ Calling toggle()...');
-                    window.notificationCenter.toggle();
-                    console.log('   isOpen after toggle:', window.notificationCenter.isOpen);
-                } else {
-                    console.error('❌ NotificationCenter not available!');
-                    alert('Notification center not loaded yet. Please wait a moment and try again.');
-                }
-            });
+            bell.addEventListener('click', handleNotificationClick);
             console.log('✅ Notification bell click handler attached');
-        } else {
-            console.error('❌ Notification bell element NOT FOUND in DOM');
+        }
+
+        if (sidebarNotif) {
+            sidebarNotif.addEventListener('click', handleNotificationClick);
+            console.log('✅ Sidebar notification click handler attached');
+        }
+
+        // Sync sidebar badge with header badge
+        if (sidebarNotif) {
+            const headerBadge = document.getElementById('notificationBadge');
+            const sidebarBadge = document.getElementById('sidebarNotificationBadge');
+            if (headerBadge && sidebarBadge) {
+                const observer = new MutationObserver(() => {
+                    sidebarBadge.style.display = headerBadge.style.display;
+                });
+                observer.observe(headerBadge, { attributes: true, attributeFilter: ['style'] });
+            }
         }
     }
 

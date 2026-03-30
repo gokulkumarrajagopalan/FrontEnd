@@ -108,7 +108,7 @@ class SyncManager:
                 self.tally_url,
                 data=tdl,
                 headers={'Content-Type': 'application/xml'},
-                timeout=300
+                timeout=30
             )
             
             if response.status_code == 200:

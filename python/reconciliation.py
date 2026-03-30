@@ -156,7 +156,7 @@ class ReconciliationManager:
                 url,
                 data=tdl,
                 headers={'Content-Type': 'application/xml'},
-                timeout=300
+                timeout=30
             )
             
             if response.status_code == 200:
@@ -963,14 +963,27 @@ class ReconciliationManager:
                 tally_count = len(tally_records)
                 logger.info(f"   📊 Cache: {tally_count} vouchers (from sync)")
             else:
-                # ── TALLY FETCH fallback ─────────────────────────────────────
-                logger.info(f"   ⚡ Single-fetch mode — 1 Tally call for full date range")
-                tally_from = start_dt.strftime("%d-%b-%Y")
-                tally_to = end_dt.strftime("%d-%b-%Y")
-
-                # Lightweight TDL — identity fields only, NO COMPUTE (sub-table counts kill performance)
-                company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
-                lightweight_tdl = f"""<ENVELOPE>
+                # ── ADAPTIVE TALLY FETCH fallback ────────────────────────────
+                logger.info(f"   ⚡ Adaptive-fetch mode — fetching vouchers in dynamic date chunks")
+                
+                tally_records = []
+                current_start = start_dt
+                chunk_days = 30  # Start with 30-day chunks
+                success = True
+                
+                while current_start <= end_dt:
+                    current_end = current_start + timedelta(days=chunk_days - 1)
+                    if current_end > end_dt:
+                        current_end = end_dt
+                        
+                    tally_from = current_start.strftime("%d-%b-%Y")
+                    tally_to = current_end.strftime("%d-%b-%Y")
+                    
+                    logger.info(f"      📥 Fetching {tally_from} to {tally_to} ({chunk_days}-day chunk)...")
+                    
+                    company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
+                    # Lightweight TDL — identity fields only, NO COMPUTE (sub-table counts kill performance)
+                    lightweight_tdl = f"""<ENVELOPE>
     <HEADER>
         <VERSION>1</VERSION>
         <TALLYREQUEST>Export</TALLYREQUEST>
@@ -996,19 +1009,59 @@ class ReconciliationManager:
     </BODY>
 </ENVELOPE>"""
 
-                xml_response = self.fetch_from_tally(lightweight_tdl, tally_host, tally_port)
+                    fetch_start = _time.time()
+                    xml_response = self.fetch_from_tally(lightweight_tdl, tally_host, tally_port)
+                    fetch_duration = _time.time() - fetch_start
 
-                if not xml_response:
-                    error_msg = "Single-fetch: failed to fetch vouchers from Tally"
-                    logger.error(f"   ❌ {error_msg}")
+                    if not xml_response:
+                        logger.warning(f"      ⚠️ Fetch failed or timed out for {tally_from} to {tally_to} (took {fetch_duration:.1f}s)")
+                        # If failed, shrink chunk size and retry
+                        if chunk_days > 1:
+                            if chunk_days >= 30: new_chunk = 15
+                            elif chunk_days >= 15: new_chunk = 7
+                            elif chunk_days >= 7: new_chunk = 1
+                            else: new_chunk = 1
+                            
+                            logger.info(f"      📉 Reducing chunk size from {chunk_days} to {new_chunk} days and retrying...")
+                            chunk_days = new_chunk
+                            continue
+                        else:
+                            error_msg = f"Adaptive-fetch: failed persistently on {tally_from} even at 1-day chunks."
+                            logger.error(f"   ❌ {error_msg}")
+                            success = False
+                            break
+                    
+                    # Parse current chunk and add to total 
+                    chunk_records = self.parse_voucher_reconciliation_xml(xml_response)
+                    tally_records.extend(chunk_records)
+                    
+                    logger.info(f"      ✅ Received {len(chunk_records)} identity records in {fetch_duration:.1f}s")
+                    
+                    # Adaptive check logic based on success time boundary
+                    if fetch_duration > 20 and chunk_days > 1:
+                        if chunk_days >= 30: new_chunk = 15
+                        elif chunk_days >= 15: new_chunk = 7
+                        elif chunk_days >= 7: new_chunk = 1
+                        else: new_chunk = 1
+                        
+                        logger.info(f"      ⚠️ Request took > 20s. Reducing next chunk from {chunk_days} to {new_chunk} days to avoid overload.")
+                        chunk_days = new_chunk
+                        
+                    # Advance date pointer for next loop iteration
+                    current_start = current_end + timedelta(days=1)
+                    
+                    # Quick connectivity check between chunks if we've seen failures
+                    if not success:
+                        break
+                
+                if not success:
                     result = {'success': False, 'entityType': 'Voucher', 'error': error_msg,
                               'tallyCount': 0, 'dbCount': 0, 'missing': 0, 'updated': 0, 'synced': 0}
                     self.log_reconciliation(company_id, 'Voucher', result)
                     return result
 
-                tally_records = self.parse_voucher_reconciliation_xml(xml_response)
                 tally_count = len(tally_records)
-                logger.info(f"   📊 Tally: {tally_count} vouchers (single fetch)")
+                logger.info(f"   📊 Tally: {tally_count} vouchers (adaptive chunking)")
 
             # Fetch DB vouchers
             db_records = self.fetch_db_vouchers(company_id)

@@ -10,6 +10,11 @@ class ApiService {
     static MAX_RETRIES = 3;
     static TIMEOUT_MS = 10000;
     static RETRY_DELAY_MS = 1000;
+    static _failureCount = 0;
+    static _circuitOpen = false;
+    static _circuitResetTime = 0;
+    static CIRCUIT_THRESHOLD = 5;
+    static CIRCUIT_RESET_MS = 30000;
 
     /**
      * Execute request with timeout
@@ -29,13 +34,26 @@ class ApiService {
     }
 
     /**
-     * Generic fetch wrapper with retry logic
-     * @param {string} url 
-     * @param {object} options 
-     * @param {number} attempt 
-     * @returns {Promise<object>}
+     * Circuit breaker check
+     */
+    static _checkCircuit() {
+        if (this._circuitOpen) {
+            if (Date.now() > this._circuitResetTime) {
+                this._circuitOpen = false;
+                this._failureCount = 0;
+            } else {
+                throw new Error('Service temporarily unavailable. Please try again shortly.');
+            }
+        }
+    }
+
+    /**
+     * Generic fetch wrapper with retry logic and circuit breaker
      */
     static async request(url, options = {}, attempt = 1) {
+        this._checkCircuit();
+
+        const csrfToken = localStorage.getItem('csrfToken') || sessionStorage.getItem('csrfToken');
         const defaultOptions = {
             headers: authService.getHeaders()
         };
@@ -46,7 +64,8 @@ class ApiService {
             headers: {
                 ...defaultOptions.headers,
                 ...options.headers,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {})
             }
         };
 
@@ -54,30 +73,43 @@ class ApiService {
             const response = await this.executeWithTimeout(url, mergedOptions);
 
             if (response.status === 401) {
-                console.warn('⚠️ 401 Unauthorized - Device token may be invalid');
+                this.clearAuthData();
                 
                 if (window.notificationService) {
                     window.notificationService.warning(
-                        'Your session has ended. You may have logged in from another device.',
+                        'Your session has ended. Please log in again.',
                         'Session Expired',
                         5000
                     );
                 }
                 
-                this.clearAuthData();
                 setTimeout(() => {
                     window.location.hash = '#login';
                     window.location.reload();
                 }, 2000);
                 
-                throw new Error('Unauthorized - Logged in from another device');
+                throw new Error('Session expired');
             }
 
-            const data = await response.json();
+            // Validate content-type before parsing
+            const contentType = response.headers.get('content-type');
+            if (contentType && !contentType.includes('application/json')) {
+                throw new Error(`Unexpected response type: ${contentType}`);
+            }
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                throw new Error('Invalid response from server');
+            }
 
             if (!response.ok) {
                 throw new Error(data.message || `HTTP ${response.status}`);
             }
+
+            // Reset circuit breaker on success
+            this._failureCount = 0;
 
             return { success: true, data };
         } catch (error) {
@@ -85,14 +117,26 @@ class ApiService {
                 error.message = `Request timeout after ${this.TIMEOUT_MS}ms`;
             }
 
+            // Track failures for circuit breaker
+            this._failureCount++;
+            if (this._failureCount >= this.CIRCUIT_THRESHOLD) {
+                this._circuitOpen = true;
+                this._circuitResetTime = Date.now() + this.CIRCUIT_RESET_MS;
+                console.warn('Circuit breaker opened - too many consecutive failures');
+            }
+
             if (attempt < this.MAX_RETRIES && this.isRetryable(error)) {
-                const delay = this.RETRY_DELAY_MS * attempt;
-                console.warn(`🔄 Retry attempt ${attempt}/${this.MAX_RETRIES} for ${url} (waiting ${delay}ms)...`);
+                // Exponential backoff with jitter
+                const delay = Math.min(
+                    this.RETRY_DELAY_MS * Math.pow(2, attempt - 1),
+                    15000
+                ) + Math.random() * 500;
+                console.warn(`Retry ${attempt}/${this.MAX_RETRIES} for ${url} (${Math.round(delay)}ms)...`);
                 await new Promise(r => setTimeout(r, delay));
                 return this.request(url, options, attempt + 1);
             }
 
-            console.error(`API Error (${url}):`, error);
+            console.error(`API Error (${url}):`, error.message);
             return { success: false, error: error.message };
         }
     }

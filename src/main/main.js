@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, Menu, Notification } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -42,6 +43,10 @@ if (isDev) {
 
 let mainWindow;
 let syncWorker = null;
+let currentWorkerProcess = null;
+
+// Global registry of all active child processes (for cancel/kill)
+const activeChildProcesses = new Set();
 
 const appDataPath = path.join(app.getPath('appData'), 'DesktopApp');
 if (!fs.existsSync(appDataPath)) {
@@ -110,15 +115,31 @@ function createWindow() {
   }, 2000);
 
   mainWindow.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
-    if (isDev) console.error("❌ Page failed to load:", errorDescription, errorCode);
+    console.error("Page failed to load:", errorDescription, errorCode);
+    // In production, attempt to reload
+    if (!isDev && mainWindow) {
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.loadFile(path.join(__dirname, "index.html"));
+        }
+      }, 2000);
+    }
   });
 
-  mainWindow.webContents.on("crashed", () => {
-    if (isDev) console.error("❌ Renderer process crashed");
+  mainWindow.webContents.on("crashed", (event, killed) => {
+    console.error("Renderer process crashed, killed:", killed);
+    // Auto-recover in production
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.reload();
+    }
   });
 
   mainWindow.webContents.on("unresponsive", () => {
-    if (isDev) console.warn("⚠️ Renderer process became unresponsive");
+    console.warn("Renderer process became unresponsive");
+  });
+
+  mainWindow.webContents.on("responsive", () => {
+    console.log("Renderer process became responsive again");
   });
 
   // Only open DevTools in development mode
@@ -144,6 +165,64 @@ function createWindow() {
     stopSyncWorker();
   });
 }
+
+// ========== AUTO UPDATER SETUP ==========
+// Configure loggers
+autoUpdater.logger = require('electron-log');
+autoUpdater.logger.transports.file.level = 'info';
+
+// Notify the frontend using IPC
+function sendUpdateStatusToWindow(text, progressObj = null) {
+  if (isDev) {
+    console.log(`[AutoUpdater] ${text}`);
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-message', { text, progressObj });
+  }
+}
+
+autoUpdater.on('checking-for-update', () => {
+  sendUpdateStatusToWindow('Checking for updates...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  sendUpdateStatusToWindow('Update available. Downloading...', null);
+  mainWindow.webContents.send('update-available', info);
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  sendUpdateStatusToWindow('App is up to date.');
+  mainWindow.webContents.send('update-not-available', info);
+});
+
+autoUpdater.on('error', (err) => {
+  sendUpdateStatusToWindow('Error in auto-updater.');
+  mainWindow.webContents.send('update-error', err.toString());
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  // progressObj contains bytesPerSecond, percent, total, transferred
+  sendUpdateStatusToWindow('Downloading update...', progressObj);
+  mainWindow.webContents.send('download-progress', progressObj);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  sendUpdateStatusToWindow('Update downloaded. Ready to install.');
+  mainWindow.webContents.send('update-downloaded', info);
+});
+
+ipcMain.on('check-for-updates', () => {
+  if (isDev) {
+    sendUpdateStatusToWindow('Skipping auto-update check in development mode.');
+    return;
+  }
+  autoUpdater.checkForUpdatesAndNotify();
+});
+
+ipcMain.on('quit-and-install-update', () => {
+  autoUpdater.quitAndInstall();
+});
+
 
 function startSyncWorker(config = {}) {
   if (syncWorker) {
@@ -260,6 +339,27 @@ function stopSyncWorker() {
     if (isDev) console.log("Stopping sync worker");
     syncWorker.kill();
     syncWorker = null;
+  }
+  if (currentWorkerProcess) {
+    if (isDev) console.log("Killing active worker process");
+    currentWorkerProcess.kill('SIGTERM');
+    currentWorkerProcess = null;
+  }
+  // Kill all tracked child processes (voucher-sync, bills-sync, etc.)
+  if (activeChildProcesses.size > 0) {
+    if (isDev) console.log(`Killing ${activeChildProcesses.size} active child process(es)`);
+    for (const child of activeChildProcesses) {
+      try {
+        child.kill('SIGTERM');
+        // Force kill after 3s if SIGTERM doesn't work
+        setTimeout(() => {
+          try { if (child.exitCode === null) child.kill('SIGKILL'); } catch (_) {}
+        }, 3000);
+      } catch (e) {
+        if (isDev) console.error('Error killing child process:', e.message);
+      }
+    }
+    activeChildProcesses.clear();
   }
 }
 
@@ -438,14 +538,22 @@ async function runWorkerCommand(mode, params = {}) {
 
     // console.log(`🚀 Running worker command: ${command} ${finalArgs.join(' ')} (CWD: ${cwd})`);
 
-    const child = spawn(command, finalArgs, {
+    currentWorkerProcess = spawn(command, finalArgs, {
       cwd: cwd
     });
+    const child = currentWorkerProcess;
+    activeChildProcesses.add(child);
 
     // 10 minute timeout to prevent UI indefinite hang
     const timeoutHandle = setTimeout(() => {
       if (isDev) console.error(`Worker timeout exceeded (10m) for ${mode}`);
-      child.kill();
+      child.kill('SIGTERM');
+      // Force kill after 5s if SIGTERM fails
+      setTimeout(() => {
+        try { if (child.exitCode === null) child.kill('SIGKILL'); } catch (_) {}
+      }, 5000);
+      child.stdout.removeAllListeners();
+      child.stderr.removeAllListeners();
       reject(new Error(`Process timed out after 10 minutes for ${mode}`));
     }, 10 * 60 * 1000);
 
@@ -463,6 +571,8 @@ async function runWorkerCommand(mode, params = {}) {
     });
 
     child.on('close', (code) => {
+      currentWorkerProcess = null;
+      activeChildProcesses.delete(child);
       clearTimeout(timeoutHandle);
       // console.log(`Worker exited with code ${code}`);
       if (code === 0 && output.trim()) {
@@ -527,19 +637,33 @@ ipcMain.handle("check-tally-connection", async (event, { tallyHost, tallyPort } 
     const http = require('http');
     const host = tallyHost || 'localhost';
     const port = security.validatePort(tallyPort || 9000);
+
+    // Validate host: allow only hostnames and IPs
+    if (!/^[a-zA-Z0-9.\-]+$/.test(host)) {
+      return false;
+    }
+
     const url = `http://${host}:${port}/`;
     if (isDev) console.log(`Checking Tally connection at ${host}:${port}...`);
 
     return new Promise((resolve) => {
+      // Safety timeout to prevent hanging
+      const safetyTimeout = setTimeout(() => {
+        resolve(false);
+      }, 5000);
+
       const request = http.get(url, { timeout: 3000 }, (response) => {
+        clearTimeout(safetyTimeout);
         resolve(true);
       });
 
       request.on('error', () => {
+        clearTimeout(safetyTimeout);
         resolve(false);
       });
 
       request.on('timeout', () => {
+        clearTimeout(safetyTimeout);
         request.destroy();
         resolve(false);
       });
@@ -606,6 +730,13 @@ ipcMain.on('get-backend-url-sync', (event) => {
 // Save user config (backend URL, etc.) to persistent userData storage
 ipcMain.handle('save-config', async (event, config) => {
   try {
+    if (!config || typeof config !== 'object') {
+      return { success: false, error: 'Invalid config object' };
+    }
+    // Validate backend URL if provided
+    if (config.backendUrl) {
+      security.validateBackendUrl(config.backendUrl);
+    }
     const cfgPath = path.join(app.getPath('userData'), 'config.json');
     const existing = fs.existsSync(cfgPath)
       ? JSON.parse(fs.readFileSync(cfgPath, 'utf-8'))
@@ -689,11 +820,11 @@ ipcMain.handle("sync-godowns", async (event, config) => {
 });
 
 // Register voucher sync handler (sync_vouchers.py)
-registerVoucherSyncHandler();
+registerVoucherSyncHandler(activeChildProcesses);
 if (isDev) console.log("✅ 'sync-vouchers' IPC handler registered successfully");
 
 // Register bills outstanding sync handler (sync_bills_outstanding.py)
-registerBillsSyncHandler();
+registerBillsSyncHandler(activeChildProcesses);
 if (isDev) console.log("✅ 'sync-bills-outstanding' IPC handler registered successfully");
 
 if (isDev) console.log("🔧 About to register 'incremental-sync' handler...");
@@ -843,6 +974,13 @@ ipcMain.handle("get-system-info", async () => {
 
 async function handleSync(config, scriptName, displayName, entityType) {
   try {
+    // Validate common parameters
+    if (config.tallyHost) security.validateHost(config.tallyHost);
+    if (config.tallyPort) security.validatePort(config.tallyPort);
+    if (config.companyId) security.validateCompanyId(config.companyId);
+    if (config.backendUrl) security.validateBackendUrl(config.backendUrl);
+    if (entityType) security.validateEntityType(entityType);
+
     if (isDev) {
       console.log(`\n${'='.repeat(60)}`);
       console.log(`🔄 SYNC STARTED: ${displayName.toUpperCase()}`);
@@ -889,10 +1027,27 @@ app.whenReady().then(() => {
     }
   });
 
+  // ── Global error handlers (production-grade) ──
   process.on('uncaughtException', (error) => {
-    if (isDev) console.error('🔥 Uncaught exception:', error);
+    console.error('Uncaught exception:', error);
+    // Log to file for production diagnostics
+    _logCrash('uncaughtException', error);
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled promise rejection:', reason);
+    _logCrash('unhandledRejection', reason);
   });
 });
+
+// ── Crash logger ──
+function _logCrash(type, error) {
+  try {
+    const logPath = path.join(app.getPath('userData'), 'crash.log');
+    const entry = `[${new Date().toISOString()}] ${type}: ${error?.stack || error?.message || error}\n`;
+    fs.appendFileSync(logPath, entry);
+  } catch (_) { /* best effort */ }
+}
 
 app.on("window-all-closed", () => {
   stopSyncWorker();
@@ -903,6 +1058,15 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   stopSyncWorker();
+  // Clean up temp files
+  try {
+    const os = require('os');
+    const tmpDir = os.tmpdir();
+    const files = fs.readdirSync(tmpDir).filter(f => f.startsWith('talliffy_'));
+    for (const f of files) {
+      try { fs.unlinkSync(path.join(tmpDir, f)); } catch (_) {}
+    }
+  } catch (_) {}
 });
 
 const gotTheLock = app.requestSingleInstanceLock();

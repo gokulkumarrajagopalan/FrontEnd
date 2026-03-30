@@ -23,31 +23,28 @@ const Popup = {
         return new Promise((resolve) => {
             const popupId = 'confirmPopup_' + Date.now();
 
-            const footerClasses = showCancel && cancelText ? 'justify-end' : 'justify-center';
+            const footerPosition = showCancel && cancelText ? 'flex-end' : 'center';
             const popupHtml = `
-                <div id="${popupId}" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-all duration-500">
-                    <div class="bg-white max-w-sm w-full animate-premium-pop border border-gray-100" 
-                         style="border-radius: 16px; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2);">
-                        <div class="px-8 pt-8 pb-6 text-center">
+                <div id="${popupId}" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: var(--ds-space-4); transition: all 0.3s;">
+                    <div class="animate-premium-pop" 
+                         style="background: var(--ds-bg-surface); width: 100%; max-width: 400px; border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-xl); border: 1px solid var(--ds-border-default); overflow: hidden;">
+                        <div style="padding: var(--ds-space-8) var(--ds-space-8) var(--ds-space-6); text-align: center;">
                             ${icon ? `
-                                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 relative"
-                                     style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.06);">
-                                    <div class="absolute inset-0 rounded-full border border-white/80 shadow-sm"></div>
-                                    <div class="text-3xl relative z-10 text-gray-700">${icon}</div>
+                                <div style="width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--ds-space-5); position: relative; background: linear-gradient(135deg, var(--ds-bg-surface), var(--ds-bg-surface-sunken)); box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.06);">
+                                    <div style="position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(255,255,255,0.8); box-shadow: var(--ds-shadow-sm);"></div>
+                                    <div style="font-size: 28px; position: relative; z-index: 10; color: var(--ds-text-secondary);">${icon}</div>
                                 </div>
                             ` : ''}
-                            <h3 class="text-2xl font-bold text-gray-900 mb-3 tracking-tight">${title}</h3>
-                            <p class="text-gray-500 text-sm leading-relaxed px-4">${message}</p>
+                            <h3 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-3); line-height: 1.2;">${title}</h3>
+                            <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-sm); line-height: 1.6; padding: 0 var(--ds-space-2); margin: 0;">${message}</p>
                         </div>
-                        <div class="px-8 pb-8 pt-2 flex gap-4 ${footerClasses}">
+                        <div style="padding: 0 var(--ds-space-8) var(--ds-space-8); display: flex; gap: var(--ds-space-4); justify-content: ${footerPosition};">
                             ${showCancel && cancelText ? `
-                            <button id="${popupId}_cancel" class="flex-1 px-4 py-3 text-sm bg-gray-500 border border-gray-500 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-gray-400 focus:outline-none"
-                                    style="border-radius: 8px;">
+                            <button id="${popupId}_cancel" style="flex: 1; padding: var(--ds-space-3) var(--ds-space-5); background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); color: var(--ds-text-secondary); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--ds-bg-surface-sunken)'" onmouseout="this.style.background='var(--ds-bg-surface)'">
                                 ${cancelText}
                             </button>
                             ` : ''}
-                            <button id="${popupId}_confirm" class="flex-1 px-4 py-3 text-sm ${Popup._getButtonClass(confirmVariant)} rounded-lg font-medium shadow-md hover:shadow-lg transition-all focus:ring-2 focus:ring-offset-1 focus:outline-none" 
-                                    style="${Popup._getButtonStyle(confirmVariant)}; border-radius: 8px;">
+                            <button id="${popupId}_confirm" style="flex: 1; padding: var(--ds-space-3) var(--ds-space-5); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: white; cursor: pointer; transition: all 0.2s; ${Popup._getButtonStyle(confirmVariant)};">
                                 ${confirmText}
                             </button>
                         </div>
@@ -106,23 +103,21 @@ const Popup = {
         return new Promise((resolve) => {
             const popupId = 'alertPopup_' + Date.now();
             const popupHtml = `
-                <div id="${popupId}" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-all duration-500">
-                    <div class="bg-white max-w-sm w-full animate-premium-pop border border-gray-100"
-                         style="border-radius: 16px; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2);">
-                        <div class="px-8 py-12 text-center">
+                <div id="${popupId}" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: var(--ds-space-4); transition: all 0.3s;">
+                    <div class="animate-premium-pop"
+                         style="background: var(--ds-bg-surface); width: 100%; max-width: 400px; border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-xl); border: 1px solid var(--ds-border-default); overflow: hidden;">
+                        <div style="padding: var(--ds-space-10) var(--ds-space-8) var(--ds-space-8); text-align: center;">
                             ${icon ? `
-                                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 relative"
-                                     style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.06);">
-                                    <div class="absolute inset-0 rounded-full border border-white/80 shadow-sm"></div>
-                                    <div class="text-3xl relative z-10 text-gray-700">${icon}</div>
+                                <div style="width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--ds-space-6); position: relative; background: linear-gradient(135deg, var(--ds-bg-surface), var(--ds-bg-surface-sunken)); box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.06);">
+                                    <div style="position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(255,255,255,0.8); box-shadow: var(--ds-shadow-sm);"></div>
+                                    <div style="font-size: 28px; position: relative; z-index: 10; color: var(--ds-text-secondary);">${icon}</div>
                                 </div>
                             ` : ''}
-                            <h3 class="text-2xl font-bold text-gray-900 mb-2 tracking-tight">${title}</h3>
-                            <p class="text-gray-500 text-sm leading-relaxed px-2">${message}</p>
+                            <h3 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2); line-height: 1.2;">${title}</h3>
+                            <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-sm); line-height: 1.6; padding: 0 var(--ds-space-2); margin: 0;">${message}</p>
                         </div>
-                        <div class="px-8 pb-8 flex gap-3 justify-center">
-                            <button id="${popupId}_ok" class="min-w-[120px] px-6 py-3 text-sm ${Popup._getButtonClass(variant)} rounded-lg font-medium shadow-md hover:shadow-lg transition-all focus:ring-2 focus:ring-offset-1 focus:outline-none" 
-                                    style="${Popup._getButtonStyle(variant)}; border-radius: 8px;">
+                        <div style="padding: 0 var(--ds-space-8) var(--ds-space-8); display: flex; justify-content: center;">
+                            <button id="${popupId}_ok" style="min-width: 120px; padding: var(--ds-space-3) var(--ds-space-6); font-size: var(--ds-text-sm); border-radius: var(--ds-radius-lg); font-weight: var(--ds-weight-medium); color: white; cursor: pointer; transition: all 0.2s; ${Popup._getButtonStyle(variant)};">
                                 ${okText}
                             </button>
                         </div>
@@ -173,38 +168,47 @@ const Popup = {
         } = options;
 
         const sizeClasses = {
-            sm: 'max-w-md',
-            md: 'max-w-2xl',
-            lg: 'max-w-4xl',
-            xl: 'max-w-6xl'
+            sm: '400px',
+            md: '600px',
+            lg: '800px',
+            xl: '1000px'
         };
 
         const popupHtml = `
-            <div id="${id}" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-all duration-500">
-                <div class="bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)] ${sizeClasses[size]} w-full max-h-[90vh] overflow-hidden flex flex-col animate-premium-pop border border-gray-100"
-                     style="border-radius: 16px;">
+            <div id="${id}" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: var(--ds-space-4); transition: all 0.3s;">
+                <div class="animate-premium-pop"
+                     style="background: var(--ds-bg-surface); width: 100%; max-width: ${sizeClasses[size] || '600px'}; max-height: 90vh; display: flex; flex-direction: column; border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-xl); border: 1px solid var(--ds-border-default); overflow: hidden;">
                     ${title ? `
-                        <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
-                            <h3 class="text-xl font-bold text-gray-900">${title}</h3>
+                        <div style="padding: var(--ds-space-5) var(--ds-space-6); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; justify-content: space-between; background: var(--ds-bg-surface);">
+                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${title}</h3>
                             ${closeable ? `
-                                <button class="popup-close text-gray-400 hover:text-gray-600 text-2xl leading-none transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
-                                    ×
+                                <button class="popup-close" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent; color: var(--ds-text-tertiary); font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--ds-bg-surface-sunken)'; this.style.color='var(--ds-text-secondary)';" onmouseout="this.style.background='transparent'; this.style.color='var(--ds-text-tertiary)';">
+                                    &times;
                                 </button>
                             ` : ''}
                         </div>
                     ` : ''}
-                    <div class="px-6 py-6 overflow-y-auto flex-1 text-gray-600 text-sm leading-relaxed">
+                    <div style="padding: var(--ds-space-6); overflow-y: auto; flex: 1; min-height: 0; font-size: var(--ds-text-sm); line-height: 1.6; color: var(--ds-text-secondary); background: var(--ds-bg-surface);">
                         ${content}
                     </div>
                     ${footer || buttons ? `
-                        <div class="px-6 py-5 border-t border-gray-100 bg-gray-50 flex ${buttons ? 'gap-3 justify-end' : ''}">
+                        <div style="padding: var(--ds-space-5) var(--ds-space-6); border-top: 1px solid var(--ds-border-default); background: var(--ds-bg-surface-sunken); display: flex; ${buttons ? 'gap: var(--ds-space-3); justify-content: flex-end;' : ''}">
                             ${footer ? footer : ''}
-                            ${buttons ? buttons.map((btn, idx) => `
-                                <button id="${id}_btn_${idx}" class="px-5 py-2.5 text-sm ${Popup._getButtonClass(btn.variant || 'primary')} rounded-lg font-medium shadow-sm hover:shadow transition-all focus:ring-2 focus:ring-offset-1 focus:outline-none" 
-                                        style="${Popup._getButtonStyle(btn.variant || 'primary')}; border-radius: 8px;">
-                                    ${btn.text || 'Button'}
-                                </button>
-                            `).join('') : ''}
+                            ${buttons ? buttons.map((btn, idx) => {
+                                // Default button logic for secondary variant
+                                if (btn.variant === 'secondary') {
+                                    return `
+                                        <button id="${id}_btn_${idx}" style="min-width: 100px; padding: var(--ds-space-2) var(--ds-space-5); text-align: center; white-space: nowrap; background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); color: var(--ds-text-secondary); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--ds-bg-surface-sunken)'" onmouseout="this.style.background='var(--ds-bg-surface)'">
+                                            ${btn.text || 'Button'}
+                                        </button>
+                                    `;
+                                }
+                                return `
+                                    <button id="${id}_btn_${idx}" style="min-width: 100px; padding: var(--ds-space-2) var(--ds-space-5); text-align: center; white-space: nowrap; border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: white; cursor: pointer; transition: all 0.2s; ${Popup._getButtonStyle(btn.variant || 'primary')};">
+                                        ${btn.text || 'Button'}
+                                    </button>
+                                `;
+                            }).join('') : ''}
                         </div>
                     ` : ''}
                 </div>

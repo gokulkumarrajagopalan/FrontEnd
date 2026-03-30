@@ -8,6 +8,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { findPython } = require('./python-finder');
+const security = require('./security');
 
 function getWorkerExe() {
     const isDev = !app.isPackaged;
@@ -33,6 +34,18 @@ function getWorkerExe() {
 function registerMasterDataHandler() {
     ipcMain.handle('fetch-master-data', async (event, params) => {
         return new Promise((resolve) => {
+            // Validate inputs
+            try {
+                if (params.tallyHost) security.validateHost(params.tallyHost);
+                if (params.tallyPort) security.validatePort(params.tallyPort);
+                if (!params.companyName || typeof params.companyName !== 'string' || params.companyName.length > 200) {
+                    throw new Error('Invalid company name');
+                }
+            } catch (validationError) {
+                resolve({ success: false, data: {}, message: `Validation error: ${validationError.message}`, exitCode: -1 });
+                return;
+            }
+
             const {
                 companyName,
                 tallyHost = 'localhost',

@@ -520,7 +520,7 @@ class VoucherSyncManager:
                 url,
                 data=tdl,
                 headers={'Content-Type': 'application/xml'},
-                timeout=300  # Longer timeout for large voucher sets
+                timeout=30  # Reduced from 300 for better responsiveness
             )
             if response.status_code == 200:
                 logger.info(f"✅ Fetched voucher data from Tally ({len(response.text):,} bytes)")

@@ -54,7 +54,35 @@
                     </div>
                     
                     <div id="companySyncTableContainer">
-                        ${window.UIComponents.spinner({ size: 'md', text: 'Loading companies...' })}
+                        <div style="width: 100%; overflow-x: auto; background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-xl);">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                                <thead>
+                                    <tr style="background: var(--ds-bg-surface-sunken); border-bottom: 1px solid var(--ds-border-default);">
+                                        <th style="padding: var(--ds-space-3) var(--ds-space-4);"><div style="height: 16px; width: 120px; background: var(--ds-border-default); border-radius: 4px; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div></th>
+                                        <th style="padding: var(--ds-space-3) var(--ds-space-4);"><div style="height: 16px; width: 80px; background: var(--ds-border-default); border-radius: 4px; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div></th>
+                                        <th style="padding: var(--ds-space-3) var(--ds-space-4);"><div style="height: 16px; width: 100px; background: var(--ds-border-default); border-radius: 4px; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div></th>
+                                        <th style="padding: var(--ds-space-3) var(--ds-space-4);"><div style="height: 16px; width: 140px; background: var(--ds-border-default); border-radius: 4px; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div></th>
+                                        <th style="padding: var(--ds-space-3) var(--ds-space-4);"><div style="height: 16px; width: 220px; background: var(--ds-border-default); border-radius: 4px; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${Array(3).fill(`
+                                    <tr style="border-bottom: 1px solid var(--ds-border-default);">
+                                        <td style="padding: var(--ds-space-4);"><div style="height: 20px; width: 200px; background: var(--ds-border-default); border-radius: 4px; opacity: 0.5; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div></td>
+                                        <td style="padding: var(--ds-space-4);"><div style="height: 20px; width: 100px; background: var(--ds-border-default); border-radius: 4px; opacity: 0.5; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div></td>
+                                        <td style="padding: var(--ds-space-4);"><div style="height: 20px; width: 80px; background: var(--ds-border-default); border-radius: 4px; opacity: 0.5; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div></td>
+                                        <td style="padding: var(--ds-space-4);"><div style="height: 20px; width: 150px; background: var(--ds-border-default); border-radius: 4px; opacity: 0.5; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div></td>
+                                        <td style="padding: var(--ds-space-4);">
+                                            <div style="display: flex; gap: var(--ds-space-2);">
+                                                <div style="height: 32px; width: 130px; background: var(--ds-border-default); border-radius: var(--ds-radius-lg); opacity: 0.5; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
+                                                <div style="height: 32px; width: 130px; background: var(--ds-border-default); border-radius: var(--ds-radius-lg); opacity: 0.5; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 ${syncDetailsModal}
@@ -69,14 +97,83 @@
     let isReconciling = false;
     let currentReconcilingCompanyId = null;
 
+    /**
+     * Validate subscription status before allowing sync.
+     * Calls backend /auth/subscription to get real-time status.
+     * Falls back to cached localStorage data if backend is unreachable.
+     */
+    async function validateSubscriptionForSync() {
+        try {
+            const authToken = localStorage.getItem('authToken');
+            if (!authToken || !window.apiConfig) {
+                // If no auth, allow sync to fail at auth level
+                return true;
+            }
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            const response = await fetch(window.apiConfig.getUrl('/auth/subscription'), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const result = await response.json();
+                const subscription = result.data || result;
+
+                // Update cached subscription
+                localStorage.setItem('subscription', JSON.stringify(subscription));
+
+                if (subscription.isExpired) {
+                    const expiryDate = subscription.planExpiryDate
+                        ? new Date(subscription.planExpiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : '';
+                    if (window.notificationService) {
+                        window.notificationService.show({
+                            type: 'error',
+                            message: `Your free trial plan expired on ${expiryDate}. Please upgrade your plan to continue syncing.`,
+                            duration: 8000
+                        });
+                    }
+                    console.error('❌ Subscription expired - sync blocked');
+                    return false;
+                }
+                return true;
+            }
+        } catch (error) {
+            console.warn('Subscription check failed, using cached data:', error.message);
+        }
+
+        // Fallback: check cached subscription from localStorage
+        try {
+            const cached = JSON.parse(localStorage.getItem('subscription') || '{}');
+            if (cached.isExpired) {
+                if (window.notificationService) {
+                    window.notificationService.show({
+                        type: 'error',
+                        message: 'Your free trial plan has expired. Please upgrade your plan to continue syncing.',
+                        duration: 8000
+                    });
+                }
+                console.error('❌ Subscription expired (cached) - sync blocked');
+                return false;
+            }
+        } catch (e) {
+            // If we can't check, allow sync
+        }
+        return true;
+    }
+
 
     function getSyncSpinnerSVG() {
-        return `
-            <svg class="sync-spinner" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
-                <path d="M22 12a10 10 0 0 1-10 10" stroke-linecap="round"></path>
-            </svg>
-        `;
+        return `<i class="fas fa-sync-alt fa-spin" style="font-size: 14px; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; margin-right: 4px;"></i>`;
     }
 
     function getSyncButtonHTML(progressText) {
@@ -85,7 +182,7 @@
         return `
             <div style="display: flex; align-items: center; justify-content: center; gap: var(--ds-space-2); width: 100%; overflow: hidden;">
                 ${spinner}
-                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--ds-text-xs); flex: 1; text-align: left;">${text}</span>
+                <span class="sync-progress-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--ds-text-xs); flex: 1; text-align: left;">${text}</span>
             </div>
         `;
     }
@@ -125,10 +222,7 @@
                     wrapper.setAttribute('aria-live', 'polite');
                     wrapper.innerHTML = `
                         <div class="inline-flex items-center gap-2 text-sm text-gray-800">
-                            <svg class="sync-spinner" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
-                                <path d="M22 12a10 10 0 0 1-10 10" stroke-linecap="round"></path>
-                            </svg>
+                            <i class="fas fa-sync-alt fa-spin" style="font-size: 16px; color: var(--ds-primary-500);"></i>
                         </div>
                     `;
                     // Insert as first child — safe, avoids querySelector descendant mismatch
@@ -185,9 +279,9 @@
     }
 
     function updateSyncButtonStates() {
-        // Use local isSyncing flag for UI state — syncStateManager.isSyncInProgress()
-        // includes background syncs which should NOT show spinners or disable buttons
-        const syncInProgress = isSyncing;
+        // The UI should show spinners and disable buttons even for background auto-syncs
+        // as requested by the user.
+        const syncInProgress = isSyncing || (window.syncStateManager && window.syncStateManager.isSyncInProgress());
         let activeCompanyId = currentSyncingCompanyId;
         let progressText = null;
         let entityProgress = null;
@@ -227,11 +321,11 @@
             if (isReconciling) {
                 // Reconciliation takes priority — sync has ended, reconciliation is running
                 if (String(companyId) === String(currentReconcilingCompanyId)) {
-                    // Active reconciling company - show "Synced" state until reconciliation finishes
-                    btn.innerHTML = getSyncedButtonHTML();
+                    // Active reconciling company - show "Reconciling..." spinner until finished
+                    btn.innerHTML = getReconcilingButtonHTML();
                     btn.disabled = true;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    btn.removeAttribute('aria-busy');
+                    btn.setAttribute('aria-busy', 'true');
                 } else {
                     // Other companies - still disabled while reconciliation runs
                     btn.innerHTML = getDefaultSyncButtonHTML();
@@ -241,8 +335,13 @@
                 }
             } else if (syncInProgress) {
                 if (String(companyId) === String(activeCompanyId)) {
-                    // Active company - show inline spinner and progress text
-                    btn.innerHTML = getSyncButtonHTML(progressText);
+                    // Active company - show inline spinner and progress text without interrupting SVG animation
+                    const progressSpan = btn.querySelector('.sync-progress-text');
+                    if (progressSpan) {
+                        progressSpan.textContent = progressText || 'Syncing...';
+                    } else {
+                        btn.innerHTML = getSyncButtonHTML(progressText);
+                    }
                     btn.disabled = true;
                     btn.classList.remove('opacity-50');
                     btn.classList.remove('cursor-not-allowed');
@@ -351,6 +450,13 @@
             }
         }
 
+        // Check subscription status before sync
+        const subscriptionValid = await validateSubscriptionForSync();
+        if (!subscriptionValid) {
+            resetButton();
+            return;
+        }
+
         // Check if sync is already in progress using SyncStateManager
         if (window.syncStateManager && window.syncStateManager.isSyncInProgress()) {
             window.notificationService.warning('🔄 Another company sync is in progress. Please wait...');
@@ -430,6 +536,13 @@
             let allTallyRecords = []; // Accumulate voucher tallyRecords for reconciliation
 
             for (let i = 0; i < syncSteps.length; i++) {
+                // Check for cancellation at the start of each step
+                if (!isSyncing) {
+                    console.log(`🛑 Sync aborted before starting step: ${syncSteps[i].name}`);
+                    companyAllSuccess = false;
+                    break;
+                }
+
                 const step = syncSteps[i];
                 const percentage = Math.round(((i + 1) / syncSteps.length) * 100);
 
@@ -504,6 +617,12 @@
                         let vTotalMsg = '';
                         allTallyRecords = [];
                         for (let ci = 0; ci < vChunks.length; ci++) {
+                            // Check for cancellation inside voucher chunks loop
+                            if (!isSyncing) {
+                                console.log('🛑 Voucher sync aborted between chunks');
+                                break;
+                            }
+
                             const vc = vChunks[ci];
                             const cFrom = _formatTallyDate(vc.from);
                             const cTo = _formatTallyDate(vc.to);
@@ -529,6 +648,12 @@
                                     console.log(`   ⏱️ Month ${ci + 1} took >30s, re-syncing weekly...`);
                                     let weekStart = new Date(vc.from);
                                     while (weekStart <= vc.to) {
+                                        // Check for cancellation inside weekly retry loop
+                                        if (!isSyncing) {
+                                            console.log('🛑 Weekly voucher sync aborted');
+                                            break;
+                                        }
+
                                         let weekEnd = new Date(weekStart);
                                         weekEnd.setDate(weekEnd.getDate() + 6);
                                         if (weekEnd > vc.to) weekEnd = new Date(vc.to);
@@ -647,8 +772,6 @@
                 await updateCompanyStatus(company.id, 'synced', 'active');
 
                 // Transition from syncing → reconciling state BEFORE endSync() fires sync-ended event.
-                // This ensures when the sync-ended listener calls updateSyncButtonStates(),
-                // it sees isSyncing=false + isReconciling=true → shows "✓ Synced" (disabled)
                 isSyncing = false;
                 currentSyncingCompanyId = null;
                 isReconciling = true;
@@ -728,11 +851,18 @@
                     } catch (reconError) {
                         console.error(`❌ Background reconciliation error for ${reconCompanyName}:`, reconError.message);
                     } finally {
-                        // Reset reconciliation state — buttons return to "Sync" (clickable)
+                        // Reset reconciliation state — buttons return to "Synced" checkmark briefly, then table redraw handles it
                         clearTimeout(reconSafetyTimeout);
                         isReconciling = false;
                         currentReconcilingCompanyId = null;
-                        updateSyncButtonStates();
+                        
+                        const companyBtn = document.getElementById(`btn-sync-${reconCompanyId}`);
+                        if (companyBtn) {
+                            companyBtn.innerHTML = getSyncedButtonHTML();
+                            setTimeout(() => updateSyncButtonStates(), 2000);
+                        } else {
+                            updateSyncButtonStates();
+                        }
                     }
                 })();
             } else if (successCount > 0) {
@@ -740,10 +870,12 @@
                 company.syncStatus = 'pending';
                 company.lastSyncDate = new Date().toISOString();
                 await updateCompanyStatus(company.id, 'pending', 'active');
+                // Reset sync flags BEFORE endSync so sync-ended listener sees correct state
+                isSyncing = false;
+                currentSyncingCompanyId = null;
                 if (window.syncStateManager) {
                     window.syncStateManager.endSync(true, `Partial sync: ${successCount}/${syncSteps.length} completed`);
                 }
-                button.innerHTML = getDefaultSyncButtonHTML();
                 // Hide progress bar after a short delay
                 setTimeout(() => {
                     const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
@@ -753,10 +885,12 @@
                 window.notificationService.error(`❌ Failed to sync any masters for ${company.name}. Check logs for details.`);
                 company.syncStatus = 'error';
                 await updateCompanyStatus(company.id, 'error', 'active');
+                // Reset sync flags BEFORE endSync so sync-ended listener sees correct state
+                isSyncing = false;
+                currentSyncingCompanyId = null;
                 if (window.syncStateManager) {
                     window.syncStateManager.endSync(false, `Failed to sync ${company.name}`);
                 }
-                button.innerHTML = getDefaultSyncButtonHTML();
                 // Hide progress bar after a short delay
                 setTimeout(() => {
                     const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
@@ -764,23 +898,25 @@
                 }, 2000);
             }
 
-            // Reload companies to refresh table
-            await loadCompanies();
-
         } catch (error) {
             console.error('❌ Sync error:', error);
             window.notificationService.error(`Failed to sync ${company.name}: ${error.message || 'Unknown error'}`);
+            // Reset sync flags BEFORE endSync so sync-ended listener sees correct state
+            isSyncing = false;
+            currentSyncingCompanyId = null;
             if (window.syncStateManager) {
                 window.syncStateManager.endSync(false, error.message);
             }
-            button.innerHTML = getDefaultSyncButtonHTML();
             // Hide progress bar in case of error
             const progressContainer = document.getElementById(`sync-progress-container-${company.id}`);
             if (progressContainer) progressContainer.style.display = 'none';
         } finally {
+            // Safety net: always ensure sync flags are reset
             isSyncing = false;
             currentSyncingCompanyId = null;
-            // Update all button states — if isReconciling is true, buttons stay in "Synced" state
+            // Reload companies to refresh table in all cases (success, partial, failure, error)
+            try { await loadCompanies(); } catch (_) {}
+            // Update all button states — if isReconciling is true, buttons stay in reconciling state
             updateSyncButtonStates();
         }
     }
@@ -871,30 +1007,56 @@
                     `<span style="color: var(--ds-text-secondary); font-weight: var(--ds-weight-medium);">${company.state || '--'}</span>`,
                     window.UIComponents.badge({ text: syncStatus.toUpperCase(), variant: badgeVariant, size: 'sm' }),
                     `<span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-xs);">${company.lastSyncDate ? new Date(company.lastSyncDate).toLocaleString() : '--'}</span>`,
-                    `<div style="display: flex; gap: var(--ds-space-2); align-items: center;">
-                        ${window.UIComponents.button({
-                        text: 'Sync',
-                        icon: '<i class="fas fa-sync-alt"></i>',
-                        variant: 'primary',
-                        size: 'sm',
-                        className: 'sync-company-btn',
-                        id: `btn-sync-${company.id}`,
-                        style: 'width: 130px; min-width: 130px; max-width: 130px; justify-content: center;'
-                    })}
-                        ${window.UIComponents.button({
-                        text: 'Remove company',
-                        icon: '<i class="fas fa-trash-alt"></i>',
-                        variant: 'secondary',
-                        size: 'sm',
-                        className: 'view-details-btn',
-                        id: `btn-info-${company.id}`
-                    })}
+                    `<div style="display: flex; flex-direction: column; width: 100%;">
+                        <div style="display: flex; gap: var(--ds-space-2); align-items: center;">
+                            ${window.UIComponents.button({
+                            text: 'Sync',
+                            icon: '<i class="fas fa-sync-alt"></i>',
+                            variant: 'primary',
+                            size: 'sm',
+                            className: 'sync-company-btn',
+                            id: `btn-sync-${company.id}`,
+                            style: 'width: 130px; min-width: 130px; max-width: 130px; justify-content: center;'
+                        })}
+                            ${window.UIComponents.button({
+                            text: 'Remove company',
+                            icon: '<i class="fas fa-trash-alt"></i>',
+                            variant: 'secondary',
+                            size: 'sm',
+                            className: 'view-details-btn',
+                            id: `btn-info-${company.id}`
+                        })}
+                            <div class="company-actions-dropdown" style="position: relative; display: inline-block;">
+                                ${window.UIComponents.button({
+                            text: '',
+                            icon: '<i class="fas fa-ellipsis-v"></i>',
+                            variant: 'secondary',
+                            size: 'sm',
+                            className: 'company-actions-btn',
+                            id: `btn-actions-${company.id}`,
+                            style: 'min-width: 32px; width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; box-shadow: none; color: var(--ds-text-tertiary);'
+                        })}
+                                <div id="dropdown-${company.id}" class="ds-dropdown-menu" style="display: none; position: fixed; background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-xl); z-index: 9999; min-width: 160px; overflow: hidden; animation: slideUp 0.15s ease-out;">
+                                    <div class="dropdown-item backup-btn" data-id="${company.id}" style="padding: 10px 16px; font-size: 13px; color: var(--ds-text-primary); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='var(--ds-bg-hover)'" onmouseout="this.style.background='transparent'">
+                                        <i class="fas fa-file-archive" style="color: var(--ds-primary-500); width: 14px;"></i>
+                                        <span>Backup</span>
+                                    </div>
+                                    <div class="dropdown-item cancel-sync-btn" data-id="${company.id}" style="padding: 10px 16px; font-size: 13px; color: var(--ds-text-danger, #dc2626); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; border-top: 1px solid var(--ds-border-default);" onmouseover="this.style.background='var(--ds-bg-hover)'" onmouseout="this.style.background='transparent'">
+                                        <i class="fas fa-stop-circle" style="width: 14px;"></i>
+                                        <span>Cancel Sync</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="sync-progress-container-${company.id}" style="display: none; width: 100%; height: 4px; background: var(--ds-border-default); border-radius: 2px; overflow: hidden; margin-top: 8px;">
+                            <div id="sync-progress-fill-${company.id}" style="height: 100%; width: 0%; background: var(--ds-primary-500); transition: width 0.3s ease;"></div>
+                        </div>
                     </div>`
                 ];
             })
         });
 
-        // Re-attach data-id for sync buttons (since UIComponents.button doesn't support custom data attributes natively yet)
+        // Re-attach data-id for sync buttons
         filtered.forEach(company => {
             const btn = document.getElementById(`btn-sync-${company.id}`);
             if (btn) btn.setAttribute('data-id', company.id);
@@ -903,6 +1065,65 @@
             if (infoBtn) {
                 infoBtn.onclick = () => confirmRemoveCompany(company);
             }
+
+            // Actions menu toggle
+            const actionsBtn = document.getElementById(`btn-actions-${company.id}`);
+            const dropdown = document.getElementById(`dropdown-${company.id}`);
+            if (actionsBtn && dropdown) {
+                actionsBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    // Close other open dropdowns
+                    document.querySelectorAll('.ds-dropdown-menu').forEach(d => {
+                        if (d.id !== `dropdown-${company.id}`) d.style.display = 'none';
+                    });
+                    
+                    const isVisible = dropdown.style.display === 'block';
+                    if (!isVisible) {
+                        // Position the dropdown relative to the button
+                        const rect = actionsBtn.getBoundingClientRect();
+                        dropdown.style.top = `${rect.bottom + 5}px`;
+                        dropdown.style.left = `${rect.right - 160}px`; // Align right edge
+                        dropdown.style.display = 'block';
+                    } else {
+                        dropdown.style.display = 'none';
+                    }
+                };
+            }
+        });
+
+
+        // Action button handlers
+        document.querySelectorAll('.backup-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                window.Popup.alert({
+                    title: 'Upcoming Soon',
+                    message: 'The backup feature is currently under development and will be available in a future update.',
+                    icon: '<i class="fas fa-rocket"></i>',
+                    variant: 'primary'
+                });
+            };
+        });
+
+        document.querySelectorAll('.cancel-sync-btn').forEach(btn => {
+            btn.onclick = async (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const company = companies.find(c => String(c.id) === id);
+                
+                const confirmed = await window.Popup.confirm({
+                    title: 'Cancel Sync',
+                    message: `Are you sure you want to cancel the sync for "${company?.name || 'this company'}"? The process will stop and resume on the next scheduled interval.`,
+                    confirmText: 'Yes, Cancel Sync',
+                    cancelText: 'No, Keep Syncing',
+                    confirmVariant: 'danger',
+                    icon: '<i class="fas fa-exclamation-triangle"></i>'
+                });
+
+                if (confirmed) {
+                    handleCancelSync();
+                }
+            };
         });
 
         document.querySelectorAll('.sync-company-btn').forEach(btn => {
@@ -916,6 +1137,40 @@
             });
         });
 
+        updateSyncButtonStates();
+    }
+
+    function handleCancelSync() {
+        console.log('🔴 User initiated sync cancellation');
+        
+        // 1. Update local flags to stop master loops
+        isSyncing = false;
+        isReconciling = false;
+        
+        // 2. Terminate background processes if any
+        if (window.electronAPI && window.electronAPI.stopSync) {
+            window.electronAPI.stopSync();
+        }
+        
+        // 3. Update Global State Manager
+        if (window.syncStateManager) {
+            window.syncStateManager.endSync(false, 'Sync cancelled by user');
+        }
+        
+        // 4. Clear entity progress bars
+        document.querySelectorAll('[id^="sync-progress-container-"]').forEach(el => {
+            el.style.display = 'none';
+        });
+
+        // 5. Success notification
+        if (window.UIComponents && window.UIComponents.toast) {
+            window.UIComponents.toast({
+                message: 'Sync process has been cancelled',
+                type: 'info'
+            });
+        }
+        
+        // 6. Refresh UI buttons
         updateSyncButtonStates();
     }
 
@@ -987,7 +1242,7 @@
             // Show loading state
             confirmBtn.disabled = true;
             cancelBtn.disabled = true;
-            confirmBtn.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;"><svg class="sync-spinner" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M22 12a10 10 0 0 1-10 10" stroke-linecap="round"></path></svg> Removing...</span>`;
+            confirmBtn.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;"><i class="fas fa-sync-alt fa-spin"></i> Removing...</span>`;
             confirmBtn.style.opacity = '0.7';
             cancelBtn.style.opacity = '0.5';
             await removeCompany(company.id);
@@ -1238,6 +1493,19 @@
         if (content) {
             content.innerHTML = getTemplate();
             setupEventListeners();
+
+            // Global listeners for dropdowns (ensure only added once)
+            if (!window._companySyncGlobalDropdownAttached) {
+                window._companySyncGlobalDropdownAttached = true;
+                window.addEventListener('scroll', () => {
+                    document.querySelectorAll('.ds-dropdown-menu').forEach(d => d.style.display = 'none');
+                }, { capture: true, passive: true });
+                
+                document.addEventListener('click', () => {
+                    document.querySelectorAll('.ds-dropdown-menu').forEach(d => d.style.display = 'none');
+                });
+            }
+
             await loadCompanies();
 
             // Update sync health metrics
@@ -1257,6 +1525,8 @@
                         if (isSyncing || (data && data.type !== 'background')) {
                             showGlobalLoader(true);
                         }
+                        // Always update sync buttons to show spinner natively from syncStateManager events, 
+                        // guaranteeing background auto-sync indicators appear immediately.
                         updateSyncButtonStates();
                     }
 

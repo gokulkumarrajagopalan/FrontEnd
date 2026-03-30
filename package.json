@@ -20,25 +20,19 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
-    "@playwright/test": "^1.57.0",
-    "@react-native-async-storage/async-storage": "^2.2.0",
-    "@react-navigation/bottom-tabs": "^7.8.7",
-    "@react-navigation/drawer": "^7.7.5",
-    "@react-navigation/native": "^7.1.22",
-    "@react-navigation/stack": "^7.6.8",
     "@reduxjs/toolkit": "^2.11.0",
     "axios": "^1.13.2",
     "dotenv": "16.4.5",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.8.3",
     "libphonenumber-js": "^1.11.4",
-    "react-native-gesture-handler": "^2.29.1",
-    "react-native-safe-area-context": "^5.6.2",
-    "react-native-screens": "^4.18.0",
     "react-redux": "^9.2.0",
     "redux": "^5.0.1",
     "redux-thunk": "^2.4.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "electron": "^39.2.0",
     "electron-builder": "^26.8.1",
     "electron-packager": "^17.1.2",
@@ -48,21 +42,31 @@
     "appId": "com.tallify.desktop",
     "productName": "Tallify",
     "copyright": "Copyright © 2025 Tallify Team",
+    "asar": true,
     "removePackageScripts": true,
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "gokulkumarrajagopalan",
+        "repo": "FrontEnd"
+      }
+    ],
     "files": [
       "src/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "!**/*.map",
+      "!**/*.bak",
+      "!**/old/**",
+      "!**/__pycache__/**",
+      "!**/logs/**",
+      "!**/*.spec",
+      "!**/reports/**"
     ],
     "directories": {
       "buildResources": "assets",
       "output": "dist"
     },
     "extraResources": [
-      {
-        "from": ".env",
-        "to": ".env",
-        "filter": ["**/*"]
-      },
       {
         "from": "resources/bin",
         "to": "bin",

@@ -234,7 +234,7 @@ class TallyAPIClient:
             
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Connection error: {e}")
-            return False, {"error": "Connection failed", "details": str(e)}
+            return False, {"error": "Connection failed", "details": "Failed to connect tally"}
         except requests.exceptions.Timeout as e:
             logger.error(f"Timeout error: {e}")
             return False, {"error": "Request timeout", "details": str(e)}

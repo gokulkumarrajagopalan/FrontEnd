@@ -2,6 +2,60 @@ const isDev = process.argv.includes('--dev');
 
 if (isDev) console.log('🔥 Preload script starting...');
 
+// ── IPC Channel Whitelists ──
+const ALLOWED_SEND_CHANNELS = [
+    'start-sync',
+    'stop-sync',
+    'check-sync-status',
+    'trigger-sync',
+    'update-sync-settings',
+    'check-for-updates',
+    'quit-and-install-update'
+];
+
+const ALLOWED_INVOKE_CHANNELS = [
+    'get-system-info',
+    'get-backend-url',
+    'save-config',
+    'get-sync-status',
+    'fetch-license',
+    'check-tally-connection',
+    'fetch-companies',
+    'sync-groups',
+    'sync-ledgers',
+    'sync-currencies',
+    'sync-cost-categories',
+    'sync-cost-centers',
+    'sync-voucher-types',
+    'sync-tax-units',
+    'sync-units',
+    'sync-stock-groups',
+    'sync-stock-categories',
+    'sync-stock-items',
+    'sync-godowns',
+    'sync-vouchers',
+    'sync-bills-outstanding',
+    'incremental-sync',
+    'reconcile-data',
+    'fetch-master-data',
+    'show-system-notification'
+];
+
+const ALLOWED_RECEIVE_CHANNELS = [
+    'sync-update',
+    'sync-error',
+    'sync-started',
+    'sync-stopped',
+    'sync-status',
+    'settings-error',
+    'update-message',
+    'update-available',
+    'update-not-available',
+    'update-error',
+    'download-progress',
+    'update-downloaded'
+];
+
 let contextBridgeReady = false;
 let ipcRendererReady = false;
 
@@ -14,27 +68,7 @@ try {
 
     if (isDev) console.log('🔥 About to expose API to renderer...');
     contextBridge.exposeInMainWorld('electronAPI', {
-        // Send message to main process
-        send: (channel, data) => {
-            ipcRenderer.send(channel, data);
-        },
-
-        // Listen for messages from main process
-        on: (channel, func) => {
-            ipcRenderer.on(channel, (event, ...args) => func(...args));
-        },
-
-        // Send message and get response
-        invoke: (channel, data) => {
-            return ipcRenderer.invoke(channel, data);
-        },
-
-        // Remove listener
-        removeListener: (channel) => {
-            ipcRenderer.removeAllListeners(channel);
-        },
-
-        // Platform info
+        // Platform info (static, safe to expose)
         platform: process.platform,
         nodeVersion: process.versions.node,
         chromeVersion: process.versions.chrome,
@@ -43,7 +77,7 @@ try {
 
         // Configuration
         getBackendUrl: () => ipcRenderer.invoke('get-backend-url'),
-        backendUrl: ipcRenderer.sendSync('get-backend-url-sync'), // Deprecated: uses sendSync (Synchronous)
+        backendUrl: ipcRenderer.sendSync('get-backend-url-sync'),
         saveConfig: (config) => ipcRenderer.invoke('save-config', config),
 
         // Sync API
@@ -152,6 +186,35 @@ try {
         // System Notification (OS-level toast)
         showSystemNotification: (options) => {
             return ipcRenderer.invoke('show-system-notification', options);
+        },
+
+        // ── Whitelisted generic IPC (for backward compat) ──
+        send: (channel, data) => {
+            if (!ALLOWED_SEND_CHANNELS.includes(channel)) {
+                console.error(`IPC send blocked: channel '${channel}' not whitelisted`);
+                return;
+            }
+            ipcRenderer.send(channel, data);
+        },
+        on: (channel, func) => {
+            if (!ALLOWED_RECEIVE_CHANNELS.includes(channel)) {
+                console.error(`IPC on blocked: channel '${channel}' not whitelisted`);
+                return;
+            }
+            ipcRenderer.on(channel, (event, ...args) => func(...args));
+        },
+        invoke: (channel, data) => {
+            if (!ALLOWED_INVOKE_CHANNELS.includes(channel)) {
+                return Promise.reject(new Error(`IPC invoke blocked: channel '${channel}' not whitelisted`));
+            }
+            return ipcRenderer.invoke(channel, data);
+        },
+        removeListener: (channel) => {
+            if (!ALLOWED_RECEIVE_CHANNELS.includes(channel)) {
+                console.error(`IPC removeListener blocked: channel '${channel}' not whitelisted`);
+                return;
+            }
+            ipcRenderer.removeAllListeners(channel);
         }
     });
     if (isDev) console.log('✅ Preload: electronAPI exposed successfully');

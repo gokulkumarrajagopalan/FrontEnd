@@ -4,12 +4,12 @@ const apiConfig = {
             try {
                 const url = await window.electronAPI.getBackendUrl();
                 if (url) {
-                    window._backendUrl = url;
+                    window._backendUrl = this._enforceHttps(url);
                     console.log('✅ apiConfig: Backend URL initialized from main process:', window._backendUrl);
                     return;
                 }
             } catch (error) {
-                console.error('❌ apiConfig: Failed to get Backend URL from main process:', error);
+                console.error('apiConfig: Failed to get Backend URL from main process:', error);
             }
         }
 
@@ -17,15 +17,28 @@ const apiConfig = {
         try {
             const saved = JSON.parse(localStorage.getItem('appSettings') || '{}');
             if (saved.backendUrl) {
-                window._backendUrl = saved.backendUrl;
+                window._backendUrl = this._enforceHttps(saved.backendUrl);
                 console.log('✅ apiConfig: Backend URL loaded from localStorage:', window._backendUrl);
                 return;
             }
         } catch (_) {}
 
-        // Final fallback: hardcoded default
+        // Final fallback: hardcoded default (localhost OK for dev)
         window._backendUrl = 'http://localhost:8080';
         console.log('✅ apiConfig: Using default Backend URL:', window._backendUrl);
+    },
+
+    /**
+     * Enforce HTTPS for non-localhost URLs
+     */
+    _enforceHttps(url) {
+        if (!url) return url;
+        // Allow HTTP only for localhost/127.0.0.1
+        const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
+        if (!isLocal && url.startsWith('http://')) {
+            return url.replace('http://', 'https://');
+        }
+        return url;
     },
 
     get BASE_URL() {

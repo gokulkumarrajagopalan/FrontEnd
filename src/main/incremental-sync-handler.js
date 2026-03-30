@@ -8,6 +8,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { findPython } = require('./python-finder');
+const security = require('./security');
 
 function getWorkerExe() {
     const isDev = !app.isPackaged;
@@ -75,6 +76,18 @@ async function syncAllEntities(params) {
  */
 function syncSingleEntity(params) {
     return new Promise((resolve) => {
+        // Validate inputs
+        try {
+            if (params.tallyHost) security.validateHost(params.tallyHost);
+            if (params.tallyPort) security.validatePort(params.tallyPort);
+            if (params.companyId) security.validateCompanyId(params.companyId);
+            if (params.backendUrl) security.validateBackendUrl(params.backendUrl);
+            if (params.entityType) security.validateEntityType(params.entityType);
+        } catch (validationError) {
+            resolve({ success: false, message: `Validation error: ${validationError.message}`, count: 0 });
+            return;
+        }
+
         const {
             companyId,
             userId,

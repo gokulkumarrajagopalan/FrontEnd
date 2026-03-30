@@ -58,6 +58,7 @@ class AuthService {
         localStorage.removeItem('loginTime');
         localStorage.removeItem('sessionExpiry');
         localStorage.removeItem('userLicenseNumber');
+        localStorage.removeItem('subscription');
     }
 
     /**
@@ -105,13 +106,18 @@ class AuthService {
             localStorage.setItem('currentUser', JSON.stringify(this.user));
             localStorage.setItem('loginTime', new Date().toISOString());
 
-            // Set session expiry to 7 days from now
-            const expiry = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
+            // Set session expiry to 24 hours from now
+            const expiry = new Date().getTime() + (24 * 60 * 60 * 1000);
             localStorage.setItem('sessionExpiry', expiry.toString());
 
             // Store license number separately for easy access during sync validation
             if (this.user.licenseNumber) {
                 localStorage.setItem('userLicenseNumber', this.user.licenseNumber.toString());
+            }
+
+            // Store subscription/plan data for sync validation
+            if (data.subscription) {
+                localStorage.setItem('subscription', JSON.stringify(data.subscription));
             }
 
             // Set token in all future requests

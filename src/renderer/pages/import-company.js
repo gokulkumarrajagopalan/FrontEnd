@@ -83,6 +83,58 @@
     let selectedCompanies = [];
     let connectionHistory = [];
 
+    /**
+     * Validate subscription status before allowing import.
+     * Calls backend /auth/subscription for real-time check.
+     */
+    async function validateSubscriptionForImport() {
+        try {
+            const authToken = localStorage.getItem('authToken');
+            if (!authToken || !window.apiConfig) return true;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            const response = await fetch(window.apiConfig.getUrl('/auth/subscription'), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const result = await response.json();
+                const subscription = result.data || result;
+                localStorage.setItem('subscription', JSON.stringify(subscription));
+
+                if (subscription.isExpired) {
+                    const expiryDate = subscription.planExpiryDate
+                        ? new Date(subscription.planExpiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : '';
+                    showStatus(`Your free trial plan expired on ${expiryDate}. Please upgrade your plan to import companies.`, 'error');
+                    return false;
+                }
+                return true;
+            }
+        } catch (error) {
+            console.warn('Subscription check failed, using cached data:', error.message);
+        }
+
+        // Fallback to cached data
+        try {
+            const cached = JSON.parse(localStorage.getItem('subscription') || '{}');
+            if (cached.isExpired) {
+                showStatus('Your free trial plan has expired. Please upgrade your plan to import companies.', 'error');
+                return false;
+            }
+        } catch (e) { /* allow if can't check */ }
+        return true;
+    }
+
     function loadConnectionHistory() {
         const stored = localStorage.getItem('tallyConnectionHistory');
         if (stored) {
@@ -1136,6 +1188,12 @@
     async function importSelectedCompanies() {
         if (selectedCompanies.length === 0) {
             showStatus('❌ Please select at least one company', 'error');
+            return;
+        }
+
+        // Check subscription status before import
+        const subscriptionValid = await validateSubscriptionForImport();
+        if (!subscriptionValid) {
             return;
         }
 

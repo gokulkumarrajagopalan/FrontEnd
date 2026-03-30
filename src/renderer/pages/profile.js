@@ -303,13 +303,24 @@
                 return;
             }
 
+            // Try to get apiConfig base URL
+            if (!window.apiConfig) {
+                throw new Error('API configuration not loaded yet');
+            }
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
             const response = await fetch(window.apiConfig.getUrl('/auth/me'), {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${authToken}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             const result = await response.json();
 
@@ -327,12 +338,42 @@
 
         } catch (error) {
             console.error('Profile fetch error:', error);
+
+            // Fallback: try to load from cached localStorage data
+            const cachedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            // Merge cached subscription data so profile can show plan expiry
+            if (!cachedUser.subscription) {
+                try {
+                    const cachedSub = JSON.parse(localStorage.getItem('subscription') || 'null');
+                    if (cachedSub) cachedUser.subscription = cachedSub;
+                } catch (e) { /* ignore */ }
+            }
+            if (cachedUser && (cachedUser.username || cachedUser.fullName || cachedUser.email)) {
+                console.log('Using cached profile data from localStorage');
+                profileData = cachedUser;
+                populateProfile(profileData);
+
+                if (loading) loading.style.display = 'none';
+                if (profileContent) profileContent.style.display = 'block';
+
+                setupAllEventHandlers();
+
+                // Show a subtle warning that data may be stale
+                const banner = document.createElement('div');
+                banner.style.cssText = 'padding: 10px 16px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: #92400e;';
+                banner.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Showing cached profile. Could not reach server to refresh.';
+                if (profileContent && profileContent.firstChild) {
+                    profileContent.insertBefore(banner, profileContent.firstChild);
+                }
+                return;
+            }
+
             if (loading) {
                 loading.innerHTML = `
                     <div style="font-size: 2rem; margin-bottom: 1rem;">❌</div>
                     <p style="color: #ef4444; font-weight: 600;">Failed to load profile</p>
                     <p style="color: var(--text-tertiary); font-size: 0.875rem;">${error.message}</p>
-                    <button onclick="fetchAndPopulateProfile()" style="margin-top: 1rem; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
+                    <button onclick="window.fetchAndPopulateProfile()" style="margin-top: 1rem; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
                 `;
             }
         }
@@ -363,14 +404,18 @@
 
         const enabledEl = document.getElementById('detailEnabled');
         if (enabledEl) {
-            const expiryRaw = data.planExpiryDate || data.expiryDate || data.subscriptionExpiry || null;
-            if (expiryRaw) {
-                const expiryDate = new Date(expiryRaw);
-                const isPast = expiryDate < new Date();
+            const subscription = data.subscription;
+            if (subscription && subscription.planExpiryDate) {
+                const expiryDate = new Date(subscription.planExpiryDate);
+                const isExpired = subscription.isExpired === true;
+                const remainingDays = subscription.trialRemainingDays || 0;
                 const formatted = expiryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-                enabledEl.innerHTML = isPast
-                    ? `<span style="color: #dc2626; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-exclamation-circle"></i> ${formatted} (Expired)</span>`
-                    : `<span style="color: #16a34a; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-calendar-check"></i> ${formatted}</span>`;
+                
+                if (isExpired) {
+                    enabledEl.innerHTML = `<span style="color: #dc2626; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-exclamation-circle"></i> ${formatted} (Expired)</span>`;
+                } else {
+                    enabledEl.innerHTML = `<span style="color: #16a34a; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-calendar-check"></i> ${formatted} (${remainingDays} days left)</span>`;
+                }
             } else {
                 enabledEl.innerHTML = '<span style="color: var(--ds-text-tertiary);">—</span>';
             }
@@ -400,6 +445,11 @@
         currentUser.fullName = data.fullName;
         currentUser.licenceNo = data.licenceNo;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        // Cache subscription data separately for sync validation
+        if (data.subscription) {
+            localStorage.setItem('subscription', JSON.stringify(data.subscription));
+        }
     }
 
     // ============ EVENT HANDLERS SETUP ============

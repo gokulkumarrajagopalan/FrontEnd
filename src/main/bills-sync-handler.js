@@ -8,6 +8,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { findPython } = require('./python-finder');
+const security = require('./security');
 
 function getWorkerExe() {
     const isDev = !app.isPackaged;
@@ -30,8 +31,19 @@ function getWorkerExe() {
 /**
  * Sync bills outstanding for a single company
  */
-function syncBillsOutstanding(params) {
+function syncBillsOutstanding(params, processRegistry) {
     return new Promise((resolve) => {
+        // Validate inputs
+        try {
+            if (params.tallyHost) security.validateHost(params.tallyHost);
+            if (params.tallyPort) security.validatePort(params.tallyPort);
+            if (params.companyId) security.validateCompanyId(params.companyId);
+            if (params.backendUrl) security.validateBackendUrl(params.backendUrl);
+        } catch (validationError) {
+            resolve({ success: false, message: `Validation error: ${validationError.message}` });
+            return;
+        }
+
         const {
             companyId,
             tallyHost = 'localhost',
@@ -87,6 +99,7 @@ function syncBillsOutstanding(params) {
         }
 
         const python = spawn(command, args, { cwd });
+        if (processRegistry) processRegistry.add(python);
         let stdout = '';
         let stderr = '';
         let resolved = false;
@@ -95,8 +108,14 @@ function syncBillsOutstanding(params) {
         const timeoutHandle = setTimeout(() => {
             if (!resolved) {
                 resolved = true;
-                if (isDev) console.error('❌ Bills outstanding sync timed out after 5 minutes');
-                python.kill();
+                if (processRegistry) processRegistry.delete(python);
+                python.kill('SIGTERM');
+                // Force kill if SIGTERM doesn't work
+                setTimeout(() => {
+                    try { if (python.exitCode === null) python.kill('SIGKILL'); } catch (_) {}
+                }, 5000);
+                python.stdout.removeAllListeners();
+                python.stderr.removeAllListeners();
                 resolve({
                     success: false,
                     message: 'Bills outstanding sync timed out after 5 minutes'
@@ -117,6 +136,7 @@ function syncBillsOutstanding(params) {
         });
 
         python.on('close', (code) => {
+            if (processRegistry) processRegistry.delete(python);
             clearTimeout(timeoutHandle);
             if (resolved) return;
             resolved = true;
@@ -164,6 +184,7 @@ function syncBillsOutstanding(params) {
         });
 
         python.on('error', (error) => {
+            if (processRegistry) processRegistry.delete(python);
             clearTimeout(timeoutHandle);
             if (resolved) return;
             resolved = true;
@@ -179,10 +200,10 @@ function syncBillsOutstanding(params) {
 /**
  * Register bills outstanding sync IPC handler
  */
-function registerBillsSyncHandler() {
+function registerBillsSyncHandler(processRegistry) {
     ipcMain.handle('sync-bills-outstanding', async (event, params) => {
         try {
-            return await syncBillsOutstanding(params);
+            return await syncBillsOutstanding(params, processRegistry);
         } catch (error) {
             return {
                 success: false,

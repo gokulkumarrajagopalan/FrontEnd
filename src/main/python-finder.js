@@ -1,15 +1,26 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
 // Resolve once to avoid repeating path math
 const projectRoot = path.join(__dirname, '..', '..');
 const venvPython = path.join(projectRoot, '.venv', 'Scripts', 'python.exe');
 
+// Validate that a path looks like a legitimate Python executable
+function isValidPythonPath(p) {
+    if (!p || typeof p !== 'string') return false;
+    // Must end with python.exe or python3.exe (or no extension on unix)
+    const basename = path.basename(p).toLowerCase();
+    if (!basename.startsWith('python')) return false;
+    // No shell metacharacters
+    if (/[;&|`$]/.test(p)) return false;
+    return true;
+}
+
 function findPython() {
     // 1. Try 'python' command first (simplest and most reliable if in PATH)
     try {
-        execSync('python --version', { stdio: 'ignore' });
+        execFileSync('python', ['--version'], { stdio: 'ignore' });
         console.log("python command is available in PATH");
         return 'python';
     } catch (e) {
@@ -18,14 +29,18 @@ function findPython() {
 
     // 2. Try 'where python' to find actual path (and verify it runs)
     try {
-        const result = execSync('where python', { encoding: 'utf8' });
+        const result = execFileSync('where', ['python'], { encoding: 'utf8' });
         const lines = result.split('\n').map(l => l.trim()).filter(Boolean);
         for (const pythonPath of lines) {
+            if (!isValidPythonPath(pythonPath)) {
+                console.log(`Skipping invalid python path: ${pythonPath}`);
+                continue;
+            }
             try {
                 const stats = fs.statSync(pythonPath);
                 if (stats.size > 0) {
-                    // Ensure this executable actually works
-                    execSync(`"${pythonPath}" --version`, { stdio: 'ignore' });
+                    // Use execFileSync (safe, no shell injection)
+                    execFileSync(pythonPath, ['--version'], { stdio: 'ignore' });
                     console.log(`Found Python via where: ${pythonPath}`);
                     return pythonPath;
                 }
@@ -52,21 +67,17 @@ function findPython() {
     ];
 
     for (const p of possiblePaths) {
+        if (!isValidPythonPath(p)) continue;
         try {
             if (fs.existsSync(p)) {
-                // Double check it works
-                try {
-                    execSync(`"${p}" --version`, { stdio: 'ignore' });
-                    console.log(`Found working Python at: ${p}`);
-                    return p;
-                } catch (e) {
-                    console.log(`Skipping unusable fallback python: ${p}`);
-                }
+                execFileSync(p, ['--version'], { stdio: 'ignore' });
+                console.log(`Found working Python at: ${p}`);
+                return p;
             }
         } catch (e) { }
     }
 
-    console.warn('⚠️ No Python found, defaulting to "python"');
+    console.warn('No Python found, defaulting to "python"');
     return 'python';
 }
 
