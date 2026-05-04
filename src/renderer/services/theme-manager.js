@@ -145,6 +145,14 @@ class ThemeManager {
         root.style.setProperty('--card-border', '#e2e8f0');
         root.style.setProperty('--card-shadow', 'rgba(41, 65, 96, 0.08)');
 
+        root.style.setProperty('--ds-status-pill-online-bg', 'rgba(16, 185, 129, 0.12)');
+        root.style.setProperty('--ds-status-pill-online-text', '#065f46');
+        root.style.setProperty('--ds-status-pill-online-border', 'rgba(16, 185, 129, 0.25)');
+        root.style.setProperty('--ds-status-pill-offline-bg', 'rgba(239, 68, 68, 0.12)');
+        root.style.setProperty('--ds-status-pill-offline-text', '#991b1b');
+        root.style.setProperty('--ds-status-pill-offline-border', 'rgba(239, 68, 68, 0.25)');
+        root.style.setProperty('--ds-logout-btn-border', 'rgba(15, 23, 42, 0.12)');
+
         // Input
         root.style.setProperty('--input-bg', '#ffffff');
         root.style.setProperty('--input-border', '#e2e8f0');
@@ -225,6 +233,14 @@ class ThemeManager {
         root.style.setProperty('--sidebar-bg', '#020617');
         root.style.setProperty('--sidebar-text', '#ffffff');
         root.style.setProperty('--sidebar-hover', '#1e293b');
+
+        root.style.setProperty('--ds-status-pill-online-bg', 'rgba(16, 185, 129, 0.14)');
+        root.style.setProperty('--ds-status-pill-online-text', '#d1fae5');
+        root.style.setProperty('--ds-status-pill-online-border', 'rgba(52, 211, 153, 0.22)');
+        root.style.setProperty('--ds-status-pill-offline-bg', 'rgba(239, 68, 68, 0.14)');
+        root.style.setProperty('--ds-status-pill-offline-text', '#fee2e2');
+        root.style.setProperty('--ds-status-pill-offline-border', 'rgba(252, 165, 165, 0.22)');
+        root.style.setProperty('--ds-logout-btn-border', 'rgba(255, 255, 255, 0.1)');
 
         // Card
         root.style.setProperty('--card-bg', '#1e293b');

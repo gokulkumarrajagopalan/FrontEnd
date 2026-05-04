@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Notification } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Notification, shell } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -7,6 +7,15 @@ const security = require("./security");
 const { findPython } = require("./python-finder");
 const { registerVoucherSyncHandler } = require("./voucher-sync-handler");
 const { registerBillsSyncHandler } = require("./bills-sync-handler");
+
+// Register talliffy:// as a custom protocol for SSO OAuth2 callback
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('talliffy', process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient('talliffy');
+}
 
 // Load environment variables — try project .env (dev) then packaged resources .env (prod)
 const _envPaths = [
@@ -827,6 +836,11 @@ if (isDev) console.log("✅ 'sync-vouchers' IPC handler registered successfully"
 registerBillsSyncHandler(activeChildProcesses);
 if (isDev) console.log("✅ 'sync-bills-outstanding' IPC handler registered successfully");
 
+// Register financial reports sync handler
+const { registerFinancialReportsHandler } = require('./financial-reports-handler');
+registerFinancialReportsHandler(activeChildProcesses);
+if (isDev) console.log("✅ 'sync-financial-reports' IPC handler registered successfully");
+
 if (isDev) console.log("🔧 About to register 'incremental-sync' handler...");
 
 ipcMain.handle("incremental-sync", async (event, config) => {
@@ -1074,13 +1088,40 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
-  app.on("second-instance", () => {
+  app.on("second-instance", (event, commandLine) => {
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0) {
       windows[0].focus();
     }
+    // Handle SSO deep link on Windows (second-instance carries the URL)
+    const deepLink = commandLine.find(arg => arg.startsWith('talliffy://'));
+    if (deepLink && mainWindow) {
+      mainWindow.webContents.send('sso-callback', deepLink);
+    }
   });
 }
+
+// Handle SSO deep link on macOS (open-url event)
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  if (url.startsWith('talliffy://') && mainWindow) {
+    mainWindow.webContents.send('sso-callback', url);
+  }
+});
+
+// Open SSO URL in system browser (not inside Electron)
+ipcMain.handle('open-external-url', async (event, url) => {
+  try {
+    // Only allow Keycloak SSO URLs
+    if (!url.startsWith('http://localhost:8180') && !url.startsWith('https://')) {
+      return { success: false, error: 'URL not allowed' };
+    }
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
 
 // Unified Renderer Logging (Production Grade)
 ipcMain.on('log-renderer', (event, { level, message, data, timestamp }) => {

@@ -53,8 +53,8 @@
                     <div style="background: var(--ds-bg-surface-sunken); padding: var(--ds-space-6); border-radius: var(--ds-radius-lg);">
                         <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-4);"><i class="fas fa-history" style="color: var(--ds-primary-500); margin-right: var(--ds-space-2);"></i>Your Tickets</h3>
                         <div id="ticketHistoryContainer">
-                            <div style="text-align: center; padding: var(--ds-space-6); color: var(--ds-text-tertiary);">
-                                <i class="fas fa-spinner fa-spin"></i> Loading tickets...
+                            <div style="display: flex; justify-content: center; align-items: center; padding: var(--ds-space-8);">
+                                ${window.UIComponents ? window.UIComponents.spinner({ size: 'md', text: 'Loading...' }) : 'Loading...'}
                             </div>
                         </div>
                     </div>

@@ -38,7 +38,9 @@ const ALLOWED_INVOKE_CHANNELS = [
     'incremental-sync',
     'reconcile-data',
     'fetch-master-data',
-    'show-system-notification'
+    'sync-financial-reports',
+    'show-system-notification',
+    'open-external-url'
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [
@@ -53,7 +55,8 @@ const ALLOWED_RECEIVE_CHANNELS = [
     'update-not-available',
     'update-error',
     'download-progress',
-    'update-downloaded'
+    'update-downloaded',
+    'sso-callback'
 ];
 
 let contextBridgeReady = false;
@@ -177,6 +180,12 @@ try {
             return ipcRenderer.invoke('incremental-sync', config);
         },
 
+        // Financial reports sync API
+        syncFinancialReports: (config) => {
+            if (isDev) console.log('📡 Preload: Calling sync-financial-reports handler...');
+            return ipcRenderer.invoke('sync-financial-reports', config);
+        },
+
         // Reconciliation API
         reconcileData: (config) => {
             if (isDev) console.log('📡 Preload: Calling reconcile-data handler...');
@@ -187,6 +196,12 @@ try {
         showSystemNotification: (options) => {
             return ipcRenderer.invoke('show-system-notification', options);
         },
+
+        // SSO deep link callback (talliffy://auth/callback?code=...)
+        onSSOCallback: (callback) => {
+            ipcRenderer.on('sso-callback', (event, url) => callback(url));
+        },
+        openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
 
         // ── Whitelisted generic IPC (for backward compat) ──
         send: (channel, data) => {

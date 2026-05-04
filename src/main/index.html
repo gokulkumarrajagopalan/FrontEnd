@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tally Prime - Enterprise ERP</title>
+    <title>Talliffy - Modern Tally Workspace</title>
     <!-- Security Headers -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
@@ -34,13 +34,13 @@
     <style>
         /* ── Essential overrides that bridge Tailwind + Design System ── */
         :root {
-            --primary-600: #496da0;
-            --primary-700: #37537b;
-            --primary-500: #5e86ba;
-            --primary-900: #131e31;
-            --primary-400: #779cc4;
-            --sidebar-bg: #f0f4f8;
-            --background-color: #f8fafc;
+            --primary-600: #4f46e5;
+            --primary-700: #4338ca;
+            --primary-500: #6366f1;
+            --primary-900: #312e81;
+            --primary-400: #818cf8;
+            --sidebar-bg: #24183d;
+            --background-color: #f5f5ff;
         }
 
         body {
@@ -263,9 +263,10 @@
         #splash {
             position: fixed;
             inset: 0;
-            background: linear-gradient(135deg, var(--ds-primary-600, #496da0) 0%, var(--ds-primary-800, #253956) 100%);
+            background: linear-gradient(135deg, var(--ds-primary-600) 0%, var(--ds-primary-800) 100%);
             display: flex;
             align-items: center;
+
             justify-content: center;
             z-index: 9999;
         }

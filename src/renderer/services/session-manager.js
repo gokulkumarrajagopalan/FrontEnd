@@ -90,7 +90,7 @@ class SessionManager {
             console.log('🔌 SessionManager: Connecting to WebSocket...');
             const encodedToken = encodeURIComponent(token);
             const encodedDeviceToken = encodeURIComponent(deviceToken);
-            const wsUrlWithParams = `${this.wsUrl}?token=${encodedToken}&deviceToken=${encodedDeviceToken}`;
+            const wsUrlWithParams = `${this.wsUrl}?token=${encodedToken}&deviceToken=${encodedDeviceToken}&deviceType=DESKTOP`;
             this.ws = new WebSocket(wsUrlWithParams);
 
             this.ws.onopen = () => {

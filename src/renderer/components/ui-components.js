@@ -308,14 +308,12 @@ const UIComponents = {
 
         const spinnerSize = sizeMap[size] || sizeMap.md;
 
+        const sizeClass = size === 'lg' ? 'ds-spinner-lg' : '';
         const spinner = `
             <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--ds-space-4);">
-                <div style="width: ${spinnerSize}; height: ${spinnerSize}; border: 3px solid var(--ds-primary-100); border-top-color: var(--ds-primary-500); border-radius: 50%; animation: ds-spin 1s linear infinite;"></div>
+                <div class="ds-spinner ${sizeClass}"></div>
                 ${text ? `<p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); font-weight: var(--ds-weight-medium); margin: 0;">${text}</p>` : ''}
             </div>
-            <style>
-                @keyframes ds-spin { to { transform: rotate(360deg); } }
-            </style>
         `;
 
         if (fullScreen) {

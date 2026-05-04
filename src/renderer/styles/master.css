@@ -8,13 +8,7 @@
 /* ==================== CSS VARIABLES ==================== */
 :root {
     /* Primary Colors */
-    --primary-50: #EFF6FF;
-    --primary-100: #DBEAFE;
-    --primary-400: #779cc4;
-    --primary-500: #5e86ba;
-    --primary-600: #496da0;
-    --primary-700: #37537b;
-    --primary-900: #131e31;
+    --primary-50: var(--ds-primary-50);\r\n    --primary-100: var(--ds-primary-100);\r\n    --primary-400: var(--ds-primary-400);\r\n    --primary-500: var(--ds-primary-500);\r\n    --primary-600: var(--ds-primary-600);\r\n    --primary-700: var(--ds-primary-700);\r\n    --primary-900: var(--ds-primary-900);
 
     /* Semantic Colors */
     --success: #10B981;
@@ -78,7 +72,7 @@ html body .btn-primary,
 html body .btn-erp {
     background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(94, 134, 186, 0.25);
+    box-shadow: 0 4px 12px rgba(234, 61, 29, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -86,7 +80,7 @@ html body .btn-primary:hover,
 html body .btn-erp:hover {
     background: linear-gradient(135deg, var(--primary-400) 0%, var(--primary-500) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(73, 109, 160, 0.4);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
 }
 
 html body .btn-secondary {
@@ -164,7 +158,7 @@ html body input.form-input:focus,
 html body select.form-input:focus {
     outline: none;
     border-color: var(--border-focus);
-    box-shadow: 0 0 0 3px rgba(94, 134, 186, 0.15);
+    box-shadow: 0 0 0 3px var(--ds-input-focus-ring);
 }
 
 html body .form-input.error,
@@ -348,19 +342,20 @@ html body .card:hover {
 }
 
 /* ==================== GLOBAL BUTTON COLOR ==================== */
-/* All primary action buttons use #3b82f6 (blue-500) consistently */
 html body .ds-btn-primary {
-    background: #3b82f6;
+    background: linear-gradient(135deg, #ff7b55 0%, #ff5a36 52%, #f59e0b 100%);
+    color: #ffffff;
+    box-shadow: 0 16px 28px -14px rgba(234, 61, 29, 0.42);
 }
 
 html body .ds-btn-primary:hover:not(:disabled) {
-    background: #2563eb;
+    background: linear-gradient(135deg, #ff8b67 0%, #f04d2b 52%, #e28b06 100%);
 }
 
 html body .sync-company-btn {
-    background: #3b82f6 !important;
+    background: linear-gradient(135deg, #818cf8 0%, #6366f1 52%, #8b5cf6 100%) !important;
 }
 
 html body .sync-company-btn:hover {
-    background: #2563eb !important;
+    background: linear-gradient(135deg, #929cf9 0%, #5558e8 52%, #7c4fe0 100%) !important;
 }

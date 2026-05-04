@@ -83,9 +83,10 @@
     --border-secondary: var(--ds-border-strong);
     --border-focus: var(--ds-border-focus);
 
-    --sidebar-bg: #f8fafc;
-    --sidebar-text: #1e293b;
-    --sidebar-hover: #e2e8f0;
+    --sidebar-bg: linear-gradient(180deg, #0b1224 0%, #13213f 45%, #1d3560 100%);
+    --sidebar-text: #ffffff;
+    --sidebar-hover: rgba(148, 197, 255, 0.18);
+
 
     --card-bg: var(--ds-card-bg);
     --card-border: var(--ds-card-border);
@@ -100,9 +101,9 @@
     --table-row-hover: var(--ds-table-row-hover);
     --table-border: var(--ds-table-row-border);
 
-    --gradient-start: var(--primary-600);
-    --gradient-middle: var(--secondary-500);
-    --gradient-end: var(--accent-400);
+    --gradient-start: #4f46e5;
+    --gradient-middle: #2563eb;
+    --gradient-end: #0ea5e9;
 
     /* Shadows */
     --shadow-sm: var(--ds-shadow-sm);
@@ -110,7 +111,7 @@
     --shadow-md: var(--ds-shadow-md);
     --shadow-lg: var(--ds-shadow-lg);
     --shadow-xl: var(--ds-shadow-xl);
-    --shadow-2xl: 0 25px 50px -12px rgba(21, 101, 192, 0.25);
+    --shadow-2xl: 0 25px 50px -12px rgba(15, 10, 60, 0.25);
 
     /* Spacing */
     --spacing-xs: 0.25rem;
@@ -176,7 +177,10 @@
 html,
 body {
     font-family: var(--ds-font-family);
-    background: var(--ds-bg-app);
+    background:
+        radial-gradient(circle at 8% 10%, rgb(79 70 229 / 0.12), transparent 32%),
+        radial-gradient(circle at 88% 82%, rgb(14 165 233 / 0.13), transparent 34%),
+        linear-gradient(160deg, rgb(255 255 255 / 0.75) 0%, rgb(238 244 255 / 0.9) 46%, rgb(219 234 254 / 0.72) 100%);
     color: var(--ds-text-primary);
     min-height: 100vh;
     margin: 0;
@@ -190,7 +194,7 @@ body {
 
 #app {
     min-height: 100vh;
-    background: var(--bg-primary);
+    background: transparent;
     transition: background-color 0.3s ease;
 }
 
@@ -414,28 +418,28 @@ button[type="button"]:active {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #5e86ba 0%, #496da0 100%);
-    color: #ffffff;
-    box-shadow: 0 6px 20px rgba(94, 134, 186, 0.35);
+    background: linear-gradient(135deg, #4f46e5 0%, #2563eb 52%, #0ea5e9 100%);
+    color: var(--ds-btn-primary-text);
+    box-shadow: 0 10px 26px rgba(37, 99, 235, 0.26);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #496da0 0%, #37537b 100%);
-    box-shadow: 0 10px 30px rgba(94, 134, 186, 0.5);
+    background: linear-gradient(135deg, #4338ca 0%, #1d4ed8 54%, #0284c7 100%);
+    box-shadow: 0 14px 34px rgba(37, 99, 235, 0.34);
     transform: translateY(-2px);
 }
 
 .btn-secondary {
-    background: linear-gradient(135deg, #395984 0%, #2d4563 100%);
-    color: #ffffff;
-    box-shadow: 0 6px 20px rgba(57, 89, 132, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--ds-btn-secondary-bg);
+    color: var(--ds-btn-secondary-text);
+    border: 1px solid var(--ds-btn-secondary-border);
+    box-shadow: var(--ds-shadow-sm);
 }
 
 .btn-secondary:hover {
-    background: linear-gradient(135deg, #2d4563 0%, #1f2e42 100%);
-    box-shadow: 0 10px 30px rgba(57, 89, 132, 0.5);
+    background: var(--ds-btn-secondary-bg-hover);
+    box-shadow: var(--ds-shadow-md);
     transform: translateY(-2px);
 }
 
@@ -480,16 +484,16 @@ button[type="button"]:active {
 
 .btn-outline {
     background: transparent;
-    border: 2px solid #5e86ba;
-    color: #5e86ba;
+    border: 2px solid var(--ds-primary-500);
+    color: var(--ds-primary-500);
     box-shadow: none;
 }
 
 .btn-outline:hover {
-    background: linear-gradient(135deg, #5e86ba 0%, #496da0 100%);
-    color: #ffffff;
-    box-shadow: 0 6px 20px rgba(94, 134, 186, 0.35);
-    border-color: #496da0;
+    background: var(--ds-btn-primary-bg);
+    color: var(--ds-btn-primary-text);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.25);
+    border-color: var(--ds-primary-600);
 }
 
 /* ==================== FORMS ==================== */
@@ -653,7 +657,7 @@ textarea::placeholder {
 /* ==================== AUTH PAGES ==================== */
 .auth-background {
     min-height: 100vh;
-    background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-900) 100%);
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-900) 100%);
 }
 
 .auth-card {
@@ -850,16 +854,16 @@ textarea::placeholder {
 
 /* ==================== GLOBAL DEFAULT BUTTON STYLES ==================== */
 button:not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-outline):not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master-tab):not(.voucher-tab):not(.report-tab):not(.auth-tab-btn):not(.action-btn):not(.close-btn) {
-    background: linear-gradient(135deg, #5e86ba 0%, #496da0 100%);
-    color: #ffffff;
-    box-shadow: 0 6px 20px rgba(94, 134, 186, 0.35);
+    background: linear-gradient(135deg, #4f46e5 0%, #2563eb 52%, #0ea5e9 100%);
+    color: var(--ds-btn-primary-text);
+    box-shadow: 0 10px 26px rgba(37, 99, 235, 0.26);
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
 }
 
 button:not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-outline):not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master-tab):not(.voucher-tab):not(.report-tab):not(.auth-tab-btn):not(.action-btn):not(.close-btn):hover {
-    background: linear-gradient(135deg, #496da0 0%, #37537b 100%);
-    box-shadow: 0 10px 30px rgba(94, 134, 186, 0.5);
+    background: linear-gradient(135deg, #4338ca 0%, #1d4ed8 54%, #0284c7 100%);
+    box-shadow: 0 14px 34px rgba(37, 99, 235, 0.34);
     transform: translateY(-2px);
 }
 
@@ -899,17 +903,17 @@ button:not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master
 
 #mainSidebar .nav-link:not(.ds-nav-link):hover,
 #mainSidebar [data-route]:not(.ds-nav-link):hover {
-    color: #1d4ed8;
-    background: #eff6ff;
-    border-left-color: #5e86ba;
+    color: var(--ds-primary-700);
+    background: var(--ds-primary-50);
+    border-left-color: var(--ds-primary-500);
 }
 
 #mainSidebar .nav-link:not(.ds-nav-link).active,
 #mainSidebar [data-route]:not(.ds-nav-link).active {
-    color: #1e40af;
-    background: #dbeafe;
-    border-left-color: #779cc4;
-    box-shadow: 0 4px 15px rgba(94, 134, 186, 0.2);
+    color: var(--ds-primary-800);
+    background: var(--ds-primary-100);
+    border-left-color: var(--ds-primary-400);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.18);
 }
 
 /* Sidebar Logout Button */
@@ -944,7 +948,7 @@ button:not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--ds-primary-500, #5e86ba), var(--ds-primary-400, #779cc4));
+    background: linear-gradient(90deg, var(--ds-primary-500), var(--ds-primary-400));
 }
 
 .page-header h2 {
@@ -1054,8 +1058,8 @@ textarea:not(.ds-input) {
 input:not(.ds-input):focus,
 select:not(.ds-input):focus,
 textarea:not(.ds-input):focus {
-    border-color: var(--ds-primary-400, #779cc4);
-    box-shadow: var(--ds-input-focus-ring, 0 0 0 3px rgba(94, 134, 186, 0.15));
+    border-color: var(--ds-primary-400);
+    box-shadow: var(--ds-input-focus-ring, 0 0 0 3px rgba(99, 102, 241, 0.15));
     outline: none;
 }
 
@@ -1175,12 +1179,12 @@ header.h-16 {
 }
 
 #globalCompanySelector:hover {
-    border-color: var(--ds-primary-400, #779cc4);
+    border-color: var(--ds-primary-400);
 }
 
 #globalCompanySelector:focus {
-    border-color: var(--ds-primary-400, #779cc4);
-    box-shadow: var(--ds-input-focus-ring, 0 0 0 3px rgba(94, 134, 186, 0.15));
+    border-color: var(--ds-primary-400);
+    box-shadow: var(--ds-input-focus-ring, 0 0 0 3px rgba(99, 102, 241, 0.15));
 }
 
 /* User Badge */
@@ -1221,18 +1225,18 @@ header.h-16 {
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-    background: rgba(94, 134, 186, 0.2);
+    background: rgba(99, 102, 241, 0.2);
     border-radius: 10px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-    background: rgba(94, 134, 186, 0.4);
+    background: rgba(99, 102, 241, 0.4);
 }
 
 /* ==================== HERO GRADIENT SECTIONS ==================== */
 .bg-gradient-to-br.from-blue-600,
 .bg-gradient-to-r.from-blue-600 {
-    background: linear-gradient(135deg, var(--ds-primary-600, #496da0) 0%, var(--ds-primary-500, #5e86ba) 50%, var(--ds-primary-400, #779cc4) 100%);
+    background: linear-gradient(135deg, var(--ds-primary-600) 0%, var(--ds-primary-500) 50%, var(--ds-primary-400) 100%);
     position: relative;
     overflow: hidden;
 }
@@ -1252,7 +1256,7 @@ header.h-16 {
 /* ==================== DARK THEME OVERRIDES (PREMIUM SLATE) ==================== */
 .dark-theme body,
 .dark-theme #app {
-    background: #0f172a !important;
+    background: #020617 !important;
     /* Slate 900 - Matches Sidebar Base */
     color: #f1f5f9 !important;
     /* Slate 100 */

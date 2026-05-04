@@ -1,48 +1,48 @@
-/* =====================================================
-   TALLIFFY - DESIGN SYSTEM
-   Single source of truth for all design tokens.
-   This file is loaded FIRST and defines the foundation.
-   Other CSS files should reference these variables only.
-   ===================================================== */
 
-/* ==================== COLOR TOKENS ==================== */
 
 :root {
-    /* ── Brand Primary (Steel Blue) ── */
-    --ds-primary-50: #eff3f8;
-    --ds-primary-100: #dce7f1;
-    --ds-primary-200: #bbcee2;
-    --ds-primary-300: #99b5d3;
-    --ds-primary-400: #779cc4;
-    --ds-primary-500: #5e86ba;
-    --ds-primary-600: #496da0;
-    --ds-primary-700: #37537b;
-    --ds-primary-800: #253956;
-    --ds-primary-900: #131e31;
+    --ds-primary-50: #eef2ff;
+    --ds-primary-100: #e0e7ff;
+    --ds-primary-200: #c7d2fe;
+    --ds-primary-300: #a5b4fc;
+    --ds-primary-400: #818cf8;
+    --ds-primary-500: #6366f1;
+    --ds-primary-600: #4f46e5;
+    --ds-primary-700: #4338ca;
+    --ds-primary-800: #3730a3;
+    --ds-primary-900: #312e81;
 
-    /* ── Brand Accent (Deep Blue) ── */
-    --ds-accent-50: #e8eaee;
-    --ds-accent-100: #d1d5dd;
-    --ds-accent-200: #a3acbb;
-    --ds-accent-300: #758399;
-    --ds-accent-400: #475a77;
-    --ds-accent-500: #294160;
-    --ds-accent-600: #1f314d;
-    --ds-accent-700: #15213a;
-    --ds-accent-800: #0b1127;
-    --ds-accent-900: #060814;
+    /* ── Brand Gradient Tokens ── */
+    --ds-gradient-primary: linear-gradient(135deg, #4f46e5 0%, #2563eb 52%, #0ea5e9 100%);
+    --ds-gradient-primary-hover: linear-gradient(135deg, #4338ca 0%, #1d4ed8 54%, #0284c7 100%);
+    --ds-gradient-sidebar: linear-gradient(180deg, #0b1224 0%, #13213f 45%, #1d3560 100%);
+    --ds-gradient-sidebar-header: linear-gradient(135deg, rgba(79, 70, 229, 0.24) 0%, rgba(37, 99, 235, 0.2) 52%, rgba(14, 165, 233, 0.18) 100%);
+    --ds-gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(238, 242, 255, 0.94) 100%);
+    --ds-gradient-glow: linear-gradient(135deg, rgba(99, 102, 241, 0.24) 0%, rgba(139, 92, 246, 0.14) 55%, rgba(79, 70, 229, 0.18) 100%);
 
-    /* ── Neutral / Gray Scale ── */
-    --ds-gray-50: #fafafa;
-    --ds-gray-100: #f5f5f5;
-    --ds-gray-200: #eeeeee;
-    --ds-gray-300: #e0e0e0;
-    --ds-gray-400: #bdbdbd;
-    --ds-gray-500: #9e9e9e;
-    --ds-gray-600: #757575;
-    --ds-gray-700: #616161;
-    --ds-gray-800: #424242;
-    --ds-gray-900: #212121;
+    /* ── Brand Accent (Deep Slate) ── */
+    --ds-accent-50: #f8fafc;
+    --ds-accent-100: #f1f5f9;
+    --ds-accent-200: #e2e8f0;
+    --ds-accent-300: #cbd5e1;
+    --ds-accent-400: #94a3b8;
+    --ds-accent-500: #64748b;
+    --ds-accent-600: #475569;
+    --ds-accent-700: #334155;
+    --ds-accent-800: #1e293b;
+    --ds-accent-900: #0f172a;
+
+    /* ── Neutral / Gray Scale (Slate) ── */
+    --ds-gray-50: #f8fafc;
+    --ds-gray-100: #f1f5f9;
+    --ds-gray-200: #e2e8f0;
+    --ds-gray-300: #cbd5e1;
+    --ds-gray-400: #94a3b8;
+    --ds-gray-500: #64748b;
+    --ds-gray-600: #475569;
+    --ds-gray-700: #334155;
+    --ds-gray-800: #1e293b;
+    --ds-gray-900: #0f172a;
 
     /* ── Semantic Colors ── */
     --ds-success-50: #ecfdf5;
@@ -68,6 +68,15 @@
     --ds-info-500: #3b82f6;
     --ds-info-600: #2563eb;
     --ds-info-700: #1d4ed8;
+    
+    /* ── Status Pill Theme Variables (Defaults to Dark) ── */
+    --ds-status-pill-online-bg: rgba(16, 185, 129, 0.14);
+    --ds-status-pill-online-text: #d1fae5;
+    --ds-status-pill-online-border: rgba(52, 211, 153, 0.22);
+    --ds-status-pill-offline-bg: rgba(239, 68, 68, 0.14);
+    --ds-status-pill-offline-text: #fee2e2;
+    --ds-status-pill-offline-border: rgba(252, 165, 165, 0.22);
+    --ds-logout-btn-border: rgba(255, 255, 255, 0.1);
 
     /* ==================== TYPOGRAPHY ==================== */
     --ds-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -185,12 +194,12 @@
     --ds-content-max-width: 1280px;
 
     /* ==================== THEME TOKENS (Light Mode) ==================== */
-    --ds-bg-app: #f8f9fb;
+    --ds-bg-app: #eef4ff;
     --ds-bg-surface: #ffffff;
     --ds-bg-surface-raised: #ffffff;
-    --ds-bg-surface-sunken: #f1f5f9;
-    --ds-bg-hover: #f1f5f9;
-    --ds-bg-active: #e2e8f0;
+    --ds-bg-surface-sunken: #eaf0ff;
+    --ds-bg-hover: #dbeafe;
+    --ds-bg-active: #bfdbfe;
 
     --ds-text-primary: #0f172a;
     --ds-text-secondary: #475569;
@@ -200,37 +209,37 @@
     --ds-text-link: var(--ds-primary-600);
     --ds-text-link-hover: var(--ds-primary-700);
 
-    --ds-border-default: #e2e8f0;
-    --ds-border-strong: #cbd5e1;
+    --ds-border-default: #dbe6fb;
+    --ds-border-strong: #c3d7f7;
     --ds-border-focus: var(--ds-primary-500);
     --ds-border-error: var(--ds-danger-500);
 
     /* ── Sidebar Theme ── */
-    --ds-sidebar-bg: #f8fafc;
-    --ds-sidebar-header-bg: #ffffff;
-    --ds-sidebar-text: #334155;
-    --ds-sidebar-text-muted: #64748b;
-    --ds-sidebar-border: #e2e8f0;
-    --ds-sidebar-nav-hover-bg: #eff6ff;
-    --ds-sidebar-nav-hover-text: #1d4ed8;
-    --ds-sidebar-nav-active-bg: #dbeafe;
-    --ds-sidebar-nav-active-text: #1e40af;
-    --ds-sidebar-nav-active-border: #5E86BA;
-    --ds-sidebar-section-label: #94a3b8;
+    --ds-sidebar-bg: var(--ds-gradient-sidebar);
+    --ds-sidebar-header-bg: var(--ds-gradient-sidebar-header);
+    --ds-sidebar-text: #eaf2ff;
+    --ds-sidebar-text-muted: rgba(191, 219, 254, 0.75);
+    --ds-sidebar-border: rgba(255, 255, 255, 0.08);
+    --ds-sidebar-nav-hover-bg: rgba(148, 197, 255, 0.16);
+    --ds-sidebar-nav-hover-text: #ffffff;
+    --ds-sidebar-nav-active-bg: linear-gradient(135deg, rgba(79, 70, 229, 0.42) 0%, rgba(37, 99, 235, 0.34) 52%, rgba(14, 165, 233, 0.26) 100%);
+    --ds-sidebar-nav-active-text: #ffffff;
+    --ds-sidebar-nav-active-border: #93c5fd;
+    --ds-sidebar-section-label: rgba(147, 197, 253, 0.72);
 
     /* ── Card Theme ── */
     --ds-card-bg: #ffffff;
     --ds-card-border: #e2e8f0;
-    --ds-card-shadow: var(--ds-shadow-sm);
-    --ds-card-hover-shadow: var(--ds-shadow-md);
+    --ds-card-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+    --ds-card-hover-shadow: 0 20px 40px rgba(30, 41, 59, 0.1);
 
     /* ── Input Theme ── */
     --ds-input-bg: #ffffff;
-    --ds-input-border: #e2e8f0;
+    --ds-input-border: #e0e7ff;
     --ds-input-text: #0f172a;
-    --ds-input-placeholder: #94a3b8;
+    --ds-input-placeholder: #9ca3af;
     --ds-input-focus-border: var(--ds-primary-500);
-    --ds-input-focus-ring: rgba(94, 134, 186, 0.15);
+    --ds-input-focus-ring: rgba(99, 102, 241, 0.2);
 
     /* ── Table Theme ── */
     --ds-table-header-bg: #f8fafc;
@@ -239,15 +248,15 @@
     --ds-table-row-hover: #f8fafc;
 
     /* ── Button Theme ── */
-    --ds-btn-primary-bg: var(--ds-primary-600);
-    --ds-btn-primary-bg-hover: var(--ds-primary-700);
+    --ds-btn-primary-bg: var(--ds-gradient-primary);
+    --ds-btn-primary-bg-hover: var(--ds-gradient-primary-hover);
     --ds-btn-primary-text: #ffffff;
-    --ds-btn-primary-shadow: rgba(73, 109, 160, 0.25);
+    --ds-btn-primary-shadow: rgba(37, 99, 235, 0.38);
 
-    --ds-btn-secondary-bg: #ffffff;
-    --ds-btn-secondary-bg-hover: #f1f5f9;
-    --ds-btn-secondary-text: #334155;
-    --ds-btn-secondary-border: #e2e8f0;
+    --ds-btn-secondary-bg: rgba(238, 242, 255, 0.95);
+    --ds-btn-secondary-bg-hover: rgba(224, 231, 255, 1);
+    --ds-btn-secondary-text: #3730a3;
+    --ds-btn-secondary-border: #c7d2fe;
 
     --ds-btn-danger-bg: var(--ds-danger-600);
     --ds-btn-danger-bg-hover: var(--ds-danger-700);
@@ -332,7 +341,7 @@ body {
     flex-direction: column;
     background: var(--ds-sidebar-bg);
     border-right: var(--ds-border-width) solid var(--ds-sidebar-border);
-    box-shadow: 1px 0 8px rgba(0, 0, 0, 0.04);
+    box-shadow: 20px 0 42px rgba(15, 10, 60, 0.22);
     transition: width var(--ds-duration-slow) var(--ds-ease);
     overflow: hidden;
     position: relative;
@@ -348,6 +357,7 @@ body {
     align-items: center;
     gap: var(--ds-space-3);
     flex-shrink: 0;
+    backdrop-filter: blur(16px);
 }
 
 .ds-sidebar-header .brand-icon-wrapper {
@@ -355,12 +365,17 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    padding: 6px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .ds-sidebar-header .brand-icon-image {
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
     display: block;
+    filter: drop-shadow(0 10px 24px rgba(99, 102, 241, 0.4));
 }
 
 .ds-sidebar-brand-text {
@@ -373,7 +388,7 @@ body {
     font-size: var(--ds-text-xl);
     font-weight: var(--ds-weight-bold);
     color: var(--ds-sidebar-text);
-    letter-spacing: var(--ds-tracking-tight);
+    letter-spacing: 0;
     line-height: var(--ds-leading-tight);
 }
 
@@ -389,7 +404,7 @@ body {
 .ds-sidebar-nav {
     flex: 1;
     overflow-y: auto;
-    padding: var(--ds-space-3) var(--ds-space-2);
+    padding: var(--ds-space-4) var(--ds-space-3);
     scrollbar-width: thin;
     scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
@@ -428,10 +443,10 @@ body {
 .ds-nav-link {
     display: flex;
     align-items: center;
-    gap: var(--ds-space-2-5);
-    padding: var(--ds-space-2) var(--ds-space-3);
-    margin: var(--ds-space-0-5) 0;
-    border-radius: var(--ds-radius-md);
+    gap: var(--ds-space-3);
+    padding: var(--ds-space-2-5) var(--ds-space-3);
+    margin: var(--ds-space-1) 0;
+    border-radius: var(--ds-radius-xl);
     font-size: var(--ds-text-sm);
     font-weight: var(--ds-weight-medium);
     color: var(--ds-sidebar-text);
@@ -442,13 +457,16 @@ body {
     border-left: 3px solid transparent;
     position: relative;
     user-select: none;
-    min-height: 36px;
+    min-height: 42px;
+    backdrop-filter: blur(10px);
 }
 
 .ds-nav-link:hover {
     background: var(--ds-sidebar-nav-hover-bg);
     color: var(--ds-sidebar-nav-hover-text);
-    border-left-color: var(--ds-primary-400);
+    border-left-color: rgba(165, 180, 252, 0.9);
+    transform: translateX(2px);
+    box-shadow: 0 14px 24px rgba(17, 12, 29, 0.2);
 }
 
 .ds-nav-link.active {
@@ -456,7 +474,7 @@ body {
     color: var(--ds-sidebar-nav-active-text);
     font-weight: var(--ds-weight-semibold);
     border-left-color: var(--ds-sidebar-nav-active-border);
-    box-shadow: var(--ds-shadow-xs);
+    box-shadow: 0 18px 28px rgba(99, 102, 241, 0.22);
 }
 
 .ds-nav-link .ds-nav-icon {
@@ -552,26 +570,27 @@ body {
     display: flex;
     align-items: center;
     gap: var(--ds-space-2);
-    padding: var(--ds-space-1-5) var(--ds-space-3);
+    padding: var(--ds-space-2) var(--ds-space-3);
     border-radius: var(--ds-radius-full);
     font-size: var(--ds-text-xs);
     font-weight: var(--ds-weight-semibold);
     transition: all var(--ds-duration-slow) var(--ds-ease);
-    border: 1px solid transparent;
+    border: 1px solid var(--ds-status-pill-online-border); /* fallback */
     user-select: none;
     min-width: 130px;
+    backdrop-filter: blur(12px);
 }
 
 .ds-status-pill.online {
-    background: var(--ds-success-50);
-    color: var(--ds-success-700);
-    border-color: var(--ds-success-100);
+    background: var(--ds-status-pill-online-bg);
+    color: var(--ds-status-pill-online-text);
+    border-color: var(--ds-status-pill-online-border);
 }
 
 .ds-status-pill.offline {
-    background: var(--ds-danger-50);
-    color: var(--ds-danger-700);
-    border-color: var(--ds-danger-100);
+    background: var(--ds-status-pill-offline-bg);
+    color: var(--ds-status-pill-offline-text);
+    border-color: var(--ds-status-pill-offline-border);
 }
 
 .ds-status-pill .ds-status-icon {
@@ -595,13 +614,13 @@ body {
 
 .ds-logout-btn {
     width: 100%;
-    padding: var(--ds-space-2) var(--ds-space-3);
-    background: transparent;
+    padding: var(--ds-space-2-5) var(--ds-space-3);
+    background: rgba(255, 255, 255, 0.08);
     color: var(--ds-sidebar-text);
     font-size: var(--ds-text-sm);
     font-weight: var(--ds-weight-semibold);
-    border: var(--ds-border-width) solid var(--ds-sidebar-border);
-    border-radius: var(--ds-radius-md);
+    border: var(--ds-border-width) solid var(--ds-logout-btn-border);
+    border-radius: var(--ds-radius-xl);
     cursor: pointer;
     transition: all var(--ds-duration-base) var(--ds-ease);
     display: flex;
@@ -611,9 +630,10 @@ body {
 }
 
 .ds-logout-btn:hover {
-    background: var(--ds-danger-50);
-    color: var(--ds-danger-600);
-    border-color: var(--ds-danger-200, #fecaca);
+    background: rgba(239, 68, 68, 0.14);
+    color: #ffe0d6;
+    border-color: rgba(255, 145, 122, 0.34);
+    transform: translateY(-1px);
 }
 
 /* ==================== BUTTON COMPONENTS ==================== */
@@ -626,7 +646,7 @@ body {
     gap: var(--ds-space-2);
     padding: var(--ds-space-2) var(--ds-space-4);
     border: var(--ds-border-width) solid transparent;
-    border-radius: var(--ds-radius-md);
+    border-radius: var(--ds-radius-xl);
     font-family: var(--ds-font-family);
     font-size: var(--ds-text-sm);
     font-weight: var(--ds-weight-semibold);
@@ -648,18 +668,18 @@ body {
 .ds-btn-primary {
     background: var(--ds-btn-primary-bg);
     color: var(--ds-btn-primary-text);
-    box-shadow: 0 1px 3px var(--ds-btn-primary-shadow);
+    box-shadow: 0 14px 28px -12px var(--ds-btn-primary-shadow);
 }
 
 .ds-btn-primary:hover:not(:disabled) {
     background: var(--ds-btn-primary-bg-hover);
-    box-shadow: 0 2px 6px var(--ds-btn-primary-shadow);
-    transform: translateY(-1px);
+    box-shadow: 0 18px 32px -14px var(--ds-btn-primary-shadow);
+    transform: translateY(-2px);
 }
 
 .ds-btn-primary:active:not(:disabled) {
     transform: translateY(0);
-    box-shadow: 0 1px 2px var(--ds-btn-primary-shadow);
+    box-shadow: 0 10px 22px -14px var(--ds-btn-primary-shadow);
 }
 
 /* Secondary button */
@@ -667,12 +687,14 @@ body {
     background: var(--ds-btn-secondary-bg);
     color: var(--ds-btn-secondary-text);
     border-color: var(--ds-btn-secondary-border);
+    box-shadow: 0 8px 18px rgba(148, 163, 184, 0.12);
 }
 
 .ds-btn-secondary:hover:not(:disabled) {
     background: var(--ds-btn-secondary-bg-hover);
     border-color: var(--ds-border-strong);
     transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(99, 102, 241, 0.15);
 }
 
 /* Danger button */
@@ -736,6 +758,7 @@ body {
     box-shadow: var(--ds-card-shadow);
     transition: box-shadow var(--ds-duration-base) var(--ds-ease);
     overflow: hidden;
+    position: relative;
 }
 
 .ds-card:hover {
@@ -761,10 +784,10 @@ body {
 /* ==================== INPUT COMPONENTS ==================== */
 .ds-input {
     width: 100%;
-    padding: var(--ds-space-2) var(--ds-space-3);
-    background: var(--ds-input-bg);
+    padding: var(--ds-space-2-5) var(--ds-space-3);
+    background: linear-gradient(180deg, #ffffff 0%, #f8f8ff 100%);
     border: var(--ds-border-width-2) solid var(--ds-input-border);
-    border-radius: var(--ds-radius-md);
+    border-radius: var(--ds-radius-xl);
     font-family: var(--ds-font-family);
     font-size: var(--ds-text-sm);
     color: var(--ds-input-text);
@@ -779,7 +802,7 @@ body {
 .ds-input:focus {
     outline: none;
     border-color: var(--ds-input-focus-border);
-    box-shadow: 0 0 0 3px var(--ds-input-focus-ring);
+    box-shadow: 0 0 0 4px var(--ds-input-focus-ring), 0 16px 24px -20px rgba(99, 102, 241, 0.35);
 }
 
 .ds-input:disabled {
@@ -1154,9 +1177,9 @@ body {
     --ds-sidebar-text: #e2e8f0;
     --ds-sidebar-text-muted: #94a3b8;
     --ds-sidebar-border: #334155;
-    --ds-sidebar-nav-hover-bg: rgba(59, 130, 246, 0.1);
+    --ds-sidebar-nav-hover-bg: rgba(59, 130, 246, 0.14);
     --ds-sidebar-nav-hover-text: #93c5fd;
-    --ds-sidebar-nav-active-bg: rgba(59, 130, 246, 0.15);
+    --ds-sidebar-nav-active-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.24) 0%, rgba(14, 165, 233, 0.2) 100%);
     --ds-sidebar-nav-active-text: #93c5fd;
     --ds-sidebar-nav-active-border: #3b82f6;
     --ds-sidebar-section-label: #64748b;

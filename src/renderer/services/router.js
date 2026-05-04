@@ -39,10 +39,13 @@ class Router {
 
         this.currentRoute = route;
 
-        // Reset scroll position to top
+        // Reset scroll position to top and show loading state
         const content = document.getElementById('page-content');
         if (content) {
             content.scrollTop = 0;
+            content.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center;">' + 
+                (window.UIComponents ? window.UIComponents.spinner({ size: 'lg', text: 'Loading...' }) : 'Loading...') + 
+                '</div>';
         }
 
         try {

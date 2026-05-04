@@ -678,11 +678,11 @@ class App {
                     <!-- Brand Header -->
                     <div class="ds-sidebar-header" id="expandedHeader">
                         <div class="brand-icon-wrapper" aria-label="Talliffy" title="Talliffy">
-                            <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image" style="width: 48px; height: 48px;" />
+                            <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image" style="width: 52px; height: 52px;" />
                         </div>
                         <div class="ds-sidebar-brand-text">
                             <span class="ds-sidebar-brand-title">Talliffy</span>
-                            <span class="ds-sidebar-brand-subtitle">Enterprise Sync Platform</span>
+                            <span class="ds-sidebar-brand-subtitle">Modern Tally workspace</span>
                         </div>
                     </div>
                     
@@ -739,12 +739,12 @@ class App {
                         <div class="ds-sidebar-status">
                             <div id="tallyStatusPill" class="ds-status-pill online">
                                 <span class="ds-status-icon" id="tallyStatusIcon"><i class="fas fa-plug"></i></span>
-                                <span class="flex-1">Tally: Connected</span>
+                                <span class="flex-1">Tally online</span>
                                 <span class="ds-status-dot online"></span>
                             </div>
                             <div id="internetStatusPill" class="ds-status-pill online">
                                 <span class="ds-status-icon" id="internetStatusIcon"><i class="fas fa-globe"></i></span>
-                                <span class="flex-1">Internet: Connected</span>
+                                <span class="flex-1">Internet live</span>
                                 <span class="ds-status-dot online"></span>
                             </div>
                         </div>
@@ -774,7 +774,11 @@ class App {
                             </div>
                         </div>
                     </header>
-                    <div id="page-content" class="flex-1 overflow-y-auto" style="height: 100%; min-height: 0; background: var(--ds-bg-app); padding: 0;">Loading...</div>
+                    <div id="page-content" class="flex-1 overflow-y-auto" style="height: 100%; min-height: 0; background: var(--ds-bg-app); padding: 0;">
+                        <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                            ${window.UIComponents ? window.UIComponents.spinner({ size: 'lg', text: 'Loading...' }) : 'Loading...'}
+                        </div>
+                    </div>
                 </main>
             `;
 

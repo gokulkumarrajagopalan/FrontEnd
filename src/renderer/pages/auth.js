@@ -214,158 +214,596 @@
         }
     };
 
+    const AUTH_SHARED_STYLES = `
+    <style>
+        .auth-background {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(91, 140, 255, 0.14), transparent 34%),
+                radial-gradient(circle at bottom right, rgba(20, 184, 166, 0.12), transparent 30%),
+                linear-gradient(180deg, #f4f7fc 0%, #eef4ff 48%, #f8fbff 100%);
+        }
+
+        .auth-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .auth-hero {
+            position: relative;
+            width: 50%;
+            overflow: hidden;
+            padding: var(--ds-space-12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.16), transparent 22%),
+                radial-gradient(circle at 84% 20%, rgba(20, 184, 166, 0.22), transparent 26%),
+                linear-gradient(145deg, #0f172a 0%, #1e1b4b 35%, #274bdb 74%, #14b8a6 100%);
+        }
+
+        .auth-hero::before {
+            content: '';
+            position: absolute;
+            inset: 24px;
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            pointer-events: none;
+        }
+
+        .auth-hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 480px;
+            width: 100%;
+        }
+
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: var(--ds-space-4);
+            margin-bottom: var(--ds-space-8);
+        }
+
+        .auth-brand-mark {
+            width: 76px;
+            height: 76px;
+            border-radius: 24px;
+            padding: 10px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.26), rgba(255,255,255,0.1));
+            box-shadow: 0 22px 40px rgba(15, 23, 42, 0.24);
+            backdrop-filter: blur(16px);
+        }
+
+        .auth-brand-mark img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .auth-brand-copy h1 {
+            margin: 0;
+            color: white;
+            font-size: var(--ds-text-5xl);
+            font-weight: var(--ds-weight-extrabold);
+            line-height: 1;
+        }
+
+        .auth-brand-copy p {
+            margin: var(--ds-space-1) 0 0;
+            color: rgba(219, 234, 254, 0.82);
+            font-size: var(--ds-text-sm);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .auth-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--ds-space-2);
+            padding: var(--ds-space-2) var(--ds-space-3);
+            border-radius: 999px;
+            margin-bottom: var(--ds-space-5);
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: var(--ds-text-xs);
+            font-weight: var(--ds-weight-semibold);
+            backdrop-filter: blur(12px);
+        }
+
+        .auth-hero-title {
+            margin: 0 0 var(--ds-space-4);
+            color: white;
+            font-size: clamp(2.6rem, 4vw, 4.4rem);
+            font-weight: var(--ds-weight-extrabold);
+            line-height: 1.02;
+        }
+
+        .auth-hero-copy {
+            margin: 0 0 var(--ds-space-8);
+            color: rgba(219, 234, 254, 0.85);
+            font-size: var(--ds-text-base);
+            line-height: 1.75;
+        }
+
+        .auth-hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: var(--ds-space-3);
+            margin-bottom: var(--ds-space-8);
+        }
+
+        .auth-stat {
+            padding: var(--ds-space-4);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.09);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+        }
+
+        .auth-stat-value {
+            display: block;
+            margin-bottom: var(--ds-space-1);
+            color: white;
+            font-size: var(--ds-text-xl);
+            font-weight: var(--ds-weight-bold);
+        }
+
+        .auth-stat-label {
+            color: rgba(219, 234, 254, 0.72);
+            font-size: var(--ds-text-xs);
+        }
+
+        .auth-feature-list {
+            display: grid;
+            gap: var(--ds-space-4);
+        }
+
+        .auth-feature-card {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--ds-space-4);
+            padding: var(--ds-space-4);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(14px);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.14);
+        }
+
+        .auth-feature-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 16px;
+            background: var(--ds-gradient-primary);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 16px 28px rgba(59, 109, 246, 0.24);
+        }
+
+        .auth-feature-card h3,
+        .auth-feature-card p {
+            margin: 0;
+        }
+
+        .auth-feature-card h3 {
+            color: white;
+            font-size: var(--ds-text-base);
+            font-weight: var(--ds-weight-bold);
+        }
+
+        .auth-feature-card p {
+            margin-top: var(--ds-space-1);
+            color: rgba(219, 234, 254, 0.74);
+            font-size: var(--ds-text-xs);
+            line-height: 1.6;
+        }
+
+        .auth-panel {
+            width: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--ds-space-8);
+        }
+
+        .auth-panel-scroll {
+            overflow-y: auto;
+        }
+
+        .auth-panel-inner {
+            width: 100%;
+            max-width: 460px;
+        }
+
+        .auth-panel-inner.auth-panel-wide {
+            max-width: 560px;
+        }
+
+        .auth-card {
+            position: relative;
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 32px;
+            padding: var(--ds-space-10);
+            box-shadow: 0 32px 80px rgba(15, 23, 42, 0.12);
+            backdrop-filter: blur(22px);
+            overflow: hidden;
+        }
+
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: var(--ds-gradient-primary);
+        }
+
+        .auth-tab-switcher {
+            display: flex;
+            gap: var(--ds-space-1);
+            padding: var(--ds-space-1);
+            border-radius: 18px;
+            margin-bottom: var(--ds-space-8);
+            background: rgba(227, 236, 252, 0.72);
+            border: 1px solid rgba(191, 210, 255, 0.6);
+        }
+
+        .auth-tab {
+            position: relative;
+        }
+
+        .auth-heading {
+            margin-bottom: var(--ds-space-6);
+        }
+
+        .auth-heading h2 {
+            margin: 0;
+            font-size: var(--ds-text-3xl);
+            color: var(--ds-text-primary);
+            font-weight: var(--ds-weight-extrabold);
+        }
+
+        .auth-heading p {
+            margin: var(--ds-space-1) 0 0;
+            color: var(--ds-text-tertiary);
+            font-size: var(--ds-text-sm);
+            line-height: 1.7;
+        }
+
+        .auth-mode-toggle {
+            margin-bottom: var(--ds-space-6);
+            display: flex;
+            gap: var(--ds-space-1);
+            padding: var(--ds-space-1);
+            background: rgba(241, 245, 255, 0.84);
+            border-radius: 18px;
+            border: 1px solid rgba(216, 228, 247, 0.9);
+        }
+
+        .login-mode-btn {
+            color: var(--ds-text-tertiary);
+        }
+
+        input[name="loginMode"]:checked + .login-mode-btn {
+            background: linear-gradient(180deg, #ffffff 0%, #f6f9ff 100%);
+            color: var(--ds-primary-700);
+            font-weight: var(--ds-weight-bold);
+            box-shadow: 0 14px 22px rgba(59, 109, 246, 0.12);
+        }
+
+        input[name="loginMode"]:not(:checked) + .login-mode-btn {
+            color: var(--ds-text-tertiary);
+        }
+
+        .auth-inline-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--ds-space-4);
+        }
+
+        .auth-field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--ds-space-4);
+        }
+
+        .auth-panel-note {
+            padding: var(--ds-space-4);
+            background: linear-gradient(180deg, rgba(238, 243, 251, 0.92) 0%, rgba(248, 251, 255, 0.92) 100%);
+            border-radius: 20px;
+            border: 1px solid var(--ds-border-default);
+        }
+
+        .auth-divider {
+            margin-top: var(--ds-space-3);
+            display: flex;
+            align-items: center;
+            gap: var(--ds-space-3);
+        }
+
+        .auth-divider-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.55), transparent);
+        }
+
+        .auth-secondary-action {
+            width: 100%;
+            padding: var(--ds-space-3);
+            border: 1px solid rgba(191, 210, 255, 0.9);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.76);
+            color: var(--ds-primary-700);
+            font-size: var(--ds-text-sm);
+            font-weight: var(--ds-weight-bold);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--ds-space-2);
+            transition: all var(--ds-duration-base) var(--ds-ease);
+            box-shadow: 0 12px 24px rgba(148, 163, 184, 0.1);
+        }
+
+        .auth-secondary-action:hover {
+            background: rgba(239, 244, 255, 0.98);
+            transform: translateY(-1px);
+            box-shadow: 0 16px 28px rgba(59, 109, 246, 0.12);
+        }
+
+        .auth-link-btn,
+        .auth-link-btn:hover {
+            color: var(--ds-primary-600);
+            font-weight: var(--ds-weight-bold);
+            text-decoration: none;
+        }
+
+        .auth-loading {
+            padding: var(--ds-space-3);
+            border-radius: 18px;
+            background: rgba(238, 243, 251, 0.7);
+            border: 1px solid rgba(216, 228, 247, 0.9);
+        }
+
+        .auth-refresh-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(91, 140, 255, 0.1);
+            color: var(--ds-primary-600);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--ds-duration-base) var(--ds-ease);
+        }
+
+        .auth-refresh-btn:hover {
+            background: rgba(91, 140, 255, 0.18);
+            transform: translateY(-1px);
+        }
+
+        .auth-refresh-btn.refreshing {
+            background: rgba(124, 58, 237, 0.12);
+            color: #7c3aed;
+        }
+
+        .auth-refresh-btn.refreshing i {
+            animation: auth-refresh-spin 0.8s linear infinite;
+        }
+
+        .auth-footer-copy {
+            margin-top: var(--ds-space-10);
+            color: rgba(219, 234, 254, 0.58);
+            font-size: var(--ds-text-xs);
+        }
+
+        @keyframes auth-refresh-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .auth-shell {
+                flex-direction: column;
+            }
+
+            .auth-hero,
+            .auth-panel {
+                width: 100%;
+            }
+
+            .auth-hero {
+                min-height: 520px;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .auth-background,
+            .auth-shell {
+                min-height: auto;
+            }
+
+            .auth-hero {
+                padding: var(--ds-space-8);
+                min-height: auto;
+            }
+
+            .auth-panel {
+                padding: var(--ds-space-4);
+            }
+
+            .auth-card {
+                border-radius: 24px;
+                padding: var(--ds-space-6);
+            }
+
+            .auth-hero-stats,
+            .auth-field-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-inline-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+    `;
+
     // ============= DUAL-MODE LOGIN TEMPLATE =============
     const getLoginTemplate = () => `
-    <div class="auth-background" style="display: flex; min-height: 100vh; background: var(--ds-bg-app);">
-        <!-- Left Side - Enhanced Branding Panel -->
-        <div style="display: flex; flex-direction: column; justify-content: center; items-center; padding: var(--ds-space-12); position: relative; overflow: hidden; background: linear-gradient(135deg, var(--ds-primary-900) 0%, var(--ds-primary-800) 50%, var(--ds-primary-700) 100%); width: 50%;">
-            <!-- Particles Canvas -->
-            <canvas id="particlesCanvas" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
-            
-            <div style="position: relative; z-index: 10; text-align: center; max-width: 440px; margin: 0 auto;">
-                <!-- Logo with Hover Effect -->
-                <div style="margin-bottom: var(--ds-space-8);">
-                    <div style="width: 88px; height: 88px; border-radius: var(--ds-radius-2xl); background: linear-gradient(135deg, var(--ds-primary-400), var(--ds-primary-600)); margin: 0 auto; font-size: 44px; display: flex; align-items: center; justify-content: center; box-shadow: var(--ds-shadow-xl); color: white;">
-                        <i class="fas fa-chart-bar"></i>
+    ${AUTH_SHARED_STYLES}
+    <div class="auth-background">
+        <div class="auth-shell">
+            <div class="auth-hero">
+                <canvas id="particlesCanvas" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+                <div class="auth-hero-content">
+                    <div class="auth-brand">
+                        <div class="auth-brand-mark">
+                            <img src="assets/brand/talliffy-icon.png" alt="Talliffy logo" />
+                        </div>
+                        <div class="auth-brand-copy">
+                            <h1>Talliffy</h1>
+                            <p>Cloud sync platform</p>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Brand Name -->
-                <h1 style="font-size: var(--ds-text-5xl); font-weight: var(--ds-weight-bold); color: white; margin-bottom: var(--ds-space-2);">
-                    Talli<span style="color: var(--ds-primary-300);">ffy</span>
-                </h1>
-                
-                <p style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-semibold); color: white; margin-bottom: var(--ds-space-2);">
-                    Tally Prime <i class="fas fa-bolt" style="color: #fbbf24;"></i> Cloud Platform
-                </p>
-                <p style="font-size: var(--ds-text-sm); color: var(--ds-primary-100); margin-bottom: var(--ds-space-10); opacity: 0.8;">
-                    Sync Automatically • Access Anywhere • Real-time Updates
-                </p>
 
-                <!-- Feature Highlights -->
-                <div style="display: flex; flex-direction: column; gap: var(--ds-space-4); text-align: left;">
-                    <div class="feature-card" style="display: flex; align-items: center; gap: var(--ds-space-4); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1);">
-                        <div style="width: 52px; height: 52px; border-radius: var(--ds-radius-xl); flex-shrink: 0; background: linear-gradient(135deg, var(--ds-primary-300) 0%, var(--ds-primary-600) 100%); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-2xl); color: white;">
-                            <i class="fas fa-sync-alt"></i>
-                        </div>
-                        <div>
-                            <h3 style="font-size: var(--ds-text-base); font-weight: var(--ds-weight-bold); color: white; margin: 0;">Auto Sync with Tally</h3>
-                            <p style="font-size: var(--ds-text-xs); color: var(--ds-primary-100); margin: var(--ds-space-0-5) 0 0 0;">Seamless real-time data synchronization</p>
-                        </div>
+                    <div class="auth-badge">
+                        <i class="fas fa-sparkles"></i>
+                        Modern finance operations for Tally teams
                     </div>
-                    <div class="feature-card" style="display: flex; align-items: center; gap: var(--ds-space-4); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1);">
-                        <div style="width: 52px; height: 52px; border-radius: var(--ds-radius-xl); flex-shrink: 0; background: linear-gradient(135deg, var(--ds-primary-300) 0%, var(--ds-primary-600) 100%); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-2xl); color: white;">
-                            <i class="fas fa-lock"></i>
-                        </div>
-                        <div>
-                            <h3 style="font-size: var(--ds-text-base); font-weight: var(--ds-weight-bold); color: white; margin: 0;">Enterprise Security</h3>
-                            <p style="font-size: var(--ds-text-xs); color: var(--ds-primary-100); margin: var(--ds-space-0-5) 0 0 0;">Bank-grade encryption & data protection</p>
-                        </div>
-                    </div>
-                </div>
 
-                <div style="margin-top: var(--ds-space-12); font-size: var(--ds-text-xs); color: var(--ds-primary-200); opacity: 0.6;">
-                    © 2026 Talliffy. All rights reserved.
+                    <h2 class="auth-hero-title">Move from legacy screens to a workspace your client can actually love.</h2>
+                    <p class="auth-hero-copy">Talliffy keeps Tally data, sync status, and user access in one cleaner flow with real-time feedback and a sharper visual system.</p>
+
+                    <div class="auth-hero-stats">
+                        <div class="auth-stat">
+                            <span class="auth-stat-value">Live</span>
+                            <span class="auth-stat-label">sync visibility</span>
+                        </div>
+                        <div class="auth-stat">
+                            <span class="auth-stat-value">Secure</span>
+                            <span class="auth-stat-label">team access</span>
+                        </div>
+                        <div class="auth-stat">
+                            <span class="auth-stat-value">Fast</span>
+                            <span class="auth-stat-label">daily workflows</span>
+                        </div>
+                    </div>
+
+                    <div class="auth-feature-list">
+                        <div class="auth-feature-card">
+                            <div class="auth-feature-icon">
+                                <i class="fas fa-sync-alt"></i>
+                            </div>
+                            <div>
+                                <h3>Auto sync with Tally</h3>
+                                <p>Real-time updates, cleaner status states, and less second-guessing during daily operations.</p>
+                            </div>
+                        </div>
+                        <div class="auth-feature-card">
+                            <div class="auth-feature-icon">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <div>
+                                <h3>Enterprise-grade access</h3>
+                                <p>Protected sign-in, shared team control, and a more credible first impression for clients.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auth-footer-copy">(c) 2026 Talliffy. Built for modern Tally workflows.</div>
                 </div>
             </div>
-        </div>
 
-        <!-- Right Side - Auth Forms -->
-        <div style="display: flex; align-items: center; justify-content: center; padding: var(--ds-space-8); width: 50%; background: var(--ds-bg-app);">
-            <div style="width: 100%; max-width: 420px;">
-                <!-- Auth Card -->
-                <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-3xl); border: 1px solid var(--ds-border-default); padding: var(--ds-space-10); box-shadow: var(--ds-shadow-xl);">
-                    <!-- Tab Switcher -->
-                    <div style="display: flex; margin-bottom: var(--ds-space-8); padding: var(--ds-space-1); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default);">
-                        <button id="signinTab" class="ds-tab-btn" style="flex: 1; padding: var(--ds-space-3); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); border: none; background: transparent; color: var(--ds-text-secondary); cursor: pointer; transition: all var(--ds-duration-base) var(--ds-ease); border-radius: var(--ds-radius-xl);">
-                            Sign In
-                        </button>
-                        <button id="signupTab" class="ds-tab-btn" style="flex: 1; padding: var(--ds-space-3); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); border: none; background: transparent; color: var(--ds-text-secondary); cursor: pointer; transition: all var(--ds-duration-base) var(--ds-ease); border-radius: var(--ds-radius-xl);">
-                            Sign Up
-                        </button>
-                    </div>
-
-                    <!-- Sign In Form -->
-                    <div id="signinForm">
-                        <div style="margin-bottom: var(--ds-space-6);">
-                            <h2 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Welcome Back!</h2>
-                            <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: var(--ds-space-1) 0 0 0;">Sign in to continue your session</p>
+            <div class="auth-panel">
+                <div class="auth-panel-inner">
+                    <div class="auth-card">
+                        <div class="auth-tab-switcher">
+                            <button id="signinTab" class="ds-tab-btn auth-tab" style="flex: 1; padding: var(--ds-space-3); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); border: none; background: transparent; color: var(--ds-text-secondary); cursor: pointer; transition: all var(--ds-duration-base) var(--ds-ease); border-radius: 14px;">
+                                Sign In
+                            </button>
+                            <button id="signupTab" class="ds-tab-btn auth-tab" style="flex: 1; padding: var(--ds-space-3); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); border: none; background: transparent; color: var(--ds-text-secondary); cursor: pointer; transition: all var(--ds-duration-base) var(--ds-ease); border-radius: 14px;">
+                                Sign Up
+                            </button>
                         </div>
 
-                        <!-- Login Mode Toggle -->
-                        <div style="margin-bottom: var(--ds-space-6); display: flex; gap: var(--ds-space-1); padding: var(--ds-space-1); background: var(--ds-bg-app); border-radius: var(--ds-radius-xl);">
-                            <label style="flex: 1; cursor: pointer;">
-                                <input type="radio" name="loginMode" value="username" id="loginModeUsername" checked style="display: none;">
-                                <div class="login-mode-btn" style="text-align: center; padding: var(--ds-space-2-5); font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); border-radius: var(--ds-radius-lg); transition: all var(--ds-duration-fast); display: flex; align-items: center; justify-content: center; min-height: 40px;">
-                                    Username
-                                </div>
-                            </label>
-                            <label style="flex: 1; cursor: pointer;">
-                                <input type="radio" name="loginMode" value="email" id="loginModeEmail" style="display: none;">
-                                <div class="login-mode-btn" style="text-align: center; padding: var(--ds-space-2-5); font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); border-radius: var(--ds-radius-lg); transition: all var(--ds-duration-fast); display: flex; align-items: center; justify-content: center; min-height: 40px;">
-                                    Email + Licence
-                                </div>
-                            </label>
-                        </div>
-                        
-                        <style>
-                            input[name="loginMode"]:checked + .login-mode-btn {
-                                background: var(--ds-bg-surface);
-                                color: var(--ds-primary-600);
-                                font-weight: var(--ds-weight-bold);
-                                box-shadow: var(--ds-shadow-sm);
-                            }
-                            input[name="loginMode"]:not(:checked) + .login-mode-btn {
-                                color: var(--ds-text-tertiary);
-                            }
-                        </style>
-
-                        <div id="errorMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-error-50); border: 1px solid var(--ds-error-200); border-radius: var(--ds-radius-xl); color: var(--ds-error-700); font-size: var(--ds-text-sm);">
-                            <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <span class="msg-text"></span>
+                        <div id="signinForm">
+                            <div class="auth-heading">
+                                <h2>Welcome back</h2>
+                                <p>Pick up where your team left off with a cleaner, faster workspace.</p>
                             </div>
-                        </div>
 
-                        <div id="successMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-success-50); border: 1px solid var(--ds-success-200); border-radius: var(--ds-radius-xl); color: var(--ds-success-700); font-size: var(--ds-text-sm);">
-                            <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
-                                <i class="fas fa-check-circle"></i>
-                                <span class="msg-text"></span>
+                            <div class="auth-mode-toggle">
+                                <label style="flex: 1; cursor: pointer;">
+                                    <input type="radio" name="loginMode" value="username" id="loginModeUsername" checked style="display: none;">
+                                    <div class="login-mode-btn" style="text-align: center; padding: var(--ds-space-2-5); font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); border-radius: var(--ds-radius-lg); transition: all var(--ds-duration-fast); display: flex; align-items: center; justify-content: center; min-height: 40px;">
+                                        Username
+                                    </div>
+                                </label>
+                                <label style="flex: 1; cursor: pointer;">
+                                    <input type="radio" name="loginMode" value="email" id="loginModeEmail" style="display: none;">
+                                    <div class="login-mode-btn" style="text-align: center; padding: var(--ds-space-2-5); font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); border-radius: var(--ds-radius-lg); transition: all var(--ds-duration-fast); display: flex; align-items: center; justify-content: center; min-height: 40px;">
+                                        Email + Licence
+                                    </div>
+                                </label>
                             </div>
-                        </div>
 
-                        <form id="loginForm" style="display: flex; flex-direction: column; gap: var(--ds-space-5);">
-                            <!-- Username Fields -->
-                            <div id="usernameFields">
-                                ${window.UIComponents.input({
+                            <div id="errorMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-error-50); border: 1px solid var(--ds-error-200); border-radius: var(--ds-radius-xl); color: var(--ds-error-700); font-size: var(--ds-text-sm);">
+                                <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span class="msg-text"></span>
+                                </div>
+                            </div>
+
+                            <div id="successMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-success-50); border: 1px solid var(--ds-success-200); border-radius: var(--ds-radius-xl); color: var(--ds-success-700); font-size: var(--ds-text-sm);">
+                                <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span class="msg-text"></span>
+                                </div>
+                            </div>
+
+                            <form id="loginForm" style="display: flex; flex-direction: column; gap: var(--ds-space-5);">
+                                <div id="usernameFields">
+                                    ${window.UIComponents.input({
         id: 'username',
         label: 'Username',
         placeholder: 'Enter your username',
         icon: '<i class="fas fa-user"></i>'
     })}
-                            </div>
+                                </div>
 
-                            <!-- Email Fields -->
-                            <div id="emailFields" class="hidden" style="display: flex; flex-direction: column; gap: var(--ds-space-5);">
-                                ${window.UIComponents.input({
+                                <div id="emailFields" class="hidden" style="display: flex; flex-direction: column; gap: var(--ds-space-5);">
+                                    ${window.UIComponents.input({
         id: 'loginEmail',
         type: 'email',
         label: 'Email Address',
         placeholder: 'john@example.com',
         icon: '<i class="fas fa-envelope"></i>'
     })}
-                                ${window.UIComponents.input({
+                                    ${window.UIComponents.input({
         id: 'loginLicenceNo',
         type: 'number',
         label: 'Tally Licence Number',
         placeholder: '100123456',
         icon: '<i class="fas fa-key"></i>'
     })}
-                            </div>
+                                </div>
 
-                            <!-- Password -->
-                            <div style="position: relative;">
-                                ${window.UIComponents.input({
+                                <div style="position: relative;">
+                                    ${window.UIComponents.input({
         id: 'password',
         type: 'password',
         label: 'Password',
@@ -373,23 +811,23 @@
         icon: '<i class="fas fa-lock"></i>',
         required: true
     })}
-                                <span id="toggleLoginPassword" style="position: absolute; right: var(--ds-space-4); bottom: var(--ds-space-3); cursor: pointer; color: var(--ds-text-tertiary); font-size: var(--ds-text-lg);"><i class="fas fa-eye"></i></span>
-                            </div>
+                                    <span id="toggleLoginPassword" style="position: absolute; right: var(--ds-space-4); bottom: var(--ds-space-3); cursor: pointer; color: var(--ds-text-tertiary); font-size: var(--ds-text-lg);"><i class="fas fa-eye"></i></span>
+                                </div>
 
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <label style="display: flex; align-items: center; gap: var(--ds-space-2); cursor: pointer;">
-                                    <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px; border-radius: var(--ds-radius-sm); border: 1px solid var(--ds-border-default);">
-                                    <span style="font-size: var(--ds-text-xs); color: var(--ds-text-secondary);">Remember me</span>
-                                </label>
-                                <a href="#" style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-primary-600); text-decoration: none;">Forgot password?</a>
-                            </div>
+                                <div class="auth-inline-row">
+                                    <label style="display: flex; align-items: center; gap: var(--ds-space-2); cursor: pointer;">
+                                        <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px; border-radius: var(--ds-radius-sm); border: 1px solid var(--ds-border-default);">
+                                        <span style="font-size: var(--ds-text-xs); color: var(--ds-text-secondary);">Remember me</span>
+                                    </label>
+                                    <a href="#" class="auth-link-btn" style="font-size: var(--ds-text-xs);">Forgot password?</a>
+                                </div>
 
-                            <div id="loadingSpinner" class="hidden" style="text-align: center; padding: var(--ds-space-2);">
-                                ${window.UIComponents.spinner({ size: 'md' })}
-                            </div>
+                                <div id="loadingSpinner" class="hidden auth-loading" style="text-align: center;">
+                                    ${window.UIComponents.spinner({ size: 'md' })}
+                                </div>
 
-                            <div style="margin-top: var(--ds-space-2);">
-                                ${window.UIComponents.button({
+                                <div style="margin-top: var(--ds-space-2);">
+                                    ${window.UIComponents.button({
         id: 'loginBtn',
         text: 'Sign In',
         icon: '<i class="fas fa-rocket"></i>',
@@ -398,13 +836,22 @@
         fullWidth: true,
         size: 'lg'
     })}
-                            </div>
-                        </form>
-                    </div>
+                                </div>
 
-                    <!-- Sign Up Form (Initially Hidden) -->
-                    <div id="signupFormContainer" class="hidden">
-                        <!-- Content will be injected or toggled via classes -->
+                                <div class="auth-divider">
+                                    <div class="auth-divider-line"></div>
+                                    <span style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">or</span>
+                                    <div class="auth-divider-line"></div>
+                                </div>
+
+                                <button type="button" id="ssoLoginBtn" class="auth-secondary-action">
+                                    <i class="fas fa-shield-alt" style="color: var(--ds-primary-600);"></i>
+                                    Continue with Keycloak SSO
+                                </button>
+                            </form>
+                        </div>
+
+                        <div id="signupFormContainer" class="hidden"></div>
                     </div>
                 </div>
             </div>
@@ -414,9 +861,9 @@
 
     // ============= REGISTRATION FORM CONTENT ONLY =============
     const getSignupFormContent = () => `
-                    <div style="margin-bottom: var(--ds-space-6);">
-                        <h2 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Create Your Account</h2>
-                        <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: var(--ds-space-1) 0 0 0;">Join the Talliffy ecosystem today</p>
+                    <div class="auth-heading">
+                        <h2>Create your account</h2>
+                        <p>Set up a polished Talliffy workspace for your team in a few quick steps.</p>
                     </div>
 
                     <div id="signupErrorMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-error-50); border: 1px solid var(--ds-error-200); border-radius: var(--ds-radius-xl); color: var(--ds-error-700); font-size: var(--ds-text-sm);">
@@ -435,7 +882,7 @@
 
                     <form id="signupForm" style="display: flex; flex-direction: column; gap: var(--ds-space-4);">
                         <!-- Grid Layout for Fields -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-4);">
+                        <div class="auth-field-grid">
                             <div>
                                 ${window.UIComponents.input({
         id: 'signupFullName',
@@ -456,7 +903,7 @@
                             </div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-4);">
+                        <div class="auth-field-grid">
                             <div>
                                 ${window.UIComponents.input({
         id: 'signupEmail',
@@ -475,12 +922,12 @@
         placeholder: 'Auto-fetching...',
         icon: '<i class="fas fa-key"></i>',
         required: true,
-        suffix: `<button type="button" id="refreshLicenseBtn" style="background: none; border: none; color: var(--ds-primary-600); cursor: pointer; font-size: var(--ds-text-base); display: flex; align-items: center; justify-content: center; padding: var(--ds-space-1);"><i class="fas fa-sync-alt"></i></button>`
+        suffix: `<button type="button" id="refreshLicenseBtn" class="auth-refresh-btn" aria-label="Refresh licence number"><i class="fas fa-sync-alt"></i></button>`
     })}
                             </div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-4);">
+                        <div class="auth-field-grid">
                             <div>
                                 <label style="display: block; font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-1-5);">Country Code</label>
                                 <div style="position: relative;">
@@ -563,7 +1010,7 @@
                             </div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-4);">
+                        <div class="auth-field-grid">
                             <div>
                                 ${window.UIComponents.input({
         id: 'signupPassword',
@@ -591,14 +1038,14 @@
                             </div>
                         </div>
 
-                        <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-xl); border: 1px solid var(--ds-border-default);">
+                        <div class="auth-panel-note">
                             <label style="display: flex; align-items: flex-start; gap: var(--ds-space-3); cursor: pointer;">
                                 <input type="checkbox" id="signupAgreeTerms" style="width: 18px; height: 18px; border-radius: var(--ds-radius-sm); border: 2px solid var(--ds-border-default); margin-top: 2px;" required>
-                                <span style="font-size: var(--ds-text-xs); color: var(--ds-text-secondary); line-height: 1.5;">I agree to the <a href="#" style="color: var(--ds-primary-600); font-weight: var(--ds-weight-bold); text-decoration: none;">Terms of Service</a> and <a href="#" style="color: var(--ds-primary-600); font-weight: var(--ds-weight-bold); text-decoration: none;">Privacy Policy</a>.</span>
+                                <span style="font-size: var(--ds-text-xs); color: var(--ds-text-secondary); line-height: 1.6;">I agree to the <a href="#" class="auth-link-btn">Terms of Service</a> and <a href="#" class="auth-link-btn">Privacy Policy</a>.</span>
                             </label>
                         </div>
 
-                        <div id="loadingSpinner" class="hidden" style="text-align: center; padding: var(--ds-space-2);">
+                        <div id="loadingSpinner" class="hidden auth-loading" style="text-align: center;">
                             ${window.UIComponents.spinner({ size: 'md' })}
                         </div>
 
@@ -618,72 +1065,67 @@
                     <div style="margin-top: var(--ds-space-6); text-align: center; padding-top: var(--ds-space-6); border-top: 1px solid var(--ds-border-default);">
                         <p style="font-size: var(--ds-text-sm); color: var(--ds-text-secondary);">
                             Already have an account? 
-                            <a href="#" id="showLogin" style="color: var(--ds-primary-600); font-weight: var(--ds-weight-bold); text-decoration: none; margin-left: var(--ds-space-1);">Sign In</a>
+                            <a href="#" id="showLogin" class="auth-link-btn" style="margin-left: var(--ds-space-1);">Sign In</a>
                         </p>
                     </div>
     `;
 
     // ============= REGISTRATION TEMPLATE =============
     const getSignupTemplate = () => `
-    <div class="auth-background" style="display: flex; min-height: 100vh; background: var(--ds-bg-app); overflow: hidden;">
-        <!-- Left Side - Enhanced Branding Panel -->
-        <div style="display: flex; flex-direction: column; justify-content: center; items-center; padding: var(--ds-space-12); position: relative; overflow: hidden; background: linear-gradient(135deg, var(--ds-primary-900) 0%, var(--ds-primary-800) 50%, var(--ds-primary-700) 100%); width: 50%;">
-            <!-- Particles Canvas -->
-            <canvas id="particlesCanvas" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
-            
-            <div style="position: relative; z-index: 10; text-align: center; max-width: 440px; margin: 0 auto;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: var(--ds-space-3); margin-bottom: var(--ds-space-8);">
-                    <div style="width: 48px; height: 48px; border-radius: var(--ds-radius-xl); background: linear-gradient(135deg, var(--ds-primary-400), var(--ds-primary-600)); font-size: 24px; display: flex; align-items: center; justify-content: center; box-shadow: var(--ds-shadow-lg); color: white;">
-                        <i class="fas fa-chart-bar"></i>
+    ${AUTH_SHARED_STYLES}
+    <div class="auth-background" style="overflow: hidden;">
+        <div class="auth-shell">
+            <div class="auth-hero">
+                <canvas id="particlesCanvas" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+                <div class="auth-hero-content">
+                    <div class="auth-brand">
+                        <div class="auth-brand-mark">
+                            <img src="assets/brand/talliffy-icon.png" alt="Talliffy logo" />
+                        </div>
+                        <div class="auth-brand-copy">
+                            <h1>Talliffy</h1>
+                            <p>Cloud sync platform</p>
+                        </div>
                     </div>
-                    <h1 style="font-size: var(--ds-text-3xl); font-weight: var(--ds-weight-bold); color: white; margin: 0;">
-                        Talli<span style="color: var(--ds-primary-300);">ffy</span>
-                    </h1>
-                </div>
-                
-                <div style="text-align: left; margin-bottom: var(--ds-space-10);">
-                    <h2 style="font-size: var(--ds-text-4xl); font-weight: var(--ds-weight-bold); color: white; line-height: 1.2; margin-bottom: var(--ds-space-4);">
-                        Join Thousands of<br/>Tally Enterprises
-                    </h2>
-                    <p style="font-size: var(--ds-text-base); color: var(--ds-primary-100); opacity: 0.9;">
-                        Start syncing your Tally Prime data in minutes. Access real-time business insights from anywhere.
-                    </p>
-                </div>
 
-                <!-- Feature Highlights -->
-                <div style="display: flex; flex-direction: column; gap: var(--ds-space-4); text-align: left;">
-                    <div style="display: flex; align-items: center; gap: var(--ds-space-4); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1);">
-                        <div style="width: 44px; height: 44px; border-radius: var(--ds-radius-lg); flex-shrink: 0; background: rgba(255, 255, 255, 0.15); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-xl); color: white;">
-                            <i class="fas fa-bolt"></i>
-                        </div>
-                        <div>
-                            <h3 style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: white; margin: 0;">Quick Setup</h3>
-                            <p style="font-size: var(--ds-text-xs); color: var(--ds-primary-100); margin: var(--ds-space-0-5) 0 0 0;">Get started in under 5 minutes</p>
-                        </div>
+                    <div class="auth-badge">
+                        <i class="fas fa-bolt"></i>
+                        Setup that feels current from the first screen
                     </div>
-                    <div style="display: flex; align-items: center; gap: var(--ds-space-4); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1);">
-                        <div style="width: 44px; height: 44px; border-radius: var(--ds-radius-lg); flex-shrink: 0; background: rgba(255, 255, 255, 0.15); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-xl); color: white;">
-                            <i class="fas fa-sync-alt"></i>
-                        </div>
-                        <div>
-                            <h3 style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: white; margin: 0;">Automated Syncing</h3>
-                            <p style="font-size: var(--ds-text-xs); color: var(--ds-primary-100); margin: var(--ds-space-0-5) 0 0 0;">Real-time data at your fingertips</p>
-                        </div>
-                    </div>
-                </div>
 
-                <div style="margin-top: var(--ds-space-12); font-size: var(--ds-text-xs); color: var(--ds-primary-200); opacity: 0.6;">
-                    © 2026 Talliffy. Revolutionizing Tally Access.
+                    <h2 class="auth-hero-title">Bring your client into a sharper, more premium Talliffy experience.</h2>
+                    <p class="auth-hero-copy">Get the account live quickly, auto-pull licence details, and keep the whole onboarding flow feeling polished and trustworthy.</p>
+
+                    <div class="auth-feature-list">
+                        <div class="auth-feature-card">
+                            <div class="auth-feature-icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div>
+                                <h3>Quick setup</h3>
+                                <p>Clear fields, better spacing, and fewer rough edges while registering new accounts.</p>
+                            </div>
+                        </div>
+                        <div class="auth-feature-card">
+                            <div class="auth-feature-icon">
+                                <i class="fas fa-sync-alt"></i>
+                            </div>
+                            <div>
+                                <h3>Automated syncing</h3>
+                                <p>Real-time data foundations and a much more current brand feel throughout the first-run journey.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auth-footer-copy">(c) 2026 Talliffy. Modernizing Tally access.</div>
                 </div>
             </div>
-        </div>
 
-        <!-- Right Side - Signup Form -->
-        <div style="display: flex; align-items: center; justify-content: center; padding: var(--ds-space-8); width: 50%; background: var(--ds-bg-app); overflow-y: auto;">
-            <div style="width: 100%; max-width: 520px; padding: var(--ds-space-4) 0;">
-                <!-- Auth Card -->
-                <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-3xl); border: 1px solid var(--ds-border-default); padding: var(--ds-space-10); box-shadow: var(--ds-shadow-xl);">
-                    ${getSignupFormContent()}
+            <div class="auth-panel auth-panel-scroll">
+                <div class="auth-panel-inner auth-panel-wide" style="padding: var(--ds-space-4) 0;">
+                    <div class="auth-card">
+                        ${getSignupFormContent()}
+                    </div>
                 </div>
             </div>
         </div>
@@ -902,6 +1344,7 @@
         target.innerHTML = getLoginTemplate();
         startParticles();
         setupLoginForm();
+        setupSSOCallback(); // Listen for SSO deep link callback
 
         // Populate signup form container from shared sub-template
         let signupFormContainer = document.getElementById('signupFormContainer');
@@ -918,19 +1361,19 @@
 
         // Helper function to set active tab styling
         function setActiveTab(activeTab, inactiveTab) {
-            // Active tab styles
-            activeTab.style.background = 'white';
-            activeTab.style.color = '#1346A8';
-            activeTab.style.boxShadow = '0 2px 8px rgba(19, 70, 168, 0.15)';
-            activeTab.style.border = '1px solid #e2e8f0';
-            activeTab.style.borderRadius = 'var(--ds-radius-xl)';
+            activeTab.style.background = 'linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%)';
+            activeTab.style.color = 'var(--ds-primary-700)';
+            activeTab.style.boxShadow = '0 16px 24px rgba(59, 109, 246, 0.12)';
+            activeTab.style.border = '1px solid rgba(191, 210, 255, 0.9)';
+            activeTab.style.borderRadius = '14px';
+            activeTab.style.transform = 'translateY(-1px)';
 
-            // Inactive tab styles
             inactiveTab.style.background = 'transparent';
             inactiveTab.style.color = '#64748b';
             inactiveTab.style.boxShadow = 'none';
             inactiveTab.style.border = '1px solid transparent';
-            inactiveTab.style.borderRadius = 'var(--ds-radius-xl)';
+            inactiveTab.style.borderRadius = '14px';
+            inactiveTab.style.transform = 'translateY(0)';
         }
 
         if (signinTab && signupTab) {
@@ -1728,25 +2171,17 @@
             refreshLicenseBtn.addEventListener('click', async () => {
                 const licenceNoInput = document.getElementById('signupLicenceNo');
                 if (licenceNoInput) {
-                    licenceNoInput.value = ''; // Clear current value
-                    refreshLicenseBtn.style.animation = 'spin 1s linear';
-                    await fetchAndPopulateLicenseNumber();
-                    refreshLicenseBtn.style.animation = '';
+                    licenceNoInput.value = '';
+                    refreshLicenseBtn.classList.add('refreshing');
+                    refreshLicenseBtn.setAttribute('aria-busy', 'true');
+                    try {
+                        await fetchAndPopulateLicenseNumber();
+                    } finally {
+                        refreshLicenseBtn.classList.remove('refreshing');
+                        refreshLicenseBtn.setAttribute('aria-busy', 'false');
+                    }
                 }
             });
-        }
-
-        // CSS for refresh button animation
-        if (!document.getElementById('licenseRefreshStyle')) {
-            const style = document.createElement('style');
-            style.id = 'licenseRefreshStyle';
-            style.textContent = `
-                @keyframes spin {
-                    from { transform: translateY(-50%) rotate(0deg); }
-                    to { transform: translateY(-50%) rotate(360deg); }
-                }
-            `;
-            document.head.appendChild(style);
         }
 
         // Email validation
@@ -2568,6 +3003,205 @@
 
         // Auto-focus first input
         otpInputs[0].focus();
+    }
+
+    // ============= SSO LOGIN (KEYCLOAK PKCE) =============
+
+    const SSO_CONFIG = {
+        keycloakUrl: 'http://localhost:8180',
+        realm: 'talliffy',
+        clientId: 'talliffy-electron',
+        redirectUri: 'talliffy://auth/callback',
+    };
+
+    function persistAuthenticatedSession(data) {
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('deviceToken', data.deviceToken);
+        localStorage.setItem('currentUser', JSON.stringify({
+            username: data.username,
+            userId: data.userId,
+            fullName: data.fullName,
+            email: data.email,
+            licenceNo: data.licenceNo,
+            role: data.role,
+            isSSO: !!data.isSso,
+        }));
+        localStorage.setItem('loginTime', new Date().toISOString());
+
+        const expiryTime = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
+        localStorage.setItem('sessionExpiry', expiryTime.toString());
+
+        if (data.licenceNo !== undefined && data.licenceNo !== null) {
+            localStorage.setItem('userLicenseNumber', String(data.licenceNo));
+        }
+
+        if (data.subscription) {
+            localStorage.setItem('subscription', JSON.stringify(data.subscription));
+        }
+    }
+
+    async function startSSOLogin() {
+        try {
+            // Generate PKCE pair
+            const codeVerifier = generateCodeVerifier();
+            const codeChallenge = await generateCodeChallenge(codeVerifier);
+            const state = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+
+            sessionStorage.setItem('sso_code_verifier', codeVerifier);
+            sessionStorage.setItem('sso_state', state);
+
+            const params = new URLSearchParams({
+                response_type: 'code',
+                client_id: SSO_CONFIG.clientId,
+                redirect_uri: SSO_CONFIG.redirectUri,
+                scope: 'openid profile email',
+                state,
+                code_challenge: codeChallenge,
+                code_challenge_method: 'S256',
+            });
+
+            const authUrl = `${SSO_CONFIG.keycloakUrl}/realms/${SSO_CONFIG.realm}/protocol/openid-connect/auth?${params}`;
+
+            // Open Keycloak in the system browser (not inside Electron)
+            if (window.electronAPI && window.electronAPI.openExternalUrl) {
+                await window.electronAPI.openExternalUrl(authUrl);
+            } else {
+                window.open(authUrl, '_blank');
+            }
+        } catch (err) {
+            console.error('SSO login error:', err);
+        }
+    }
+
+    function generateCodeVerifier() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+        const arr = new Uint8Array(96);
+        crypto.getRandomValues(arr);
+        return Array.from(arr).map(b => chars[b % chars.length]).join('');
+    }
+
+    async function generateCodeChallenge(verifier) {
+        const data = new TextEncoder().encode(verifier);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        return btoa(String.fromCharCode(...new Uint8Array(hash)))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    async function handleSSOCallback(callbackUrl) {
+        try {
+            const url = new URL(callbackUrl);
+            const code = url.searchParams.get('code');
+            const state = url.searchParams.get('state');
+            const error = url.searchParams.get('error');
+
+            if (error) throw new Error(url.searchParams.get('error_description') || 'SSO failed');
+            if (!code) throw new Error('No authorization code received');
+
+            const storedState = sessionStorage.getItem('sso_state');
+            if (state !== storedState) throw new Error('Invalid state — possible CSRF');
+
+            const codeVerifier = sessionStorage.getItem('sso_code_verifier');
+            if (!codeVerifier) throw new Error('Code verifier missing');
+
+            // Exchange code for tokens
+            const tokenRes = await fetch(
+                `${SSO_CONFIG.keycloakUrl}/realms/${SSO_CONFIG.realm}/protocol/openid-connect/token`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        client_id: SSO_CONFIG.clientId,
+                        code,
+                        redirect_uri: SSO_CONFIG.redirectUri,
+                        code_verifier: codeVerifier,
+                    }),
+                }
+            );
+
+            if (!tokenRes.ok) throw new Error('Token exchange failed');
+            const tokens = await tokenRes.json();
+
+            // Keep Keycloak tokens only for the external SSO session.
+            sessionStorage.setItem('sso_access_token', tokens.access_token);
+            sessionStorage.setItem('sso_refresh_token', tokens.refresh_token || '');
+            sessionStorage.setItem('sso_id_token', tokens.id_token || '');
+
+            // Exchange the validated Keycloak token for a Talliffy app session.
+            const backendUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL || 'http://localhost:8080';
+            const sessionRes = await fetch(`${backendUrl}/auth/sso/keycloak?deviceType=DESKTOP`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${tokens.access_token}`,
+                    'X-Device-Type': 'DESKTOP',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const sessionResult = await sessionRes.json();
+            if (!sessionRes.ok || sessionResult.success === false) {
+                throw new Error(sessionResult.message || 'Failed to create Talliffy session');
+            }
+
+            const data = sessionResult.data || sessionResult;
+            if (!data.token || !data.deviceToken) {
+                throw new Error('SSO session response is incomplete');
+            }
+
+            persistAuthenticatedSession(data);
+
+            const store = getStore();
+            if (store && store.dispatch) {
+                store.dispatch({
+                    type: 'LOGIN_SUCCESS',
+                    payload: {
+                        user: data,
+                        token: data.token,
+                        isAuthenticated: true
+                    }
+                });
+            }
+
+            sessionStorage.removeItem('sso_code_verifier');
+            sessionStorage.removeItem('sso_state');
+
+            const successEl = document.getElementById('successMessage');
+            if (successEl) {
+                const span = successEl.querySelector('span:last-child');
+                if (span) span.textContent = 'SSO login successful! Redirecting...';
+                successEl.classList.remove('hidden');
+            }
+
+            setTimeout(() => {
+                if (window.syncScheduler) {
+                    window.syncScheduler.start();
+                }
+                window.location.href = 'index.html';
+            }, 1000);
+        } catch (err) {
+            console.error('SSO callback error:', err);
+            const errorEl = document.getElementById('errorMessage');
+            if (errorEl) {
+                const span = errorEl.querySelector('span:last-child');
+                if (span) span.textContent = `SSO failed: ${err.message}`;
+                errorEl.classList.remove('hidden');
+            }
+        }
+    }
+
+    function setupSSOCallback() {
+        // Wire SSO button
+        const ssoBtn = document.getElementById('ssoLoginBtn');
+        if (ssoBtn) {
+            ssoBtn.addEventListener('click', startSSOLogin);
+        }
+
+        // Listen for deep link callback from main process
+        if (window.electronAPI && window.electronAPI.onSSOCallback) {
+            window.electronAPI.onSSOCallback((url) => {
+                handleSSOCallback(url);
+            });
+        }
     }
 
 })();

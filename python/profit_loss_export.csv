@@ -1,0 +1,10 @@
+Name,GUID,IsGroup,ParentGroup,SubAmount,MainAmount
+Sales Accounts,b8ff75ff-2077-4339-9a20-33df86b31660-00000017,Yes,Primary,,2019113.38
+Direct Incomes,b8ff75ff-2077-4339-9a20-33df86b31660-00000019,Yes,Primary,,1213852.50
+Cost of Sales :,,No,,,-453332.00
+Opening Stock,,No,,-189360.46,
+Add: Purchase Accounts,,No,,-102475.50,
+Less: Closing Stock,,No,,-291835.96,
+Direct Expenses,b8ff75ff-2077-4339-9a20-33df86b31660-0000001a,Yes,Primary,-453332.00,
+Indirect Incomes,b8ff75ff-2077-4339-9a20-33df86b31660-0000001b,Yes,Primary,,
+Indirect Expense,b8ff75ff-2077-4339-9a20-33df86b31660-0000001c,Yes,Primary,,-2222410.55

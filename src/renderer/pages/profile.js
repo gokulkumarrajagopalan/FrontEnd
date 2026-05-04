@@ -3,9 +3,8 @@
     const getProfileTemplate = () => `
         <div style="padding: var(--ds-space-10); max-width: 900px; margin: 0 auto;">
             <!-- Loading State -->
-            <div id="profileLoading" style="text-align: center; padding: var(--ds-space-12);">
-                <div style="font-size: var(--ds-text-4xl); margin-bottom: var(--ds-space-4); color: var(--ds-primary-500);"><i class="fas fa-spinner fa-spin"></i></div>
-                <p style="color: var(--ds-text-tertiary);">Loading profile...</p>
+            <div id="profileLoading" style="display: flex; justify-content: center; align-items: center; min-height: 300px;">
+                ${window.UIComponents ? window.UIComponents.spinner({ size: 'lg', text: 'Loading...' }) : 'Loading...'}
             </div>
 
             <!-- Profile Content (hidden until loaded) -->

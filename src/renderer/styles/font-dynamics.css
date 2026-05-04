@@ -320,8 +320,8 @@ body {
 
 /* Brand styles */
 :root {
-  --brand-blue: var(--ds-primary-600, #496da0); /* Aligned with design-system primary */
-  --brand-accent: var(--ds-primary-400, #779cc4); /* Accent bar color */
+  --brand-blue: var(--ds-primary-600); /* Aligned with design-system primary */
+  --brand-accent: var(--ds-primary-400); /* Accent bar color */
 }
 
 .brand-icon-wrapper {

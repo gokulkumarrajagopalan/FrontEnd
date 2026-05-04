@@ -74,7 +74,12 @@ class AuthService {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({
+                    username,
+                    password,
+                    deviceType: 'DESKTOP',
+                    deviceInfo: navigator.userAgent || 'Talliffy Desktop'
+                })
             });
 
             const data = await response.json();

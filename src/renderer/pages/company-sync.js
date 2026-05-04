@@ -37,10 +37,18 @@
             size: 'sm'
         });
 
+        const connectWebBtn = window.UIComponents.button({
+            id: 'connectWebBtn',
+            text: 'Connect Web',
+            icon: '<i class="fas fa-globe"></i>',
+            variant: 'secondary',
+            onclick: "const token = localStorage.getItem('authToken'); window.electronAPI.openExternalUrl(`http://localhost:5173/?token=${token}`);"
+        });
+
         return window.Layout.page({
             title: 'Company Synchronization',
             subtitle: 'Monitor and manage data synchronization for all connected Tally companies',
-            headerActions: importBtn,
+            headerActions: `<div style="display: flex; gap: var(--ds-space-3);">${connectWebBtn}${importBtn}</div>`,
             content: `
                 <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
                     <div style="background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default);">

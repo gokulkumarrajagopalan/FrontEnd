@@ -61,8 +61,8 @@
                     <div id="importProgress" style="display: none;">
                         <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-3xl); padding: var(--ds-space-8); display: flex; flex-direction: column; gap: var(--ds-space-6);">
                             <div style="display: flex; align-items: center; gap: var(--ds-space-4);">
-                                <div style="width: 48px; height: 48px; min-width: 48px; border-radius: var(--ds-radius-xl); background: var(--ds-primary-100); color: var(--ds-primary-600); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-2xl);">
-                                    <i class="fas fa-cog fa-spin"></i>
+                                <div style="width: 48px; height: 48px; min-width: 48px; display: flex; align-items: center; justify-content: center;">
+                                    ${window.UIComponents ? window.UIComponents.spinner({ size: 'md', text: '' }) : '<i class="fas fa-spinner fa-spin"></i>'}
                                 </div>
                                 <div>
                                     <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">Importing Data...</h3>
@@ -457,8 +457,8 @@
         // Default values if not set
         const now = new Date();
         const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-        const defaultFrom = `${fyStartYear}-04-01`;
-        const defaultTo = now.toISOString().split('T')[0];
+        const defaultFrom = currentFrom || `${fyStartYear}-04-01`;
+        const defaultTo = currentTo || now.toISOString().split('T')[0];
 
         const popupContent = `
             <div style="display: flex; flex-direction: column; gap: var(--ds-space-4);">
@@ -590,10 +590,67 @@
         const _defaultFyStartYear = _defaultNow.getMonth() >= 3 ? _defaultNow.getFullYear() : _defaultNow.getFullYear() - 1;
         const _defaultFromDate = `${_defaultFyStartYear}-04-01`;
         const _defaultToDate = _defaultNow.toISOString().split('T')[0];
+        
+        // Tally Date Parser - Robust version
+        const _tallyDateToYMD = (val) => {
+            if (!val) return null;
+            val = String(val).trim();
+            if (!val) return null;
+
+            // Handle YYYYMMDD (Tally default)
+            if (/^\d{8}$/.test(val)) {
+                return `${val.substring(0,4)}-${val.substring(4,6)}-${val.substring(6,8)}`;
+            }
+
+            // Handle ISO YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+                return val.substring(0, 10);
+            }
+
+            // Handle DD-MMM-YYYY or DD-MM-YYYY
+            const parts = val.split(/[-/ ]/);
+            if (parts.length >= 3) {
+                const months = { 
+                    'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 
+                    'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12',
+                    'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06', 
+                    'jul': '07', 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+                };
+                
+                let y, m, d;
+
+                // Check if first part is year or day
+                if (parts[0].length === 4) {
+                    // YYYY-MM-DD
+                    y = parts[0];
+                    m = months[parts[1]] || parts[1].padStart(2, '0');
+                    d = parts[2].padStart(2, '0');
+                } else {
+                    // DD-MM-YYYY
+                    y = parts[2];
+                    m = months[parts[1]] || parts[1].padStart(2, '0');
+                    d = parts[0].padStart(2, '0');
+                }
+                
+                if (y && m && d && y.length === 4 && m.length === 2 && d.length === 2) {
+                    return `${y}-${m}-${d}`;
+                }
+            }
+            return null;
+        };
 
         container.innerHTML = companies.map((company, index) => {
             const companyGuid = (company.guid || company.companyGuid || '').toUpperCase().trim();
             const isImported = companyGuid ? importedGuids.has(companyGuid) : false;
+            
+            // Prefer Tally's STARTINGFROM / LASTVOUCHERDATE
+            const rawFrom = company.financialYearStart || company.booksStart;
+            const rawTo = company.lastVoucherDate;
+            
+            const companyFromDate = _tallyDateToYMD(rawFrom) || _defaultFromDate;
+            const companyToDate = _tallyDateToYMD(rawTo) || _defaultToDate;
+
+            const hasTallyDates = !!(_tallyDateToYMD(rawFrom) || _tallyDateToYMD(rawTo));
 
             return `
             <div class="company-card" data-index="${index}" data-imported="${isImported}" 
@@ -604,8 +661,8 @@
                         cursor: ${isImported ? 'default' : 'pointer'}; 
                         transition: all var(--ds-duration-base) var(--ds-ease);
                         ${isImported ? 'opacity: 0.7;' : ''}"
-                 onmouseover="${isImported ? '' : "this.style.borderColor='var(--ds-primary-500)'; this.style.shadow='var(--ds-shadow-md)';"}"
-                 onmouseout="${isImported ? '' : "this.style.borderColor='var(--ds-border-default)'; this.style.shadow='none';"}"
+                 onmouseover="${isImported ? '' : "this.style.borderColor='var(--ds-primary-500)'; this.style.boxShadow='var(--ds-shadow-md)';"}"
+                 onmouseout="${isImported ? '' : "this.style.borderColor='var(--ds-border-default)'; this.style.boxShadow='none';"}"
             >
                 <div style="display: flex; align-items: center; gap: var(--ds-space-4);">
                     <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; min-width: 40px; border-radius: var(--ds-radius-lg); background: ${isImported ? 'var(--ds-bg-surface)' : 'var(--ds-primary-50)'}; color: ${isImported ? 'var(--ds-text-tertiary)' : 'var(--ds-primary-600)'}; font-size: var(--ds-text-xl);">
@@ -627,15 +684,19 @@
                     <input type="checkbox" class="company-checkbox" data-index="${index}" ${isImported ? 'disabled style="display:none;"' : 'style="width: 20px; height: 20px; accent-color: var(--ds-primary-600); cursor: pointer;"'}>
                 </div>
 
-                <!-- Selected Range Display (visible after selection) -->
+                <!-- Range Display -->
                 ${isImported ? '' : `
-                <div class="selected-range-display" data-index="${index}" style="display: none; margin-top: var(--ds-space-3); padding-top: var(--ds-space-2); border-top: 1px dotted var(--ds-border-default);">
+                <div class="selected-range-display" data-index="${index}" style="margin-top: var(--ds-space-3); padding-top: var(--ds-space-2); border-top: 1px dotted var(--ds-border-default); ${hasTallyDates ? '' : 'display: none;'}">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ds-primary-700); font-weight: 500;">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>${companyFromDate.split('-').reverse().join('/')} — ${companyToDate.split('-').reverse().join('/')}</span>
+                    </div>
                 </div>
                 `}
 
                 <!-- Hidden inputs to store selection -->
-                <input type="hidden" class="sync-from-date" data-index="${index}" value="${_defaultFromDate}">
-                <input type="hidden" class="sync-to-date" data-index="${index}" value="${_defaultToDate}">
+                <input type="hidden" class="sync-from-date" data-index="${index}" value="${companyFromDate}">
+                <input type="hidden" class="sync-to-date" data-index="${index}" value="${companyToDate}">
             </div>
         `;
         }).join('');
@@ -706,14 +767,23 @@
         });
     }
 
-    // Helper function to convert Tally date format (YYYYMMDD) to ISO date (YYYY-MM-DD)
+    // Helper function to convert Tally date format to ISO date (YYYY-MM-DD)
     function formatTallyDate(dateStr) {
-        if (!dateStr || dateStr.length !== 8) return '';
-        // Convert "20250401" to "2025-04-01"
-        const year = dateStr.substring(0, 4);
-        const month = dateStr.substring(4, 6);
-        const day = dateStr.substring(6, 8);
-        return `${year}-${month}-${day}`;
+        if (!dateStr) return '';
+        if (/^\d{8}$/.test(dateStr)) {
+            const year = dateStr.substring(0, 4);
+            const month = dateStr.substring(4, 6);
+            const day = dateStr.substring(6, 8);
+            return `${year}-${month}-${day}`;
+        }
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            const months = { 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12', 'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06', 'jul': '07', 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12' };
+            const m = months[parts[1]] || months[parts[1].toLowerCase()] || '01';
+            const d = parts[0].padStart(2, '0');
+            return `${parts[2]}-${m}-${d}`;
+        }
+        return '';
     }
 
     async function syncGroupsForCompany(companyId, companyData) {
@@ -868,6 +938,10 @@
      */
     async function triggerFirstTimeSync(companyId, companyData) {
         console.log(`🔄 Starting first-time sync for: ${companyData.name}`);
+
+        if (window.syncStateManager) {
+            window.syncStateManager.startSync('Import', 1);
+        }
 
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         const authToken = localStorage.getItem('authToken');
@@ -1103,6 +1177,10 @@
         } catch (error) {
             console.error('First-time sync error:', error);
             throw error;
+        } finally {
+            if (window.syncStateManager) {
+                window.syncStateManager.endSync(errors.length === 0, `Initial import finished`);
+            }
         }
     }
 
@@ -1441,7 +1519,7 @@
                                         || (_reconNow.getMonth() >= 3 ? `01-Apr-${_reconNow.getFullYear()}` : `01-Apr-${_reconNow.getFullYear() - 1}`);
                                     const _reconToDate = (companySyncToDate && _reconIsoToTally(companySyncToDate))
                                         || `${String(_reconNow.getDate()).padStart(2, '0')}-${_reconMonths[_reconNow.getMonth()]}-${_reconNow.getFullYear()}`;
-                                    
+
                                     console.log(`🔍 Background reconciliation started for ${company.name}`);
                                     const reconResult = await window.electronAPI.reconcileData({
                                         companyId: backendResponse.backendId,

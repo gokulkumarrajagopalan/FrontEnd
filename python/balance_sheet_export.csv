@@ -1,0 +1,39 @@
+Name,GUID,IsGroup,ParentGroup,SubAmount,MainAmount
+Capital Account,b8ff75ff-2077-4339-9a20-33df86b31660-00000001,Yes,Primary,,303613.17
+Capital Account,b8ff75ff-2077-4339-9a20-33df86b31660-00001e01,No,Capital Account,300000.00,
+Capital Account - Gulnoza Kayumova,b8ff75ff-2077-4339-9a20-33df86b31660-0000015b,No,Capital Account,,
+Retained Earings,b8ff75ff-2077-4339-9a20-33df86b31660-00001db2,No,Capital Account,3613.17,
+Loans (Liability),b8ff75ff-2077-4339-9a20-33df86b31660-00000002,Yes,Primary,,885785.00
+Secured Loans,b8ff75ff-2077-4339-9a20-33df86b31660-0000000c,Yes,Loans (Liability),885785.00,
+Loan From Ahror,b8ff75ff-2077-4339-9a20-33df86b31660-00001e82,No,Loans (Liability),,
+Current Liabilities,b8ff75ff-2077-4339-9a20-33df86b31660-00000003,Yes,Primary,,539584.44
+Duties & Taxes,b8ff75ff-2077-4339-9a20-33df86b31660-0000000e,Yes,Current Liabilities,13014.01,
+Salary Payable A/C,b8ff75ff-2077-4339-9a20-33df86b31660-00000273,Yes,Current Liabilities,252158.09,
+Sundry Creditors,b8ff75ff-2077-4339-9a20-33df86b31660-00000010,Yes,Current Liabilities,274669.92,
+Office Rent Expenses Payables - Ajmal Sarah Tower,b8ff75ff-2077-4339-9a20-33df86b31660-00003162,No,Current Liabilities,-57142.84,
+Provision for End of Service Benefits,b8ff75ff-2077-4339-9a20-33df86b31660-00001d89,No,Current Liabilities,56885.26,
+Vat Payable,b8ff75ff-2077-4339-9a20-33df86b31660-00000f51,No,Current Liabilities,,
+Profit & Loss A/c,b8ff75ff-2077-4339-9a20-33df86b31660-0000001e,No,Primary,,-330808.52
+Fixed Assets,b8ff75ff-2077-4339-9a20-33df86b31660-00000004,Yes,Primary,,-942613.98
+Demo,b8ff75ff-2077-4339-9a20-33df86b31660-000001e8,Yes,Fixed Assets,,
+IT and Telecommunication(Assets),b8ff75ff-2077-4339-9a20-33df86b31660-00000ec3,Yes,Fixed Assets,-21497.88,
+OBD,b8ff75ff-2077-4339-9a20-33df86b31660-000001a3,Yes,Fixed Assets,,
+Office Furniture,b8ff75ff-2077-4339-9a20-33df86b31660-00000efb,Yes,Fixed Assets,-13012.99,
+Tools & Equipments,b8ff75ff-2077-4339-9a20-33df86b31660-0000314e,Yes,Fixed Assets,-395.00,
+WGPS,b8ff75ff-2077-4339-9a20-33df86b31660-0000019b,Yes,Fixed Assets,,
+Accumulated depreciation,b8ff75ff-2077-4339-9a20-33df86b31660-00001d86,No,Fixed Assets,21987.00,
+Diferred Tax Asset,b8ff75ff-2077-4339-9a20-33df86b31660-00001f35,No,Fixed Assets,-50014.00,
+GPS Hardware,b8ff75ff-2077-4339-9a20-33df86b31660-0000027c,No,Fixed Assets,-879681.11,
+Investments,b8ff75ff-2077-4339-9a20-33df86b31660-00000005,Yes,Primary,,1067776.31
+Amber Group,b8ff75ff-2077-4339-9a20-33df86b31660-00000387,Yes,Investments,1067776.31,
+Current Assets,b8ff75ff-2077-4339-9a20-33df86b31660-00000006,Yes,Primary,,-1520758.69
+Closing Stock,b8ff75ff-2077-4339-9a20-33df86b31660-00000011,Yes,Current Assets,-291835.96,
+Deposits (Asset),b8ff75ff-2077-4339-9a20-33df86b31660-00000012,Yes,Current Assets,-12300.00,
+Sundry Debtors,b8ff75ff-2077-4339-9a20-33df86b31660-00000014,Yes,Current Assets,-896804.25,
+Cash-in-Hand,b8ff75ff-2077-4339-9a20-33df86b31660-00000015,Yes,Current Assets,103149.99,
+Bank Accounts,b8ff75ff-2077-4339-9a20-33df86b31660-00000016,Yes,Current Assets,-281213.06,
+Investments (R&D),b8ff75ff-2077-4339-9a20-33df86b31660-00001db9,Yes,Current Assets,-129370.41,
+License Prepaid Expenses,b8ff75ff-2077-4339-9a20-33df86b31660-00001e7f,No,Current Assets,-2385.00,
+Prepaid Rent Exp,b8ff75ff-2077-4339-9a20-33df86b31660-000000d6,No,Current Assets,-10000.00,
+Salary Advance,b8ff75ff-2077-4339-9a20-33df86b31660-00000272,No,Current Assets,,
+Unadjusted Forex Gain/Loss,,No,,,-12577.73

@@ -1,0 +1,85 @@
+Name,GUID,IsGroup,ParentGroup,DebitAmount,CreditAmount
+Capital Account,b8ff75ff-2077-4339-9a20-33df86b31660-00000001,Yes,Primary,,303613.17
+Capital Account,b8ff75ff-2077-4339-9a20-33df86b31660-00001e01,No,Capital Account,,300000.00
+Retained Earings,b8ff75ff-2077-4339-9a20-33df86b31660-00001db2,No,Capital Account,,3613.17
+Loans (Liability),b8ff75ff-2077-4339-9a20-33df86b31660-00000002,Yes,Primary,,885785.00
+Secured Loans,b8ff75ff-2077-4339-9a20-33df86b31660-0000000c,Yes,Loans (Liability),,885785.00
+Current Liabilities,b8ff75ff-2077-4339-9a20-33df86b31660-00000003,Yes,Primary,-59032.84,598617.28
+Duties & Taxes,b8ff75ff-2077-4339-9a20-33df86b31660-0000000e,Yes,Current Liabilities,,13014.01
+Salary Payable A/C,b8ff75ff-2077-4339-9a20-33df86b31660-00000273,Yes,Current Liabilities,,252158.09
+Sundry Creditors,b8ff75ff-2077-4339-9a20-33df86b31660-00000010,Yes,Current Liabilities,-1890.00,276559.92
+Office Rent Expenses Payables - Ajmal Sarah Tower,b8ff75ff-2077-4339-9a20-33df86b31660-00003162,No,Current Liabilities,-57142.84,
+Provision for End of Service Benefits,b8ff75ff-2077-4339-9a20-33df86b31660-00001d89,No,Current Liabilities,,56885.26
+Fixed Assets,b8ff75ff-2077-4339-9a20-33df86b31660-00000004,Yes,Primary,-964600.98,21987.00
+IT and Telecommunication(Assets),b8ff75ff-2077-4339-9a20-33df86b31660-00000ec3,Yes,Fixed Assets,-21497.88,
+Office Furniture,b8ff75ff-2077-4339-9a20-33df86b31660-00000efb,Yes,Fixed Assets,-13012.99,
+Tools & Equipments,b8ff75ff-2077-4339-9a20-33df86b31660-0000314e,Yes,Fixed Assets,-395.00,
+Accumulated depreciation,b8ff75ff-2077-4339-9a20-33df86b31660-00001d86,No,Fixed Assets,,21987.00
+Diferred Tax Asset,b8ff75ff-2077-4339-9a20-33df86b31660-00001f35,No,Fixed Assets,-50014.00,
+GPS Hardware,b8ff75ff-2077-4339-9a20-33df86b31660-0000027c,No,Fixed Assets,-879681.11,
+Investments,b8ff75ff-2077-4339-9a20-33df86b31660-00000005,Yes,Primary,,1067776.31
+Amber Group,b8ff75ff-2077-4339-9a20-33df86b31660-00000387,Yes,Investments,,1067776.31
+Current Assets,b8ff75ff-2077-4339-9a20-33df86b31660-00000006,Yes,Primary,-1525575.54,107292.35
+Opening Stock,b8ff75ff-2077-4339-9a20-33df86b31660-00000011,Yes,Current Assets,-189360.46,
+Deposits (Asset),b8ff75ff-2077-4339-9a20-33df86b31660-00000012,Yes,Current Assets,-12300.00,
+Sundry Debtors,b8ff75ff-2077-4339-9a20-33df86b31660-00000014,Yes,Current Assets,-898941.89,2137.64
+Cash-in-Hand,b8ff75ff-2077-4339-9a20-33df86b31660-00000015,Yes,Current Assets,-2004.72,105154.71
+Bank Accounts,b8ff75ff-2077-4339-9a20-33df86b31660-00000016,Yes,Current Assets,-281213.06,
+Investments (R&D),b8ff75ff-2077-4339-9a20-33df86b31660-00001db9,Yes,Current Assets,-129370.41,
+License Prepaid Expenses,b8ff75ff-2077-4339-9a20-33df86b31660-00001e7f,No,Current Assets,-2385.00,
+Prepaid Rent Exp,b8ff75ff-2077-4339-9a20-33df86b31660-000000d6,No,Current Assets,-10000.00,
+Sales Accounts,b8ff75ff-2077-4339-9a20-33df86b31660-00000017,Yes,Primary,-49951.45,2069064.83
+B2C Fleet Command Subsciption,b8ff75ff-2077-4339-9a20-33df86b31660-00000ef7,No,Sales Accounts,,4980.00
+Cancelation Pro-Rata Refund,b8ff75ff-2077-4339-9a20-33df86b31660-00001e00,No,Sales Accounts,-49951.45,
+Charges for Lost Device,b8ff75ff-2077-4339-9a20-33df86b31660-00001e07,No,Sales Accounts,,1700.00
+Device Tampring Charges,b8ff75ff-2077-4339-9a20-33df86b31660-00000ee7,No,Sales Accounts,,550.00
+Dispatch Management,b8ff75ff-2077-4339-9a20-33df86b31660-00001e23,No,Sales Accounts,,6400.00
+Fleet Business and Asateel Subscription,b8ff75ff-2077-4339-9a20-33df86b31660-00001e50,No,Sales Accounts,,5220.00
+Fleet Business and Secure Path Subscription,b8ff75ff-2077-4339-9a20-33df86b31660-00000384,No,Sales Accounts,,1008096.67
+Fleet Business Subscription,b8ff75ff-2077-4339-9a20-33df86b31660-00000f11,No,Sales Accounts,,107820.00
+Fleet Enterprise and Secure Path Subscription,b8ff75ff-2077-4339-9a20-33df86b31660-00000ebb,No,Sales Accounts,,540110.00
+Fleet Enterprise Subscription,b8ff75ff-2077-4339-9a20-33df86b31660-00000eba,No,Sales Accounts,,268830.00
+Fleet Enterprise Subscription to Bundle,b8ff75ff-2077-4339-9a20-33df86b31660-00001e52,No,Sales Accounts,,91923.16
+Geofence Package,b8ff75ff-2077-4339-9a20-33df86b31660-00001514,No,Sales Accounts,,400.00
+Secure Path Subscription,b8ff75ff-2077-4339-9a20-33df86b31660-00000f17,No,Sales Accounts,,32835.00
+Uninstallation Or Reinstallation Charges,b8ff75ff-2077-4339-9a20-33df86b31660-00001f05,No,Sales Accounts,,200.00
+Purchase Accounts,b8ff75ff-2077-4339-9a20-33df86b31660-00000018,Yes,Primary,-596560.83,494085.33
+Purchase Amber,b8ff75ff-2077-4339-9a20-33df86b31660-000002a7,No,Purchase Accounts,-371355.83,
+Purchase Ruptela,b8ff75ff-2077-4339-9a20-33df86b31660-000010d9,No,Purchase Accounts,-225055.00,
+Purchase Teltonika,b8ff75ff-2077-4339-9a20-33df86b31660-00001eb8,No,Purchase Accounts,-150.00,
+Purchase Transfered Amber,b8ff75ff-2077-4339-9a20-33df86b31660-0000027b,No,Purchase Accounts,,255387.51
+Purchase Transfered Teltonika,b8ff75ff-2077-4339-9a20-33df86b31660-00001eb9,No,Purchase Accounts,,150.00
+Purchase Trasnfered Ruptela,b8ff75ff-2077-4339-9a20-33df86b31660-0000027d,No,Purchase Accounts,,238547.82
+Direct Incomes,b8ff75ff-2077-4339-9a20-33df86b31660-00000019,Yes,Primary,,1213852.50
+Management Fee,b8ff75ff-2077-4339-9a20-33df86b31660-00001e8a,No,Direct Incomes,,346815.00
+Management Fee (Secondment),b8ff75ff-2077-4339-9a20-33df86b31660-00001e8b,No,Direct Incomes,,825750.00
+Transaction Fee for Secondment,b8ff75ff-2077-4339-9a20-33df86b31660-00001ef7,No,Direct Incomes,,41287.50
+Direct Expenses,b8ff75ff-2077-4339-9a20-33df86b31660-0000001a,Yes,Primary,-453332.00,
+SIRA Secure Path License,b8ff75ff-2077-4339-9a20-33df86b31660-00000e6a,Yes,Direct Expenses,-444000.00,
+Custom Duty,b8ff75ff-2077-4339-9a20-33df86b31660-0000017c,No,Direct Expenses,-92.00,
+Installation Charges,b8ff75ff-2077-4339-9a20-33df86b31660-000000cb,No,Direct Expenses,-9240.00,
+Indirect Expense,b8ff75ff-2077-4339-9a20-33df86b31660-0000001c,Yes,Primary,-2229890.41,7479.86
+Audit & Accounting Charges,b8ff75ff-2077-4339-9a20-33df86b31660-00000271,Yes,Indirect Expense,-30404.76,
+Consumable Expenses,b8ff75ff-2077-4339-9a20-33df86b31660-00000edf,Yes,Indirect Expense,-21411.11,
+Delivery Charges,b8ff75ff-2077-4339-9a20-33df86b31660-00000e6e,Yes,Indirect Expense,-1720.34,
+Fines & Penalties,b8ff75ff-2077-4339-9a20-33df86b31660-00000fe0,Yes,Indirect Expense,,372.86
+Foreign Gain or Loss,b8ff75ff-2077-4339-9a20-33df86b31660-00000e70,Yes,Indirect Expense,-1285.60,2.00
+HR,b8ff75ff-2077-4339-9a20-33df86b31660-00000276,Yes,Indirect Expense,-1859683.54,3640.00
+IT and Telecommunication,b8ff75ff-2077-4339-9a20-33df86b31660-0000026e,Yes,Indirect Expense,-19886.22,
+Office,b8ff75ff-2077-4339-9a20-33df86b31660-00000385,Yes,Indirect Expense,-117018.40,
+Professional & Consultancy Charges,b8ff75ff-2077-4339-9a20-33df86b31660-00001dbb,Yes,Indirect Expense,-2000.00,
+Staff Welfare Expense,b8ff75ff-2077-4339-9a20-33df86b31660-000000df,Yes,Indirect Expense,-56.00,
+Trade License,b8ff75ff-2077-4339-9a20-33df86b31660-00000ef1,Yes,Indirect Expense,-35616.67,
+Transporation Expenses,b8ff75ff-2077-4339-9a20-33df86b31660-00000382,Yes,Indirect Expense,-75897.37,
+Vehicle Maintenance,b8ff75ff-2077-4339-9a20-33df86b31660-00001555,Yes,Indirect Expense,-7573.53,3465.00
+Visa Expense,b8ff75ff-2077-4339-9a20-33df86b31660-0000010e,Yes,Indirect Expense,-7051.82,
+Bank Charges,b8ff75ff-2077-4339-9a20-33df86b31660-00000e6c,No,Indirect Expense,-1921.07,
+Business Development Expense,b8ff75ff-2077-4339-9a20-33df86b31660-00000ebc,No,Indirect Expense,-1150.34,
+Discount,b8ff75ff-2077-4339-9a20-33df86b31660-00000102,No,Indirect Expense,-50.00,
+Office Interior Work Expenses,b8ff75ff-2077-4339-9a20-33df86b31660-0000314a,No,Indirect Expense,-39145.14,
+Post Box Rental Charges,b8ff75ff-2077-4339-9a20-33df86b31660-000000e5,No,Indirect Expense,-995.00,
+Printing Expense,b8ff75ff-2077-4339-9a20-33df86b31660-000000f8,No,Indirect Expense,-20.00,
+Real Estate Rental Commission Expenses,b8ff75ff-2077-4339-9a20-33df86b31660-00001ebe,No,Indirect Expense,-7000.00,
+Round Off,b8ff75ff-2077-4339-9a20-33df86b31660-0000012c,No,Indirect Expense,-3.50,
+Profit & Loss A/c,b8ff75ff-2077-4339-9a20-33df86b31660-0000001e,No,Primary,-888031.85,
+Unadjusted Forex Gain/Loss,,No,,-12577.73,

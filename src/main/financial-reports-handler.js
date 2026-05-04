@@ -1,0 +1,119 @@
+const { ipcMain, app } = require('electron');
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const { findPython } = require('./python-finder');
+
+function getWorkerExe() {
+    const isDev = !app.isPackaged;
+    if (isDev) {
+        // If we want to use the dev executable, we could, but let's stick to Python source for dev
+        return { command: findPython(), useExe: false, cwd: path.join(__dirname, '../../python') };
+    } else {
+        const exeName = process.platform === 'win32' ? 'sync_financial_reports.exe' : 'sync_financial_reports';
+        // Note: For now, we assume if packaged it uses python source or bundled exe
+        const exePath = path.join(process.resourcesPath, 'bin', exeName);
+        if (fs.existsSync(exePath)) {
+            return { command: exePath, useExe: true, cwd: path.join(process.resourcesPath, 'bin') };
+        }
+        // Fallback to python
+        return { command: findPython(), useExe: false, cwd: path.join(process.resourcesPath, 'python') };
+    }
+}
+
+function registerFinancialReportsHandler(activeChildProcesses) {
+    ipcMain.handle('sync-financial-reports', async (event, params) => {
+        return new Promise((resolve) => {
+            const {
+                companyName,
+                cmpId,
+                userId,
+                tallyHost = 'localhost',
+                tallyPort = 9000,
+                backendUrl = process.env.BACKEND_URL,
+                authToken,
+                deviceToken
+            } = params;
+
+            const isDev = !app.isPackaged;
+            const { command, useExe, cwd } = getWorkerExe();
+            let args;
+
+            if (useExe) {
+                args = [
+                    companyName,
+                    (cmpId || 1).toString(),
+                    (userId || 1).toString(),
+                    tallyPort.toString(),
+                    backendUrl || '',
+                    authToken || '',
+                    deviceToken || ''
+                ];
+            } else {
+                const pythonScript = isDev 
+                    ? path.join(__dirname, '../../python/sync_financial_reports.py')
+                    : path.join(cwd, 'sync_financial_reports.py');
+                args = [
+                    pythonScript,
+                    companyName,
+                    (cmpId || 1).toString(),
+                    (userId || 1).toString(),
+                    tallyPort.toString(),
+                    backendUrl || '',
+                    authToken || '',
+                    deviceToken || ''
+                ];
+            }
+
+            console.log(`📊 Starting Financial Reports sync for company: ${companyName}`);
+
+            const child = spawn(command, args, { cwd });
+            if (activeChildProcesses) {
+                activeChildProcesses.add(child);
+            }
+
+            let stdout = '';
+            let stderr = '';
+
+            child.stdout.on('data', (data) => {
+                const output = data.toString();
+                stdout += output;
+                if (isDev) console.log(`[FINANCIAL-SYNC] ${output}`);
+            });
+
+            child.stderr.on('data', (data) => {
+                const output = data.toString();
+                stderr += output;
+                if (isDev) console.error(`[FINANCIAL-SYNC ERROR] ${output}`);
+            });
+
+            child.on('close', (code) => {
+                console.log(`✅ Financial Reports sync exited with code: ${code}`);
+                if (activeChildProcesses) {
+                    activeChildProcesses.delete(child);
+                }
+
+                resolve({
+                    success: code === 0,
+                    output: stdout,
+                    error: stderr,
+                    exitCode: code
+                });
+            });
+
+            child.on('error', (err) => {
+                console.error(`❌ Failed to start Financial Reports sync: ${err.message}`);
+                if (activeChildProcesses) {
+                    activeChildProcesses.delete(child);
+                }
+                resolve({
+                    success: false,
+                    error: err.message,
+                    exitCode: -1
+                });
+            });
+        });
+    });
+}
+
+module.exports = { registerFinancialReportsHandler };
