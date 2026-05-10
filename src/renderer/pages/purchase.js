@@ -40,7 +40,7 @@
         const p = getPricing();
 
         return `
-        <div style="padding: var(--ds-space-6); max-width: 960px; margin: 0 auto;">
+        <div style="padding: var(--ds-space-6); width: 100%; box-sizing: border-box;">
             <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; border: 1px solid var(--ds-border-default);">
 
                 <!-- Header -->
@@ -68,7 +68,7 @@
 
                 <!-- Pricing Cards -->
                 <div style="padding: var(--ds-space-8) var(--ds-space-6) var(--ds-space-12);">
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--ds-space-6); align-items: stretch; max-width: 780px; margin: 0 auto;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--ds-space-6); align-items: stretch; width: 100%;">
 
                         <!-- Basic Plan -->
                         <div style="background: var(--ds-bg-surface); padding: var(--ds-space-8); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default); display: flex; flex-direction: column; transition: all var(--ds-duration-base) var(--ds-ease); height: 100%;" class="pricing-card">

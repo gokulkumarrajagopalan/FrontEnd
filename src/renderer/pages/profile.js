@@ -1,7 +1,7 @@
 (function () {
     // ============ PROFILE PAGE TEMPLATE ============
     const getProfileTemplate = () => `
-        <div style="padding: var(--ds-space-10); max-width: 900px; margin: 0 auto;">
+        <div style="padding: var(--ds-space-10); width: 100%; box-sizing: border-box;">
             <!-- Loading State -->
             <div id="profileLoading" style="display: flex; justify-content: center; align-items: center; min-height: 300px;">
                 ${window.UIComponents ? window.UIComponents.spinner({ size: 'lg', text: 'Loading...' }) : 'Loading...'}

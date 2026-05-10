@@ -93,7 +93,7 @@
             subtitle: 'Manage your application preferences and configurations',
             icon: 'fas fa-cog',
             content: `
-                <div class="settings-container" style="max-width: 900px; margin: 0 auto;">
+                <div class="settings-container" style="width: 100%; box-sizing: border-box;">
                     <!-- Modernized Tab Navigation -->
                     <div class="ds-tabs-wrapper" style="margin-bottom: var(--ds-space-8);">
                         <div class="tabs" style="display: flex; gap: var(--ds-space-1); background: var(--ds-bg-surface-sunken); padding: var(--ds-space-1-5); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default);">

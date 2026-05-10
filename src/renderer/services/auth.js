@@ -8,6 +8,17 @@ class AuthService {
         this.loadAuthState();
         this.refreshInterval = null;
 
+        // PKCE Storage keys
+        this.PKCE_VERIFIER_KEY = 'pkce_code_verifier';
+        this.PKCE_STATE_KEY = 'pkce_state';
+
+        // Listen for SSO callback from main process (deep link)
+        if (window.electronAPI && typeof window.electronAPI.onSsoCallback === 'function') {
+            window.electronAPI.onSsoCallback((url) => {
+                this.handleSsoCallback(url);
+            });
+        }
+
         console.log('🔐 AuthService initialized:', {
             hasToken: !!this.token,
             hasDeviceToken: !!this.deviceToken,
@@ -15,6 +26,226 @@ class AuthService {
             hasUser: !!this.user,
             userId: this.user?.userId
         });
+    }
+
+    /**
+     * Start the browser-based SSO login flow
+     */
+    async ssoLoginWithBrowser() {
+        try {
+            // 1. Generate PKCE pair
+            const verifier = this.generateCodeVerifier();
+            const challenge = await this.generateCodeChallenge(verifier);
+            const state = this.generateState();
+
+            // 2. Store verifier and state for later validation
+            localStorage.setItem(this.PKCE_VERIFIER_KEY, verifier);
+            localStorage.setItem(this.PKCE_STATE_KEY, state);
+
+            // 3. Construct Web App Login URL
+            // Using the Web App as a proxy for Keycloak ensures consistent branding and session management
+            const webAppBase = 'http://localhost:3000/sso/login';
+            const authUrl = `${webAppBase}?` + new URLSearchParams({
+                redirect: 'desktop',
+                state: state
+            }).toString();
+
+            console.log('🌐 Opening browser for SSO login:', authUrl);
+            
+            // Try Electron IPC first
+            if (window.electronAPI && window.electronAPI.openExternalUrl) {
+                try {
+                    // Don't await forever, if it doesn't resolve in 2s, assume success and proceed
+                    // (Some Electron versions hang on openExternal if the browser is already open)
+                    const openPromise = window.electronAPI.openExternalUrl(authUrl);
+                    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ timeout: true }), 2000));
+                    
+                    const result = await Promise.race([openPromise, timeoutPromise]);
+                    console.log('✅ Browser open attempt result:', result);
+                } catch (ipcError) {
+                    console.warn('⚠️ Electron openExternalUrl failed, falling back to window.open:', ipcError);
+                    window.open(authUrl, '_blank');
+                }
+            } else {
+                console.log('ℹ️ window.electronAPI.openExternalUrl not found, using window.open');
+                window.open(authUrl, '_blank');
+            }
+
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Failed to start SSO login:', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
+     * Handle the deep link callback from the browser
+     */
+    async handleSsoCallback(urlStr) {
+        try {
+            console.log('🔗 Received SSO callback URL:', urlStr);
+            const url = new URL(urlStr.replace('talliffy://', 'http://localhost/'));
+            
+            // Handle direct token hand-off from Web App
+            const token = url.searchParams.get('token');
+            const deviceToken = url.searchParams.get('deviceToken');
+            const state = url.searchParams.get('state');
+
+            // Optional: validate state if we started the flow ourselves
+            const storedState = localStorage.getItem(this.PKCE_STATE_KEY);
+            if (storedState && state && state !== storedState) {
+                console.warn('⚠️ State mismatch - possible CSRF');
+            }
+
+            if (token && deviceToken) {
+                console.log('✅ Received direct tokens from browser hand-off');
+                
+                // Extract user info from URL or fetch it if needed
+                const user = {
+                    userId: parseInt(url.searchParams.get('userId')),
+                    username: url.searchParams.get('username'),
+                    fullName: url.searchParams.get('fullName'),
+                    role: url.searchParams.get('role'),
+                    email: url.searchParams.get('email')
+                };
+
+                const result = await this.establishSessionWithTokens(token, deviceToken, user);
+                if (result.success) {
+                    if (window.notificationService) window.notificationService.success('Logged in successfully via Browser', 'Welcome!');
+                    if (window.router) window.router.navigate('dashboard');
+                    return;
+                }
+            }
+
+            // Fallback: Handle standard OIDC code exchange (if still used)
+            const code = url.searchParams.get('code');
+            if (code) {
+                const result = await this.completeSsoExchange(code);
+                if (result.success) {
+                    if (window.notificationService) window.notificationService.success('Logged in successfully via SSO', 'Welcome!');
+                    if (window.router) window.router.navigate('dashboard');
+                    return;
+                }
+            }
+
+            throw new Error('Authentication failed: Missing tokens or code');
+        } catch (error) {
+            console.error('❌ SSO Callback Error:', error);
+            if (window.notificationService) window.notificationService.error(error.message, 'Login Failed');
+        } finally {
+            localStorage.removeItem(this.PKCE_VERIFIER_KEY);
+            localStorage.removeItem(this.PKCE_STATE_KEY);
+        }
+    }
+
+    /**
+     * Establish session with pre-obtained tokens
+     */
+    async establishSessionWithTokens(token, deviceToken, user) {
+        try {
+            this.token = token;
+            this.deviceToken = deviceToken;
+            this.user = user;
+
+            localStorage.setItem('authToken', token);
+            localStorage.setItem('deviceToken', deviceToken);
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem('loginTime', new Date().toISOString());
+            localStorage.setItem('sessionExpiry', (new Date().getTime() + (24 * 60 * 60 * 1000)).toString());
+
+            this.setupTokenInterceptor();
+            this.initializeSyncAfterLogin();
+            return { success: true };
+        } catch (error) {
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
+     * Exchange the code for tokens and establish session
+     */
+    async completeSsoExchange(code) {
+        try {
+            const verifier = localStorage.getItem(this.PKCE_VERIFIER_KEY);
+            if (!verifier) throw new Error('PKCE verifier missing');
+
+            const tokenUrl = 'http://localhost:8180/realms/talliffy/protocol/openid-connect/token';
+            const redirectUri = 'http://localhost:3000/auth/callback';
+            
+            const response = await fetch(tokenUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    grant_type: 'authorization_code',
+                    client_id: 'talliffy-web',
+                    code: code,
+                    redirect_uri: redirectUri,
+                    code_verifier: verifier
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error_description || 'Keycloak token exchange failed');
+            }
+
+            const kcTokens = await response.json();
+            const ssoResponse = await fetch(`${window.apiConfig.baseURL}/auth/sso/keycloak`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${kcTokens.access_token}`,
+                    'X-Device-Type': 'DESKTOP'
+                }
+            });
+
+            if (!ssoResponse.ok) throw new Error('Backend session establishment failed');
+
+            const data = await ssoResponse.json();
+            if (!data.success) throw new Error(data.message || 'SSO login rejected by server');
+
+            const sessionData = data.data;
+            this.token = sessionData.token;
+            this.deviceToken = sessionData.deviceToken;
+            this.user = {
+                userId: sessionData.userId,
+                username: sessionData.username,
+                fullName: sessionData.fullName,
+                role: sessionData.role,
+                licenseNumber: sessionData.licenceNo || sessionData.licenseNumber
+            };
+
+            localStorage.setItem('authToken', this.token);
+            localStorage.setItem('deviceToken', this.deviceToken);
+            localStorage.setItem('currentUser', JSON.stringify(this.user));
+            localStorage.setItem('loginTime', new Date().toISOString());
+            localStorage.setItem('sessionExpiry', (new Date().getTime() + (24 * 60 * 60 * 1000)).toString());
+
+            this.setupTokenInterceptor();
+            this.initializeSyncAfterLogin();
+            return { success: true };
+        } catch (error) {
+            console.error('❌ SSO Exchange Error:', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    generateCodeVerifier() {
+        const array = new Uint8Array(32);
+        window.crypto.getRandomValues(array);
+        return Array.from(array, dec => ('0' + dec.toString(16)).substr(-2)).join('');
+    }
+
+    async generateCodeChallenge(verifier) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(verifier);
+        const digest = await window.crypto.subtle.digest('SHA-256', data);
+        return btoa(String.fromCharCode.apply(null, new Uint8Array(digest)))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    generateState() {
+        return 'desktop_' + Math.random().toString(36).substring(2, 15);
     }
 
     /**
@@ -149,571 +380,151 @@ class AuthService {
 
     /**
      * Validate mobile number format using libphonenumber-js
-     * @param {string} mobile - Mobile number (without country code)
-     * @param {string} countryCode - Country code (e.g., '+91', 'IN')
-     * @returns {object} - { isValid: boolean, formatted: string, error: string }
      */
     validateMobileNumber(mobile, countryCode) {
         try {
-            // Remove any special characters from mobile
             const cleanMobile = mobile.replace(/\D/g, '');
-
-            // Extract country code (remove '+' if present)
             const cc = countryCode.replace('+', '');
-
-            // Country code length validation
             const countryCodeLengths = {
                 '91': { minLength: 10, maxLength: 10, country: 'India' },
                 '971': { minLength: 7, maxLength: 9, country: 'UAE' },
                 '1': { minLength: 10, maxLength: 10, country: 'USA' },
-                '44': { minLength: 10, maxLength: 11, country: 'UK' },
-                '61': { minLength: 9, maxLength: 9, country: 'Australia' },
-                '27': { minLength: 9, maxLength: 9, country: 'South Africa' },
-                '86': { minLength: 11, maxLength: 11, country: 'China' },
-                '81': { minLength: 10, maxLength: 11, country: 'Japan' },
-                '33': { minLength: 9, maxLength: 9, country: 'France' },
-                '49': { minLength: 10, maxLength: 11, country: 'Germany' },
-                '39': { minLength: 10, maxLength: 10, country: 'Italy' },
-                '7': { minLength: 10, maxLength: 10, country: 'Russia' },
-                '55': { minLength: 10, maxLength: 11, country: 'Brazil' },
-                '52': { minLength: 10, maxLength: 10, country: 'Mexico' },
-                '34': { minLength: 9, maxLength: 9, country: 'Spain' },
-                '31': { minLength: 9, maxLength: 9, country: 'Netherlands' },
-                '46': { minLength: 7, maxLength: 13, country: 'Sweden' },
-                '47': { minLength: 8, maxLength: 8, country: 'Norway' },
-                '45': { minLength: 8, maxLength: 8, country: 'Denmark' },
-                '358': { minLength: 5, maxLength: 12, country: 'Finland' },
-                '48': { minLength: 9, maxLength: 9, country: 'Poland' },
-                '41': { minLength: 9, maxLength: 9, country: 'Switzerland' },
-                '43': { minLength: 10, maxLength: 13, country: 'Austria' },
-                '32': { minLength: 8, maxLength: 9, country: 'Belgium' },
-                '351': { minLength: 9, maxLength: 9, country: 'Portugal' },
-                '90': { minLength: 10, maxLength: 10, country: 'Turkey' },
-                '966': { minLength: 9, maxLength: 9, country: 'Saudi Arabia' },
-                '974': { minLength: 8, maxLength: 8, country: 'Qatar' },
-                '973': { minLength: 8, maxLength: 8, country: 'Bahrain' },
-                '968': { minLength: 8, maxLength: 8, country: 'Oman' },
-                '965': { minLength: 8, maxLength: 8, country: 'Kuwait' },
-                '962': { minLength: 8, maxLength: 9, country: 'Jordan' },
-                '961': { minLength: 7, maxLength: 8, country: 'Lebanon' },
-                '20': { minLength: 10, maxLength: 10, country: 'Egypt' },
-                '234': { minLength: 10, maxLength: 11, country: 'Nigeria' },
-                '254': { minLength: 9, maxLength: 9, country: 'Kenya' },
-                '60': { minLength: 9, maxLength: 10, country: 'Malaysia' },
-                '65': { minLength: 8, maxLength: 8, country: 'Singapore' },
-                '66': { minLength: 9, maxLength: 9, country: 'Thailand' },
-                '62': { minLength: 9, maxLength: 12, country: 'Indonesia' },
-                '63': { minLength: 10, maxLength: 10, country: 'Philippines' },
-                '82': { minLength: 9, maxLength: 11, country: 'South Korea' },
-                '852': { minLength: 8, maxLength: 8, country: 'Hong Kong' },
-                '886': { minLength: 9, maxLength: 9, country: 'Taiwan' },
-                '64': { minLength: 8, maxLength: 10, country: 'New Zealand' },
-                '92': { minLength: 10, maxLength: 10, country: 'Pakistan' },
-                '94': { minLength: 9, maxLength: 9, country: 'Sri Lanka' },
-                '880': { minLength: 10, maxLength: 10, country: 'Bangladesh' },
-                '977': { minLength: 10, maxLength: 10, country: 'Nepal' },
-                '84': { minLength: 9, maxLength: 10, country: 'Vietnam' },
-                '57': { minLength: 10, maxLength: 10, country: 'Colombia' },
-                '56': { minLength: 9, maxLength: 9, country: 'Chile' },
-                '54': { minLength: 10, maxLength: 10, country: 'Argentina' },
-                '51': { minLength: 9, maxLength: 9, country: 'Peru' },
-                '353': { minLength: 9, maxLength: 9, country: 'Ireland' },
-                '30': { minLength: 10, maxLength: 10, country: 'Greece' },
-                '36': { minLength: 9, maxLength: 9, country: 'Hungary' },
-                '420': { minLength: 9, maxLength: 9, country: 'Czech Republic' },
-                '40': { minLength: 9, maxLength: 9, country: 'Romania' },
-                '380': { minLength: 9, maxLength: 9, country: 'Ukraine' },
-                '972': { minLength: 9, maxLength: 9, country: 'Israel' },
+                '44': { minLength: 10, maxLength: 11, country: 'UK' }
             };
 
             const validation = countryCodeLengths[cc];
+            if (!validation) return { isValid: false, formatted: null, error: `Unsupported country code: +${cc}` };
 
-            if (!validation) {
-                return {
-                    isValid: false,
-                    formatted: null,
-                    error: `Unsupported country code: +${cc}`
-                };
-            }
-
-            // Check length
             if (cleanMobile.length < validation.minLength || cleanMobile.length > validation.maxLength) {
-                return {
-                    isValid: false,
-                    formatted: null,
-                    error: `Invalid mobile number for ${validation.country}. Expected ${validation.minLength}-${validation.maxLength} digits, got ${cleanMobile.length}`
-                };
+                return { isValid: false, formatted: null, error: `Invalid length for ${validation.country}` };
             }
 
-            // Validate that it only contains digits
-            if (!/^\d+$/.test(cleanMobile)) {
-                return {
-                    isValid: false,
-                    formatted: null,
-                    error: 'Mobile number should only contain digits'
-                };
-            }
-
-            // Format as E.164
             const e164 = `+${cc}${cleanMobile}`;
-            const international = `+${cc} ${cleanMobile.slice(0, validation.minLength === 10 ? 5 : 6)} ${cleanMobile.slice(validation.minLength === 10 ? 5 : 6)}`;
+            const international = `+${cc} ${cleanMobile}`;
 
-            return {
-                isValid: true,
-                formatted: international,
-                e164: e164,
-                national: cleanMobile,
-                country: validation.country,
-                error: null
-            };
+            return { isValid: true, formatted: international, e164: e164, national: cleanMobile, country: validation.country, error: null };
         } catch (error) {
-            console.error('❌ Mobile validation error:', error);
-            return {
-                isValid: false,
-                formatted: null,
-                error: error.message
-            };
+            return { isValid: false, formatted: null, error: error.message };
         }
     }
 
-    /**
-     * Register new user
-     * @param {object} userData - Should include username, email, password, licenceNo, fullName, countryCode, mobile
-     * @returns {Promise<object>}
-     */
     async register(userData) {
         try {
-            // Validate mobile number
             const mobileValidation = this.validateMobileNumber(userData.mobile, userData.countryCode || '+91');
-
-            if (!mobileValidation.isValid) {
-                return {
-                    success: false,
-                    message: `Mobile validation failed: ${mobileValidation.error}`
-                };
-            }
-
-            const registrationPayload = {
-                username: userData.username,
-                email: userData.email,
-                password: userData.password,
-                licenceNo: userData.licenceNo,
-                fullName: userData.fullName,
-                countryCode: userData.countryCode || '+91',
-                mobile: mobileValidation.e164,  // Use E.164 format for backend
-                mobileFormatted: mobileValidation.formatted
-            };
+            if (!mobileValidation.isValid) return { success: false, message: mobileValidation.error };
 
             const response = await fetch(window.apiConfig.getNestedUrl('auth', 'register'), {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(registrationPayload)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...userData, mobile: mobileValidation.e164 })
             });
 
             const data = await response.json();
-
-            if (!response.ok) {
-                return {
-                    success: false,
-                    message: data.message || 'Registration failed'
-                };
-            }
-
-            return {
-                success: true,
-                message: 'Registration successful. Please login.',
-                user: data.user,
-                mobile: mobileValidation.e164,
-                licenceNo: userData.licenceNo
-            };
+            if (!response.ok) return { success: false, message: data.message || 'Registration failed' };
+            return { success: true, message: 'Registration successful', user: data.user };
         } catch (error) {
-            console.error('Registration error:', error);
-            return {
-                success: false,
-                message: 'Connection error: ' + error.message
-            };
+            return { success: false, message: error.message };
         }
     }
 
-    /**
-     * Request mobile OTP after email verification
-     * @param {string} mobile - Mobile number
-     * @param {string} licenceNo - License number
-     * @returns {Promise<object>}
-     */
-    async requestMobileOTP(mobile, licenceNo) {
-        try {
-            const response = await fetch(`${window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL}/sns/mobile-otp`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    mobile: mobile,
-                    licenceNo: licenceNo
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                console.error('❌ Mobile OTP request failed:', data);
-                return {
-                    success: false,
-                    message: data.message || 'Failed to send mobile OTP'
-                };
-            }
-
-            console.log('✅ Mobile OTP sent successfully to:', mobile);
-            return {
-                success: true,
-                message: 'OTP sent to mobile',
-                data: data
-            };
-        } catch (error) {
-            console.error('❌ Mobile OTP request error:', error);
-            return {
-                success: false,
-                message: 'Connection error: ' + error.message
-            };
-        }
-    }
-
-    /**
-     * Verify email and trigger mobile OTP
-     * @param {string} email - Email to verify
-     * @param {string} verificationCode - Email verification code
-     * @param {string} mobile - Mobile number for OTP
-     * @param {string} licenceNo - License number
-     * @returns {Promise<object>}
-     */
-    async verifyEmailAndSendMobileOTP(email, verificationCode, mobile, licenceNo) {
-        try {
-            // First verify email with backend
-            const verifyResponse = await fetch(window.apiConfig.getNestedUrl('auth', 'verify-email'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: email,
-                    verificationCode: verificationCode
-                })
-            });
-
-            const verifyData = await verifyResponse.json();
-
-            if (!verifyResponse.ok) {
-                return {
-                    success: false,
-                    message: verifyData.message || 'Email verification failed'
-                };
-            }
-
-            console.log('✅ Email verified successfully');
-
-            // After email verification, send mobile OTP
-            const otpResult = await this.requestMobileOTP(mobile, licenceNo);
-
-            return {
-                success: true,
-                message: 'Email verified. OTP sent to mobile.',
-                emailVerified: true,
-                otpSent: otpResult.success
-            };
-        } catch (error) {
-            console.error('❌ Email verification error:', error);
-            return {
-                success: false,
-                message: 'Connection error: ' + error.message
-            };
-        }
-    }
-
-    /**
-     * Logout user
-     */
     async logout() {
         try {
-            // Call logout API to clear device token
             if (this.token) {
-                const response = await fetch(window.apiConfig.getNestedUrl('auth', 'logout'), {
+                await fetch(window.apiConfig.getNestedUrl('auth', 'logout'), {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${this.token}`,
-                        'X-Device-Token': this.deviceToken || '',
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Authorization': `Bearer ${this.token}`, 'X-Device-Token': this.deviceToken || '', 'Content-Type': 'application/json' }
                 });
-                if (response.status === 401 || response.status === 403) {
-                    console.warn('Logout API returned ' + response.status + ', continuing with local logout');
-                }
             }
-        } catch (error) {
-            console.error('Logout API error:', error);
-        }
+        } catch (error) { console.error('Logout API error:', error); }
 
         this.clearLocalData();
-
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-        }
-
-        // Show notification
-        if (window.notificationService) {
-            window.notificationService.info('You have been logged out', 'Logout Successful', 2000);
-        }
-
-        // Redirect to login after a short delay
+        if (this.refreshInterval) clearInterval(this.refreshInterval);
+        if (window.notificationService) window.notificationService.info('You have been logged out');
+        
         setTimeout(() => {
             window.location.hash = '#login';
             window.location.reload();
         }, 500);
-
         return true;
     }
 
-    /**
-     * Refresh token
-     * @returns {Promise<boolean>}
-     */
     async refreshToken() {
         if (!this.token) return false;
-
         try {
             const response = await fetch(window.apiConfig.getNestedUrl('auth', 'refresh'), {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.token}`,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' }
             });
-
             const data = await response.json();
-
             if (response.ok) {
                 this.token = data.token;
                 localStorage.setItem('authToken', data.token);
                 return true;
             }
-
-            // Token refresh failed, logout user
             this.logout();
             return false;
-        } catch (error) {
-            console.error('Token refresh error:', error);
-            return false;
-        }
+        } catch (error) { return false; }
     }
 
-    /**
-     * Setup automatic token refresh
-     */
     setupTokenInterceptor() {
-        // Refresh token every 55 minutes (before 1 hour expiration)
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-        }
-
-        this.refreshInterval = setInterval(() => {
-            if (this.token) {
-                this.refreshToken();
-            }
-        }, 55 * 60 * 1000);
+        if (this.refreshInterval) clearInterval(this.refreshInterval);
+        this.refreshInterval = setInterval(() => { if (this.token) this.refreshToken(); }, 55 * 60 * 1000);
     }
 
-    /**
-     * Get authorization headers
-     * @returns {object}
-     */
     getHeaders() {
         this.loadAuthState();
-
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-
-        if (this.token && !this.isTokenExpired()) {
-            headers['Authorization'] = `Bearer ${this.token}`;
-        } else if (this.token && this.isTokenExpired()) {
-            console.warn('⚠️ Token expired in getHeaders(), clearing...');
-            this.loadAuthState();
-        }
-
-        if (this.deviceToken) {
-            headers['X-Device-Token'] = this.deviceToken;
-        }
-
-        if (this.csrfToken) {
-            headers['X-CSRF-Token'] = this.csrfToken;
-        }
-
+        const headers = { 'Content-Type': 'application/json' };
+        if (this.token && !this.isTokenExpired()) headers['Authorization'] = `Bearer ${this.token}`;
+        if (this.deviceToken) headers['X-Device-Token'] = this.deviceToken;
+        if (this.csrfToken) headers['X-CSRF-Token'] = this.csrfToken;
         return headers;
     }
 
-    /**
-     * Check if user is authenticated
-     * @returns {boolean}
-     */
-    isAuthenticated() {
-        return !!this.token && !!this.user;
-    }
+    isAuthenticated() { return !!this.token && !!this.user; }
 
-    /**
-     * Initialize sync system after successful login
-     * This ensures sync only runs when user is properly authenticated
-     */
     initializeSyncAfterLogin() {
         try {
-            console.log('🔄 Initializing sync system after login...');
-
-            // Verify we have valid auth credentials
-            if (!this.token || !this.deviceToken || !this.user) {
-                console.warn('⚠️ Missing auth credentials, cannot initialize sync');
-                return;
-            }
-
-            // Initialize AppInitializer if available
+            if (!this.token || !this.deviceToken || !this.user) return;
             if (window.AppInitializer && typeof window.AppInitializer.initialize === 'function') {
-                // Use setTimeout to avoid blocking login flow
-                setTimeout(() => {
-                    window.AppInitializer.initialize()
-                        .then(() => {
-                            console.log('✅ Sync system initialized successfully after login');
-                        })
-                        .catch(error => {
-                            console.error('❌ Error initializing sync system:', error);
-                        });
-                }, 1000); // 1 second delay to allow app to fully load
-            } else {
-                console.warn('⚠️ AppInitializer not available');
+                setTimeout(() => { window.AppInitializer.initialize().catch(e => console.error(e)); }, 1000);
             }
-        } catch (error) {
-            console.error('❌ Error in initializeSyncAfterLogin:', error);
-        }
+        } catch (error) { console.error(error); }
     }
 
-    /**
-     * Get current user
-     * @returns {object|null}
-     */
-    getCurrentUser() {
-        if (!this.user) this.loadAuthState();
-        return this.user;
-    }
+    getCurrentUser() { if (!this.user) this.loadAuthState(); return this.user; }
+    getToken() { return this.token; }
+    getDeviceToken() { return this.deviceToken; }
 
-    /**
-     * Get token
-     * @returns {string|null}
-     */
-    getToken() {
-        return this.token;
-    }
-
-    /**
-     * Get device token
-     * @returns {string|null}
-     */
-    getDeviceToken() {
-        return this.deviceToken;
-    }
-
-    /**
-     * Check if JWT token is expired (client-side check)
-     * @returns {boolean}
-     */
     isTokenExpired() {
         if (!this.token) return true;
-
         try {
-            const parts = this.token.split('.');
-            if (parts.length !== 3) return true;
-
-            const decoded = JSON.parse(atob(parts[1]));
-            const exp = decoded.exp;
-
-            if (!exp) return false;
-
-            const now = Math.floor(Date.now() / 1000);
-            const isExpired = now >= exp;
-
-            if (isExpired) {
-                console.warn('⚠️ Token is expired');
-            }
-
-            return isExpired;
-        } catch (error) {
-            console.error('❌ Error decoding token:', error);
-            return true;
-        }
+            const decoded = JSON.parse(atob(this.token.split('.')[1]));
+            return Math.floor(Date.now() / 1000) >= (decoded.exp || 0);
+        } catch (error) { return true; }
     }
 
-    /**
-     * Validate token
-     * @returns {Promise<boolean>}
-     */
     async validateToken() {
         if (!this.token) return false;
-
-        if (this.isTokenExpired()) {
-            console.warn('⚠️ Token is expired, attempting refresh...');
-            return await this.refreshToken();
-        }
-
+        if (this.isTokenExpired()) return await this.refreshToken();
         try {
             const response = await fetch(window.apiConfig.getNestedUrl('auth', 'validate'), {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.token}`,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' }
             });
-
-            if (response.ok) {
-                const data = await response.json();
-                return data.success;
-            }
-
-            return false;
-        } catch (error) {
-            console.error('Token validation error:', error);
-            return false;
-        }
+            return response.ok;
+        } catch (error) { return false; }
     }
 
-    /**
-     * Extract CSRF token from response headers
-     * @param {Response} response 
-     * @returns {string|null}
-     */
     extractCsrfToken(response) {
-        // Try common CSRF header names
-        const csrfHeaders = [
-            'x-csrf-token',
-            'x-xsrf-token',
-            'csrf-token',
-            'xsrf-token'
-        ];
-
-        for (const header of csrfHeaders) {
-            const token = response.headers.get(header);
-            if (token) {
-                console.log(`✅ CSRF token extracted from header: ${header}`);
-                return token;
-            }
+        const csrfHeaders = ['x-csrf-token', 'x-xsrf-token', 'csrf-token'];
+        for (const h of csrfHeaders) {
+            const t = response.headers.get(h);
+            if (t) return t;
         }
-
         return null;
     }
 }
 
-// Create singleton instance
 const authService = new AuthService();
-
-// Export to window for global access
 window.authService = authService;
-
-// Also make AuthService class available globally
 window.AuthService = AuthService;

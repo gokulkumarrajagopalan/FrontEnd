@@ -42,7 +42,8 @@
             text: 'Connect Web',
             icon: '<i class="fas fa-globe"></i>',
             variant: 'secondary',
-            onclick: "const token = localStorage.getItem('authToken'); window.electronAPI.openExternalUrl(`http://localhost:5173/?token=${token}`);"
+            className: 'connect-web-btn',
+            attributes: 'data-route="open-web"'
         });
 
         return window.Layout.page({
@@ -50,7 +51,7 @@
             subtitle: 'Monitor and manage data synchronization for all connected Tally companies',
             headerActions: `<div style="display: flex; gap: var(--ds-space-3);">${connectWebBtn}${importBtn}</div>`,
             content: `
-                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6); width: 100%;">
                     <div style="background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default);">
                         <div style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-1);">Subscription Details</div>
                         <div style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: var(--ds-text-primary);">Tally License: <span style="font-family: var(--ds-font-mono);">*****2698</span></div>
@@ -536,7 +537,10 @@
                 { name: 'Currencies', api: window.electronAPI.syncCurrencies, entityType: 'Currency' },
                 { name: 'Tax Units', api: window.electronAPI.syncTaxUnits, entityType: 'TaxUnit' },
                 { name: 'Vouchers', api: window.electronAPI.syncVouchers, entityType: 'Voucher' },
-                { name: 'Bills Outstanding', api: window.electronAPI.syncBillsOutstanding, entityType: 'BillsOutstanding' }
+                { name: 'Bills Outstanding', api: window.electronAPI.syncBillsOutstanding, entityType: 'BillsOutstanding' },
+                { name: 'Balance Sheet', api: window.electronAPI.syncFinancialReports, entityType: 'FinancialReports', reportType: 'balancesheet' },
+                { name: 'Profit & Loss', api: window.electronAPI.syncFinancialReports, entityType: 'FinancialReports', reportType: 'profitloss' },
+                { name: 'Trial Balance', api: window.electronAPI.syncFinancialReports, entityType: 'FinancialReports', reportType: 'trailbalance' }
             ];
 
             let successCount = 0;
@@ -585,7 +589,8 @@
                     tallyHost: tallyHost,
                     tallyPort: tallyPort,
                     backendUrl: backendUrl,
-                    companyName: company.name
+                    companyName: company.name,
+                    reportType: step.reportType
                 };
                 if (step.name === 'Vouchers') {
                     syncParams.companyGuid = company.companyGuid || company.guid || '';

@@ -25,14 +25,17 @@ function registerFinancialReportsHandler(activeChildProcesses) {
     ipcMain.handle('sync-financial-reports', async (event, params) => {
         return new Promise((resolve) => {
             const {
-                companyName,
+                companyName = '',
                 cmpId,
                 userId,
+                fromDate = 'None',
+                toDate = 'None',
                 tallyHost = 'localhost',
                 tallyPort = 9000,
-                backendUrl = process.env.BACKEND_URL,
-                authToken,
-                deviceToken
+                backendUrl = process.env.BACKEND_URL || 'http://localhost:8080',
+                authToken = 'None',
+                deviceToken = 'None',
+                reportType = 'None'
             } = params;
 
             const isDev = !app.isPackaged;
@@ -44,10 +47,13 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                     companyName,
                     (cmpId || 1).toString(),
                     (userId || 1).toString(),
+                    fromDate || 'None',
+                    toDate || 'None',
                     tallyPort.toString(),
                     backendUrl || '',
-                    authToken || '',
-                    deviceToken || ''
+                    authToken || 'None',
+                    deviceToken || 'None',
+                    reportType || 'None'
                 ];
             } else {
                 const pythonScript = isDev 
@@ -58,10 +64,13 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                     companyName,
                     (cmpId || 1).toString(),
                     (userId || 1).toString(),
+                    fromDate || 'None',
+                    toDate || 'None',
                     tallyPort.toString(),
                     backendUrl || '',
-                    authToken || '',
-                    deviceToken || ''
+                    authToken || 'None',
+                    deviceToken || 'None',
+                    reportType || 'None'
                 ];
             }
 

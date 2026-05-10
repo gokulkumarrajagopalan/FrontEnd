@@ -732,6 +732,7 @@ class App {
                             <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-credit-card"></i></span>
                             <span class="ds-nav-text">Purchase</span>
                         </a>
+                     
                     </nav>
                     
                     <!-- Status Bar -->

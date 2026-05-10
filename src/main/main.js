@@ -7,6 +7,40 @@ const security = require("./security");
 const { findPython } = require("./python-finder");
 const { registerVoucherSyncHandler } = require("./voucher-sync-handler");
 const { registerBillsSyncHandler } = require("./bills-sync-handler");
+const { protocol } = require("electron");
+
+// Single Instance Lock
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+
+      // For Windows: commandLine contains the deep link URL
+      const url = commandLine.find(arg => arg.startsWith('talliffy://'));
+      if (url) {
+        console.log("🔗 Second instance deep link received:", url);
+        
+        // Show a small notification to inform the user
+        new Notification({
+          title: 'Talliffy SSO',
+          body: 'Completing sign-in from your browser...',
+          silent: true
+        }).show();
+
+        mainWindow.webContents.send('sso-callback', url);
+      }
+    }
+  });
+}
+
+// Global deep link URL for initial launch
+let initialDeepLink = process.argv.find(arg => arg.startsWith('talliffy://'));
 
 // Register talliffy:// as a custom protocol for SSO OAuth2 callback
 if (process.defaultApp) {
@@ -114,6 +148,13 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     if (isDev) console.log("🔥 Window ready to show - displaying now");
     mainWindow.show();
+    
+    // If we have an initial deep link, send it now
+    if (initialDeepLink) {
+      console.log("🔗 Processing initial deep link:", initialDeepLink);
+      mainWindow.webContents.send('sso-callback', initialDeepLink);
+      initialDeepLink = null;
+    }
   });
 
   setTimeout(() => {
@@ -1082,25 +1123,6 @@ app.on("before-quit", () => {
     }
   } catch (_) {}
 });
-
-const gotTheLock = app.requestSingleInstanceLock();
-
-if (!gotTheLock) {
-  app.quit();
-} else {
-  app.on("second-instance", (event, commandLine) => {
-    const windows = BrowserWindow.getAllWindows();
-    if (windows.length > 0) {
-      windows[0].focus();
-    }
-    // Handle SSO deep link on Windows (second-instance carries the URL)
-    const deepLink = commandLine.find(arg => arg.startsWith('talliffy://'));
-    if (deepLink && mainWindow) {
-      mainWindow.webContents.send('sso-callback', deepLink);
-    }
-  });
-}
-
 // Handle SSO deep link on macOS (open-url event)
 app.on('open-url', (event, url) => {
   event.preventDefault();
@@ -1112,23 +1134,49 @@ app.on('open-url', (event, url) => {
 // Open SSO URL in system browser (not inside Electron)
 ipcMain.handle('open-external-url', async (event, url) => {
   try {
-    // Only allow Keycloak SSO URLs
-    if (!url.startsWith('http://localhost:8180') && !url.startsWith('https://')) {
+    console.log('🌐 Received request to open external URL:', url);
+    
+    if (!url || typeof url !== 'string') {
+        return { success: false, error: 'Invalid URL' };
+    }
+
+    // Normalized check
+    const normalizedUrl = url.trim().toLowerCase();
+    
+    // Whitelist
+    const allowedOrigins = [
+      'http://localhost:8180',
+      'http://localhost:8080',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:8080',
+      'http://127.0.0.1:8180',
+      'https://'
+    ];
+    
+    const isAllowed = allowedOrigins.some(origin => normalizedUrl.startsWith(origin.toLowerCase()));
+    
+    if (!isAllowed) {
+      console.error('🚫 Blocked attempt to open external URL:', url);
       return { success: false, error: 'URL not allowed' };
     }
-    await shell.openExternal(url);
+
+    console.log('✅ URL allowed, opening browser...');
+    shell.openExternal(url).catch(err => {
+      console.error('❌ Failed to open external URL:', err);
+    });
+    
     return { success: true };
   } catch (e) {
+    console.error('❌ Error in open-external-url handler:', e);
     return { success: false, error: e.message };
   }
 });
 
-// Unified Renderer Logging (Production Grade)
+// Unified Renderer Logging
 ipcMain.on('log-renderer', (event, { level, message, data, timestamp }) => {
   const formattedData = data ? (typeof data === 'object' ? JSON.stringify(data) : data) : '';
   const logLine = `[RENDERER] [${level}] [${timestamp}] ${message} ${formattedData}\n`;
-
-  // Use the same log file as python worker for unified debugging
   const logPath = path.join(app.getPath('userData'), 'sync_report.log');
   try {
     fs.appendFileSync(logPath, logLine);

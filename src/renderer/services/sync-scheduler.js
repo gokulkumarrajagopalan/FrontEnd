@@ -357,8 +357,8 @@ class SyncScheduler {
                 { type: 'StockItem', key: 'stockitem' }
             ];
 
-            // Total steps = 12 master entities + Vouchers + Bills Outstanding + Financial Reports = 15
-            const totalSteps = entities.length + 3;
+            // Total steps = 12 master entities + Vouchers + Bills Outstanding + Balance Sheet + P&L + Trial Balance = 17
+            const totalSteps = entities.length + 5;
 
             for (let j = 0; j < entities.length; j++) {
                 const entity = entities[j];
@@ -605,44 +605,63 @@ class SyncScheduler {
             }
 
             // ============= FINANCIAL REPORTS SYNC =============
-            const financialStepIndex = entities.length + 3;
-            const financialPercentage = Math.round((financialStepIndex / totalSteps) * 100);
-            if (window.syncStateManager) {
-                const companyIndex = window.syncStateManager.syncedCount || 0;
-                window.syncStateManager.updateProgress(companyIndex, `${companyName} - Financial Reports`, {
-                    companyId: companyId,
-                    companyName: companyName,
-                    entityIndex: financialStepIndex,
-                    entityCount: totalSteps,
-                    entityName: 'Financial Reports',
-                    percentage: financialPercentage
-                });
-            }
-            try {
-                if (window.electronAPI?.syncFinancialReports) {
-                    console.log(`  📦 Financial Reports: Syncing...`);
-                    const financialResult = await window.electronAPI.syncFinancialReports({
+            const reports = [
+                { name: 'Balance Sheet', type: 'balancesheet' },
+                { name: 'Profit & Loss', type: 'profitloss' },
+                { name: 'Trial Balance', type: 'trailbalance' }
+            ];
+
+            for (let rIdx = 0; rIdx < reports.length; rIdx++) {
+                const report = reports[rIdx];
+                const reportStepIndex = entities.length + 3 + rIdx;
+                const reportPercentage = Math.round((reportStepIndex / totalSteps) * 100);
+
+                if (window.syncStateManager) {
+                    const companyIndex = window.syncStateManager.syncedCount || 0;
+                    window.syncStateManager.updateProgress(companyIndex, `${companyName} - ${report.name}`, {
                         companyId: companyId,
-                        cmpId: companyId,
-                        userId: userId,
-                        authToken: authToken,
-                        deviceToken: deviceToken,
-                        tallyPort: tallyPort,
-                        backendUrl: backendUrl,
-                        companyName: companyName
+                        companyName: companyName,
+                        entityIndex: reportStepIndex,
+                        entityCount: totalSteps,
+                        entityName: report.name,
+                        percentage: reportPercentage
                     });
-                    if (financialResult.success) {
-                        console.log(`  ✅ Financial Reports: Synced successfully`);
-                    } else {
-                        console.warn(`  ⚠️ Financial Reports: ${financialResult.error || financialResult.message || 'Failed'}`);
-                        result.errors.push({ entity: 'Financial Reports', message: financialResult.error || financialResult.message || 'Financial Reports sync failed' });
-                    }
-                } else {
-                    console.warn('  ⚠️ Financial Reports: syncFinancialReports API not available');
                 }
-            } catch (fErr) {
-                console.error('  ❌ Financial Reports sync error:', fErr);
-                result.errors.push({ entity: 'Financial Reports', message: fErr.message || 'Financial Reports sync error' });
+
+                try {
+                    if (window.electronAPI?.syncFinancialReports) {
+                        console.log(`  📦 ${report.name}: Syncing...`);
+                        
+                        const now = new Date();
+                        const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+                        const fromDate = `${fyStartYear}0401`;
+                        const toDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+
+                        const financialResult = await window.electronAPI.syncFinancialReports({
+                            companyId: companyId,
+                            cmpId: companyId,
+                            userId: userId,
+                            fromDate: fromDate,
+                            toDate: toDate,
+                            authToken: authToken,
+                            deviceToken: deviceToken,
+                            tallyPort: tallyPort,
+                            backendUrl: backendUrl,
+                            companyName: companyName,
+                            reportType: report.type
+                        });
+
+                        if (financialResult.success) {
+                            console.log(`  ✅ ${report.name}: Synced successfully`);
+                        } else {
+                            console.warn(`  ⚠️ ${report.name}: ${financialResult.error || financialResult.message || 'Failed'}`);
+                            result.errors.push({ entity: report.name, message: financialResult.error || financialResult.message || 'Sync failed' });
+                        }
+                    }
+                } catch (fErr) {
+                    console.error(`  ❌ ${report.name} sync error:`, fErr);
+                    result.errors.push({ entity: report.name, message: fErr.message || 'Sync error' });
+                }
             }
 
             // Mark overall result based on errors

@@ -101,6 +101,12 @@
       "runAfterFinish": true,
       "installerSidebar": "assets/installer-sidebar.bmp",
       "license": "assets/license.txt"
+    },
+    "protocols": {
+      "name": "tallify-auth",
+      "schemes": [
+        "talliffy"
+      ]
     }
   }
 }

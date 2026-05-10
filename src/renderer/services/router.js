@@ -24,6 +24,52 @@ class Router {
     }
 
     async navigate(route) {
+        // ── Handle Special Action Routes ──
+        if (route === 'open-web') {
+            console.log('🌐 Initiating secure SSO handoff to Web...');
+            try {
+                // Call backend to get a short-lived handoff code
+                const backendUrl = await window.electronAPI.getBackendUrl();
+                const token = localStorage.getItem('authToken');
+                
+                if (!token) {
+                    console.error('Cannot open web: User not logged in');
+                    return;
+                }
+
+                const response = await fetch(`${backendUrl}/auth/sso/handoff-code`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success && data.handoffCode) {
+                    const webBaseUrl = 'http://localhost:3000';
+                    const handoffUrl = `${webBaseUrl}/auth/callback?handoffCode=${data.handoffCode}`;
+
+                    if (window.electronAPI && window.electronAPI.openExternalUrl) {
+                        await window.electronAPI.openExternalUrl(handoffUrl);
+                        if (window.notificationService) {
+                            window.notificationService.success('Opening Web Application...', 'Connected');
+                        }
+                    } else {
+                        window.open(handoffUrl, '_blank');
+                    }
+                } else {
+                    throw new Error('Failed to generate handoff code');
+                }
+            } catch (err) {
+                console.error('Error during secure web handoff:', err);
+                if (window.notificationService) {
+                    window.notificationService.error('Failed to connect to Web App: ' + err.message);
+                }
+            }
+            return;
+        }
+
         if (!this.pages[route]) {
             console.error(`Route not found: ${route}`);
             return;

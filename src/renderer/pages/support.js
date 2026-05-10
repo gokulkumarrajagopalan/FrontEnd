@@ -1,6 +1,6 @@
 (function () {
     const getSupportTemplate = () => `
-        <div style="padding: var(--ds-space-6); max-width: 1100px; margin: 0 auto;">
+        <div style="padding: var(--ds-space-6); width: 100%; box-sizing: border-box;">
             <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; border: 1px solid var(--ds-border-default);">
                 <div style="padding: var(--ds-space-5) var(--ds-space-6); border-bottom: 1px solid var(--ds-border-default);">
                     <h2 style="font-size: var(--ds-text-3xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-1);">Support</h2>

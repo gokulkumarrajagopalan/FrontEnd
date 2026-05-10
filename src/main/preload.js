@@ -201,6 +201,9 @@ try {
         onSSOCallback: (callback) => {
             ipcRenderer.on('sso-callback', (event, url) => callback(url));
         },
+        onSsoCallback: (callback) => {
+            ipcRenderer.on('sso-callback', (event, url) => callback(url));
+        },
         openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
 
         // ── Whitelisted generic IPC (for backward compat) ──

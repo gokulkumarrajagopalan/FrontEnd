@@ -63,7 +63,8 @@ const UIComponents = {
             disabled = false,
             type = 'button',
             className = '',
-            style = ''
+            style = '',
+            attributes = ''
         } = options;
 
         const variantMap = {
@@ -89,6 +90,7 @@ const UIComponents = {
                 class="${btnClass}"
                 style="${style}"
                 ${disabled ? 'disabled' : ''}
+                ${attributes}
             >
                 ${icon ? `<span class="ds-btn-icon">${icon}</span>` : ''}
                 <span class="ds-btn-text">${text}</span>

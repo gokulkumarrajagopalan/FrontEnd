@@ -139,7 +139,7 @@
     };
 
     const getTutorialTemplate = () => `
-        <div class="tutorial-container" style="padding: var(--ds-space-6); max-width: 1000px; margin: 0 auto; transition: all 0.3s ease;">
+        <div class="tutorial-container" style="padding: var(--ds-space-6); width: 100%; box-sizing: border-box; transition: all 0.3s ease;">
             <div id="tutorial-main-view">
                 <!-- HEADER -->
                 <div class="tutorial-header" style="margin-bottom: var(--ds-space-10); text-align: left;">

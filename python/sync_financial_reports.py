@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 import sys
 import re
 import json
+import os
+import threading
 
 TALLY_URL_TEMPLATE = "http://localhost:{}"
 BACKEND_URL_DEFAULT = "http://localhost:8080"
@@ -21,13 +23,15 @@ TDL_BALANCE_SHEET = """<ENVELOPE>
 			<STATICVARIABLES>
 				<SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
 				<SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>
+				<SVFROMDATE TYPE='Date'>{from_date}</SVFROMDATE>
+				<SVTODATE TYPE='Date'>{to_date}</SVTODATE>
 				<DSPNameStyle>NameOnly</DSPNameStyle>
 				<EXPLODEFLAG>Yes</EXPLODEFLAG>
 			</STATICVARIABLES>
 			<TDL>
 				<TDLMESSAGE>
 					<REPORT NAME='My Balance Sheet' ISMODIFY='No' ISFIXED='No' ISINITIALIZE='No' ISOPTION='No' ISINTERNAL='No'>
-						<VARIABLE>SVCURRENTCOMPANY</VARIABLE>
+						<VARIABLE>SVFROMDATE,SVTODATE,SVCURRENTCOMPANY,ReportTitle,ReportSubTitle</VARIABLE>
 						<USE>Balance Sheet</USE>
 						<FORMS>Balance Sheet</FORMS>
 					</REPORT>
@@ -61,13 +65,15 @@ TDL_PROFIT_LOSS = """<ENVELOPE>
 			<STATICVARIABLES>
 				<SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
 				<SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>
+				<SVFROMDATE TYPE='Date'>{from_date}</SVFROMDATE>
+				<SVTODATE TYPE='Date'>{to_date}</SVTODATE>
 				<DSPNameStyle>NameOnly</DSPNameStyle>
 				<EXPLODEFLAG>Yes</EXPLODEFLAG>
 			</STATICVARIABLES>
 			<TDL>
 				<TDLMESSAGE>
 					<REPORT NAME='My Profit and Loss' ISMODIFY='No' ISFIXED='No' ISINITIALIZE='No' ISOPTION='No' ISINTERNAL='No'>
-						<VARIABLE>SVEXPORTFORMAT,SVCURRENTCOMPANY</VARIABLE>
+						<VARIABLE>SVFROMDATE,SVTODATE,SVEXPORTFORMAT,SVCURRENTCOMPANY,ReportTitle,ReportSubTitle</VARIABLE>
 						<USE>Profit and Loss</USE>
 						<FORMS>Profit and Loss</FORMS>
 					</REPORT>
@@ -101,13 +107,15 @@ TDL_TRIAL_BALANCE = """<ENVELOPE>
 			<STATICVARIABLES>
 				<SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
 				<SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>
+				<SVFROMDATE TYPE='Date'>{from_date}</SVFROMDATE>
+				<SVTODATE TYPE='Date'>{to_date}</SVTODATE>
 				<DSPNameStyle>NameOnly</DSPNameStyle>
 				<EXPLODEFLAG>Yes</EXPLODEFLAG>
 			</STATICVARIABLES>
 			<TDL>
 				<TDLMESSAGE>
 					<REPORT NAME='My Trial Balance' ISMODIFY='No' ISFIXED='No' ISINITIALIZE='No' ISOPTION='No' ISINTERNAL='No'>
-						<VARIABLE>SVEXPORTFORMAT,SVCURRENTCOMPANY</VARIABLE>
+						<VARIABLE>SVFROMDATE,SVTODATE,SVEXPORTFORMAT,SVCURRENTCOMPANY,ReportTitle,ReportSubTitle</VARIABLE>
 						<USE>Trial Balance</USE>
 						<FORMS>Group Summary</FORMS>
 					</REPORT>
@@ -131,12 +139,14 @@ TDL_TRIAL_BALANCE = """<ENVELOPE>
 
 
 class FinancialReportSync:
-    def __init__(self, company_name, cmp_id, user_id, tally_port, backend_url, auth_token=None, device_token=None):
+    def __init__(self, company_name, cmp_id, user_id, tally_port, backend_url, from_date=None, to_date=None, auth_token=None, device_token=None):
         self.company_name = company_name
         self.cmp_id = int(cmp_id)
         self.user_id = int(user_id)
         self.tally_url = TALLY_URL_TEMPLATE.format(tally_port)
         self.backend_url = backend_url
+        self.from_date = from_date or "20240401"
+        self.to_date = to_date or "20250331"
         self.auth_token = auth_token
         self.device_token = device_token
         
@@ -156,10 +166,10 @@ class FinancialReportSync:
         try:
             response = requests.post(sync_url, json=data, headers=self.headers, timeout=30)
             if response.status_code in [200, 201]:
-                print(f"✓ {report_name} successfully synced to database (Count: {len(data)})")
+                print(f"[SUCCESS] {report_name} successfully synced to database (Count: {len(data)})")
                 return True
             else:
-                print(f"✗ Failed to sync {report_name} to database. Status: {response.status_code}, Error: {response.text}")
+                print(f"[FAILED] Sync {report_name} failed. Status: {response.status_code}, Error: {response.text}")
                 return False
         except requests.exceptions.RequestException as e:
             print(f"Backend connection error for {report_name}: {e}")
@@ -167,7 +177,7 @@ class FinancialReportSync:
 
     def fetch_and_sync_balance_sheet(self):
         print(f"\n--- Syncing Balance Sheet ---")
-        tdl = TDL_BALANCE_SHEET.replace("{company_name}", self.company_name)
+        tdl = TDL_BALANCE_SHEET.replace("{company_name}", self.company_name).replace("{from_date}", self.from_date).replace("{to_date}", self.to_date)
         
         try:
             response = requests.post(self.tally_url, data=tdl.encode('utf-8'), timeout=60)
@@ -224,7 +234,7 @@ class FinancialReportSync:
 
     def fetch_and_sync_profit_loss(self):
         print(f"\n--- Syncing Profit and Loss ---")
-        tdl = TDL_PROFIT_LOSS.replace("{company_name}", self.company_name)
+        tdl = TDL_PROFIT_LOSS.replace("{company_name}", self.company_name).replace("{from_date}", self.from_date).replace("{to_date}", self.to_date)
         
         try:
             response = requests.post(self.tally_url, data=tdl.encode('utf-8'), timeout=60)
@@ -284,7 +294,7 @@ class FinancialReportSync:
 
     def fetch_and_sync_trial_balance(self):
         print(f"\n--- Syncing Trial Balance ---")
-        tdl = TDL_TRIAL_BALANCE.replace("{company_name}", self.company_name)
+        tdl = TDL_TRIAL_BALANCE.replace("{company_name}", self.company_name).replace("{from_date}", self.from_date).replace("{to_date}", self.to_date)
         
         try:
             response = requests.post(self.tally_url, data=tdl.encode('utf-8'), timeout=60)
@@ -344,50 +354,83 @@ class FinancialReportSync:
             print(f"Error processing Trial Balance: {e}")
             return False
 
-    def sync_all(self):
-        print(f"Starting Financial Reports Sync for Company: {self.company_name} (ID: {self.cmp_id})")
-        bs_success = self.fetch_and_sync_balance_sheet()
-        pl_success = self.fetch_and_sync_profit_loss()
-        tb_success = self.fetch_and_sync_trial_balance()
-        
-        result = {
-            'success': bs_success and pl_success and tb_success,
-            'details': {
-                'balance_sheet': bs_success,
-                'profit_loss': pl_success,
-                'trial_balance': tb_success
+    def sync_all(self, report_type=None):
+        if report_type == 'balancesheet':
+            success = self.fetch_and_sync_balance_sheet()
+            result = {'success': success, 'details': {'balance_sheet': success}}
+        elif report_type == 'profitloss':
+            success = self.fetch_and_sync_profit_loss()
+            result = {'success': success, 'details': {'profit_loss': success}}
+        elif report_type == 'trailbalance':
+            success = self.fetch_and_sync_trial_balance()
+            result = {'success': success, 'details': {'trial_balance': success}}
+        else:
+            print(f"Starting Financial Reports Sync for Company: {self.company_name} (ID: {self.cmp_id})")
+            bs_success = self.fetch_and_sync_balance_sheet()
+            pl_success = self.fetch_and_sync_profit_loss()
+            tb_success = self.fetch_and_sync_trial_balance()
+            
+            result = {
+                'success': bs_success and pl_success and tb_success,
+                'details': {
+                    'balance_sheet': bs_success,
+                    'profit_loss': pl_success,
+                    'trial_balance': tb_success
+                }
             }
-        }
         
         print("\n--- Sync Summary ---")
         print(json.dumps(result, indent=2))
         return result
 
 
+def monitor_parent_process():
+    """
+    Monitor stdin for closure. When Electron parent process dies or kills the script,
+    the stdin pipe will close, signaling this script to exit.
+    """
+    try:
+        # sys.stdin.read() will block until the pipe is closed
+        sys.stdin.read()
+        # If read() returns, the pipe is closed
+        os._exit(0)
+    except Exception:
+        os._exit(0)
+
+
 def main():
+    # Start parent process monitor thread
+    monitor_thread = threading.Thread(target=monitor_parent_process, daemon=True)
+    monitor_thread.start()
+
     if len(sys.argv) < 4:
-        print("Usage: python sync_financial_reports.py <company_name> <cmp_id> <user_id> [tally_port] [backend_url] [auth_token] [device_token]")
+        print("Usage: python sync_financial_reports.py <company_name> <cmp_id> <user_id> [from_date] [to_date] [tally_port] [backend_url] [auth_token] [device_token]")
         sys.exit(1)
         
     company_name = sys.argv[1]
     cmp_id = sys.argv[2]
     user_id = sys.argv[3]
-    tally_port = sys.argv[4] if len(sys.argv) > 4 else "9000"
-    backend_url = sys.argv[5] if len(sys.argv) > 5 else BACKEND_URL_DEFAULT
-    auth_token = sys.argv[6] if len(sys.argv) > 6 else None
-    device_token = sys.argv[7] if len(sys.argv) > 7 else None
+    from_date = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] != 'None' else None
+    to_date = sys.argv[5] if len(sys.argv) > 5 and sys.argv[5] != 'None' else None
+    tally_port = sys.argv[6] if len(sys.argv) > 6 else "9000"
+    backend_url = sys.argv[7] if len(sys.argv) > 7 else BACKEND_URL_DEFAULT
+    auth_token = sys.argv[8] if len(sys.argv) > 8 else None
+    device_token = sys.argv[9] if len(sys.argv) > 9 else None
+    report_type = sys.argv[10] if len(sys.argv) > 10 else None
     
     syncer = FinancialReportSync(
         company_name=company_name,
         cmp_id=cmp_id,
         user_id=user_id,
+        from_date=from_date,
+        to_date=to_date,
         tally_port=tally_port,
         backend_url=backend_url,
         auth_token=auth_token,
         device_token=device_token
     )
     
-    syncer.sync_all()
+    syncer.sync_all(report_type)
 
 if __name__ == "__main__":
     main()

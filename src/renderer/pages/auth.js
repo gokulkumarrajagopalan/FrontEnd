@@ -1,4 +1,7 @@
 (function () {
+    // Shared variables for state management
+    let particlesAnimationId = null;
+
     // API Base URL
     if (typeof window.API_BASE_URL === 'undefined') {
         window.API_BASE_URL = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL;
@@ -746,21 +749,6 @@
                                 <p>Pick up where your team left off with a cleaner, faster workspace.</p>
                             </div>
 
-                            <div class="auth-mode-toggle">
-                                <label style="flex: 1; cursor: pointer;">
-                                    <input type="radio" name="loginMode" value="username" id="loginModeUsername" checked style="display: none;">
-                                    <div class="login-mode-btn" style="text-align: center; padding: var(--ds-space-2-5); font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); border-radius: var(--ds-radius-lg); transition: all var(--ds-duration-fast); display: flex; align-items: center; justify-content: center; min-height: 40px;">
-                                        Username
-                                    </div>
-                                </label>
-                                <label style="flex: 1; cursor: pointer;">
-                                    <input type="radio" name="loginMode" value="email" id="loginModeEmail" style="display: none;">
-                                    <div class="login-mode-btn" style="text-align: center; padding: var(--ds-space-2-5); font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); border-radius: var(--ds-radius-lg); transition: all var(--ds-duration-fast); display: flex; align-items: center; justify-content: center; min-height: 40px;">
-                                        Email + Licence
-                                    </div>
-                                </label>
-                            </div>
-
                             <div id="errorMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-error-50); border: 1px solid var(--ds-error-200); border-radius: var(--ds-radius-xl); color: var(--ds-error-700); font-size: var(--ds-text-sm);">
                                 <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
                                     <i class="fas fa-exclamation-triangle"></i>
@@ -775,80 +763,62 @@
                                 </div>
                             </div>
 
-                            <form id="loginForm" style="display: flex; flex-direction: column; gap: var(--ds-space-5);">
-                                <div id="usernameFields">
-                                    ${window.UIComponents.input({
-        id: 'username',
-        label: 'Username',
-        placeholder: 'Enter your username',
-        icon: '<i class="fas fa-user"></i>'
-    })}
+                            <div class="auth-browser-login-box" style="padding: var(--ds-space-6); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-2xl); text-align: center; margin-bottom: var(--ds-space-6);">
+                                <div style="margin-bottom: var(--ds-space-4); color: var(--ds-text-secondary); font-size: var(--ds-text-sm);">
+                                    To ensure a secure and synchronized session, please sign in using your web browser.
                                 </div>
+                                ${window.UIComponents.button({
+                                    id: 'mainBrowserLoginBtn',
+                                    text: 'Sign In in Browser',
+                                    icon: '<i class="fas fa-external-link-alt"></i>',
+                                    variant: 'primary',
+                                    fullWidth: true,
+                                    size: 'lg'
+                                })}
+                            </div>
 
-                                <div id="emailFields" class="hidden" style="display: flex; flex-direction: column; gap: var(--ds-space-5);">
-                                    ${window.UIComponents.input({
-        id: 'loginEmail',
-        type: 'email',
-        label: 'Email Address',
-        placeholder: 'john@example.com',
-        icon: '<i class="fas fa-envelope"></i>'
-    })}
-                                    ${window.UIComponents.input({
-        id: 'loginLicenceNo',
-        type: 'number',
-        label: 'Tally Licence Number',
-        placeholder: '100123456',
-        icon: '<i class="fas fa-key"></i>'
-    })}
-                                </div>
+                            <div class="auth-divider">
+                                <div class="auth-divider-line"></div>
+                                <span style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">Advanced</span>
+                                <div class="auth-divider-line"></div>
+                            </div>
 
+                            <div style="text-align: center;">
+                                <button type="button" id="showLegacyLogin" style="background: none; border: none; color: var(--ds-text-tertiary); font-size: var(--ds-text-xs); cursor: pointer; text-decoration: underline;">
+                                    Sign in with credentials (legacy)
+                                </button>
+                            </div>
+
+                            <form id="loginForm" class="hidden" style="margin-top: var(--ds-space-4); display: flex; flex-direction: column; gap: var(--ds-space-5);">
+                                ${window.UIComponents.input({
+                                    id: 'username',
+                                    label: 'Username',
+                                    placeholder: 'Enter your username',
+                                    icon: '<i class="fas fa-user"></i>'
+                                })}
                                 <div style="position: relative;">
                                     ${window.UIComponents.input({
-        id: 'password',
-        type: 'password',
-        label: 'Password',
-        placeholder: 'Enter password',
-        icon: '<i class="fas fa-lock"></i>',
-        required: true
-    })}
+                                        id: 'password',
+                                        type: 'password',
+                                        label: 'Password',
+                                        placeholder: 'Enter password',
+                                        icon: '<i class="fas fa-lock"></i>',
+                                        required: true
+                                    })}
                                     <span id="toggleLoginPassword" style="position: absolute; right: var(--ds-space-4); bottom: var(--ds-space-3); cursor: pointer; color: var(--ds-text-tertiary); font-size: var(--ds-text-lg);"><i class="fas fa-eye"></i></span>
                                 </div>
-
-                                <div class="auth-inline-row">
-                                    <label style="display: flex; align-items: center; gap: var(--ds-space-2); cursor: pointer;">
-                                        <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px; border-radius: var(--ds-radius-sm); border: 1px solid var(--ds-border-default);">
-                                        <span style="font-size: var(--ds-text-xs); color: var(--ds-text-secondary);">Remember me</span>
-                                    </label>
-                                    <a href="#" class="auth-link-btn" style="font-size: var(--ds-text-xs);">Forgot password?</a>
-                                </div>
-
+                                ${window.UIComponents.button({
+                                    id: 'loginBtn',
+                                    text: 'Sign In',
+                                    variant: 'secondary',
+                                    type: 'submit',
+                                    fullWidth: true
+                                })}
                                 <div id="loadingSpinner" class="hidden auth-loading" style="text-align: center;">
                                     ${window.UIComponents.spinner({ size: 'md' })}
                                 </div>
-
-                                <div style="margin-top: var(--ds-space-2);">
-                                    ${window.UIComponents.button({
-        id: 'loginBtn',
-        text: 'Sign In',
-        icon: '<i class="fas fa-rocket"></i>',
-        variant: 'primary',
-        type: 'submit',
-        fullWidth: true,
-        size: 'lg'
-    })}
-                                </div>
-
-                                <div class="auth-divider">
-                                    <div class="auth-divider-line"></div>
-                                    <span style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">or</span>
-                                    <div class="auth-divider-line"></div>
-                                </div>
-
-                                <button type="button" id="ssoLoginBtn" class="auth-secondary-action">
-                                    <i class="fas fa-shield-alt" style="color: var(--ds-primary-600);"></i>
-                                    Continue with Keycloak SSO
-                                </button>
                             </form>
+                        </div>
                         </div>
 
                         <div id="signupFormContainer" class="hidden"></div>
@@ -1404,32 +1374,34 @@
             });
         }
 
-        // Handle login mode toggle
+                        // Handle login mode toggle (legacy fall-back)
         const usernameMode = document.getElementById('loginModeUsername');
         const emailMode = document.getElementById('loginModeEmail');
         const usernameFields = document.getElementById('usernameFields');
         const emailFields = document.getElementById('emailFields');
 
-        usernameMode.addEventListener('change', () => {
-            if (usernameMode.checked) {
-                usernameFields.classList.remove('hidden');
-                emailFields.classList.add('hidden');
-                usernameFields.style.display = 'block';
-                emailFields.style.display = 'none';
-            }
-        });
+        if (usernameMode && emailMode && usernameFields && emailFields) {
+            usernameMode.addEventListener('change', () => {
+                if (usernameMode.checked) {
+                    usernameFields.classList.remove('hidden');
+                    emailFields.classList.add('hidden');
+                    usernameFields.style.display = 'block';
+                    emailFields.style.display = 'none';
+                }
+            });
 
-        emailMode.addEventListener('change', () => {
-            if (emailMode.checked) {
-                usernameFields.classList.add('hidden');
-                emailFields.classList.remove('hidden');
-                usernameFields.style.display = 'none';
-                emailFields.style.display = 'flex';
+            emailMode.addEventListener('change', () => {
+                if (emailMode.checked) {
+                    usernameFields.classList.add('hidden');
+                    emailFields.classList.remove('hidden');
+                    usernameFields.style.display = 'none';
+                    emailFields.style.display = 'flex';
 
-                // Auto-fetch and populate license number when switching to Email + Licence mode
-                fetchAndPopulateLicenseNumberForLogin();
-            }
-        });
+                    // Auto-fetch and populate license number when switching to Email + Licence mode
+                    fetchAndPopulateLicenseNumberForLogin();
+                }
+            });
+        }
     };
 
     // Function to fetch and populate license number in login page
@@ -1437,50 +1409,21 @@
         try {
             const licenceNoInput = document.getElementById('loginLicenceNo');
             if (!licenceNoInput) return;
+            if (licenceNoInput.value && licenceNoInput.value.trim() !== '') return;
 
-            // Don't override if user already entered a value
-            if (licenceNoInput.value && licenceNoInput.value.trim() !== '') {
-                return;
-            }
-
-            // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
 
-            console.log('🔑 Fetching Tally license number for login...');
-
             if (window.electronAPI && window.electronAPI.invoke) {
                 const response = await window.electronAPI.invoke('fetch-license', { tallyPort });
-
                 if (response.success && response.data && response.data.license_number) {
                     const licenseNumber = response.data.license_number;
                     licenceNoInput.value = licenseNumber;
-                    licenceNoInput.style.borderColor = '#10b981'; // Green border
-                    licenceNoInput.style.background = '#f0fdf4'; // Light green background
-
-                    console.log('✅ License number auto-populated in login:', licenseNumber);
-
-                    // Show a subtle notification
-                    if (window.notificationService) {
-                        window.notificationService.success(
-                            `License number ${licenseNumber} from Tally has been auto-filled`,
-                            'License Auto-Populated',
-                            2500
-                        );
-                    }
-                } else {
-                    console.warn('⚠️ License number not available from Tally');
-                    licenceNoInput.placeholder = '1001';
+                    licenceNoInput.style.background = '#f0fdf4';
                 }
-            } else {
-                console.warn('⚠️ electronAPI not available');
             }
         } catch (error) {
-            console.error('❌ Error fetching license number for login:', error);
-            const licenceNoInput = document.getElementById('loginLicenceNo');
-            if (licenceNoInput) {
-                licenceNoInput.placeholder = '1001';
-            }
+            console.error('Error fetching license number for login:', error);
         }
     }
 
@@ -1492,29 +1435,9 @@
         const target = pageContent || document.body;
         target.innerHTML = getSignupTemplate();
         startParticles();
-
-        // Verify fields are in DOM
-        setTimeout(() => {
-            const countryCodeField = document.getElementById('signupCountryCode');
-            const mobileField = document.getElementById('signupMobile');
-
-            console.log('🌍 Country Code field visible:', !!countryCodeField);
-            console.log('📱 Mobile field visible:', !!mobileField);
-
-            if (!countryCodeField) {
-                console.warn('⚠️ countryCodeField not found in DOM');
-            }
-            if (!mobileField) {
-                console.warn('⚠️ mobileField not found in DOM');
-            }
-        }, 100);
-
         setupSignupForm();
-
-        // Auto-fetch and populate Tally license number
         fetchAndPopulateLicenseNumber();
 
-        // Handle link to login
         const showLogin = document.getElementById('showLogin');
         if (showLogin) {
             showLogin.addEventListener('click', (e) => {
@@ -1533,59 +1456,25 @@
         try {
             const licenceNoInput = document.getElementById('signupLicenceNo');
             if (!licenceNoInput) return;
+            if (licenceNoInput.value && licenceNoInput.value.trim() !== '') return;
 
-            // Don't override if user already entered a value
-            if (licenceNoInput.value && licenceNoInput.value.trim() !== '') {
-                console.log('📝 License number already entered by user, skipping auto-fetch');
-                return;
-            }
-
-            // Get Tally port from settings
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
 
-            console.log('🔑 Fetching Tally license number from port:', tallyPort);
-
             if (window.electronAPI && window.electronAPI.invoke) {
                 const response = await window.electronAPI.invoke('fetch-license', { tallyPort });
-
                 if (response.success && response.data && response.data.license_number) {
                     const licenseNumber = response.data.license_number;
                     licenceNoInput.value = licenseNumber;
-                    // licenceNoInput.style.borderColor = '#10b981'; // Green border
-                    licenceNoInput.style.background = '#f0fdf4'; // Light green background
-                    licenceNoInput.readOnly = false; // Allow editing
-
-                    console.log('✅ License number auto-populated from Tally:', licenseNumber);
-
-                    // Show a subtle notification
-                    if (window.notificationService && window.notificationService.show) {
-                        window.notificationService.show({
-                            type: 'success',
-                            message: `License number ${licenseNumber} fetched from Tally Prime`,
-                            duration: 3000
-                        });
-                    }
-                } else {
-                    console.warn('⚠️ License number not available from Tally');
-                    licenceNoInput.placeholder = '1001 (Enter manually if Tally is not running)';
+                    licenceNoInput.style.background = '#f0fdf4';
                 }
-            } else {
-                console.warn('⚠️ electronAPI not available');
-                licenceNoInput.placeholder = 'Enter license number manually';
             }
         } catch (error) {
-            console.error('❌ Error fetching license number:', error);
-            const licenceNoInput = document.getElementById('licenceNo');
-            if (licenceNoInput) {
-                licenceNoInput.placeholder = 'Enter manually (Tally not accessible)';
-            }
+            console.error('Error fetching license number:', error);
         }
     }
 
     // ============= PARTICLES ANIMATION =============
-    let particlesAnimationId = null;
-
     function startParticles() {
         const canvas = document.getElementById('particlesCanvas');
         if (!canvas) return;
@@ -1842,269 +1731,61 @@
             });
         }
 
-        // ── Real-time validation for login fields ──
-        FormValidator.attach('username', 'required');
-        FormValidator.attach('loginEmail', 'email');
-        FormValidator.attach('loginLicenceNo', 'licenceNo');
-        FormValidator.attach('password', 'required');
-
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const loginMode = document.querySelector('input[name="loginMode"]:checked')?.value;
-            const password = document.getElementById('password')?.value.trim();
-            const rememberMe = document.getElementById('rememberMe')?.checked || false;
-
-            // UI Reset
-            errorMessage.classList.add('hidden');
-            successMessage.classList.add('hidden');
-            errorMessage.querySelector('span:last-child').textContent = '';
-            successMessage.querySelector('span:last-child').textContent = '';
-
-            let payload = {};
-
-            if (loginMode === 'username') {
-                const username = document.getElementById('username')?.value.trim();
-                if (!username || !password) {
-                    errorMessage.querySelector('span:last-child').textContent = 'Please fill in all fields';
-                    errorMessage.classList.remove('hidden');
-                    return;
-                }
-                payload = { username, password };
-            } else {
-                const email = document.getElementById('loginEmail')?.value.trim();
-                const licenceNo = document.getElementById('loginLicenceNo')?.value.trim();
-                if (!email || !licenceNo || !password) {
-                    errorMessage.querySelector('span:last-child').textContent = 'Please fill in all fields';
-                    errorMessage.classList.remove('hidden');
-                    return;
-                }
-                payload = { email, licenceNo: parseInt(licenceNo), password };
-            }
-
-            loadingSpinner.classList.remove('hidden');
-            loginBtn.disabled = true;
-            const loginBtnText = loginBtn.querySelector('.ds-btn-text');
-            if (loginBtnText) loginBtnText.textContent = 'Signing In...';
-
-            try {
-                // Use PublicApiService to ensure no auth headers interfere with login
-                const apiResult = await window.publicApiService.post('/auth/login', payload);
-                
-                if (!apiResult.success) {
-                    throw new Error(apiResult.error || 'Login failed');
-                }
-
-                const response = apiResult.data;
-                const result = response;
-
-                // Handle 403 - Verification required
-                if (response.status === 403) {
-                    const pendingUsername = result.username || payload.username || '';
-                    const pendingEmail = result.email || '';
-                    const pendingLicence = result.licenceNo || '';
-                    const pendingMobile = result.mobile || '';
-                    const countryCode = result.countryCode || localStorage.getItem('pendingVerificationCountryCode') || '+91';
-                    const fullMobile = pendingMobile && pendingMobile.startsWith('+') ? pendingMobile : `${countryCode}${pendingMobile}`;
-
-                    // Explicitly check verification flags from server response
-                    const emailVerified = result.emailVerified === true;
-                    const mobileVerified = result.mobileVerified === true;
-
-                    console.log('🔐 Login Verification Status:', {
-                        emailVerified,
-                        mobileVerified,
-                        message: result.message,
-                        username: pendingUsername
-                    });
-
-                    // Case 1: Email not verified - send to email OTP
-                    if (!emailVerified) {
-                        console.log('📧 Redirecting to Email OTP verification');
-                        errorMessage.querySelector('span:last-child').textContent = result.message || 'Email not verified. Sending verification code...';
-                        errorMessage.classList.remove('hidden');
-
-                        localStorage.setItem('pendingVerificationUsername', pendingUsername);
-                        localStorage.setItem('pendingVerificationEmail', pendingEmail);
-                        localStorage.setItem('pendingVerificationLicence', pendingLicence);
-                        if (pendingMobile) {
-                            localStorage.setItem('pendingVerificationMobile', pendingMobile);
-                            localStorage.setItem('pendingVerificationCountryCode', countryCode);
+                // ============= BROWSER LOGIN PRIMARY ACTION =============
+        const mainBrowserLoginBtn = document.getElementById('mainBrowserLoginBtn');
+        if (mainBrowserLoginBtn) {
+            mainBrowserLoginBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (window.authService && typeof window.authService.ssoLoginWithBrowser === 'function') {
+                    mainBrowserLoginBtn.disabled = true;
+                    const originalText = mainBrowserLoginBtn.innerHTML;
+                    mainBrowserLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening browser...';
+                    
+                    try {
+                        const result = await window.authService.ssoLoginWithBrowser();
+                        if (!result.success) throw new Error(result.message);
+                        
+                        const successMessage = document.getElementById('successMessage');
+                        if (successMessage) {
+                            successMessage.querySelector('span:last-child').textContent = 'Please complete login in your browser...';
+                            successMessage.classList.remove('hidden');
                         }
-
-                        // Send email OTP explicitly
-                        try {
-                            const otpSendResult = await window.publicApiService.post('/auth/send-email-otp', { username: pendingUsername });
-                            const otpSendResponse = new Response(JSON.stringify(otpSendResult.data || otpSendResult.error), {
-                                status: otpSendResult.success ? 200 : 500
-                            });
-
-                            const otpSendData = await otpSendResponse.json();
-                            if (!otpSendResponse.ok || otpSendData.success === false) {
-                                throw new Error(otpSendData.message || 'Failed to send email OTP');
-                            }
-                        } catch (otpError) {
-                            console.error('Send email OTP (login) error:', otpError);
-                        }
-
+                        
+                        // Reset button after short delay so user can try again if needed
                         setTimeout(() => {
-                            window.initializeOtpVerification(pendingUsername);
-                        }, 1500);
-                        return;
-                    }
-
-                    // Case 2: Email verified but mobile not verified - send to mobile OTP
-                    if (emailVerified && !mobileVerified) {
-                        console.log('📱 Redirecting to Mobile OTP verification');
-                        errorMessage.querySelector('span:last-child').textContent = result.message || 'Mobile not verified. Sending verification code...';
-                        errorMessage.classList.remove('hidden');
-
-                        localStorage.setItem('pendingVerificationUsername', pendingUsername);
-                        if (pendingMobile) {
-                            localStorage.setItem('pendingVerificationMobile', pendingMobile);
-                            localStorage.setItem('pendingVerificationCountryCode', countryCode);
+                            mainBrowserLoginBtn.disabled = false;
+                            mainBrowserLoginBtn.innerHTML = originalText;
+                        }, 2000);
+                    } catch (error) {
+                        const errorMessage = document.getElementById('errorMessage');
+                        if (errorMessage) {
+                            errorMessage.querySelector('span:last-child').textContent = error.message || 'Failed to start login';
+                            errorMessage.classList.remove('hidden');
                         }
-
-                        // Send mobile OTP
-                        try {
-                            const mobileOtpResult = await window.publicApiService.post('/sns/send-mobile-otp', { username: pendingUsername });
-                            const mobileOtpResponse = new Response(JSON.stringify(mobileOtpResult.data || mobileOtpResult.error), {
-                                status: mobileOtpResult.success ? 200 : 500
-                            });
-
-                            const mobileOtpData = await mobileOtpResponse.json();
-                            if (!mobileOtpResponse.ok || mobileOtpData.success === false) {
-                                throw new Error(mobileOtpData.message || 'Failed to send mobile OTP');
-                            }
-                        } catch (mobileOtpError) {
-                            console.error('Send mobile OTP (login) error:', mobileOtpError);
-                        }
-
-                        setTimeout(() => {
-                            window.initializeMobileOtpVerification(fullMobile || pendingMobile, pendingUsername);
-                        }, 1500);
-                        return;
+                        mainBrowserLoginBtn.disabled = false;
+                        mainBrowserLoginBtn.innerHTML = originalText;
                     }
-
-                    // Case 3: Both verified (shouldn't reach here with 403, but handle it)
-                    if (emailVerified && mobileVerified) {
-                        console.log('✅ Both email and mobile verified - this shouldn\'t trigger 403');
-                        errorMessage.querySelector('span:last-child').textContent = 'All verifications complete. Please try logging in again.';
-                        errorMessage.classList.remove('hidden');
-                        return;
-                    }
-
-                    // Fallback
-                    console.log('⚠️ Unknown verification state');
-                    errorMessage.querySelector('span:last-child').textContent = result.message || 'Verification required.';
-                    errorMessage.classList.remove('hidden');
-                    return;
                 }
+            });
+        }
 
-                // Extract data from response
-                const data = result.data || result;
-                
-                // Enforce Beta Trial Expiration Lock
-                if (data.subscription && data.subscription.isExpired) {
-                    errorMessage.querySelector('span:last-child').textContent = 'Your 30-day beta trial has expired. Please upgrade to continue using Talliffy.';
-                    errorMessage.classList.remove('hidden');
-                    loadingSpinner.classList.add('hidden');
-                    loginBtn.disabled = false;
-                    return;
-                }
+        // ============= LEGACY LOGIN TOGGLE =============
+        const showLegacyLogin = document.getElementById('showLegacyLogin');
+        const loginFormEl = document.getElementById('loginForm');
+        if (showLegacyLogin && loginFormEl) {
+            showLegacyLogin.addEventListener('click', () => {
+                loginFormEl.classList.remove('hidden');
+                loginFormEl.style.display = 'flex';
+                showLegacyLogin.parentElement.classList.add('hidden');
+            });
+        }
 
-                if (!data.token) {
-                    throw new Error('No authentication token received');
-                }
-
-                // Success - Store credentials in localStorage (persistent for 7 days)
-                localStorage.setItem('authToken', data.token);
-                localStorage.setItem('deviceToken', data.deviceToken);
-                localStorage.setItem('currentUser', JSON.stringify({
-                    username: data.username,
-                    userId: data.userId,
-                    fullName: data.fullName,
-                    email: data.email,
-                    licenceNo: data.licenceNo,
-                    role: data.role
-                }));
-                localStorage.setItem('loginTime', new Date().toISOString());
-
-                // Set session expiry (7 days)
-                const expiryTime = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
-                localStorage.setItem('sessionExpiry', expiryTime.toString());
-
-                // Extract CSRF token from response if available
-                if (data.csrfToken) {
-                    localStorage.setItem('csrfToken', data.csrfToken);
-                }
-
-                console.log('✅ Login successful:', {
-                    hasToken: !!data.token,
-                    hasDeviceToken: !!data.deviceToken,
-                    userId: data.userId
-                });
-
-                // Save credentials with hashed password if remember me is checked
-                if (rememberMe && loginMode === 'username') {
-                    localStorage.setItem('rememberMe', 'true');
-                    localStorage.setItem('rememberedUsername', payload.username);
-
-                    // Hash password for verification
-                    const passwordHash = await hashPassword(password);
-                    if (passwordHash) {
-                        localStorage.setItem('rememberedPasswordHash', passwordHash);
-                    }
-
-                    // Encrypt password for auto-fill
-                    const passwordEncrypted = encryptPassword(password);
-                    if (passwordEncrypted) {
-                        localStorage.setItem('rememberedPasswordEncrypted', passwordEncrypted);
-                        console.log('🔐 Credentials saved securely (password hashed + encrypted)');
-                    }
-                } else if (!rememberMe) {
-                    // Clear saved credentials if remember me is not checked
-                    localStorage.removeItem('rememberMe');
-                    localStorage.removeItem('rememberedUsername');
-                    localStorage.removeItem('rememberedPasswordHash');
-                    localStorage.removeItem('rememberedPasswordEncrypted');
-                }
-
-                // Redux
-                const store = getStore();
-                if (store && store.dispatch) {
-                    store.dispatch({
-                        type: 'LOGIN_SUCCESS',
-                        payload: {
-                            user: data,
-                            token: data.token,
-                            isAuthenticated: true
-                        }
-                    });
-                }
-
-                successMessage.querySelector('span:last-child').textContent = 'Login successful! Redirecting...';
-                successMessage.classList.remove('hidden');
-
-                setTimeout(() => {
-                    if (window.syncScheduler) {
-                        window.syncScheduler.start();
-                    }
-                    window.location.href = 'index.html';
-                }, 1000);
-
-            } catch (error) {
-                console.error('Login error:', error);
-                errorMessage.querySelector('span:last-child').textContent = error.message || 'Login failed';
-                errorMessage.classList.remove('hidden');
-            } finally {
-                loadingSpinner.classList.add('hidden');
-                loginBtn.disabled = false;
-            }
-        });
+        // ── Real-time validation for legacy login fields ──
+        if (typeof FormValidator !== 'undefined' && FormValidator.attach) {
+            FormValidator.attach('username', 'required');
+            FormValidator.attach('password', 'required');
+        }
     }
-
-    // Unified registration form logic is now handled in setupSignupForm()
 
     // ============= REGISTRATION FORM SETUP (UPDATED) =============
     function setupSignupForm() {
@@ -3095,7 +2776,7 @@
             const error = url.searchParams.get('error');
 
             if (error) throw new Error(url.searchParams.get('error_description') || 'SSO failed');
-            if (!code) throw new Error('No authorization code received');
+            const token = url.searchParams.get('token'); const deviceToken = url.searchParams.get('deviceToken'); if (token && deviceToken) { localStorage.setItem('authToken', token); localStorage.setItem('deviceToken', deviceToken); window.location.hash = '#dashboard'; window.location.reload(); return; } if (!code) throw new Error('No authorization code received');
 
             const storedState = sessionStorage.getItem('sso_state');
             if (state !== storedState) throw new Error('Invalid state — possible CSRF');
@@ -3193,7 +2874,7 @@
         // Wire SSO button
         const ssoBtn = document.getElementById('ssoLoginBtn');
         if (ssoBtn) {
-            ssoBtn.addEventListener('click', startSSOLogin);
+            ssoBtn.onclick = startSSOLogin;
         }
 
         // Listen for deep link callback from main process

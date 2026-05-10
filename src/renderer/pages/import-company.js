@@ -13,7 +13,7 @@
             subtitle: 'Connect to Tally Prime and import your company data seamlessly',
             headerActions: fetchBtn,
             content: `
-                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6); width: 100%;">
                     <!-- Stats Card -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--ds-space-4);">
                         <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-2xl); padding: var(--ds-space-6); display: flex; align-items: center; justify-content: space-between;">
@@ -48,7 +48,7 @@
                                     ${window.UIComponents.button({ id: 'clearSelectionBtn', text: 'Clear', icon: '<i class="fas fa-undo"></i>', variant: 'secondary', size: 'sm' })}
                                 </div>
                             </div>
-                            <div id="companiesContainer" style="padding: var(--ds-space-8); display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: var(--ds-space-4);">
+                            <div id="companiesContainer" style="padding: var(--ds-space-6) var(--ds-space-8); display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--ds-space-4);">
                                 <!-- Company cards injected here -->
                             </div>
                             <div id="importButtonContainer" style="padding: var(--ds-space-6) var(--ds-space-8); border-top: 1px solid var(--ds-border-default); background: var(--ds-bg-surface-sunken); display: none;">
