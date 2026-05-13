@@ -158,7 +158,9 @@ class FinancialReportSync:
 
     def _clean_xml(self, xml_text):
         # Sanitize invalid XML characters like &#4; that Tally sends
-        return re.sub(r'&#x?[0-9a-fA-F]+;', '', xml_text)
+        xml_text = re.sub(r'&#4;', '', xml_text)  # Remove &#4; specifically
+        xml_text = re.sub(r'&#x?[0-3][\da-fA-F];', '', xml_text)  # Remove other control chars
+        return xml_text
 
     def _post_to_backend(self, endpoint, data, report_name):
         sync_url = f"{self.backend_url}{endpoint}"
@@ -249,40 +251,79 @@ class FinancialReportSync:
 
             root = ET.fromstring(xml_text)
             parsed_data = []
-            current_name_obj = None
+            elements = list(root)
+            i = 0
             
-            for child in root:
-                if child.tag == 'DSPACCNAME':
-                    name = child.findtext('DSPDISPNAME', '')
-                    guid = child.findtext('GUID', '')
-                    is_group = child.findtext('ISGROUP', '')
-                    parent_grp = child.findtext('PARENTGRP', '')
+            while i < len(elements):
+                elem = elements[i]
+                
+                if elem.tag == 'DSPACCNAME':
+                    # Parse top-level or group header
+                    name = elem.findtext('DSPDISPNAME', '')
+                    guid = elem.findtext('GUID', '')
+                    is_group = elem.findtext('ISGROUP', '')
+                    parent_grp = elem.findtext('PARENTGRP', '')
                     
+                    # Clean up parent group
+                    if parent_grp and '&#' in parent_grp:
+                        parent_grp = parent_grp.replace('&#4;', '').strip()
                     if parent_grp and 'Primary' in parent_grp:
                         parent_grp = 'Primary'
-                        
-                    current_name_obj = {
+                    
+                    account_data = {
                         'name': name,
                         'cmp_id': self.cmp_id,
-                        'guid': guid,
+                        'guid': guid if guid else '',
                         'isGroup': is_group,
                         'parentGroup': parent_grp,
                         'subAmount': '',
                         'mainAmount': ''
                     }
-                elif child.tag == 'PLAMT':
-                    if current_name_obj is not None:
-                        sub_amt = child.findtext('PLSUBAMT', '')
-                        main_amt = child.findtext('BSMAINAMT', '')
-                        if not main_amt:
-                            main_amt = child.findtext('PLMAINAMT', '')
-                            
-                        current_name_obj['subAmount'] = sub_amt
-                        current_name_obj['mainAmount'] = main_amt
-                        parsed_data.append(current_name_obj)
-                        current_name_obj = None
+                    
+                    # Check if next element is PLAMT (amount for this group/account)
+                    if i + 1 < len(elements) and elements[i + 1].tag == 'PLAMT':
+                        amount_elem = elements[i + 1]
+                        account_data['subAmount'] = amount_elem.findtext('PLSUBAMT', '').strip() if amount_elem.findtext('PLSUBAMT', '') else ''
+                        account_data['mainAmount'] = amount_elem.findtext('BSMAINAMT', '').strip() if amount_elem.findtext('BSMAINAMT', '') else ''
+                        i += 1  # Skip the PLAMT element
+                    
+                    parsed_data.append(account_data)
+                    
+                elif elem.tag == 'BSNAME':
+                    # Parse child account entry (nested structure)
+                    dspaccname = elem.find('DSPACCNAME')
+                    if dspaccname is not None:
+                        name = dspaccname.findtext('DSPDISPNAME', '')
+                        guid = dspaccname.findtext('GUID', '')
+                        is_group = dspaccname.findtext('ISGROUP', '')
+                        parent_grp = dspaccname.findtext('PARENTGRP', '')
+                        
+                        # Clean up parent group
+                        if parent_grp and '&#' in parent_grp:
+                            parent_grp = parent_grp.replace('&#4;', '').strip()
+                        
+                        account_data = {
+                            'name': name,
+                            'cmp_id': self.cmp_id,
+                            'guid': guid if guid else '',
+                            'isGroup': is_group,
+                            'parentGroup': parent_grp,
+                            'subAmount': '',
+                            'mainAmount': ''
+                        }
+                        
+                        # Look for BSAMT in the BSNAME element
+                        bsamt = elem.find('BSAMT')
+                        if bsamt is not None:
+                            account_data['subAmount'] = bsamt.findtext('BSSUBAMT', '').strip() if bsamt.findtext('BSSUBAMT', '') else ''
+                            account_data['mainAmount'] = bsamt.findtext('BSMAINAMT', '').strip() if bsamt.findtext('BSMAINAMT', '') else ''
+                        
+                        parsed_data.append(account_data)
+                
+                i += 1
             
             if parsed_data:
+                print(f"Parsed {len(parsed_data)} Profit & Loss records")
                 return self._post_to_backend("/reports/profitloss/sync", parsed_data, "Profit and Loss")
             else:
                 print("No Profit and Loss data parsed.")
@@ -290,6 +331,8 @@ class FinancialReportSync:
                 
         except Exception as e:
             print(f"Error processing Profit and Loss: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def fetch_and_sync_trial_balance(self):
@@ -309,42 +352,59 @@ class FinancialReportSync:
 
             root = ET.fromstring(xml_text)
             parsed_data = []
-            current_name_obj = None
+            elements = list(root)
+            i = 0
             
-            for child in root:
-                if child.tag == 'DSPACCNAME':
-                    name = child.findtext('DSPDISPNAME', '')
-                    guid = child.findtext('GUID', '')
-                    is_group = child.findtext('ISGROUP', '')
-                    parent_grp = child.findtext('PARENTGRP', '')
+            while i < len(elements):
+                elem = elements[i]
+                
+                if elem.tag == 'DSPACCNAME':
+                    # Parse account header
+                    name = elem.findtext('DSPDISPNAME', '')
+                    guid = elem.findtext('GUID', '')
+                    is_group = elem.findtext('ISGROUP', '')
+                    parent_grp = elem.findtext('PARENTGRP', '')
                     
+                    # Clean up parent group
+                    if parent_grp and '&#' in parent_grp:
+                        parent_grp = parent_grp.replace('&#4;', '').strip()
                     if parent_grp and 'Primary' in parent_grp:
                         parent_grp = 'Primary'
-                        
-                    current_name_obj = {
+                    
+                    account_data = {
                         'name': name,
                         'cmp_id': self.cmp_id,
-                        'guid': guid,
+                        'guid': guid if guid else '',
                         'isGroup': is_group,
                         'parentGroup': parent_grp,
                         'debitAmount': '',
                         'creditAmount': ''
                     }
-                elif child.tag == 'DSPACCINFO':
-                    if current_name_obj is not None:
-                        debit_amt_node = child.find('DSPCLDRAMT')
-                        debit_amt = debit_amt_node.findtext('DSPCLDRAMTA', '') if debit_amt_node is not None else ''
-                            
-                        credit_amt_node = child.find('DSPCLCRAMT')
-                        credit_amt = credit_amt_node.findtext('DSPCLCRAMTA', '') if credit_amt_node is not None else ''
-                            
-                        current_name_obj['debitAmount'] = debit_amt
-                        current_name_obj['creditAmount'] = credit_amt
+                    
+                    # Check if next element is DSPACCINFO (amounts for this account)
+                    if i + 1 < len(elements) and elements[i + 1].tag == 'DSPACCINFO':
+                        info_elem = elements[i + 1]
                         
-                        parsed_data.append(current_name_obj)
-                        current_name_obj = None
+                        # Extract debit amount
+                        debit_amt_node = info_elem.find('DSPCLDRAMT')
+                        if debit_amt_node is not None:
+                            debit_amt = debit_amt_node.findtext('DSPCLDRAMTA', '').strip() if debit_amt_node.findtext('DSPCLDRAMTA', '') else ''
+                            account_data['debitAmount'] = debit_amt
+                        
+                        # Extract credit amount
+                        credit_amt_node = info_elem.find('DSPCLCRAMT')
+                        if credit_amt_node is not None:
+                            credit_amt = credit_amt_node.findtext('DSPCLCRAMTA', '').strip() if credit_amt_node.findtext('DSPCLCRAMTA', '') else ''
+                            account_data['creditAmount'] = credit_amt
+                        
+                        i += 1  # Skip the DSPACCINFO element
+                    
+                    parsed_data.append(account_data)
+                
+                i += 1
             
             if parsed_data:
+                print(f"Parsed {len(parsed_data)} Trial Balance records")
                 return self._post_to_backend("/reports/trailbalance/sync", parsed_data, "Trial Balance")
             else:
                 print("No Trial Balance data parsed.")
@@ -352,6 +412,8 @@ class FinancialReportSync:
                 
         except Exception as e:
             print(f"Error processing Trial Balance: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def sync_all(self, report_type=None):

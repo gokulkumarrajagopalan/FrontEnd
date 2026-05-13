@@ -1,0 +1,56 @@
+[
+  {
+    "name": "Sales Accounts",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000017",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "subAmount": "",
+    "mainAmount": "3753486.32"
+  },
+  {
+    "name": "Amber Vision",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00001def",
+    "isGroup": "No",
+    "parentGroup": "Sales Accounts",
+    "subAmount": "",
+    "mainAmount": ""
+  },
+  {
+    "name": "B2C Fleet Command Subsciption",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000ef7",
+    "isGroup": "No",
+    "parentGroup": "Sales Accounts",
+    "subAmount": "",
+    "mainAmount": ""
+  },
+  {
+    "name": "Direct Incomes",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000019",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "subAmount": "",
+    "mainAmount": "1560667.50"
+  },
+  {
+    "name": "Management Fee",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00001e8a",
+    "isGroup": "No",
+    "parentGroup": "Direct Incomes",
+    "subAmount": "",
+    "mainAmount": ""
+  },
+  {
+    "name": "Indirect Expense",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-0000001c",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "subAmount": "",
+    "mainAmount": "-4652135.93"
+  }
+]

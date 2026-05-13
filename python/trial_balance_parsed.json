@@ -1,0 +1,119 @@
+[
+  {
+    "name": "Capital Account",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000001",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "debitAmount": "",
+    "creditAmount": "303613.17"
+  },
+  {
+    "name": "Capital Account",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00001e01",
+    "isGroup": "No",
+    "parentGroup": "Capital Account",
+    "debitAmount": "",
+    "creditAmount": "300000.00"
+  },
+  {
+    "name": "Retained Earings",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00001db2",
+    "isGroup": "No",
+    "parentGroup": "Capital Account",
+    "debitAmount": "",
+    "creditAmount": "3613.17"
+  },
+  {
+    "name": "Loans (Liability)",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000002",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "debitAmount": "",
+    "creditAmount": "885785.00"
+  },
+  {
+    "name": "Current Liabilities",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000003",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "debitAmount": "-59032.84",
+    "creditAmount": "598617.28"
+  },
+  {
+    "name": "Fixed Assets",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000004",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "debitAmount": "-964600.98",
+    "creditAmount": "21987.00"
+  },
+  {
+    "name": "Current Assets",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000006",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "debitAmount": "-1525575.54",
+    "creditAmount": "107292.35"
+  },
+  {
+    "name": "Sales Accounts",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000017",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "debitAmount": "-49951.45",
+    "creditAmount": "2069064.83"
+  },
+  {
+    "name": "Purchase Accounts",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000018",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "debitAmount": "-596560.83",
+    "creditAmount": "494085.33"
+  },
+  {
+    "name": "Direct Incomes",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000019",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "debitAmount": "",
+    "creditAmount": "1213852.50"
+  },
+  {
+    "name": "Direct Expenses",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-0000001a",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "debitAmount": "-453332.00",
+    "creditAmount": ""
+  },
+  {
+    "name": "Indirect Expense",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-0000001c",
+    "isGroup": "Yes",
+    "parentGroup": "Primary",
+    "debitAmount": "-2229890.41",
+    "creditAmount": "7479.86"
+  },
+  {
+    "name": "Profit & Loss A/c",
+    "cmp_id": 1,
+    "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-0000001e",
+    "isGroup": "No",
+    "parentGroup": "Primary",
+    "debitAmount": "-888031.85",
+    "creditAmount": ""
+  }
+]
