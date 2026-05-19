@@ -177,6 +177,22 @@ class FinancialReportSync:
             print(f"Backend connection error for {report_name}: {e}")
             return False
 
+    def _convert_to_numeric(self, value):
+        """Convert string amount to proper numeric format, handling empty/invalid values"""
+        if not value or value.strip() == '':
+            return None
+        
+        try:
+            # Remove any whitespace and convert to Decimal
+            clean_value = value.strip()
+            # Handle negative values
+            amount = float(clean_value)
+            # Return as string for JSON serialization (will be converted to BigDecimal on backend)
+            return str(amount)
+        except (ValueError, AttributeError):
+            print(f"Warning: Could not convert amount '{value}' to numeric - defaulting to None")
+            return None
+
     def fetch_and_sync_balance_sheet(self):
         print(f"\n--- Syncing Balance Sheet ---")
         tdl = TDL_BALANCE_SHEET.replace("{company_name}", self.company_name).replace("{from_date}", self.from_date).replace("{to_date}", self.to_date)
@@ -214,17 +230,22 @@ class FinancialReportSync:
                             'guid': guid,
                             'isGroup': is_group,
                             'parentGroup': parent_grp,
-                            'subAmount': '',
-                            'mainAmount': ''
+                            'subAmount': None,
+                            'mainAmount': None
                         }
                 elif child.tag == 'BSAMT':
                     if current_bsname is not None:
-                        current_bsname['subAmount'] = child.findtext('BSSUBAMT', '')
-                        current_bsname['mainAmount'] = child.findtext('BSMAINAMT', '')
+                        sub_amt_raw = child.findtext('BSSUBAMT', '')
+                        main_amt_raw = child.findtext('BSMAINAMT', '')
+                        
+                        # Convert amounts to proper numeric format
+                        current_bsname['subAmount'] = self._convert_to_numeric(sub_amt_raw)
+                        current_bsname['mainAmount'] = self._convert_to_numeric(main_amt_raw)
                         parsed_data.append(current_bsname)
                         current_bsname = None
             
             if parsed_data:
+                print(f"Parsed {len(parsed_data)} balance sheet entries")
                 return self._post_to_backend("/reports/balancesheet/sync", parsed_data, "Balance Sheet")
             else:
                 print("No Balance Sheet data parsed.")
@@ -276,15 +297,21 @@ class FinancialReportSync:
                         'guid': guid if guid else '',
                         'isGroup': is_group,
                         'parentGroup': parent_grp,
-                        'subAmount': '',
-                        'mainAmount': ''
+                        'subAmount': None,
+                        'mainAmount': None
                     }
                     
                     # Check if next element is PLAMT (amount for this group/account)
                     if i + 1 < len(elements) and elements[i + 1].tag == 'PLAMT':
                         amount_elem = elements[i + 1]
-                        account_data['subAmount'] = amount_elem.findtext('PLSUBAMT', '').strip() if amount_elem.findtext('PLSUBAMT', '') else ''
-                        account_data['mainAmount'] = amount_elem.findtext('BSMAINAMT', '').strip() if amount_elem.findtext('BSMAINAMT', '') else ''
+                        # Try PLSUBAMT and PLMAINAMT
+                        sub_amt = amount_elem.findtext('PLSUBAMT', '').strip()
+                        main_amt = amount_elem.findtext('PLMAINAMT', '').strip()
+                        if not main_amt:
+                            main_amt = amount_elem.findtext('BSMAINAMT', '').strip() # Fallback just in case
+                        
+                        account_data['subAmount'] = self._convert_to_numeric(sub_amt)
+                        account_data['mainAmount'] = self._convert_to_numeric(main_amt)
                         i += 1  # Skip the PLAMT element
                     
                     parsed_data.append(account_data)
@@ -308,15 +335,17 @@ class FinancialReportSync:
                             'guid': guid if guid else '',
                             'isGroup': is_group,
                             'parentGroup': parent_grp,
-                            'subAmount': '',
-                            'mainAmount': ''
-                        }
-                        
-                        # Look for BSAMT in the BSNAME element
-                        bsamt = elem.find('BSAMT')
-                        if bsamt is not None:
-                            account_data['subAmount'] = bsamt.findtext('BSSUBAMT', '').strip() if bsamt.findtext('BSSUBAMT', '') else ''
-                            account_data['mainAmount'] = bsamt.findtext('BSMAINAMT', '').strip() if bsamt.findtext('BSMAINAMT', '') else ''
+'subAmount': None,
+                        'mainAmount': None
+                    }
+                    
+                    # Look for BSAMT in the BSNAME element
+                    bsamt = elem.find('BSAMT')
+                    if bsamt is not None:
+                        sub_amt = bsamt.findtext('BSSUBAMT', '').strip() if bsamt.findtext('BSSUBAMT', '') else ''
+                        main_amt = bsamt.findtext('BSMAINAMT', '').strip() if bsamt.findtext('BSMAINAMT', '') else ''
+                        account_data['subAmount'] = self._convert_to_numeric(sub_amt)
+                        account_data['mainAmount'] = self._convert_to_numeric(main_amt)
                         
                         parsed_data.append(account_data)
                 
@@ -377,8 +406,8 @@ class FinancialReportSync:
                         'guid': guid if guid else '',
                         'isGroup': is_group,
                         'parentGroup': parent_grp,
-                        'debitAmount': '',
-                        'creditAmount': ''
+                        'debitAmount': None,
+                        'creditAmount': None
                     }
                     
                     # Check if next element is DSPACCINFO (amounts for this account)
@@ -388,14 +417,20 @@ class FinancialReportSync:
                         # Extract debit amount
                         debit_amt_node = info_elem.find('DSPCLDRAMT')
                         if debit_amt_node is not None:
-                            debit_amt = debit_amt_node.findtext('DSPCLDRAMTA', '').strip() if debit_amt_node.findtext('DSPCLDRAMTA', '') else ''
-                            account_data['debitAmount'] = debit_amt
+                            # Try DSPCLDRAMTA first, then the node text itself
+                            debit_amt = debit_amt_node.findtext('DSPCLDRAMTA', '').strip()
+                            if not debit_amt:
+                                debit_amt = (debit_amt_node.text or '').strip()
+                            account_data['debitAmount'] = self._convert_to_numeric(debit_amt)
                         
                         # Extract credit amount
                         credit_amt_node = info_elem.find('DSPCLCRAMT')
                         if credit_amt_node is not None:
-                            credit_amt = credit_amt_node.findtext('DSPCLCRAMTA', '').strip() if credit_amt_node.findtext('DSPCLCRAMTA', '') else ''
-                            account_data['creditAmount'] = credit_amt
+                            # Try DSPCLCRAMTA first, then the node text itself
+                            credit_amt = credit_amt_node.findtext('DSPCLCRAMTA', '').strip()
+                            if not credit_amt:
+                                credit_amt = (credit_amt_node.text or '').strip()
+                            account_data['creditAmount'] = self._convert_to_numeric(credit_amt)
                         
                         i += 1  # Skip the DSPACCINFO element
                     

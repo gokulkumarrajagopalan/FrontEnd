@@ -19,16 +19,25 @@ import os
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
+from sync_logger import get_sync_logger
+
 # Setup logging
 LOG_LEVEL = os.getenv('SYNC_LOG_LEVEL', 'INFO')
 VERBOSE_MODE = os.getenv('SYNC_VERBOSE', 'false').lower() == 'true'
 
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL),
-    format='%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
 logger = logging.getLogger(__name__)
+logger.setLevel(getattr(logging, LOG_LEVEL))
+
+if not logger.handlers:
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    ))
+    logger.addHandler(console_handler)
+    # Use global file logger
+    global_logger = get_sync_logger()
+    logger.handlers.extend(global_logger.handlers)
 
 
 def verify_tally_company(tally_url, expected_company_name):

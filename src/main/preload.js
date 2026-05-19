@@ -105,23 +105,33 @@ try {
         },
 
         onSyncUpdate: (callback) => {
-            ipcRenderer.on('sync-update', (event, data) => callback(data));
+            const listener = (event, data) => callback(data);
+            ipcRenderer.on('sync-update', listener);
+            return () => ipcRenderer.removeListener('sync-update', listener);
         },
 
         onSyncError: (callback) => {
-            ipcRenderer.on('sync-error', (event, error) => callback(error));
+            const listener = (event, error) => callback(error);
+            ipcRenderer.on('sync-error', listener);
+            return () => ipcRenderer.removeListener('sync-error', listener);
         },
 
         onSyncStarted: (callback) => {
-            ipcRenderer.on('sync-started', (event, data) => callback(data));
+            const listener = (event, data) => callback(data);
+            ipcRenderer.on('sync-started', listener);
+            return () => ipcRenderer.removeListener('sync-started', listener);
         },
 
         onSyncStopped: (callback) => {
-            ipcRenderer.on('sync-stopped', (event, data) => callback(data));
+            const listener = (event, data) => callback(data);
+            ipcRenderer.on('sync-stopped', listener);
+            return () => ipcRenderer.removeListener('sync-stopped', listener);
         },
 
         onSyncStatus: (callback) => {
-            ipcRenderer.on('sync-status', (event, data) => callback(data));
+            const listener = (event, data) => callback(data);
+            ipcRenderer.on('sync-status', listener);
+            return () => ipcRenderer.removeListener('sync-status', listener);
         },
 
         fetchLicense: (config) => {

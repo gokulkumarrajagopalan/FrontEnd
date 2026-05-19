@@ -23,26 +23,13 @@ else:
 os.makedirs(LOG_DIR, exist_ok=True)
 RECONCILIATION_LOG_FILE = os.path.join(LOG_DIR, 'sync_worker.log')
 
-# Configure logging with both file and console handlers
+# Use the global shared logger instead of creating duplicate handlers
 logger = logging.getLogger(__name__)
 logger.setLevel(getattr(logging, LOG_LEVEL))
 
-# Remove existing handlers to avoid duplicates
-logger.handlers = []
-
-# File handler - always writes detailed logs
-file_handler = logging.FileHandler(RECONCILIATION_LOG_FILE, encoding='utf-8')
-file_handler.setLevel(logging.DEBUG)  # Always log everything to file
-file_formatter = logging.Formatter(
-    '%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-file_handler.setFormatter(file_formatter)
-logger.addHandler(file_handler)
-
-# Console handler - respects VERBOSE_MODE
-if __name__ == "__main__":
-    console_handler = logging.StreamHandler()
+# Only add console handler if not already configured
+if not logger.handlers:
+    console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(getattr(logging, LOG_LEVEL))
     console_formatter = logging.Formatter(
         '%(asctime)s - %(levelname)s - %(message)s' if VERBOSE_MODE else '%(message)s',
@@ -50,8 +37,10 @@ if __name__ == "__main__":
     )
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
-
-# Legacy log file path (for backward compatibility)
+    
+    # Use the global file logger
+    global_logger = get_sync_logger()
+    logger.handlers.extend(global_logger.handlers)
 
 
 class ReconciliationManager:

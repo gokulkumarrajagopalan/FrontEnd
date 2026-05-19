@@ -14,6 +14,8 @@ import xml.etree.ElementTree as ET
 import re
 import os
 
+from sync_logger import get_sync_logger
+
 import sys as _sys
 if getattr(_sys, 'frozen', False):
     log_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Tallify', 'logs')
@@ -22,15 +24,17 @@ else:
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, 'sync_worker.log')
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_file, encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
+# Use global logger instead of basicConfig
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+if not logger.handlers:
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logger.addHandler(console_handler)
+    # Use the global file logger
+    global_logger = get_sync_logger()
+    logger.handlers.extend(global_logger.handlers)
 
 
 class MasterDataFetcher:

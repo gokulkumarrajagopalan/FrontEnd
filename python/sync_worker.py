@@ -19,17 +19,16 @@ log_dir = os.path.join(_base_dir, 'logs')
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, 'sync_worker.log')
 
-from logging.handlers import RotatingFileHandler
+from sync_logger import get_sync_logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5, encoding='utf-8'),
-        logging.StreamHandler(sys.stderr)  # Use stderr so stdout stays clean for JSON IPC output
-    ]
-)
-logger = logging.getLogger(__name__)
+# Use global logger
+logger = get_sync_logger()
+
+# Add console handler if not already present
+if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logger.addHandler(console_handler)
 
 
 import argparse

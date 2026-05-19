@@ -102,6 +102,16 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                     activeChildProcesses.delete(child);
                 }
 
+                // Notify renderer that sync has finished to trigger auto-refresh in report pages
+                if (event.sender) {
+                    event.sender.send('sync-update', {
+                        type: 'sync_completed',
+                        entityType: 'FinancialReports',
+                        companyId: cmpId,
+                        success: code === 0
+                    });
+                }
+
                 resolve({
                     success: code === 0,
                     output: stdout,

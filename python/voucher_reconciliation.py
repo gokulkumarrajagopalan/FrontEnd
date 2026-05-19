@@ -6,12 +6,11 @@ import logging
 import os
 import sys
 
-from logging.handlers import RotatingFileHandler
-
+from sync_logger import get_sync_logger
 from reconciliation import ReconciliationManager
 
 
-# Setup logging: shared sync log + dedicated voucher reconciliation log
+# Setup logging: use global shared logger
 if getattr(sys, 'frozen', False):
     _base_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Tallify')
 else:
@@ -22,16 +21,24 @@ os.makedirs(log_dir, exist_ok=True)
 sync_log_file = os.path.join(log_dir, 'sync_worker.log')
 voucher_recon_log_file = os.path.join(log_dir, 'voucher_reconciliation.log')
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        RotatingFileHandler(sync_log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding='utf-8'),
-        RotatingFileHandler(voucher_recon_log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding='utf-8'),
-        logging.StreamHandler(sys.stderr),
-    ],
-)
+# Use global logger
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+if not logger.handlers:
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logger.addHandler(console_handler)
+    # Use global file logger (for main sync_worker.log)
+    global_logger = get_sync_logger()
+    logger.handlers.extend(global_logger.handlers)
+    
+    # Also add dedicated voucher reconciliation log
+    from logging.handlers import RotatingFileHandler
+    voucher_handler = RotatingFileHandler(voucher_recon_log_file, maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+    voucher_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logger.addHandler(voucher_handler)
 
 
 def run(args):
