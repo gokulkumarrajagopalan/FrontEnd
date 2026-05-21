@@ -145,8 +145,17 @@ class FinancialReportSync:
         self.user_id = int(user_id)
         self.tally_url = TALLY_URL_TEMPLATE.format(tally_port)
         self.backend_url = backend_url
-        self.from_date = from_date or "20240401"
-        self.to_date = to_date or "20250331"
+        
+        from datetime import datetime
+        now = datetime.now()
+        fy_start_year = now.year if now.month >= 4 else now.year - 1
+        
+        is_from_valid = from_date and from_date != 'None' and str(from_date).strip() != ''
+        is_to_valid = to_date and to_date != 'None' and str(to_date).strip() != ''
+        
+        self.from_date = from_date if is_from_valid else f"{fy_start_year}0401"
+        self.to_date = to_date if is_to_valid else now.strftime("%Y%m%d")
+        
         self.auth_token = auth_token
         self.device_token = device_token
         
@@ -335,17 +344,18 @@ class FinancialReportSync:
                             'guid': guid if guid else '',
                             'isGroup': is_group,
                             'parentGroup': parent_grp,
-'subAmount': None,
-                        'mainAmount': None
-                    }
-                    
-                    # Look for BSAMT in the BSNAME element
-                    bsamt = elem.find('BSAMT')
-                    if bsamt is not None:
-                        sub_amt = bsamt.findtext('BSSUBAMT', '').strip() if bsamt.findtext('BSSUBAMT', '') else ''
-                        main_amt = bsamt.findtext('BSMAINAMT', '').strip() if bsamt.findtext('BSMAINAMT', '') else ''
-                        account_data['subAmount'] = self._convert_to_numeric(sub_amt)
-                        account_data['mainAmount'] = self._convert_to_numeric(main_amt)
+                            'subAmount': None,
+                            'mainAmount': None
+                        }
+                        
+                        # Look for BSAMT in next sibling element
+                        if i + 1 < len(elements) and elements[i + 1].tag == 'BSAMT':
+                            bsamt = elements[i + 1]
+                            sub_amt = bsamt.findtext('BSSUBAMT', '').strip() if bsamt.findtext('BSSUBAMT', '') else ''
+                            main_amt = bsamt.findtext('BSMAINAMT', '').strip() if bsamt.findtext('BSMAINAMT', '') else ''
+                            account_data['subAmount'] = self._convert_to_numeric(sub_amt)
+                            account_data['mainAmount'] = self._convert_to_numeric(main_amt)
+                            i += 1  # Skip the BSAMT sibling element
                         
                         parsed_data.append(account_data)
                 

@@ -153,11 +153,12 @@ def parse_profit_loss(xml_text, cmp_id=1):
                     'mainAmount': ''
                 }
                 
-                # Look for BSAMT in the BSNAME element
-                bsamt = elem.find('BSAMT')
-                if bsamt is not None:
+                # Look for BSAMT in next sibling element
+                if i + 1 < len(elements) and elements[i + 1].tag == 'BSAMT':
+                    bsamt = elements[i + 1]
                     account_data['subAmount'] = bsamt.findtext('BSSUBAMT', '').strip() if bsamt.findtext('BSSUBAMT', '') else ''
                     account_data['mainAmount'] = bsamt.findtext('BSMAINAMT', '').strip() if bsamt.findtext('BSMAINAMT', '') else ''
+                    i += 1  # Skip the BSAMT sibling element
                 
                 parsed_data.append(account_data)
         

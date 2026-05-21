@@ -592,6 +592,17 @@
                     companyName: company.name,
                     reportType: step.reportType
                 };
+                if (step.entityType === 'FinancialReports') {
+                    const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
+                    const now = new Date();
+                    const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+                    const defaultFromDate = `${fyStartYear}0401`;
+                    const defaultToDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+
+                    syncParams.fromDate = fromISO ? fromISO.replace(/-/g, '') : defaultFromDate;
+                    syncParams.toDate = defaultToDate;
+                    console.log(`   📊 Financial Report dates: ${syncParams.fromDate} → ${syncParams.toDate}`);
+                }
                 if (step.name === 'Vouchers') {
                     syncParams.companyGuid = company.companyGuid || company.guid || '';
                     const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
