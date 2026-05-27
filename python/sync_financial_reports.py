@@ -139,7 +139,7 @@ TDL_TRIAL_BALANCE = """<ENVELOPE>
 
 
 class FinancialReportSync:
-    def __init__(self, company_name, cmp_id, user_id, tally_port, backend_url, from_date=None, to_date=None, auth_token=None, device_token=None):
+    def __init__(self, company_name, cmp_id, user_id, tally_port, backend_url, from_date=None, to_date=None, auth_token=None, device_token=None, financial_year=None):
         self.company_name = company_name
         self.cmp_id = int(cmp_id)
         self.user_id = int(user_id)
@@ -164,6 +164,47 @@ class FinancialReportSync:
             self.headers['Authorization'] = f'Bearer {self.auth_token}'
         if self.device_token:
             self.headers['X-Device-Token'] = self.device_token
+
+        if financial_year and financial_year != 'None' and str(financial_year).strip() != '':
+            self.financial_year = financial_year
+        else:
+            self.financial_year = self.compute_financial_year(self.from_date, self.to_date)
+
+    def compute_financial_year(self, from_date, to_date):
+        if not from_date or not to_date:
+            return "Full"
+        
+        fd = str(from_date).strip()
+        td = str(to_date).strip()
+        
+        if len(fd) != 8 or len(td) != 8:
+            return "Full"
+        
+        try:
+            from_yr = int(fd[0:4])
+            from_md = fd[4:8]  # "0401"
+            to_yr = int(td[0:4])
+            to_md = td[4:8]    # "0331"
+            
+            # If dates span multiple financial years, return "Full"
+            if to_yr - from_yr > 1:
+                return "Full"
+                
+            if from_md == "0401" and to_md == "0331" and to_yr == from_yr + 1:
+                short_start = str(from_yr)[2:4]
+                short_end = str(to_yr)[2:4]
+                return f"{short_start}-{short_end}"
+            else:
+                start_month = int(fd[4:6])
+                if start_month >= 4:
+                    fy_start = from_yr
+                else:
+                    fy_start = from_yr - 1
+                short_start = str(fy_start)[2:4]
+                short_end = str(fy_start + 1)[2:4]
+                return f"{short_start}-{short_end}"
+        except Exception:
+            return "Full"
 
     def _clean_xml(self, xml_text):
         # Sanitize invalid XML characters like &#4; that Tally sends
@@ -240,7 +281,8 @@ class FinancialReportSync:
                             'isGroup': is_group,
                             'parentGroup': parent_grp,
                             'subAmount': None,
-                            'mainAmount': None
+                            'mainAmount': None,
+                            'financialYear': self.financial_year
                         }
                 elif child.tag == 'BSAMT':
                     if current_bsname is not None:
@@ -307,7 +349,8 @@ class FinancialReportSync:
                         'isGroup': is_group,
                         'parentGroup': parent_grp,
                         'subAmount': None,
-                        'mainAmount': None
+                        'mainAmount': None,
+                        'financialYear': self.financial_year
                     }
                     
                     # Check if next element is PLAMT (amount for this group/account)
@@ -345,7 +388,8 @@ class FinancialReportSync:
                             'isGroup': is_group,
                             'parentGroup': parent_grp,
                             'subAmount': None,
-                            'mainAmount': None
+                            'mainAmount': None,
+                            'financialYear': self.financial_year
                         }
                         
                         # Look for BSAMT in next sibling element
@@ -417,7 +461,8 @@ class FinancialReportSync:
                         'isGroup': is_group,
                         'parentGroup': parent_grp,
                         'debitAmount': None,
-                        'creditAmount': None
+                        'creditAmount': None,
+                        'financialYear': self.financial_year
                     }
                     
                     # Check if next element is DSPACCINFO (amounts for this account)
@@ -524,6 +569,7 @@ def main():
     auth_token = sys.argv[8] if len(sys.argv) > 8 else None
     device_token = sys.argv[9] if len(sys.argv) > 9 else None
     report_type = sys.argv[10] if len(sys.argv) > 10 else None
+    financial_year = sys.argv[11] if len(sys.argv) > 11 and sys.argv[11] != 'None' else None
     
     syncer = FinancialReportSync(
         company_name=company_name,
@@ -534,7 +580,8 @@ def main():
         tally_port=tally_port,
         backend_url=backend_url,
         auth_token=auth_token,
-        device_token=device_token
+        device_token=device_token,
+        financial_year=financial_year
     )
     
     syncer.sync_all(report_type)

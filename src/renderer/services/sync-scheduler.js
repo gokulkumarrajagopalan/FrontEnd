@@ -630,32 +630,55 @@ class SyncScheduler {
 
                 try {
                     if (window.electronAPI?.syncFinancialReports) {
-                        console.log(`  📦 ${report.name}: Syncing...`);
+                        console.log(`  📦 ${report.name}: Syncing all financial years...`);
                         
                         const now = new Date();
-                        const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-                        const fromDate = `${fyStartYear}0401`;
-                        const toDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+                        const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+                        
+                        const yearsToSync = [];
+                        for (let i = 0; i < 4; i++) {
+                            const fyStart = currentYear - i;
+                            const fromD = `${fyStart}0401`;
+                            const toD = i === 0 
+                                ? `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+                                : `${fyStart + 1}0331`;
+                                
+                            const shortStart = String(fyStart).substring(2, 4);
+                            const shortEnd = String(fyStart + 1).substring(2, 4);
+                            const fyLabel = `${shortStart}-${shortEnd}`;
+                            
+                            yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: fyLabel });
+                        }
 
-                        const financialResult = await window.electronAPI.syncFinancialReports({
-                            companyId: companyId,
-                            cmpId: companyId,
-                            userId: userId,
-                            fromDate: fromDate,
-                            toDate: toDate,
-                            authToken: authToken,
-                            deviceToken: deviceToken,
-                            tallyPort: tallyPort,
-                            backendUrl: backendUrl,
-                            companyName: companyName,
-                            reportType: report.type
-                        });
+                        // Also add "Full" sync option (from first year start to today date)
+                        const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
+                        const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
+                        const fullToDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+                        yearsToSync.push({ fromDate: fullFromDate, toDate: fullToDate, financialYear: 'Full' });
 
-                        if (financialResult.success) {
-                            console.log(`  ✅ ${report.name}: Synced successfully`);
-                        } else {
-                            console.warn(`  ⚠️ ${report.name}: ${financialResult.error || financialResult.message || 'Failed'}`);
-                            result.errors.push({ entity: report.name, message: financialResult.error || financialResult.message || 'Sync failed' });
+                        for (const yr of yearsToSync) {
+                            console.log(`  📦 ${report.name} for FY ${yr.financialYear}: ${yr.fromDate} → ${yr.toDate}`);
+                            const financialResult = await window.electronAPI.syncFinancialReports({
+                                companyId: companyId,
+                                cmpId: companyId,
+                                userId: userId,
+                                fromDate: yr.fromDate,
+                                toDate: yr.toDate,
+                                authToken: authToken,
+                                deviceToken: deviceToken,
+                                tallyPort: tallyPort,
+                                backendUrl: backendUrl,
+                                companyName: companyName,
+                                reportType: report.type,
+                                financialYear: yr.financialYear
+                            });
+
+                            if (financialResult.success) {
+                                console.log(`  ✅ ${report.name} for FY ${yr.financialYear}: Synced successfully`);
+                            } else {
+                                console.warn(`  ⚠️ ${report.name} for FY ${yr.financialYear}: ${financialResult.error || financialResult.message || 'Failed'}`);
+                                result.errors.push({ entity: `${report.name} (FY ${yr.financialYear})`, message: financialResult.error || financialResult.message || 'Sync failed' });
+                            }
                         }
                     }
                 } catch (fErr) {

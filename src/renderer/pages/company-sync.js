@@ -593,15 +593,61 @@
                     reportType: step.reportType
                 };
                 if (step.entityType === 'FinancialReports') {
-                    const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
                     const now = new Date();
-                    const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-                    const defaultFromDate = `${fyStartYear}0401`;
-                    const defaultToDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+                    const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
 
-                    syncParams.fromDate = fromISO ? fromISO.replace(/-/g, '') : defaultFromDate;
-                    syncParams.toDate = defaultToDate;
-                    console.log(`   📊 Financial Report dates: ${syncParams.fromDate} → ${syncParams.toDate}`);
+                    // We will sync the current FY and the 3 previous FYs
+                    const yearsToSync = [];
+                    for (let i = 0; i < 4; i++) {
+                        const fyStart = currentYear - i;
+                        const fromD = `${fyStart}0401`;
+                        // For the current year, toDate is today, for previous years, it's March 31st of next year
+                        const toD = i === 0 
+                            ? `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+                            : `${fyStart + 1}0331`;
+                            
+                        const shortStart = String(fyStart).substring(2, 4);
+                        const shortEnd = String(fyStart + 1).substring(2, 4);
+                        const fyLabel = `${shortStart}-${shortEnd}`;
+                        
+                        yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: fyLabel });
+                    }
+
+                    // Also add "Full" sync option (from first year start to today date)
+                    const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
+                    const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
+                    const fullToDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+                    yearsToSync.push({ fromDate: fullFromDate, toDate: fullToDate, financialYear: 'Full' });
+
+                    let allYearsSuccess = true;
+                    for (const yr of yearsToSync) {
+                        if (!isSyncing) {
+                            console.log(`🛑 Sync aborted before starting FY: ${yr.financialYear}`);
+                            allYearsSuccess = false;
+                            break;
+                        }
+                        
+                        const yrParams = {
+                            ...syncParams,
+                            fromDate: yr.fromDate,
+                            toDate: yr.toDate,
+                            financialYear: yr.financialYear
+                        };
+                        console.log(`   📊 Financial Report (${step.name}) for FY ${yr.financialYear}: ${yr.fromDate} → ${yr.toDate}`);
+                        const result = await step.api(yrParams);
+                        if (!result.success) {
+                            allYearsSuccess = false;
+                            console.error(`   ❌ Failed to sync ${step.name} for FY ${yr.financialYear}: ${result.message}`);
+                        }
+                    }
+                    
+                    if (allYearsSuccess) {
+                        successCount++;
+                        console.log(`   ✅ ${step.name} synced for all financial years`);
+                    } else {
+                        companyAllSuccess = false;
+                    }
+                    continue; // Skip the generic step.api call below
                 }
                 if (step.name === 'Vouchers') {
                     syncParams.companyGuid = company.companyGuid || company.guid || '';

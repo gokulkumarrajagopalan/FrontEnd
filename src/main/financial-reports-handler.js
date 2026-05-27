@@ -4,6 +4,15 @@ const path = require('path');
 const fs = require('fs');
 const { findPython } = require('./python-finder');
 
+function logToFile(message) {
+    try {
+        const logFilePath = path.join(__dirname, '../../financial_sync.log');
+        fs.appendFileSync(logFilePath, `[${new Date().toISOString()}] ${message}\n`);
+    } catch (e) {
+        console.error('Failed to write to log file:', e);
+    }
+}
+
 function getWorkerExe() {
     const isDev = !app.isPackaged;
     if (isDev) {
@@ -35,7 +44,8 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                 backendUrl = process.env.BACKEND_URL || 'http://localhost:8080',
                 authToken = 'None',
                 deviceToken = 'None',
-                reportType = 'None'
+                reportType = 'None',
+                financialYear = 'None'
             } = params;
 
             const isDev = !app.isPackaged;
@@ -53,7 +63,8 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                     backendUrl || '',
                     authToken || 'None',
                     deviceToken || 'None',
-                    reportType || 'None'
+                    reportType || 'None',
+                    financialYear || 'None'
                 ];
             } else {
                 const pythonScript = isDev 
@@ -70,11 +81,13 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                     backendUrl || '',
                     authToken || 'None',
                     deviceToken || 'None',
-                    reportType || 'None'
+                    reportType || 'None',
+                    financialYear || 'None'
                 ];
             }
 
             console.log(`📊 Starting Financial Reports sync for company: ${companyName}`);
+            logToFile(`[START] Syncing financial reports for company: ${companyName} (ID: ${cmpId}, Year: ${financialYear})`);
 
             const child = spawn(command, args, { cwd });
             if (activeChildProcesses) {
@@ -88,16 +101,19 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                 const output = data.toString();
                 stdout += output;
                 if (isDev) console.log(`[FINANCIAL-SYNC] ${output}`);
+                logToFile(`[INFO] ${output.trim()}`);
             });
 
             child.stderr.on('data', (data) => {
                 const output = data.toString();
                 stderr += output;
                 if (isDev) console.error(`[FINANCIAL-SYNC ERROR] ${output}`);
+                logToFile(`[ERROR] ${output.trim()}`);
             });
 
             child.on('close', (code) => {
                 console.log(`✅ Financial Reports sync exited with code: ${code}`);
+                logToFile(`[END] Sync completed with exit code: ${code}`);
                 if (activeChildProcesses) {
                     activeChildProcesses.delete(child);
                 }
@@ -122,6 +138,7 @@ function registerFinancialReportsHandler(activeChildProcesses) {
 
             child.on('error', (err) => {
                 console.error(`❌ Failed to start Financial Reports sync: ${err.message}`);
+                logToFile(`[FATAL ERROR] Failed to start: ${err.message}`);
                 if (activeChildProcesses) {
                     activeChildProcesses.delete(child);
                 }
