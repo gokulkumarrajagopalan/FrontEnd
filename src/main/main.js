@@ -1173,6 +1173,31 @@ ipcMain.handle('open-external-url', async (event, url) => {
   }
 });
 
+const { dialog } = require("electron");
+
+ipcMain.handle('show-session-conflict', async (event, conflictData) => {
+  console.log('⚠️ Showing session conflict native dialog');
+  let conflictMessage = 'Your account is being accessed from a different device.';
+  
+  if (conflictData?.conflictType === 'SAME_SYSTEM_DIFFERENT_PLATFORM') {
+    conflictMessage = 'You are trying to login from another app on this same computer.';
+  } else if (conflictData?.existingDevice) {
+    conflictMessage = `An active session was found on ${conflictData.existingDevice.platform || 'another device'}.`;
+  }
+
+  const response = dialog.showMessageBoxSync(mainWindow, {
+    type: 'warning',
+    buttons: ['Logout & Allow', 'Cancel'],
+    defaultId: 1,
+    cancelId: 1,
+    title: 'Session Conflict',
+    message: 'New Login Detected',
+    detail: `${conflictMessage}\n\nDo you want to logout the existing session and allow this new login?`
+  });
+
+  return { action: response === 0 ? 'LOGOUT_EXISTING' : 'CANCEL' };
+});
+
 // Unified Renderer Logging
 ipcMain.on('log-renderer', (event, { level, message, data, timestamp }) => {
   const formattedData = data ? (typeof data === 'object' ? JSON.stringify(data) : data) : '';

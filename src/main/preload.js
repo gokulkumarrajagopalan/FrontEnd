@@ -40,7 +40,8 @@ const ALLOWED_INVOKE_CHANNELS = [
     'fetch-master-data',
     'sync-financial-reports',
     'show-system-notification',
-    'open-external-url'
+    'open-external-url',
+    'show-session-conflict'
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [
@@ -215,6 +216,7 @@ try {
             ipcRenderer.on('sso-callback', (event, url) => callback(url));
         },
         openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
+        showSessionConflict: (conflictData) => ipcRenderer.invoke('show-session-conflict', conflictData),
 
         // ── Whitelisted generic IPC (for backward compat) ──
         send: (channel, data) => {

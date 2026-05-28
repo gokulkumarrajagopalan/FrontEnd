@@ -300,22 +300,53 @@ class AuthService {
      */
     async login(username, password) {
         try {
+            let systemId = 'desktop_user';
+            if (window.electronAPI && window.electronAPI.getSystemInfo) {
+                try {
+                    const sysInfo = await window.electronAPI.getSystemInfo();
+                    systemId = sysInfo.hostname || 'desktop_user';
+                } catch(e) {}
+            }
+
             const response = await fetch(window.apiConfig.getNestedUrl('auth', 'login'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-System-Id': systemId,
+                    'X-Device-Type': 'DESKTOP'
                 },
                 body: JSON.stringify({
                     username,
                     password,
                     deviceType: 'DESKTOP',
-                    deviceInfo: navigator.userAgent || 'Talliffy Desktop'
+                    deviceInfo: navigator.userAgent || 'Talliffy Desktop',
+                    systemId: systemId
                 })
             });
 
             const data = await response.json();
 
             if (!response.ok) {
+                if (response.status === 409 && data.error === 'SESSION_CONFLICT') {
+                    if (window.electronAPI && window.electronAPI.showSessionConflict) {
+                        const conflictRes = await window.electronAPI.showSessionConflict(data);
+                        if (conflictRes.action === 'LOGOUT_EXISTING') {
+                            const resolveUrl = window.apiConfig.getNestedUrl('auth', 'resolve-conflict') || (window.apiConfig.baseURL + '/auth/resolve-conflict');
+                            const resolveRes = await fetch(resolveUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ conflictToken: data.conflictToken, action: 'LOGOUT_EXISTING' })
+                            });
+                            if (resolveRes.ok) {
+                                return await this.login(username, password);
+                            } else {
+                                return { success: false, message: 'Failed to resolve session conflict.' };
+                            }
+                        } else {
+                            return { success: false, message: 'Login cancelled by user.' };
+                        }
+                    }
+                }
                 return {
                     success: false,
                     message: data.message || 'Login failed'
