@@ -836,18 +836,51 @@ class App {
             // Setup logout button
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
-                logoutBtn.addEventListener('click', async () => {
-                    const confirmed = await window.Popup.confirm({
-                        title: 'Confirm Logout',
-                        message: 'Are you sure you want to logout? You will need to sign in again to access your data.',
-                        icon: '<i class="fas fa-sign-out-alt" style="color: var(--primary-600);"></i>',
-                        confirmText: 'Logout',
-                        cancelText: 'Cancel',
-                        confirmVariant: 'primary'
+                logoutBtn.addEventListener('click', () => {
+                    window.Popup.show({
+                        title: 'Select Logout Scope',
+                        size: 'sm',
+                        closeable: true,
+                        content: `
+                            <div style="text-align: center; padding: var(--ds-space-2) 0;">
+                                <div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, rgba(79,70,229,0.1), rgba(37,99,235,0.1)); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--ds-space-4); color: #4f46e5; font-size: 24px;">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                </div>
+                                <p style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-md); margin-bottom: var(--ds-space-2);">Choose how you want to log out</p>
+                                <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-xs); line-height: 1.5; margin: 0;">
+                                    The Desktop app manages continuous Tally data synchronization. You can sign out of Web & Mobile apps to keep this syncing session active.
+                                </p>
+                            </div>
+                        `,
+                        buttons: [
+                            {
+                                text: 'Logout This Device',
+                                variant: 'primary',
+                                onClick: async () => {
+                                    await this.handleLogout('CURRENT');
+                                }
+                            },
+                            {
+                                text: 'Logout Web & Mobile',
+                                variant: 'warning',
+                                onClick: async () => {
+                                    await this.handleLogout('WEB_MOBILE');
+                                }
+                            },
+                            {
+                                text: 'Logout All Devices',
+                                variant: 'danger',
+                                onClick: async () => {
+                                    await this.handleLogout('ALL');
+                                }
+                            },
+                            {
+                                text: 'Cancel',
+                                variant: 'secondary',
+                                dismissOnClick: true
+                            }
+                        ]
                     });
-                    if (confirmed) {
-                        await this.handleLogout();
-                    }
                 });
             }
         } catch (e) {
@@ -1103,8 +1136,8 @@ class App {
         }
     }
 
-    async handleLogout() {
-        console.log('🔐 App.handleLogout() - Starting logout sequence');
+    async handleLogout(scope = 'CURRENT') {
+        console.log('🔐 App.handleLogout() - Starting logout sequence with scope:', scope);
         try {
             // Stop connection monitoring
             this.stopConnectionMonitoring();
@@ -1134,7 +1167,7 @@ class App {
             // Call logout on auth service (will call backend and clear storage)
             if (window.authService) {
                 console.log('   → Calling authService.logout()');
-                await window.authService.logout();
+                await window.authService.logout(scope);
                 console.log('   ✅ Logout successful, redirect will happen via authService');
             } else {
                 // Fallback: just clear storage and reload

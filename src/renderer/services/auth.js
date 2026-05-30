@@ -189,20 +189,52 @@ class AuthService {
                 throw new Error(errData.error_description || 'Keycloak token exchange failed');
             }
 
+            let systemId = 'desktop_user';
+            let platform = 'Desktop';
+            if (window.electronAPI && window.electronAPI.getSystemInfo) {
+                try {
+                    const sysInfo = await window.electronAPI.getSystemInfo();
+                    systemId = sysInfo.hostname || 'desktop_user';
+                    platform = sysInfo.platform || 'Desktop';
+                } catch(e) {}
+            }
+
             const kcTokens = await response.json();
             const ssoResponse = await fetch(`${window.apiConfig.baseURL}/auth/sso/keycloak`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${kcTokens.access_token}`,
-                    'X-Device-Type': 'DESKTOP'
+                    'X-Device-Type': 'DESKTOP',
+                    'X-System-Id': systemId,
+                    'X-Platform': platform
                 }
             });
 
-            if (!ssoResponse.ok) throw new Error('Backend session establishment failed');
+            const data = await ssoResponse.json().catch(() => ({}));
 
-            const data = await ssoResponse.json();
-            if (!data.success) throw new Error(data.message || 'SSO login rejected by server');
+            if (ssoResponse.status === 409 && data.error === 'SESSION_CONFLICT') {
+                if (window.electronAPI && window.electronAPI.showSessionConflict) {
+                    const conflictRes = await window.electronAPI.showSessionConflict(data);
+                    if (conflictRes.action === 'LOGOUT_EXISTING') {
+                        const resolveUrl = window.apiConfig.getNestedUrl('auth', 'resolve-conflict') || (window.apiConfig.baseURL + '/auth/resolve-conflict');
+                        const resolveRes = await fetch(resolveUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ conflictToken: data.conflictToken, action: 'LOGOUT_EXISTING' })
+                        });
+                        if (resolveRes.ok) {
+                            return await this.completeSsoExchange(code);
+                        } else {
+                            throw new Error('Failed to resolve active session conflict.');
+                        }
+                    } else {
+                        throw new Error('Login cancelled by user.');
+                    }
+                }
+            }
+
+            if (!ssoResponse.ok) throw new Error(data.message || 'Backend session establishment failed');
 
             const sessionData = data.data;
             this.token = sessionData.token;
@@ -458,12 +490,13 @@ class AuthService {
         }
     }
 
-    async logout() {
+    async logout(scope = 'CURRENT') {
         try {
             if (this.token) {
                 await fetch(window.apiConfig.getNestedUrl('auth', 'logout'), {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${this.token}`, 'X-Device-Token': this.deviceToken || '', 'Content-Type': 'application/json' }
+                    headers: { 'Authorization': `Bearer ${this.token}`, 'X-Device-Token': this.deviceToken || '', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ scope })
                 });
             }
         } catch (error) { console.error('Logout API error:', error); }
