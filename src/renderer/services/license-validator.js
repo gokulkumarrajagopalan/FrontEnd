@@ -235,8 +235,8 @@ class LicenseValidator {
             });
         } else if (window.notificationService) {
             window.notificationService.info(mainText, title, 10000);
-        } else {
-            alert(`${title}\n\n${header}\n${mainText}\n\nYour License: ${maskedUser}\nTally License: ${maskedTally}`);
+        } else if (window.Popup) {
+            window.Popup.alert({ title: title.replace(/^[^\w]+/, '').trim(), message: mainText, icon: '🚫', variant: 'primary' });
         }
     }
 
@@ -267,8 +267,10 @@ class LicenseValidator {
                     okText: 'OK',
                     variant: 'primary'
                 });
+            } else if (window.notificationService) {
+                window.notificationService.error('Tally is not connected. Please open Tally and try again.');
             } else {
-                alert('Tally is not opened, please connect.');
+                console.error('Tally not connected');
             }
             return false;
         }

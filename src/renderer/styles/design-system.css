@@ -251,7 +251,7 @@
     --ds-btn-primary-bg: var(--ds-gradient-primary);
     --ds-btn-primary-bg-hover: var(--ds-gradient-primary-hover);
     --ds-btn-primary-text: #ffffff;
-    --ds-btn-primary-shadow: rgba(37, 99, 235, 0.38);
+    --ds-btn-primary-shadow: rgba(67, 56, 202, 0.32);
 
     --ds-btn-secondary-bg: rgba(238, 242, 255, 0.95);
     --ds-btn-secondary-bg-hover: rgba(224, 231, 255, 1);
@@ -668,18 +668,21 @@ body {
 .ds-btn-primary {
     background: var(--ds-btn-primary-bg);
     color: var(--ds-btn-primary-text);
-    box-shadow: 0 14px 28px -12px var(--ds-btn-primary-shadow);
+    border: 1px solid rgba(79, 70, 229, 0.25);
+    box-shadow: 0 1px 3px rgba(67, 56, 202, 0.32), 0 10px 24px rgba(37, 99, 235, 0.22);
 }
 
 .ds-btn-primary:hover:not(:disabled) {
     background: var(--ds-btn-primary-bg-hover);
-    box-shadow: 0 18px 32px -14px var(--ds-btn-primary-shadow);
+    box-shadow: 0 6px 18px rgba(67, 56, 202, 0.4), 0 14px 30px rgba(37, 99, 235, 0.28);
     transform: translateY(-2px);
+    filter: brightness(1.04);
 }
 
 .ds-btn-primary:active:not(:disabled) {
     transform: translateY(0);
-    box-shadow: 0 10px 22px -14px var(--ds-btn-primary-shadow);
+    box-shadow: 0 2px 6px rgba(67, 56, 202, 0.2);
+    filter: none;
 }
 
 /* Secondary button */

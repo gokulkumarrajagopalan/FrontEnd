@@ -2291,10 +2291,20 @@ class BasePage {
      */
     showError(message) {
         console.error(message);
+        // Prefer toast notification — never use raw alert() for Tally/app errors
         if (window.notificationService) {
             window.notificationService.error(message);
+        } else if (window.errorBoundary) {
+            window.errorBoundary.showErrorToast({
+                title: 'Error',
+                friendly: message,
+                icon: '❌'
+            });
+        } else if (window.Popup) {
+            window.Popup.alert({ title: 'Error', message, icon: '❌', variant: 'danger' });
         } else {
-            alert('❌ ' + message);
+            // Absolute last resort — log only, never dump raw stack traces
+            console.error('❌ Unhandled error (no notification service available):', message);
         }
     }
 

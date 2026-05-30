@@ -10,6 +10,7 @@ class ErrorBoundary {
         this._recentErrors = [];    // rate-limit tracking
         this._maxToastsPerMinute = 3;
         this.initialize();
+        this._injectStyles();
     }
 
     initialize() {
@@ -117,8 +118,26 @@ class ErrorBoundary {
             };
         }
 
-        // ── Tally-specific ──
-        if (msg.includes('tally') || msg.includes('sync') || msg.includes('xml')) {
+        // ── Tally: not running / connection refused ──
+        if (msg.includes('tally is not') || msg.includes('tally not') || (msg.includes('econnrefused') && msg.includes('9000'))) {
+            return {
+                title: 'Tally Not Running',
+                friendly: 'Could not reach Tally. Please open Tally Prime and ensure it is running, then try again.',
+                icon: '🔗'
+            };
+        }
+
+        // ── Tally: XML / data parse error ──
+        if (msg.includes('xml') || msg.includes('parse error') || msg.includes('invalid xml')) {
+            return {
+                title: 'Tally Data Error',
+                friendly: 'Received an unexpected response from Tally. Please check Tally is configured correctly.',
+                icon: '📄'
+            };
+        }
+
+        // ── Tally: sync / general tally ──
+        if (msg.includes('tally') || msg.includes('sync failed') || msg.includes('sync error')) {
             return {
                 title: 'Sync Error',
                 friendly: 'There was a problem communicating with Tally. Please ensure Tally is running and try again.',
@@ -174,7 +193,9 @@ class ErrorBoundary {
 
     showErrorToast({ title, friendly, icon }) {
         const container = document.getElementById('error-boundary-container') || this.createContainer();
+        const id = 'eb-toast-' + Date.now();
         const toast = document.createElement('div');
+        toast.id = id;
         toast.className = 'error-boundary-toast';
         toast.innerHTML = `
             <div class="error-boundary-content">
@@ -183,19 +204,103 @@ class ErrorBoundary {
                     <h4>${title}</h4>
                     <p>${friendly}</p>
                 </div>
-                <button class="error-boundary-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                <button class="error-boundary-close" onclick="document.getElementById('${id}')?.remove()" title="Dismiss">×</button>
             </div>
         `;
 
         container.appendChild(toast);
 
-        // Auto remove after 5 seconds
+        // Auto-dismiss after 6 seconds with fade
         setTimeout(() => {
             if (toast.isConnected) {
                 toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
+                toast.style.transform = 'translateY(8px)';
+                setTimeout(() => toast.remove(), 350);
             }
-        }, 5000);
+        }, 6000);
+    }
+
+    _injectStyles() {
+        if (document.getElementById('error-boundary-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'error-boundary-styles';
+        style.textContent = `
+            #error-boundary-container {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                z-index: 9999;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                max-width: 420px;
+                pointer-events: none;
+            }
+            .error-boundary-toast {
+                pointer-events: all;
+                background: rgba(255,255,255,0.92);
+                backdrop-filter: blur(16px);
+                border: 1px solid rgba(226,232,240,0.8);
+                border-left: 4px solid #ef4444;
+                border-radius: 16px;
+                box-shadow: 0 12px 40px -12px rgba(0,0,0,0.18);
+                opacity: 1;
+                transform: translateY(0);
+                transition: opacity 0.35s ease, transform 0.35s ease;
+                animation: eb-slide-in 0.4s cubic-bezier(0.16,1,0.3,1);
+            }
+            @keyframes eb-slide-in {
+                from { opacity: 0; transform: translateY(16px) scale(0.96); }
+                to   { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            .error-boundary-content {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 14px 16px;
+            }
+            .error-boundary-icon {
+                font-size: 22px;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .error-boundary-message {
+                flex: 1;
+                min-width: 0;
+            }
+            .error-boundary-message h4 {
+                margin: 0 0 3px;
+                font-size: 13px;
+                font-weight: 700;
+                color: #0f172a;
+                font-family: Inter, system-ui, sans-serif;
+            }
+            .error-boundary-message p {
+                margin: 0;
+                font-size: 12px;
+                color: #475569;
+                line-height: 1.5;
+                font-family: Inter, system-ui, sans-serif;
+            }
+            .error-boundary-close {
+                background: none;
+                border: none;
+                color: #94a3b8;
+                font-size: 20px;
+                line-height: 1;
+                cursor: pointer;
+                padding: 2px 4px;
+                border-radius: 6px;
+                transition: all 0.15s;
+                flex-shrink: 0;
+                margin-top: -2px;
+            }
+            .error-boundary-close:hover {
+                background: #f1f5f9;
+                color: #475569;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     createContainer() {

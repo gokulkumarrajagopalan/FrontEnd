@@ -1267,10 +1267,12 @@
             }
         } catch (error) {
             console.error('Error removing company:', error);
-            if (window.UIComponents.toast) {
+            if (window.UIComponents && window.UIComponents.toast) {
                 window.UIComponents.toast({ message: `Error: ${error.message}`, type: 'error' });
-            } else {
-                alert(`Failed to remove company: ${error.message}`);
+            } else if (window.notificationService) {
+                window.notificationService.error(`Failed to remove company: ${error.message}`);
+            } else if (window.Popup) {
+                window.Popup.alert({ title: 'Remove Failed', message: `Could not remove the company. Please try again.`, icon: '❌', variant: 'danger' });
             }
         }
     }

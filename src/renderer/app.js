@@ -104,7 +104,7 @@ class App {
         } catch (error) {
             console.error('❌ Error during app initialization:', error);
             console.error('Stack:', error.stack);
-            document.body.innerHTML = `<div style="padding: 20px; color: red;"><h1>Error Loading App</h1><p>${error.message}</p><pre style="font-size: 10px; white-space: pre-wrap;">${error.stack}</pre></div>`;
+            this._showFatalError('Failed to Initialize', 'The application encountered an unexpected error during startup. Please restart the app.', error);
         }
     }
 
@@ -659,7 +659,7 @@ class App {
             }
         } catch (e) {
             console.error('❌ Error in renderLogin:', e);
-            document.body.innerHTML = `<div style="color: red; padding: 20px;"><h1>Error Rendering Login</h1><p>${e.message}</p></div>`;
+            this._showFatalError('Screen Error', 'Unable to display the login screen. Please restart the application.', e);
         }
     }
 
@@ -818,7 +818,7 @@ class App {
             this.startConnectionMonitoring();
         } catch (e) {
             console.error('❌ Error in renderAppLayout:', e);
-            document.body.innerHTML = `<div style="color: red; padding: 20px;"><h1>Error Rendering App</h1><p>${e.message}</p></div>`;
+            this._showFatalError('Rendering Error', 'Unable to display the application. Please restart the app.', e);
         }
     }
 
@@ -1281,6 +1281,23 @@ class App {
         }
 
         return 'import-company';
+    }
+
+    /**
+     * Show a styled fatal error screen instead of raw red HTML
+     */
+    _showFatalError(title, friendlyMessage, error) {
+        console.error(`❌ Fatal Error [${title}]:`, error);
+        document.body.style.cssText = 'margin:0; padding:0; background: #f4f7ff; font-family: Inter, system-ui, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh;';
+        document.body.innerHTML = `
+            <div style="text-align:center; max-width:480px; padding:40px 32px; background:#fff; border-radius:24px; box-shadow:0 20px 60px rgba(15,23,42,0.12); border:1px solid #e2e8f0; margin:24px;">
+                <div style="width:72px; height:72px; background:linear-gradient(135deg,#fef2f2,#fee2e2); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 24px; font-size:32px;">⚠️</div>
+                <h1 style="font-size:22px; font-weight:700; color:#0f172a; margin:0 0 12px;">${title}</h1>
+                <p style="color:#475569; font-size:14px; line-height:1.6; margin:0 0 28px;">${friendlyMessage}</p>
+                <button onclick="window.location.reload()" style="padding:10px 28px; background:linear-gradient(135deg,#4f46e5 0%,#2563eb 52%,#0ea5e9 100%); color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 10px 24px rgba(37,99,235,0.28); transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.filter='brightness(1.08)'" onmouseout="this.style.transform='none'; this.style.filter='none'">Restart Application</button>
+                <p style="margin-top:20px; font-size:11px; color:#94a3b8;">If this persists, contact support.</p>
+            </div>
+        `;
     }
 }
 

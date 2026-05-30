@@ -40,11 +40,11 @@ const Popup = {
                         </div>
                         <div style="padding: 0 var(--ds-space-8) var(--ds-space-8); display: flex; gap: var(--ds-space-4); justify-content: ${footerPosition};">
                             ${showCancel && cancelText ? `
-                            <button id="${popupId}_cancel" style="flex: 1; padding: var(--ds-space-3) var(--ds-space-5); background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); color: var(--ds-text-secondary); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--ds-bg-surface-sunken)'" onmouseout="this.style.background='var(--ds-bg-surface)'">
+                            <button id="${popupId}_cancel" style="flex: 1; padding: var(--ds-space-3) var(--ds-space-5); background: rgba(238,242,255,0.95); border: 1px solid #c7d2fe; color: #3730a3; border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(224,231,255,1)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(238,242,255,0.95)'; this.style.transform='translateY(0)'">
                                 ${cancelText}
                             </button>
                             ` : ''}
-                            <button id="${popupId}_confirm" style="flex: 1; padding: var(--ds-space-3) var(--ds-space-5); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: white; cursor: pointer; transition: all 0.2s; ${Popup._getButtonStyle(confirmVariant)};">
+                            <button id="${popupId}_confirm" style="flex: 1; padding: var(--ds-space-3) var(--ds-space-5); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: white; cursor: pointer; ${Popup._getButtonStyle(confirmVariant)}" onmouseover="this.style.transform='translateY(-2px)'; this.style.filter='brightness(1.08)'" onmouseout="this.style.transform='translateY(0)'; this.style.filter='none'">
                                 ${confirmText}
                             </button>
                         </div>
@@ -117,7 +117,7 @@ const Popup = {
                             <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-sm); line-height: 1.6; padding: 0 var(--ds-space-2); margin: 0;">${message}</p>
                         </div>
                         <div style="padding: 0 var(--ds-space-8) var(--ds-space-8); display: flex; justify-content: center;">
-                            <button id="${popupId}_ok" style="min-width: 120px; padding: var(--ds-space-3) var(--ds-space-6); font-size: var(--ds-text-sm); border-radius: var(--ds-radius-lg); font-weight: var(--ds-weight-medium); color: white; cursor: pointer; transition: all 0.2s; ${Popup._getButtonStyle(variant)};">
+                            <button id="${popupId}_ok" style="min-width: 120px; padding: var(--ds-space-3) var(--ds-space-6); font-size: var(--ds-text-sm); border-radius: var(--ds-radius-lg); font-weight: var(--ds-weight-semibold); color: white; cursor: pointer; ${Popup._getButtonStyle(variant)}" onmouseover="this.style.transform='translateY(-2px)'; this.style.filter='brightness(1.08)'" onmouseout="this.style.transform='translateY(0)'; this.style.filter='none'">
                                 ${okText}
                             </button>
                         </div>
@@ -281,30 +281,58 @@ const Popup = {
     },
 
     /**
-     * Get button style based on variant
+     * Get button style based on variant — matches WebApp design system exactly
      * @private
      */
     _getButtonStyle: (variant) => {
         const config = {
             primary: {
-                bg: 'linear-gradient(135deg, #1346A8 0%, #1e40af 100%)',
-                glow: 'rgba(19, 70, 168, 0.4)'
+                bg: 'linear-gradient(135deg, #4f46e5 0%, #2563eb 52%, #0ea5e9 100%)',
+                shadow: '0 1px 3px rgba(67,56,202,0.32), 0 10px 24px rgba(37,99,235,0.22)',
+                border: '1px solid rgba(79,70,229,0.25)',
+                hoverBg: 'linear-gradient(135deg, #4338ca 0%, #1d4ed8 54%, #0284c7 100%)',
+                hoverShadow: '0 6px 18px rgba(67,56,202,0.4), 0 14px 30px rgba(37,99,235,0.28)'
             },
             success: {
                 bg: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                glow: 'rgba(16, 185, 129, 0.4)'
+                shadow: '0 10px 24px rgba(5,150,105,0.28)',
+                border: '1px solid rgba(16,185,129,0.25)',
+                hoverBg: 'linear-gradient(135deg, #047857 0%, #059669 100%)',
+                hoverShadow: '0 14px 30px rgba(5,150,105,0.36)'
             },
             danger: {
                 bg: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-                glow: 'rgba(239, 68, 68, 0.4)'
+                shadow: '0 10px 24px rgba(220,38,38,0.28)',
+                border: '1px solid rgba(239,68,68,0.25)',
+                hoverBg: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)',
+                hoverShadow: '0 14px 30px rgba(220,38,38,0.36)'
             },
             warning: {
                 bg: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
-                glow: 'rgba(245, 158, 11, 0.4)'
+                shadow: '0 10px 24px rgba(217,119,6,0.28)',
+                border: '1px solid rgba(245,158,11,0.25)',
+                hoverBg: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)',
+                hoverShadow: '0 14px 30px rgba(217,119,6,0.36)'
             }
         };
-        const style = config[variant] || config.primary;
-        return `background: ${style.bg}; box-shadow: 0 12px 30px -8px ${style.glow}; border: none;`;
+        const s = config[variant] || config.primary;
+        // Return style string AND set up hover via a data attribute trick — we inline both states
+        return `background: ${s.bg}; box-shadow: ${s.shadow}; border: ${s.border}; transition: all 0.2s cubic-bezier(0.4,0,0.2,1); transform: translateY(0);`;
+    },
+
+    /**
+     * Get button hover style (called via onmouseover)
+     * @private
+     */
+    _getButtonHoverStyle: (variant) => {
+        const config = {
+            primary:  { bg: 'linear-gradient(135deg, #4338ca 0%, #1d4ed8 54%, #0284c7 100%)', shadow: '0 6px 18px rgba(67,56,202,0.4), 0 14px 30px rgba(37,99,235,0.28)' },
+            success:  { bg: 'linear-gradient(135deg, #047857 0%, #059669 100%)', shadow: '0 14px 30px rgba(5,150,105,0.36)' },
+            danger:   { bg: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)', shadow: '0 14px 30px rgba(220,38,38,0.36)' },
+            warning:  { bg: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)', shadow: '0 14px 30px rgba(217,119,6,0.36)' }
+        };
+        const s = config[variant] || config.primary;
+        return `background: ${s.bg}; box-shadow: ${s.shadow}; transform: translateY(-2px);`;
     }
 };
 
