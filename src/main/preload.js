@@ -10,7 +10,8 @@ const ALLOWED_SEND_CHANNELS = [
     'trigger-sync',
     'update-sync-settings',
     'check-for-updates',
-    'quit-and-install-update'
+    'quit-and-install-update',
+    'log-renderer'
 ];
 
 const ALLOWED_INVOKE_CHANNELS = [

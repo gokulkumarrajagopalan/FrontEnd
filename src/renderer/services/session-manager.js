@@ -1,53 +1,44 @@
 /**
- * SESSION MANAGER
- * Monitors user session and detects multi-device login
- * Uses WebSocket to receive instant session invalidation notifications
+ * SESSION MANAGER — Desktop (Electron)
+ *
+ * Monitors user session via WebSocket.
+ *   • Forces logout after 5 failed reconnection attempts
+ *   • Pauses reconnection when the machine goes offline (window 'offline' event)
+ *   • Resumes automatically when the network is restored (window 'online' event)
+ *   • Resets the attempt counter after a network restore so a brief outage
+ *     doesn't permanently consume reconnect slots
  */
 
 class SessionManager {
     constructor() {
-        this.ws = null;
-        this.reconnectAttempts = 0;
+        this.ws                  = null;
+        this.reconnectAttempts   = 0;
         this.maxReconnectAttempts = 5;
-        this.reconnectDelay = 3000; // 3 seconds
-        this.isLoggedOut = false;
-        // Dynamic WebSocket URL based on current location - initialized lazily
-        this.wsUrl = null;
-        this.pollingInterval = null;
-        this.isChecking = false;
-        this.POLL_INTERVAL = 60000; // 60 seconds fallback polling
-        this.usePolling = false; // Will switch to true if WebSocket fails
-        this.heartbeatInterval = null;
-        this.heartbeatFrequency = 30000; // 30 seconds
+        this.reconnectDelay      = 3000;   // ms between reconnect tries
+        this.reconnectTimer      = null;   // handle for pending setTimeout
+        this.isLoggedOut         = false;
+        this.isPaused            = false;  // true while device has no internet
+
+        // Lazy-initialised WebSocket base URL
+        this.wsUrl               = null;
+
+        // Heartbeat
+        this.heartbeatInterval   = null;
+        this.heartbeatFrequency  = 30000; // 30 seconds
+
+        // Bind connectivity handlers so we can removeEventListener later
+        this._onOffline = this._handleOffline.bind(this);
+        this._onOnline  = this._handleOnline.bind(this);
     }
 
-    /**
-     * Get WebSocket URL based on current location and API config
-     */
-    getWebSocketUrl() {
-        try {
-            const apiBaseUrl = window.apiConfig?.BASE_URL;
-
-            if (!apiBaseUrl) {
-                console.warn('⚠️ API config not initialized yet');
-                return null;
-            }
-
-            const wsUrl = apiBaseUrl
-                .replace(/^https:/, 'wss:')
-                .replace(/^http:/, 'ws:');
-            return `${wsUrl}/session`;
-        } catch (error) {
-            console.error('❌ Error getting WebSocket URL:', error);
-            return null;
-        }
-    }
+    // ─── Public API ────────────────────────────────────────────────────────────
 
     /**
-     * Start WebSocket session monitoring
+     * Start WebSocket session monitoring.
+     * Call this after a successful login.
      */
     start() {
-        const token = localStorage.getItem('authToken');
+        const token       = localStorage.getItem('authToken');
         const deviceToken = localStorage.getItem('deviceToken');
 
         if (!token || !deviceToken) {
@@ -55,11 +46,9 @@ class SessionManager {
             return;
         }
 
-        console.log('🔄 SessionManager: Starting WebSocket session monitoring');
-
-        // Initialize WS URL if not set
+        // Resolve WS URL once
         if (!this.wsUrl) {
-            this.wsUrl = this.getWebSocketUrl();
+            this.wsUrl = this._getWebSocketUrl();
         }
 
         if (!this.wsUrl) {
@@ -67,19 +56,77 @@ class SessionManager {
             return;
         }
 
+        console.log('🔄 SessionManager: Starting WebSocket session monitoring');
         console.log(`   WebSocket URL: ${this.wsUrl}`);
 
-        this.isLoggedOut = false;
-        this.reconnectAttempts = 0;
-        this.connectWebSocket();
+        this.isLoggedOut        = false;
+        this.isPaused           = false;
+        this.reconnectAttempts  = 0;
+
+        // Register network connectivity listeners
+        window.addEventListener('offline', this._onOffline);
+        window.addEventListener('online',  this._onOnline);
+
+        // Don't attempt to connect if already offline at startup
+        if (!navigator.onLine) {
+            console.warn('📵 SessionManager: Device is offline — waiting for network before connecting');
+            this.isPaused = true;
+            return;
+        }
+
+        this._connectWebSocket();
     }
 
     /**
-     * Connect to WebSocket server
+     * Stop session monitoring (intentional logout or app teardown).
      */
-    connectWebSocket() {
+    stop() {
+        this.isLoggedOut = true;
+        this._stopHeartbeat();
+        this._clearReconnectTimer();
+        this._closeSocket();
+        window.removeEventListener('offline', this._onOffline);
+        window.removeEventListener('online',  this._onOnline);
+        console.log('🛑 SessionManager: Session monitoring stopped');
+    }
+
+    // ─── Connectivity Handlers ─────────────────────────────────────────────────
+
+    _handleOffline() {
+        if (this.isPaused) return; // already paused
+        console.warn('📵 SessionManager: Network went offline — pausing reconnection');
+        this.isPaused = true;
+
+        // Stop heartbeat and cancel any pending reconnect
+        this._stopHeartbeat();
+        this._clearReconnectTimer();
+
+        // Close the socket cleanly; set onclose = null so the close event
+        // doesn't trigger another reconnect attempt while we are paused.
+        this._closeSocket();
+    }
+
+    _handleOnline() {
+        if (this.isLoggedOut) return;
+        if (!this.isPaused)   return; // wasn't paused, nothing to resume
+
+        console.log('📶 SessionManager: Network restored — resuming session monitoring');
+        this.isPaused = false;
+
+        // Reset attempt counter: a transient network outage should not
+        // permanently consume reconnect slots.
+        this.reconnectAttempts = 0;
+
+        this._connectWebSocket();
+    }
+
+    // ─── WebSocket Logic ───────────────────────────────────────────────────────
+
+    _connectWebSocket() {
+        if (this.isLoggedOut || this.isPaused) return;
+
         try {
-            const token = localStorage.getItem('authToken');
+            const token       = localStorage.getItem('authToken');
             const deviceToken = localStorage.getItem('deviceToken');
 
             if (!token || !deviceToken) {
@@ -87,27 +134,31 @@ class SessionManager {
                 return;
             }
 
-            console.log('🔌 SessionManager: Connecting to WebSocket...');
-            const encodedToken = encodeURIComponent(token);
+            const encodedToken       = encodeURIComponent(token);
             const encodedDeviceToken = encodeURIComponent(deviceToken);
-            const wsUrlWithParams = `${this.wsUrl}?token=${encodedToken}&deviceToken=${encodedDeviceToken}&deviceType=DESKTOP`;
+            const wsUrlWithParams    = `${this.wsUrl}?token=${encodedToken}&deviceToken=${encodedDeviceToken}&deviceType=DESKTOP`;
+
+            console.log(`🔌 SessionManager: Connecting to WebSocket... (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts + 1})`);
             this.ws = new WebSocket(wsUrlWithParams);
 
+            // ── onopen ──────────────────────────────────────────────────────
             this.ws.onopen = () => {
                 console.log('✅ SessionManager: WebSocket connected successfully');
-
                 this.reconnectAttempts = 0;
-                this.startHeartbeat();
+                this._startHeartbeat();
             };
 
+            // ── onmessage ───────────────────────────────────────────────────
             this.ws.onmessage = (event) => {
                 console.log('📨 SessionManager: Received message from server:', event.data);
                 try {
                     const message = JSON.parse(event.data);
 
                     if (message.type === 'SESSION_INVALIDATED' || message.type === 'DEVICE_CONFLICT') {
-                        console.log('⚠️ SessionManager: ' + (message.message || message.reason || 'Session invalidated'));
-                        this.handleSessionInvalidated(message.message || message.reason || 'You have been logged in from another device');
+                        console.warn('⚠️ SessionManager:', message.message || message.reason || 'Session invalidated');
+                        this.handleSessionInvalidated(
+                            message.message || message.reason || 'You have been logged in from another device'
+                        );
                     } else if (message.type === 'HEARTBEAT_ACK') {
                         console.log('💓 SessionManager: Heartbeat acknowledged');
                     } else if (message.type === 'CONNECTED') {
@@ -120,26 +171,29 @@ class SessionManager {
                 }
             };
 
+            // ── onerror ─────────────────────────────────────────────────────
             this.ws.onerror = (error) => {
                 console.error('❌ SessionManager: WebSocket error:', error);
             };
 
+            // ── onclose ─────────────────────────────────────────────────────
             this.ws.onclose = () => {
                 console.log('❌ SessionManager: WebSocket disconnected');
+                this._stopHeartbeat();
 
-                // If we haven't hit max reconnect attempts, try again
-                if (!this.isLoggedOut && this.reconnectAttempts < this.maxReconnectAttempts) {
+                // Ignore close events triggered by intentional stop or offline handling
+                if (this.isLoggedOut || this.isPaused) return;
+
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
                     this.reconnectAttempts++;
                     console.log(`🔄 SessionManager: Reconnecting... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-                    setTimeout(() => {
-                        this.connectWebSocket();
+                    this._clearReconnectTimer();
+                    this.reconnectTimer = setTimeout(() => {
+                        this._connectWebSocket();
                     }, this.reconnectDelay);
-                } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                    // ⚠️ WebSocket failed - fall back to HTTP polling
-                    console.error('❌ SessionManager: Max reconnection attempts reached');
-                    console.log('🔄 SessionManager: Falling back to HTTP polling (60 seconds)');
-                    this.usePolling = true;
-                    this.startPolling();
+                } else {
+                    console.error('❌ SessionManager: Max reconnection attempts reached — logging out');
+                    this.handleSessionInvalidated('Connection lost. Maximum reconnection attempts reached.');
                 }
             };
 
@@ -148,8 +202,11 @@ class SessionManager {
         }
     }
 
+    // ─── Session Invalidation ──────────────────────────────────────────────────
+
     /**
-     * Handle session invalidation (logged in from another device)
+     * Handle session invalidation (logged in from another device, or
+     * max reconnect failures reached).
      */
     handleSessionInvalidated(reason) {
         console.log('');
@@ -162,37 +219,27 @@ class SessionManager {
         this.isLoggedOut = true;
 
         try {
-            this.stopHeartbeat();
-            console.log('🧹 Step 1: Stopped heartbeat');
-        } catch (error) {
-            console.error('   Error stopping heartbeat:', error);
-        }
-
-        try {
             this.stop();
-            console.log('🧹 Step 2: Stopped WebSocket connection');
+            console.log('🧹 Step 1: Stopped SessionManager (heartbeat + WebSocket)');
         } catch (error) {
-            console.error('   Error stopping WebSocket:', error);
+            console.error('   Error stopping SessionManager:', error);
         }
 
-        // Step 2: Clear authService in-memory tokens FIRST (before localStorage)
-        // This prevents any pending requests from using invalid credentials
-        console.log('🧹 Step 3: Clearing authService in-memory tokens...');
+        // Clear authService in-memory tokens FIRST to stop any in-flight requests
+        console.log('🧹 Step 2: Clearing authService in-memory tokens...');
         if (window.authService) {
             try {
-                window.authService.token = null;
+                window.authService.token       = null;
                 window.authService.deviceToken = null;
-                window.authService.user = null;
+                window.authService.user        = null;
                 console.log('   ✓ AuthService tokens cleared');
             } catch (error) {
                 console.error('   Error clearing authService:', error);
             }
         }
 
-        // Step 3: Clear localStorage data
-        console.log('🧹 Step 4: Clearing localStorage...');
-
-        // Clear ALL localStorage data
+        // Clear localStorage auth data
+        console.log('🧹 Step 3: Clearing localStorage...');
         const keysToRemove = [
             'authToken',
             'deviceToken',
@@ -218,7 +265,7 @@ class SessionManager {
             }
         });
 
-        console.log('✅ Step 5: All authentication data cleared');
+        console.log('✅ Step 4: All authentication data cleared');
         console.log('');
 
         // Show popup to user
@@ -226,116 +273,53 @@ class SessionManager {
         console.log('📢 Showing popup to user...');
         this.showSessionInvalidPopup(message);
 
-        console.log('🔄 Step 6: Triggering logout...');
-        console.log('');
-
-        // ✅ Multiple ways to trigger logout in Electron app
+        console.log('🔄 Step 5: Triggering logout...');
         this.triggerLogout();
     }
 
-    /**
-     * Show session invalid popup notification
-     */
+    // ─── Popup & Logout Helpers ────────────────────────────────────────────────
+
     showSessionInvalidPopup(message) {
-        // Try to use notification service first
         if (window.notificationService && typeof window.notificationService.show === 'function') {
             try {
-                window.notificationService.show(
-                    message,
-                    'error',
-                    5000 // 5 second duration
-                );
+                window.notificationService.show(message, 'error', 5000);
                 console.log('   ✓ Shown via NotificationService');
                 return;
             } catch (error) {
                 console.warn('   ⚠️ NotificationService failed:', error);
             }
         }
-
-        // Fallback to alert
         console.log('   → Using fallback alert');
         alert(message);
     }
 
-    /**
-     * Trigger logout in Electron app
-     * Tries multiple methods to ensure logout happens
-     */
     triggerLogout() {
-        // Method 1: Check if app has logout method
         if (window.app && typeof window.app.logout === 'function') {
-            try {
-                console.log('   → Calling window.app.logout()');
-                window.app.logout();
-                return;
-            } catch (error) {
-                console.error('   ❌ Error calling app.logout():', error);
-            }
+            try { window.app.logout(); return; } catch (e) { console.error('   ❌ app.logout() failed:', e); }
         }
-
-        // Method 2: Check if app has handleLogout method
         if (window.app && typeof window.app.handleLogout === 'function') {
-            try {
-                console.log('   → Calling window.app.handleLogout()');
-                window.app.handleLogout();
-                return;
-            } catch (error) {
-                console.error('   ❌ Error calling app.handleLogout():', error);
-            }
+            try { window.app.handleLogout(); return; } catch (e) { console.error('   ❌ app.handleLogout() failed:', e); }
         }
-
-        // Method 3: Check if app has renderLogin method
         if (window.app && typeof window.app.renderLogin === 'function') {
-            try {
-                console.log('   → Calling window.app.renderLogin()');
-                window.app.renderLogin();
-                return;
-            } catch (error) {
-                console.error('   ❌ Error calling app.renderLogin():', error);
-            }
+            try { window.app.renderLogin(); return; } catch (e) { console.error('   ❌ app.renderLogin() failed:', e); }
         }
 
-        // Method 4: Dispatch logout event
-        console.log('   → Dispatching logout event');
+        // Dispatch forceLogout event so other parts of the app can react
+        console.log('   → Dispatching forceLogout event');
         window.dispatchEvent(new CustomEvent('forceLogout', {
             detail: { reason: 'session_invalidated' }
         }));
 
-        // Method 5: Reload page (fallback)
+        // Final fallback: reload
         console.log('   → Reloading page as final fallback...');
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000);
+        setTimeout(() => { window.location.reload(); }, 1000);
     }
 
+    // ─── Heartbeat ─────────────────────────────────────────────────────────────
 
-    /**
-     * Stop session monitoring
-     */
-    stop() {
-        this.isLoggedOut = true;
-        if (this.heartbeatInterval) {
-            clearInterval(this.heartbeatInterval);
-            this.heartbeatInterval = null;
-        }
-        if (this.ws) {
-            console.log('🛑 SessionManager: Closing WebSocket...');
-            this.ws.close();
-            this.ws = null;
-        }
-        console.log('🛑 SessionManager: Session monitoring stopped');
-    }
-
-    /**
-     * Start sending heartbeat messages to keep connection alive
-     */
-    startHeartbeat() {
-        if (this.heartbeatInterval) {
-            clearInterval(this.heartbeatInterval);
-        }
-
+    _startHeartbeat() {
+        this._stopHeartbeat();
         console.log('❤️ SessionManager: Starting heartbeat (every 30 seconds)');
-
         this.heartbeatInterval = setInterval(() => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                 try {
@@ -348,53 +332,87 @@ class SessionManager {
         }, this.heartbeatFrequency);
     }
 
-    /**
-     * Stop heartbeat
-     */
-    stopHeartbeat() {
+    _stopHeartbeat() {
         if (this.heartbeatInterval) {
             clearInterval(this.heartbeatInterval);
             this.heartbeatInterval = null;
-            console.log('❌ SessionManager: Heartbeat stopped');
+            console.log('💔 SessionManager: Heartbeat stopped');
         }
     }
 
-    /**
-     * Check if user is authenticated
-     */
-    isAuthenticated() {
-        const token = localStorage.getItem('authToken');
-        const deviceToken = localStorage.getItem('deviceToken');
-        return !!(token && deviceToken);
+    // ─── Internal Helpers ──────────────────────────────────────────────────────
+
+    _getWebSocketUrl() {
+        try {
+            const apiBaseUrl = window.apiConfig?.BASE_URL;
+            if (!apiBaseUrl) {
+                console.warn('⚠️ API config not initialized yet');
+                return null;
+            }
+            const wsUrl = apiBaseUrl
+                .replace(/^https:/, 'wss:')
+                .replace(/^http:/,  'ws:');
+            return `${wsUrl}/session`;
+        } catch (error) {
+            console.error('❌ Error getting WebSocket URL:', error);
+            return null;
+        }
     }
 
-    /**
-     * Get session status (for debugging)
-     */
+    _closeSocket() {
+        if (this.ws) {
+            console.log('🛑 SessionManager: Closing WebSocket...');
+            this.ws.onclose = null; // suppress onclose → prevents stray reconnect
+            this.ws.close();
+            this.ws = null;
+        }
+    }
+
+    _clearReconnectTimer() {
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
+    }
+
+    // ─── Status / Auth Helpers ─────────────────────────────────────────────────
+
+    /** Kept for backward-compat — old code may call startHeartbeat / stopHeartbeat */
+    startHeartbeat() { this._startHeartbeat(); }
+    stopHeartbeat()  { this._stopHeartbeat();  }
+
+    isAuthenticated() {
+        return !!(localStorage.getItem('authToken') && localStorage.getItem('deviceToken'));
+    }
+
     getStatus() {
         return {
-            isLoggedOut: this.isLoggedOut,
-            wsConnected: this.ws && this.ws.readyState === WebSocket.OPEN,
-            authenticated: this.isAuthenticated(),
-            reconnectAttempts: this.reconnectAttempts
+            isLoggedOut:       this.isLoggedOut,
+            isPaused:          this.isPaused,
+            wsConnected:       this.ws && this.ws.readyState === WebSocket.OPEN,
+            authenticated:     this.isAuthenticated(),
+            reconnectAttempts: this.reconnectAttempts,
+            online:            navigator.onLine,
         };
     }
 }
 
-// Create singleton instance
+// ─── Singleton ─────────────────────────────────────────────────────────────────
+
 const sessionManager = new SessionManager();
 
-// Export to window for global access
+// Make it globally accessible from other renderer scripts
 window.sessionManager = sessionManager;
 
-// Listen for forceLogout event
+// Allow other parts of the Electron renderer to trigger a clean stop
 window.addEventListener('forceLogout', (event) => {
     console.log('🔔 Force logout event received:', event.detail);
     sessionManager.stop();
 });
 
-console.log('✅ SessionManager loaded (WebSocket Version)');
+console.log('✅ SessionManager loaded (WebSocket + Connectivity-Aware Version)');
 console.log(`   Connection: Real-time WebSocket to ${window.AppConfig?.API_BASE_URL?.replace('http', 'ws')}/ws/session`);
 console.log('   Auto-detects: Single-device login enforcement');
 console.log('   Behavior: Instant logout on device conflict');
+console.log('   Offline: Pauses reconnection, resumes when network restores');
 console.log('');
