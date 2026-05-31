@@ -213,37 +213,58 @@ class TallyAPIClient:
 
     def send_request(self, xml_data: str) -> Tuple[bool, Dict[str, Any]]:
         """
-        Send XML request to Tally server.
+        Send XML request to Tally server with exponential backoff retry logic.
         """
-        try:
-            logger.info(f"Sending request to {self.base_url}")
-            response = self.session.post(
-                self.base_url,
-                data=xml_data.encode('utf-8'),
-                headers={"Content-Type": "text/xml"},
-                timeout=self.timeout,
-            )
-            
-            response.raise_for_status()
-            logger.info(f"Response status: {response.status_code}")
-            
-            # Clean and parse XML response
-            cleaned_xml = self.clean_xml(response.text)
-            parsed = self.parse_response(cleaned_xml)
-            return True, parsed
-            
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"Connection error: {e}")
-            return False, {"error": "Connection failed", "details": "Failed to connect tally"}
-        except requests.exceptions.Timeout as e:
-            logger.error(f"Timeout error: {e}")
-            return False, {"error": "Request timeout", "details": str(e)}
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Request error: {e}")
-            return False, {"error": "Request failed", "details": str(e)}
-        except Exception as e:
-            logger.error(f"Unexpected error: {e}")
-            return False, {"error": "Unexpected error", "details": str(e)}
+        import time
+        import random
+
+        max_retries = 3
+        initial_delay = 1.0  # seconds
+        backoff_factor = 2.0
+
+        for attempt in range(max_retries + 1):
+            try:
+                if attempt > 0:
+                    delay = initial_delay * (backoff_factor ** (attempt - 1)) + random.uniform(0, 0.5)
+                    logger.warning(f"Retrying Tally request in {delay:.2f} seconds... (Attempt {attempt}/{max_retries})")
+                    time.sleep(delay)
+
+                logger.info(f"Sending request to {self.base_url} (Attempt {attempt + 1})")
+                response = self.session.post(
+                    self.base_url,
+                    data=xml_data.encode('utf-8'),
+                    headers={"Content-Type": "text/xml"},
+                    timeout=self.timeout,
+                )
+                
+                response.raise_for_status()
+                logger.info(f"Response status: {response.status_code}")
+                
+                # Clean and parse XML response
+                cleaned_xml = self.clean_xml(response.text)
+                parsed = self.parse_response(cleaned_xml)
+                return True, parsed
+                
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                logger.warning(f"Tally connection/timeout error on attempt {attempt + 1}: {e}")
+                if attempt == max_retries:
+                    logger.error(f"Max retries reached. Tally request failed: {e}")
+                    return False, {"error": "Connection failed", "details": str(e)}
+            except requests.exceptions.HTTPError as e:
+                status_code = e.response.status_code if e.response is not None else 0
+                logger.warning(f"Tally HTTP {status_code} error on attempt {attempt + 1}: {e}")
+                if status_code in [429, 500, 502, 503, 504] and attempt < max_retries:
+                    continue
+                logger.error(f"HTTP error not retryable or max retries reached: {e}")
+                return False, {"error": "HTTP error", "details": str(e)}
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Tally request error on attempt {attempt + 1}: {e}")
+                if attempt == max_retries:
+                    logger.error(f"Max retries reached. Tally request failed: {e}")
+                    return False, {"error": "Request failed", "details": str(e)}
+            except Exception as e:
+                logger.error(f"Unexpected error during Tally request: {e}")
+                return False, {"error": "Unexpected error", "details": str(e)}
 
     def get_vouchertypes(self, company: Optional[str] = None) -> Tuple[bool, Any]:
         """Fetch voucher types from Tally."""

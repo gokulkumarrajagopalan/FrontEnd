@@ -82,8 +82,9 @@ class App {
         try {
             console.log('🚀 App initialization started...');
 
-            // Check Auth - Use sessionStorage (migrated from localStorage for security)
-            const token = localStorage.getItem('authToken');
+            const token = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
             if (!token) {
                 console.log('⚠️ No auth token found - rendering login');
                 this.renderLogin();

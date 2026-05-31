@@ -30,9 +30,15 @@ class SyncDiagnostics {
         console.log('📋 AUTHENTICATION STATUS');
         console.log('-'.repeat(80));
 
-        const authToken = localStorage.getItem('authToken');
-        const deviceToken = localStorage.getItem('deviceToken');
-        const csrfToken = localStorage.getItem('csrfToken');
+        const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('authToken')
+            : localStorage.getItem('authToken');
+        const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('deviceToken')
+            : localStorage.getItem('deviceToken');
+        const csrfToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('csrfToken')
+            : localStorage.getItem('csrfToken');
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
         console.log(`  Auth Token Present: ${!!authToken ? '✅ YES' : '❌ NO'}`);
@@ -133,9 +139,15 @@ class SyncDiagnostics {
         console.log('📋 NETWORK HEADERS (Will be sent with requests)');
         console.log('-'.repeat(80));
 
-        const authToken = localStorage.getItem('authToken');
-        const deviceToken = localStorage.getItem('deviceToken');
-        const csrfToken = localStorage.getItem('csrfToken');
+        const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('authToken')
+            : localStorage.getItem('authToken');
+        const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('deviceToken')
+            : localStorage.getItem('deviceToken');
+        const csrfToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('csrfToken')
+            : localStorage.getItem('csrfToken');
 
         const headers = {
             'Content-Type': 'application/json',
@@ -160,8 +172,12 @@ class SyncDiagnostics {
         console.log('🌐 API CONNECTIVITY TEST');
         console.log('='.repeat(80) + '\n');
 
-        const authToken = localStorage.getItem('authToken');
-        const deviceToken = localStorage.getItem('deviceToken');
+        const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('authToken')
+            : localStorage.getItem('authToken');
+        const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('deviceToken')
+            : localStorage.getItem('deviceToken');
         const baseUrl = window.apiConfig?.BASE_URL || window.AppConfig?.API_BASE_URL;
 
         if (!authToken || !deviceToken) {
@@ -187,7 +203,9 @@ class SyncDiagnostics {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`,
                         'X-Device-Token': deviceToken,
-                        'X-CSRF-Token': localStorage.getItem('csrfToken') || ''
+                        'X-CSRF-Token': ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                            ? window.electronAPI.secureStoreGet('csrfToken')
+                            : localStorage.getItem('csrfToken')) || ''
                     }
                 });
 
@@ -216,11 +234,17 @@ class SyncDiagnostics {
     static getSummary() {
         const issues = [];
 
-        if (!localStorage.getItem('authToken')) {
+        const hasAuthToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? !!window.electronAPI.secureStoreGet('authToken')
+            : !!localStorage.getItem('authToken');
+        if (!hasAuthToken) {
             issues.push('❌ No authentication token');
         }
 
-        if (!localStorage.getItem('deviceToken')) {
+        const hasDeviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? !!window.electronAPI.secureStoreGet('deviceToken')
+            : !!localStorage.getItem('deviceToken');
+        if (!hasDeviceToken) {
             issues.push('❌ No device token');
         }
 

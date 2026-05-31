@@ -147,8 +147,13 @@ class AuthService {
             this.deviceToken = deviceToken;
             this.user = user;
 
-            localStorage.setItem('authToken', token);
-            localStorage.setItem('deviceToken', deviceToken);
+            if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
+                window.electronAPI.secureStoreSet('authToken', token);
+                window.electronAPI.secureStoreSet('deviceToken', deviceToken);
+            } else {
+                localStorage.setItem('authToken', token);
+                localStorage.setItem('deviceToken', deviceToken);
+            }
             localStorage.setItem('currentUser', JSON.stringify(user));
             localStorage.setItem('loginTime', new Date().toISOString());
             localStorage.setItem('sessionExpiry', (new Date().getTime() + (24 * 60 * 60 * 1000)).toString());
@@ -247,8 +252,13 @@ class AuthService {
                 licenseNumber: sessionData.licenceNo || sessionData.licenseNumber
             };
 
-            localStorage.setItem('authToken', this.token);
-            localStorage.setItem('deviceToken', this.deviceToken);
+            if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
+                window.electronAPI.secureStoreSet('authToken', this.token);
+                window.electronAPI.secureStoreSet('deviceToken', this.deviceToken);
+            } else {
+                localStorage.setItem('authToken', this.token);
+                localStorage.setItem('deviceToken', this.deviceToken);
+            }
             localStorage.setItem('currentUser', JSON.stringify(this.user));
             localStorage.setItem('loginTime', new Date().toISOString());
             localStorage.setItem('sessionExpiry', (new Date().getTime() + (24 * 60 * 60 * 1000)).toString());
@@ -292,9 +302,15 @@ class AuthService {
             return;
         }
 
-        this.token = localStorage.getItem('authToken');
-        this.deviceToken = localStorage.getItem('deviceToken');
-        this.csrfToken = localStorage.getItem('csrfToken');
+        if (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') {
+            this.token = window.electronAPI.secureStoreGet('authToken');
+            this.deviceToken = window.electronAPI.secureStoreGet('deviceToken');
+            this.csrfToken = window.electronAPI.secureStoreGet('csrfToken');
+        } else {
+            this.token = localStorage.getItem('authToken');
+            this.deviceToken = localStorage.getItem('deviceToken');
+            this.csrfToken = localStorage.getItem('csrfToken');
+        }
 
         try {
             this.user = JSON.parse(localStorage.getItem('currentUser') || 'null');
@@ -314,9 +330,15 @@ class AuthService {
         this.csrfToken = null;
         this.user = null;
 
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('deviceToken');
-        localStorage.removeItem('csrfToken');
+        if (window.electronAPI && typeof window.electronAPI.secureStoreDelete === 'function') {
+            window.electronAPI.secureStoreDelete('authToken');
+            window.electronAPI.secureStoreDelete('deviceToken');
+            window.electronAPI.secureStoreDelete('csrfToken');
+        } else {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('deviceToken');
+            localStorage.removeItem('csrfToken');
+        }
         localStorage.removeItem('currentUser');
         localStorage.removeItem('loginTime');
         localStorage.removeItem('sessionExpiry');
@@ -397,10 +419,18 @@ class AuthService {
                 licenseNumber: data.licenceNo || data.licenseNumber
             };
 
-            localStorage.setItem('authToken', data.token);
-            localStorage.setItem('deviceToken', data.deviceToken);
-            if (this.csrfToken) {
-                localStorage.setItem('csrfToken', this.csrfToken);
+            if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
+                window.electronAPI.secureStoreSet('authToken', data.token);
+                window.electronAPI.secureStoreSet('deviceToken', data.deviceToken);
+                if (this.csrfToken) {
+                    window.electronAPI.secureStoreSet('csrfToken', this.csrfToken);
+                }
+            } else {
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('deviceToken', data.deviceToken);
+                if (this.csrfToken) {
+                    localStorage.setItem('csrfToken', this.csrfToken);
+                }
             }
             localStorage.setItem('currentUser', JSON.stringify(this.user));
             localStorage.setItem('loginTime', new Date().toISOString());
@@ -522,7 +552,11 @@ class AuthService {
             const data = await response.json();
             if (response.ok) {
                 this.token = data.token;
-                localStorage.setItem('authToken', data.token);
+                if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
+                    window.electronAPI.secureStoreSet('authToken', data.token);
+                } else {
+                    localStorage.setItem('authToken', data.token);
+                }
                 return true;
             }
             this.logout();

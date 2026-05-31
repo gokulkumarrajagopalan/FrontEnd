@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Notification, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Notification, shell, safeStorage } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -51,17 +51,18 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient('talliffy');
 }
 
-// Load environment variables — try project .env (dev) then packaged resources .env (prod)
-const _envPaths = [
-  path.join(__dirname, '../../.env'),                          // dev: project root
-  path.join(process.resourcesPath || '', '.env'),              // prod: resources folder
-];
-for (const _ep of _envPaths) {
-  try { if (fs.existsSync(_ep)) { require('dotenv').config({ path: _ep }); break; } } catch (_) {}
-}
-
 // Check if running in development mode
 const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
+
+// Load environment variables — dev only
+if (isDev) {
+  const _envPath = path.join(__dirname, '../../.env');
+  try {
+    if (fs.existsSync(_envPath)) {
+      require('dotenv').config({ path: _envPath });
+    }
+  } catch (_) {}
+}
 
 // Also load from persistent userData config.json (written by settings page)
 // This runs before app.ready so we use a sync read. appDataPath is defined below.
@@ -746,15 +747,12 @@ function _resolveBackendUrl() {
     }
   } catch (e) { if (isDev) console.error('config.json read error:', e); }
 
-  // 3. .env file in resources (bundled) or project root (dev)
-  const envPaths = [
-    path.join(__dirname, '../../.env'),
-    path.join(process.resourcesPath || '', '.env'),
-  ];
-  for (const ep of envPaths) {
+  // 3. .env file in project root (dev only)
+  if (isDev) {
+    const envPath = path.join(__dirname, '../../.env');
     try {
-      if (fs.existsSync(ep)) {
-        const cfg = require('dotenv').parse(fs.readFileSync(ep));
+      if (fs.existsSync(envPath)) {
+        const cfg = require('dotenv').parse(fs.readFileSync(envPath));
         if (cfg.BACKEND_URL) {
           process.env.BACKEND_URL = cfg.BACKEND_URL;
           return cfg.BACKEND_URL;
@@ -1207,5 +1205,75 @@ ipcMain.on('log-renderer', (event, { level, message, data, timestamp }) => {
     fs.appendFileSync(logPath, logLine);
   } catch (err) {
     console.error('Failed to write renderer log to file:', err);
+  }
+});
+
+// safeStorage Secure Store IPC Handlers
+ipcMain.on('secure-store-get-sync', (event, key) => {
+  try {
+    const secureStorePath = path.join(app.getPath('userData'), 'secure_store.json');
+    if (!fs.existsSync(secureStorePath)) {
+      event.returnValue = null;
+      return;
+    }
+    const store = JSON.parse(fs.readFileSync(secureStorePath, 'utf-8'));
+    const storedValue = store[key];
+    if (!storedValue) {
+      event.returnValue = null;
+      return;
+    }
+    
+    let decrypted = null;
+    if (storedValue.startsWith('enc:') && safeStorage.isEncryptionAvailable()) {
+      const encryptedBuffer = Buffer.from(storedValue.substring(4), 'base64');
+      decrypted = safeStorage.decryptString(encryptedBuffer);
+    } else if (storedValue.startsWith('plain:')) {
+      decrypted = Buffer.from(storedValue.substring(6), 'base64').toString('utf-8');
+    } else {
+      decrypted = storedValue;
+    }
+    event.returnValue = decrypted;
+  } catch (e) {
+    console.error('secure-store-get-sync error:', e);
+    event.returnValue = null;
+  }
+});
+
+ipcMain.on('secure-store-set-sync', (event, { key, value }) => {
+  try {
+    const secureStorePath = path.join(app.getPath('userData'), 'secure_store.json');
+    let store = {};
+    if (fs.existsSync(secureStorePath)) {
+      store = JSON.parse(fs.readFileSync(secureStorePath, 'utf-8'));
+    }
+    
+    let storedValue;
+    if (safeStorage.isEncryptionAvailable()) {
+      storedValue = 'enc:' + safeStorage.encryptString(value).toString('base64');
+    } else {
+      storedValue = 'plain:' + Buffer.from(value).toString('base64');
+    }
+    
+    store[key] = storedValue;
+    fs.writeFileSync(secureStorePath, JSON.stringify(store, null, 2), 'utf-8');
+    event.returnValue = true;
+  } catch (e) {
+    console.error('secure-store-set-sync error:', e);
+    event.returnValue = false;
+  }
+});
+
+ipcMain.on('secure-store-delete-sync', (event, key) => {
+  try {
+    const secureStorePath = path.join(app.getPath('userData'), 'secure_store.json');
+    if (fs.existsSync(secureStorePath)) {
+      const store = JSON.parse(fs.readFileSync(secureStorePath, 'utf-8'));
+      delete store[key];
+      fs.writeFileSync(secureStorePath, JSON.stringify(store, null, 2), 'utf-8');
+    }
+    event.returnValue = true;
+  } catch (e) {
+    console.error('secure-store-delete-sync error:', e);
+    event.returnValue = false;
   }
 });

@@ -30,7 +30,9 @@ class Router {
             try {
                 // Call backend to get a short-lived handoff code
                 const backendUrl = await window.electronAPI.getBackendUrl();
-                const token = localStorage.getItem('authToken');
+                const token = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                    ? window.electronAPI.secureStoreGet('authToken')
+                    : localStorage.getItem('authToken');
                 
                 if (!token) {
                     console.error('Cannot open web: User not logged in');

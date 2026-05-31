@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     const getSupportTemplate = () => `
         <div style="padding: var(--ds-space-6); width: 100%; box-sizing: border-box;">
             <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; border: 1px solid var(--ds-border-default);">
@@ -94,7 +94,7 @@
             return;
         }
 
-        const authToken = localStorage.getItem('authToken');
+        const authToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'));
         if (!authToken || !window.apiConfig) {
             showFormStatus(statusEl, 'Not authenticated. Please login again.', 'error');
             return;
@@ -106,7 +106,7 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
         }
 
-        const deviceToken = localStorage.getItem('deviceToken');
+        const deviceToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('deviceToken') : localStorage.getItem('deviceToken'));
 
         try {
             const response = await fetch(window.apiConfig.getUrl('/api/support/tickets'), {
@@ -143,13 +143,13 @@
         const container = document.getElementById('ticketHistoryContainer');
         if (!container) return;
 
-        const authToken = localStorage.getItem('authToken');
+        const authToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'));
         if (!authToken || !window.apiConfig) {
             container.innerHTML = '<div style="text-align: center; padding: var(--ds-space-6); color: var(--ds-text-tertiary);">Please login to view tickets.</div>';
             return;
         }
 
-        const deviceToken = localStorage.getItem('deviceToken');
+        const deviceToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('deviceToken') : localStorage.getItem('deviceToken'));
 
         try {
             const response = await fetch(window.apiConfig.getUrl('/api/support/tickets'), {
@@ -187,7 +187,7 @@
             CLOSED: { bg: 'var(--ds-bg-surface-sunken)', text: 'var(--ds-text-tertiary)', border: 'var(--ds-border-default)' }
         };
         const sc = statusColors[ticket.status] || statusColors.OPEN;
-        const createdAt = ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+        const createdAt = ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'â€”';
 
         return `
             <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-lg); padding: var(--ds-space-4); margin-bottom: var(--ds-space-3);">

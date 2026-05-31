@@ -89,7 +89,9 @@
      */
     async function validateSubscriptionForImport() {
         try {
-            const authToken = localStorage.getItem('authToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
             if (!authToken || !window.apiConfig) return true;
 
             const controller = new AbortController();
@@ -837,8 +839,12 @@
             });
 
             // Sync to backend
-            const authToken = localStorage.getItem('authToken');
-            const deviceToken = localStorage.getItem('deviceToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
+            const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('deviceToken')
+                : localStorage.getItem('deviceToken');
             const syncResponse = await fetch(window.apiConfig.getUrl('/groups/sync'), {
                 method: 'POST',
                 headers: {
@@ -944,8 +950,12 @@
         }
 
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-        const authToken = localStorage.getItem('authToken');
-        const deviceToken = localStorage.getItem('deviceToken');
+        const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('authToken')
+            : localStorage.getItem('authToken');
+        const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('deviceToken')
+            : localStorage.getItem('deviceToken');
         const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
 
         let tallyHost = appSettings.tallyHost || 'localhost';
@@ -1226,8 +1236,12 @@
      */
     async function reconcileEntity(companyId, entityType) {
         try {
-            const authToken = localStorage.getItem('authToken');
-            const deviceToken = localStorage.getItem('deviceToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
+            const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('deviceToken')
+                : localStorage.getItem('deviceToken');
 
             const headers = {
                 'Content-Type': 'application/json',
@@ -1285,7 +1299,9 @@
 
         try {
             // Get auth token and user directly from sessionStorage (more reliable)
-            const authToken = localStorage.getItem('authToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
 
@@ -1313,10 +1329,16 @@
             }
 
             // Generate device token if missing
-            let deviceToken = localStorage.getItem('deviceToken');
+            let deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('deviceToken')
+                : localStorage.getItem('deviceToken');
             if (!deviceToken) {
                 deviceToken = 'device-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
-                localStorage.setItem('deviceToken', deviceToken);
+                if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
+                    window.electronAPI.secureStoreSet('deviceToken', deviceToken);
+                } else {
+                    localStorage.setItem('deviceToken', deviceToken);
+                }
                 addImportLog('🔑 Generated new device token', 'info');
             }
 

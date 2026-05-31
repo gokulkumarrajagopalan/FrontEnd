@@ -75,8 +75,12 @@ class BackgroundSyncScheduler {
             }
             
             // Get auth info
-            const authToken = localStorage.getItem('authToken');
-            const deviceToken = localStorage.getItem('deviceToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
+            const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('deviceToken')
+                : localStorage.getItem('deviceToken');
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             

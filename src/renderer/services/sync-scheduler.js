@@ -79,8 +79,12 @@ class SyncScheduler {
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
-            const authToken = localStorage.getItem('authToken');
-            const deviceToken = localStorage.getItem('deviceToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
+            const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('deviceToken')
+                : localStorage.getItem('deviceToken');
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
             if (!authToken || !deviceToken) {
@@ -295,7 +299,9 @@ class SyncScheduler {
                 'X-Device-Token': deviceToken
             };
 
-            const csrfToken = localStorage.getItem('csrfToken');
+            const csrfToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('csrfToken')
+                : localStorage.getItem('csrfToken');
             if (csrfToken) {
                 headers['X-CSRF-Token'] = csrfToken;
             }
@@ -776,7 +782,9 @@ class SyncScheduler {
                 'X-Device-Token': deviceToken
             };
 
-            const csrfToken = localStorage.getItem('csrfToken');
+            const csrfToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('csrfToken')
+                : localStorage.getItem('csrfToken');
             if (csrfToken) {
                 headers['X-CSRF-Token'] = csrfToken;
             }

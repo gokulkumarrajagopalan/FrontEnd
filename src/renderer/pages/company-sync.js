@@ -113,7 +113,9 @@
      */
     async function validateSubscriptionForSync() {
         try {
-            const authToken = localStorage.getItem('authToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
             if (!authToken || !window.apiConfig) {
                 // If no auth, allow sync to fail at auth level
                 return true;
@@ -508,8 +510,12 @@
 
             // Get auth tokens
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            const authToken = localStorage.getItem('authToken');
-            const deviceToken = localStorage.getItem('deviceToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
+            const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('deviceToken')
+                : localStorage.getItem('deviceToken');
 
             if (!authToken || !deviceToken) {
                 throw new Error('Authentication required. Please log in again.');

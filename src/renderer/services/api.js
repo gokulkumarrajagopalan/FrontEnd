@@ -53,7 +53,9 @@ class ApiService {
     static async request(url, options = {}, attempt = 1) {
         this._checkCircuit();
 
-        const csrfToken = localStorage.getItem('csrfToken') || sessionStorage.getItem('csrfToken');
+        const csrfToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('csrfToken')
+            : (localStorage.getItem('csrfToken') || sessionStorage.getItem('csrfToken'));
         const defaultOptions = {
             headers: authService.getHeaders()
         };

@@ -2696,8 +2696,19 @@
     };
 
     function persistAuthenticatedSession(data) {
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('deviceToken', data.deviceToken);
+        if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
+            window.electronAPI.secureStoreSet('authToken', data.token);
+            window.electronAPI.secureStoreSet('deviceToken', data.deviceToken);
+            if (data.csrfToken) {
+                window.electronAPI.secureStoreSet('csrfToken', data.csrfToken);
+            }
+        } else {
+            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('deviceToken', data.deviceToken);
+            if (data.csrfToken) {
+                localStorage.setItem('csrfToken', data.csrfToken);
+            }
+        }
         localStorage.setItem('currentUser', JSON.stringify({
             username: data.username,
             userId: data.userId,
@@ -2776,7 +2787,7 @@
             const error = url.searchParams.get('error');
 
             if (error) throw new Error(url.searchParams.get('error_description') || 'SSO failed');
-            const token = url.searchParams.get('token'); const deviceToken = url.searchParams.get('deviceToken'); if (token && deviceToken) { localStorage.setItem('authToken', token); localStorage.setItem('deviceToken', deviceToken); window.location.hash = '#dashboard'; window.location.reload(); return; } if (!code) throw new Error('No authorization code received');
+            const token = url.searchParams.get('token'); const deviceToken = url.searchParams.get('deviceToken'); if (token && deviceToken) { if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') { window.electronAPI.secureStoreSet('authToken', token); window.electronAPI.secureStoreSet('deviceToken', deviceToken); } else { localStorage.setItem('authToken', token); localStorage.setItem('deviceToken', deviceToken); } window.location.hash = '#dashboard'; window.location.reload(); return; } if (!code) throw new Error('No authorization code received');
 
             const storedState = sessionStorage.getItem('sso_state');
             if (state !== storedState) throw new Error('Invalid state — possible CSRF');

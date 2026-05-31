@@ -13,7 +13,9 @@ class AppInitializer {
             console.log('🚀 Initializing App Sync System...');
             
             // Check if user is authenticated (auth tokens stored in localStorage)
-            const authToken = localStorage.getItem('authToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
             if (!authToken) {
                 console.log('ℹ️ User not authenticated, sync system will start after login');
                 return;
@@ -48,8 +50,12 @@ class AppInitializer {
         
         try {
             // CRITICAL: Verify authentication before starting sync
-            const authToken = localStorage.getItem('authToken');
-            const deviceToken = localStorage.getItem('deviceToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
+            const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('deviceToken')
+                : localStorage.getItem('deviceToken');
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             
             if (!currentUser || !authToken || !deviceToken) {
@@ -321,7 +327,9 @@ class AppInitializer {
     static initializeSyncScheduler() {
         try {
             // Check if user is authenticated
-            const authToken = localStorage.getItem('authToken');
+            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
             if (!authToken) {
                 console.log('ℹ️ User not authenticated, sync scheduler will start after login');
                 return;

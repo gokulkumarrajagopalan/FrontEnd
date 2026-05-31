@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     // ============ PROFILE PAGE TEMPLATE ============
     const getProfileTemplate = () => `
         <div style="padding: var(--ds-space-10); width: 100%; box-sizing: border-box;">
@@ -39,19 +39,19 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-5);">
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
                                 <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Full Name</label>
-                                <p id="detailFullName" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">—</p>
+                                <p id="detailFullName" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">â€”</p>
                             </div>
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
                                 <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">License Number</label>
-                                <p id="detailLicenceNo" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">—</p>
+                                <p id="detailLicenceNo" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">â€”</p>
                             </div>
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
                                 <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Account Created</label>
-                                <p id="detailCreatedAt" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">—</p>
+                                <p id="detailCreatedAt" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">â€”</p>
                             </div>
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
                                 <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Plan expired on</label>
-                                <p id="detailEnabled" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">—</p>
+                                <p id="detailEnabled" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">â€”</p>
                             </div>
                         </div>
                     </div>
@@ -61,10 +61,10 @@
                 <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; margin-bottom: var(--ds-space-6); border: 1px solid var(--ds-border-default);">
                     <div style="padding: var(--ds-space-4) var(--ds-space-8); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; justify-content: space-between; background: var(--ds-bg-surface-sunken);">
                         <h3 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);"><i class="fas fa-envelope mr-2" style="color: var(--ds-primary-500);"></i> Email Address</h3>
-                        <span id="emailVerifiedBadge" class="ds-badge">—</span>
+                        <span id="emailVerifiedBadge" class="ds-badge">â€”</span>
                     </div>
                     <div style="padding: var(--ds-space-6) var(--ds-space-8);">
-                        <p id="emailDisplay" style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1) 0;">—</p>
+                        <p id="emailDisplay" style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1) 0;">â€”</p>
                         <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: 0;">Email is used for password change verification</p>
                     </div>
                 </div>
@@ -73,14 +73,14 @@
                 <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; margin-bottom: var(--ds-space-6); border: 1px solid var(--ds-border-default);">
                     <div style="padding: var(--ds-space-4) var(--ds-space-8); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; justify-content: space-between; background: var(--ds-bg-surface-sunken);">
                         <h3 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);"><i class="fas fa-mobile-alt mr-2" style="color: var(--ds-primary-500);"></i> Mobile Number</h3>
-                        <span id="mobileVerifiedBadge" class="ds-badge">—</span>
+                        <span id="mobileVerifiedBadge" class="ds-badge">â€”</span>
                     </div>
                     <div style="padding: var(--ds-space-6) var(--ds-space-8);">
                         <!-- Display Mode -->
                         <div id="mobileDisplayMode">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <div>
-                                    <p id="mobileDisplay" style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1) 0;">—</p>
+                                    <p id="mobileDisplay" style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1) 0;">â€”</p>
                                     <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: 0;">Mobile changes require SMS OTP verification</p>
                                 </div>
                                  <button id="editMobileBtn" class="ds-btn ds-btn-secondary ds-btn-sm">
@@ -195,7 +195,7 @@
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <p style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1) 0;">Password</p>
-                                    <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: 0;">••••••••••••</p>
+                                    <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: 0;">â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢</p>
                                 </div>
                                  <button id="changePasswordBtn" class="ds-btn ds-btn-secondary" style="background: var(--ds-warning-50); color: var(--ds-warning-700); border-color: var(--ds-warning-200);">
                                     <i class="fas fa-key"></i> Change Password
@@ -296,7 +296,7 @@
         const profileContent = document.getElementById('profileContent');
 
         try {
-            const authToken = localStorage.getItem('authToken');
+            const authToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'));
             if (!authToken) {
                 showInlineError('profileLoading', 'Not authenticated. Please login again.');
                 return;
@@ -369,7 +369,7 @@
 
             if (loading) {
                 loading.innerHTML = `
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">❌</div>
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">âŒ</div>
                     <p style="color: #ef4444; font-weight: 600;">Failed to load profile</p>
                     <p style="color: var(--text-tertiary); font-size: 0.875rem;">${error.message}</p>
                     <button onclick="window.fetchAndPopulateProfile()" style="margin-top: 1rem; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
@@ -385,7 +385,7 @@
     function populateProfile(data) {
         setText('profileInitial', (data.fullName || data.username || 'U')[0].toUpperCase());
         setText('profileName', data.fullName || data.username || 'User');
-        setText('profileUsername', data.username || '—');
+        setText('profileUsername', data.username || 'â€”');
 
         const roleBadge = document.getElementById('profileRole');
         if (roleBadge) {
@@ -397,8 +397,8 @@
             roleBadge.style.color = c.text;
         }
 
-        setText('detailFullName', data.fullName || '—');
-        setText('detailLicenceNo', data.licenceNo || '—');
+        setText('detailFullName', data.fullName || 'â€”');
+        setText('detailLicenceNo', data.licenceNo || 'â€”');
         setText('detailCreatedAt', formatDate(data.createdAt));
 
         const enabledEl = document.getElementById('detailEnabled');
@@ -416,12 +416,12 @@
                     enabledEl.innerHTML = `<span style="color: #16a34a; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-calendar-check"></i> ${formatted} (${remainingDays} days left)</span>`;
                 }
             } else {
-                enabledEl.innerHTML = '<span style="color: var(--ds-text-tertiary);">—</span>';
+                enabledEl.innerHTML = '<span style="color: var(--ds-text-tertiary);">â€”</span>';
             }
         }
 
         // Email
-        setText('emailDisplay', data.email || '—');
+        setText('emailDisplay', data.email || 'â€”');
         setVerifiedBadge('emailVerifiedBadge', data.emailVerified);
 
         // Mobile
@@ -460,7 +460,7 @@
         addClick('sendMobileOtpBtn', () => handleSendMobileOtp());
         addClick('verifyMobileOtpBtn', () => handleVerifyMobileOtp());
 
-        // Password (3-step: verify current → new password → email OTP)
+        // Password (3-step: verify current â†’ new password â†’ email OTP)
         addClick('changePasswordBtn', () => showPasswordEdit());
         addClick('cancelPasswordBtn', () => hidePasswordEdit());
         addClick('verifyCurrentPwdBtn', () => handleVerifyCurrentPassword());
@@ -507,7 +507,7 @@
         setButtonLoading(btn, true, 'Sending...');
 
         try {
-            const authToken = localStorage.getItem('authToken');
+            const authToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'));
             const response = await fetch(window.apiConfig.getUrl('/auth/request-mobile-change'), {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
@@ -542,7 +542,7 @@
         setButtonLoading(btn, true, 'Verifying...');
 
         try {
-            const authToken = localStorage.getItem('authToken');
+            const authToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'));
             const response = await fetch(window.apiConfig.getUrl('/auth/verify-mobile-change'), {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
@@ -568,7 +568,7 @@
         }
     }
 
-    // ============ PASSWORD CHANGE (3-step: verify current → new password → email OTP) ============
+    // ============ PASSWORD CHANGE (3-step: verify current â†’ new password â†’ email OTP) ============
     function showPasswordEdit() {
         hide('passwordDisplayMode');
         show('passwordEditMode');
@@ -606,7 +606,7 @@
         setButtonLoading(btn, true, 'Verifying...');
 
         try {
-            const authToken = localStorage.getItem('authToken');
+            const authToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'));
             const response = await fetch(window.apiConfig.getUrl('/auth/validate-current-password'), {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
@@ -655,7 +655,7 @@
         setButtonLoading(btn, true, 'Sending OTP...');
 
         try {
-            const authToken = localStorage.getItem('authToken');
+            const authToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'));
             const response = await fetch(window.apiConfig.getUrl('/auth/change-password'), {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
@@ -699,7 +699,7 @@
         setButtonLoading(btn, true, 'Updating...');
 
         try {
-            const authToken = localStorage.getItem('authToken');
+            const authToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'));
             const response = await fetch(window.apiConfig.getUrl('/auth/verify-password-change'), {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
@@ -800,11 +800,11 @@
     }
 
     function formatDate(dateStr) {
-        if (!dateStr) return '—';
+        if (!dateStr) return 'â€”';
         try {
             const d = new Date(dateStr);
             return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-        } catch { return '—'; }
+        } catch { return 'â€”'; }
     }
 
     function showInlineError(containerId, message) {

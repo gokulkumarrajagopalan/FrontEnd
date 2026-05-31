@@ -80,6 +80,11 @@ try {
         electronVersion: process.versions.electron,
         getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
 
+        // Secure Storage API (safeStorage)
+        secureStoreGet: (key) => ipcRenderer.sendSync('secure-store-get-sync', key),
+        secureStoreSet: (key, value) => ipcRenderer.sendSync('secure-store-set-sync', { key, value }),
+        secureStoreDelete: (key) => ipcRenderer.sendSync('secure-store-delete-sync', key),
+
         // Configuration
         getBackendUrl: () => ipcRenderer.invoke('get-backend-url'),
         backendUrl: ipcRenderer.sendSync('get-backend-url-sync'),

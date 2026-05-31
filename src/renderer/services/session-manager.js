@@ -38,8 +38,12 @@ class SessionManager {
      * Call this after a successful login.
      */
     start() {
-        const token       = localStorage.getItem('authToken');
-        const deviceToken = localStorage.getItem('deviceToken');
+        const token = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('authToken')
+            : localStorage.getItem('authToken');
+        const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet('deviceToken')
+            : localStorage.getItem('deviceToken');
 
         if (!token || !deviceToken) {
             console.warn('⚠️ Cannot start SessionManager: No tokens found');
@@ -126,8 +130,12 @@ class SessionManager {
         if (this.isLoggedOut || this.isPaused) return;
 
         try {
-            const token       = localStorage.getItem('authToken');
-            const deviceToken = localStorage.getItem('deviceToken');
+            const token = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
+            const deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('deviceToken')
+                : localStorage.getItem('deviceToken');
 
             if (!token || !deviceToken) {
                 console.error('❌ SessionManager: Missing auth tokens, cannot connect');
@@ -236,6 +244,12 @@ class SessionManager {
             } catch (error) {
                 console.error('   Error clearing authService:', error);
             }
+        }
+
+        if (window.electronAPI && typeof window.electronAPI.secureStoreDelete === 'function') {
+            window.electronAPI.secureStoreDelete('authToken');
+            window.electronAPI.secureStoreDelete('deviceToken');
+            window.electronAPI.secureStoreDelete('csrfToken');
         }
 
         // Clear localStorage auth data
@@ -382,6 +396,9 @@ class SessionManager {
     stopHeartbeat()  { this._stopHeartbeat();  }
 
     isAuthenticated() {
+        if (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') {
+            return !!(window.electronAPI.secureStoreGet('authToken') && window.electronAPI.secureStoreGet('deviceToken'));
+        }
         return !!(localStorage.getItem('authToken') && localStorage.getItem('deviceToken'));
     }
 

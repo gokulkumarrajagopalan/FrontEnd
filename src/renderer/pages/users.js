@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     const getUsersTemplate = () => {
         const addUserBtn = window.UIComponents.button({
             id: 'addUserBtn',
@@ -62,10 +62,10 @@
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-4);">
                         <div>
-                            ${window.UIComponents.input({ id: 'password', label: 'Password', type: 'password', placeholder: '••••••••' })}
+                            ${window.UIComponents.input({ id: 'password', label: 'Password', type: 'password', placeholder: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' })}
                             <p id="passwordHint" style="font-size: var(--ds-text-3xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-1);"></p>
                         </div>
-                        ${window.UIComponents.input({ id: 'confirmPassword', label: 'Confirm Password', type: 'password', placeholder: '••••••••' })}
+                        ${window.UIComponents.input({ id: 'confirmPassword', label: 'Confirm Password', type: 'password', placeholder: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' })}
                     </div>
                     <div style="display: flex; align-items: center; gap: var(--ds-space-3); padding: var(--ds-space-2) 0;">
                         <input type="checkbox" id="userActive" style="width: 18px; height: 18px; accent-color: var(--ds-primary-600);" checked>
@@ -140,7 +140,7 @@
         async loadUsers() {
             try {
                 const response = await fetch(`${window.API_BASE_URL}/users`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                    headers: { 'Authorization': `Bearer ${((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'))}` }
                 });
 
                 if (response.ok) {
@@ -274,7 +274,7 @@
             try {
                 const response = await fetch(this.currentEditId ? `${window.API_BASE_URL}/users/${this.currentEditId}` : `${window.API_BASE_URL}/users`, {
                     method: this.currentEditId ? 'PUT' : 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'))}` },
                     body: JSON.stringify(formData)
                 });
 
@@ -295,7 +295,7 @@
             try {
                 const response = await fetch(`${window.API_BASE_URL}/users/${id}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                    headers: { 'Authorization': `Bearer ${((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'))}` }
                 });
                 if (response.ok) {
                     window.notificationService?.success('User deleted');
@@ -310,7 +310,7 @@
             try {
                 const response = await fetch(`${window.API_BASE_URL}/users/${id}/status`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('authToken') : localStorage.getItem('authToken'))}` },
                     body: JSON.stringify({ active: !active })
                 });
                 if (response.ok) {
