@@ -684,6 +684,7 @@ class App {
                         <div class="ds-sidebar-brand-text">
                             <span class="ds-sidebar-brand-title">Talliffy</span>
                             <span class="ds-sidebar-brand-subtitle">Modern Tally workspace</span>
+                            <span id="sidebarAppVersion" style="font-size: 10px; color: rgba(147,197,253,0.55); margin-top: 2px; font-family: var(--ds-font-mono);">v1.0.0</span>
                         </div>
                     </div>
                     

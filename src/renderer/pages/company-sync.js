@@ -5,6 +5,7 @@
             text: 'Add company',
             icon: '<i class="fas fa-plus"></i>',
             variant: 'primary',
+            style: 'height: 38px; padding: 0 16px;',
             onclick: "window.location.hash = '#import-company'"
         });
 
@@ -43,6 +44,7 @@
             icon: '<i class="fas fa-globe"></i>',
             variant: 'secondary',
             className: 'connect-web-btn',
+            style: 'height: 38px; padding: 0 16px; background: #ffffff; border: 2px solid #2563eb; color: #2563eb;',
             attributes: 'data-route="open-web"'
         });
 
@@ -52,14 +54,35 @@
             headerActions: `<div style="display: flex; gap: var(--ds-space-3);">${connectWebBtn}${importBtn}</div>`,
             content: `
                 <div style="display: flex; flex-direction: column; gap: var(--ds-space-6); width: 100%;">
-                    <div style="background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default);">
-                        <div style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-1);">Subscription Details</div>
-                        <div style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: var(--ds-text-primary);">Tally License: <span style="font-family: var(--ds-font-mono);">*****2698</span></div>
+                    <div id="subscriptionCard" style="background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default); border-left: 3px solid var(--ds-primary-500); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--ds-space-3);">
+                        <div>
+                            <div style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-1);">Subscription Details</div>
+                            <div style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: var(--ds-text-primary); display: flex; align-items: center; gap: 8px;">
+                                Tally License:
+                                <span id="subLicenseKey" data-full="" data-masked="*****2698" style="font-family: var(--ds-font-mono);">*****2698</span>
+                                <button id="subLicenseToggle" title="Show / hide license number" style="background: none; border: none; cursor: pointer; padding: 0; color: var(--ds-text-tertiary); line-height: 1; display: inline-flex; align-items: center;" aria-label="Toggle license visibility">
+                                    <i class="fas fa-eye" style="font-size: 13px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: var(--ds-space-3);">
+                            <div style="text-align: right;">
+                                <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Plan</div>
+                                <div id="subPlanName" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">—</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Expires</div>
+                                <div id="subExpiry" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">—</div>
+                            </div>
+                            <span id="subStatusBadge" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; background: rgba(16,185,129,0.15); color: #065f46; font-size: 12px; font-weight: 600;">
+                                <i class="fas fa-circle" style="font-size: 7px;"></i> Active
+                            </span>
+                        </div>
                     </div>
 
-                    <div style="display: flex; gap: var(--ds-space-4); background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl);">
+                    <div class="search-filter-bar" style="display: flex; gap: var(--ds-space-4); background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); border: 1px solid transparent; transition: box-shadow 0.2s ease;" onfocusin="this.style.boxShadow='0 0 0 3px rgba(79,70,229,0.15)'; this.style.borderColor='rgba(79,70,229,0.2)';" onfocusout="this.style.boxShadow='none'; this.style.borderColor='transparent';">
                         <div style="flex: 1;">${searchInput}</div>
-                        <div style="width: 200px;">${syncFilter}</div>
+                        <div style="min-width: 200px;">${syncFilter}</div>
                     </div>
                     
                     <div id="companySyncTableContainer">
@@ -113,12 +136,17 @@
      */
     async function validateSubscriptionForSync() {
         try {
-            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
-                ? window.electronAPI.secureStoreGet('authToken')
-                : localStorage.getItem('authToken');
-            if (!authToken || !window.apiConfig) {
+            if (!window.authService || !window.apiConfig) {
                 // If no auth, allow sync to fail at auth level
                 return true;
+            }
+
+            // Send the full authenticated header set (Authorization + X-Device-Token
+            // + X-CSRF-Token). Sending only Authorization trips the backend's
+            // security filter and returns HTTP 403.
+            const headers = window.authService.getHeaders();
+            if (!headers['Authorization']) {
+                return true; // no valid token, let sync fail at auth level
             }
 
             const controller = new AbortController();
@@ -126,10 +154,7 @@
 
             const response = await fetch(window.apiConfig.getUrl('/auth/subscription'), {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 signal: controller.signal
             });
 
@@ -182,6 +207,22 @@
         return true;
     }
 
+
+    function formatRelativeTime(isoDate) {
+        if (!isoDate) return { display: '--', stale: false };
+        const now = Date.now();
+        const then = new Date(isoDate).getTime();
+        const diffMs = now - then;
+        const diffMin = Math.floor(diffMs / 60000);
+        const diffHr = Math.floor(diffMs / 3600000);
+        const diffDay = Math.floor(diffMs / 86400000);
+        let relative;
+        if (diffMin < 1) relative = 'Just now';
+        else if (diffMin < 60) relative = `${diffMin}m ago`;
+        else if (diffHr < 24) relative = `${diffHr}h ago`;
+        else relative = `${diffDay}d ago`;
+        return { display: relative, stale: diffHr >= 6 };
+    }
 
     function getSyncSpinnerSVG() {
         return `<i class="fas fa-sync-alt fa-spin" style="font-size: 14px; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; margin-right: 4px;"></i>`;
@@ -372,6 +413,119 @@
                 btn.removeAttribute('aria-busy');
             }
         });
+    }
+
+    function applySubscriptionData(sub) {
+        if (!sub) return;
+        const licenseEl = document.getElementById('subLicenseKey');
+        const toggleBtn = document.getElementById('subLicenseToggle');
+        const planEl = document.getElementById('subPlanName');
+        const expiryEl = document.getElementById('subExpiry');
+        const badgeEl = document.getElementById('subStatusBadge');
+
+        // Field name variants from backend (camelCase or snake_case)
+        const licNum = sub.licenseNumber || sub.license_number || sub.tallyLicense || sub.tally_license || '';
+        const planName = sub.planName || sub.plan_name || sub.plan || '';
+        const expiryRaw = sub.planExpiryDate || sub.plan_expiry_date || sub.expiryDate || sub.expiry_date || '';
+        const isExpired = sub.isExpired || sub.is_expired || false;
+
+        if (licenseEl && licNum) {
+            const lic = String(licNum);
+            const masked = '*'.repeat(Math.max(0, lic.length - 4)) + lic.slice(-4);
+            licenseEl.dataset.full = lic;
+            licenseEl.dataset.masked = masked;
+            licenseEl.textContent = masked;
+        }
+
+        // Eye icon toggle
+        if (toggleBtn && licenseEl) {
+            toggleBtn.onclick = () => {
+                const showing = licenseEl.dataset.showing === 'true';
+                if (showing) {
+                    licenseEl.textContent = licenseEl.dataset.masked || licenseEl.textContent;
+                    licenseEl.dataset.showing = 'false';
+                    toggleBtn.querySelector('i').className = 'fas fa-eye';
+                } else {
+                    licenseEl.textContent = licenseEl.dataset.full || licenseEl.textContent;
+                    licenseEl.dataset.showing = 'true';
+                    toggleBtn.querySelector('i').className = 'fas fa-eye-slash';
+                }
+            };
+        }
+
+        if (planEl) planEl.textContent = planName || '—';
+        if (expiryEl && expiryRaw) {
+            expiryEl.textContent = new Date(expiryRaw).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        if (badgeEl) {
+            const daysLeft = expiryRaw ? Math.ceil((new Date(expiryRaw) - Date.now()) / 86400000) : null;
+            if (isExpired || (daysLeft !== null && daysLeft <= 0)) {
+                badgeEl.style.background = 'rgba(239,68,68,0.15)';
+                badgeEl.style.color = '#991b1b';
+                badgeEl.innerHTML = '<i class="fas fa-circle" style="font-size:7px;"></i> Expired';
+            } else if (daysLeft !== null && daysLeft <= 14) {
+                badgeEl.style.background = 'rgba(245,158,11,0.15)';
+                badgeEl.style.color = '#92400e';
+                badgeEl.innerHTML = `<i class="fas fa-circle" style="font-size:7px;"></i> Expiring soon`;
+            }
+        }
+    }
+
+    async function populateSubscriptionCard() {
+        // 1. Try cached subscription data first for instant render
+        try {
+            const cached = JSON.parse(localStorage.getItem('subscription') || '{}');
+            if (Object.keys(cached).length > 0) applySubscriptionData(cached);
+        } catch (_) {}
+
+        // 2. Try currentUser for license number if subscription cache is thin
+        try {
+            const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const licEl = document.getElementById('subLicenseKey');
+            if (licEl && !licEl.dataset.full && user.licenseNumber) {
+                const lic = String(user.licenseNumber);
+                const masked = '*'.repeat(Math.max(0, lic.length - 4)) + lic.slice(-4);
+                licEl.dataset.full = lic;
+                licEl.dataset.masked = masked;
+                licEl.textContent = masked;
+            }
+        } catch (_) {}
+
+        // 3. Fetch fresh subscription from backend
+        // Only attempt if we haven't already confirmed this endpoint returns 4xx.
+        if (window._subscriptionEndpointDown) return;
+        try {
+            if (!window.authService || !window.authService.isAuthenticated() || !window.apiConfig) return;
+
+            // Use the SAME headers as every other authenticated call in this app:
+            // Authorization + X-Device-Token + X-CSRF-Token. Sending only the
+            // Authorization header trips the backend security filter → HTTP 403.
+            const headers = window.authService.getHeaders();
+            if (!headers['Authorization']) return; // no valid token, skip silently
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 6000);
+            const resp = await fetch(window.apiConfig.getUrl('/auth/subscription'), {
+                method: 'GET',
+                headers: headers,
+                signal: controller.signal
+            });
+            clearTimeout(timeout);
+
+            if (resp.status === 401 || resp.status === 403) {
+                // Endpoint genuinely rejects our token — don't retry this session.
+                window._subscriptionEndpointDown = true;
+                return;
+            }
+
+            if (resp.ok) {
+                const result = await resp.json();
+                const sub = result.data || result;
+                localStorage.setItem('subscription', JSON.stringify(sub));
+                applySubscriptionData(sub);
+            }
+        } catch (_) {}
     }
 
     async function loadCompanies() {
@@ -1082,7 +1236,17 @@
                     `<div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">${company.name}</div>`,
                     `<span style="color: var(--ds-text-secondary); font-weight: var(--ds-weight-medium);">${company.state || '--'}</span>`,
                     window.UIComponents.badge({ text: syncStatus.toUpperCase(), variant: badgeVariant, size: 'sm' }),
-                    `<span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-xs);">${company.lastSyncDate ? new Date(company.lastSyncDate).toLocaleString() : '--'}</span>`,
+                    (() => {
+                        if (!company.lastSyncDate) return '<span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-xs);">--</span>';
+                        const { display, stale } = formatRelativeTime(company.lastSyncDate);
+                        const absDate = new Date(company.lastSyncDate).toLocaleString();
+                        return `<div style="display: flex; flex-direction: column; gap: 2px;">
+                            <span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-xs);" title="${absDate}">${absDate}</span>
+                            <span style="font-size: var(--ds-text-2xs); color: ${stale ? '#f59e0b' : 'var(--ds-text-tertiary)'}; display: flex; align-items: center; gap: 4px;">
+                                ${stale ? '<i class="fas fa-exclamation-triangle" style="font-size:10px;"></i>' : ''}${display}
+                            </span>
+                        </div>`;
+                    })(),
                     `<div style="display: flex; flex-direction: column; width: 100%;">
                         <div style="display: flex; gap: var(--ds-space-2); align-items: center;">
                             ${window.UIComponents.button({
@@ -1092,7 +1256,7 @@
                             size: 'sm',
                             className: 'sync-company-btn',
                             id: `btn-sync-${company.id}`,
-                            style: 'width: 130px; min-width: 130px; max-width: 130px; justify-content: center;'
+                            style: 'min-width: 160px; width: 160px; max-width: 160px; justify-content: center; overflow: hidden;'
                         })}
                             ${window.UIComponents.button({
                             text: 'Remove company',
@@ -1110,7 +1274,8 @@
                             size: 'sm',
                             className: 'company-actions-btn',
                             id: `btn-actions-${company.id}`,
-                            style: 'min-width: 32px; width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; box-shadow: none; color: var(--ds-text-tertiary);'
+                            attributes: 'title="More options" aria-label="More options"',
+                            style: 'min-width: 32px; width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; box-shadow: none; color: var(--ds-text-tertiary); border-radius: 6px;'
                         })}
                                 <div id="dropdown-${company.id}" class="ds-dropdown-menu" style="display: none; position: fixed; background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-xl); z-index: 9999; min-width: 160px; overflow: hidden; animation: slideUp 0.15s ease-out;">
                                     <div class="dropdown-item backup-btn" data-id="${company.id}" style="padding: 10px 16px; font-size: 13px; color: var(--ds-text-primary); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='var(--ds-bg-hover)'" onmouseout="this.style.background='transparent'">
@@ -1314,10 +1479,27 @@
         modal.style.display = 'flex';
 
         document.getElementById('cancelRemoveBtn').onclick = () => { modal.style.display = 'none'; };
-        document.getElementById('confirmRemoveBtn').onclick = async () => {
-            const confirmBtn = document.getElementById('confirmRemoveBtn');
+
+        // 2-second countdown guard before enable
+        const confirmBtn = document.getElementById('confirmRemoveBtn');
+        confirmBtn.disabled = true;
+        confirmBtn.style.opacity = '0.5';
+        let countdown = 2;
+        confirmBtn.textContent = `Remove (${countdown})`;
+        const countTimer = setInterval(() => {
+            countdown--;
+            if (countdown <= 0) {
+                clearInterval(countTimer);
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                confirmBtn.textContent = 'Remove';
+            } else {
+                confirmBtn.textContent = `Remove (${countdown})`;
+            }
+        }, 1000);
+
+        confirmBtn.onclick = async () => {
             const cancelBtn = document.getElementById('cancelRemoveBtn');
-            // Show loading state
             confirmBtn.disabled = true;
             cancelBtn.disabled = true;
             confirmBtn.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;"><i class="fas fa-sync-alt fa-spin"></i> Removing...</span>`;
@@ -1585,6 +1767,7 @@
             }
 
             await loadCompanies();
+            populateSubscriptionCard();
 
             // Update sync health metrics
             updateCompanySyncHealthMetrics();

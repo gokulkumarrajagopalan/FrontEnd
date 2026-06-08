@@ -256,28 +256,81 @@ def fetch_companies(host, port):
         except OSError:
             pass
 
+# Master entity sync order (shared single source of truth — see sync_config).
+from sync_config import SYNC_ORDER as INCREMENTAL_SYNC_ORDER
+
+
+def _sync_one_entity(manager, args, entity_type, force_deep):
+    """Run fast or deep sync for a single entity. Deep when force_deep, or when this
+    entity has never synced (its own lastAlterID is 0)."""
+    deep = force_deep
+    if not deep:
+        last_alter = manager.get_last_alter_id(int(args.company_id), entity_type)
+        if not last_alter:
+            deep = True
+            logger.info(f"ℹ️ {entity_type}: no prior AlterID — running full (deep) first sync")
+
+    if deep:
+        return manager.sync_and_reconcile(
+            company_id=int(args.company_id), user_id=args.user_id,
+            tally_host=args.host, tally_port=args.port,
+            entity_type=entity_type, company_name=args.company_name)
+    return manager.sync_incremental_fast(
+        company_id=int(args.company_id), user_id=args.user_id,
+        tally_host=args.host, tally_port=args.port,
+        entity_type=entity_type, company_name=args.company_name)
+
+
 def run_incremental_sync(args):
+    """Incremental sync. Modes:
+      - DEEP (--deep, or first sync): full fetch + reconcile + deletion propagation.
+      - FAST (default): AlterID-filtered fetch + upsert (cheap, frequent).
+    When entity_type == 'all', every master entity is synced IN THIS SINGLE PROCESS
+    (in dependency order) instead of spawning one process per entity per cycle.
+    """
     try:
         manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
-        
-        # Use sync_and_reconcile: fetches ALL from Tally in 1 call,
-        # syncs new records + reconciles against DB (no separate reconciliation needed)
-        result = manager.sync_and_reconcile(
-            company_id=int(args.company_id),
-            user_id=args.user_id,
-            tally_host=args.host,
-            tally_port=args.port,
-            entity_type=args.entity_type,
-            company_name=args.company_name
-        )
-        
-        # Update company sync status after incremental sync
+        force_deep = getattr(args, 'deep', False)
+
+        if (args.entity_type or '').lower() == 'all':
+            results = {}
+            total_count = 0
+            any_failure = False
+            for entity_type in INCREMENTAL_SYNC_ORDER:
+                try:
+                    r = _sync_one_entity(manager, args, entity_type, force_deep)
+                except Exception as ent_err:
+                    logger.error(f"❌ {entity_type} sync failed: {ent_err}")
+                    r = {'success': False, 'message': str(ent_err), 'count': 0}
+                results[entity_type] = r
+                total_count += r.get('count', 0) or 0
+                if not r.get('success'):
+                    any_failure = True
+
+            # Overall status reflects per-entity outcome (partial when some failed).
+            status = 'synced' if not any_failure else 'partial'
+            manager.update_company_sync_status(int(args.company_id), status, not any_failure)
+            # Notify clients to refresh if anything changed.
+            changed_entities = [e for e, r in results.items() if (r.get('count') or 0) > 0]
+            if changed_entities:
+                manager.notify_data_changed(int(args.company_id), args.user_id, changed_entities)
+            print(json.dumps({
+                'success': not any_failure,
+                'status': status,
+                'totalCount': total_count,
+                'results': results,
+            }))
+            return
+
+        # Single entity
+        result = _sync_one_entity(manager, args, args.entity_type, force_deep)
         manager.update_company_sync_status(
             int(args.company_id),
             'synced' if result.get('success') else 'failed',
             result.get('success', False)
         )
-        
+        if result.get('success') and (result.get('count') or 0) > 0:
+            manager.notify_data_changed(int(args.company_id), args.user_id, [args.entity_type])
         print(json.dumps(result))
     except Exception as e:
         logger.error(f"Incremental sync error: {e}")
@@ -404,14 +457,13 @@ def run_bills_outstanding_sync(args):
 </EXPORTDATA></BODY></ENVELOPE>"""
             
             try:
-                resp = requests.post(tally_url, data=xml_req.encode('utf-8'),
-                                     headers={'Content-Type': 'application/xml'},
-                                     timeout=30)
-                if resp.status_code != 200:
-                    logger.error(f"Tally returned {resp.status_code} for {report_name}")
+                from tally_http import post_xml_with_retry
+                raw = post_xml_with_retry(args.host, args.port, xml_req, timeout=30)
+                if raw is None:
+                    logger.error(f"Tally fetch failed for {report_name}")
                     return []
-                
-                text = clean_xml(resp.text)
+
+                text = clean_xml(raw)
                 root = ET.fromstring(text)
                 elements = list(root)
                 bills = []
@@ -671,9 +723,20 @@ if __name__ == '__main__':
     parser.add_argument('--last-voucher-alter-id', type=int, help='Last voucher alter ID')
     parser.add_argument('--is-first-sync', action='store_true', help='Is first sync (for fetch-master-data)')
     parser.add_argument('--sync-cache-file', help='Path to sync cache JSON file (for reconciliation optimization)')
+    parser.add_argument('--deep', action='store_true',
+                        help='Deep sync: full fetch + reconcile + deletion propagation (slower, periodic safety net). '
+                             'When omitted, a fast AlterID-filtered incremental sync is used.')
 
     args = parser.parse_args()
-    
+
+    # SECURITY: prefer secrets from environment (passed by Electron via env, not argv,
+    # so they don't leak into process listings / logs). Fall back to any --auth-token /
+    # --device-token only for backward compatibility and dev positional invocation.
+    if not getattr(args, 'auth_token', None):
+        args.auth_token = os.environ.get('TALLY_AUTH_TOKEN', '')
+    if not getattr(args, 'device_token', None):
+        args.device_token = os.environ.get('TALLY_DEVICE_TOKEN', '')
+
     if args.mode == 'fetch-license':
         fetch_license(args.host, args.port)
     elif args.mode == 'fetch-companies':

@@ -10,6 +10,8 @@ import re
 import os
 
 from sync_logger import get_sync_logger
+from tally_http import post_xml_with_retry
+from sync_config import endpoint_for
 
 # Production logging configuration
 LOG_LEVEL = os.getenv('SYNC_LOG_LEVEL', 'INFO')
@@ -262,6 +264,56 @@ class IncrementalSyncManager:
             logger.warning(f"⚠️ Error updating company sync status: {e}")
             return False
     
+    def notify_data_changed(self, company_id: int, user_id: int, entity_types: list) -> None:
+        """Tell connected clients (e.g. WebApp) to invalidate caches after a sync.
+        Best-effort: never fails the sync."""
+        if not user_id:
+            return
+        try:
+            requests.post(
+                f"{self.backend_url}/sync/notify",
+                json={'userId': user_id, 'cmpId': company_id, 'entityTypes': entity_types or []},
+                headers=self.headers, timeout=10)
+        except Exception as e:
+            logger.debug(f"data-changed notify skipped: {e}")
+
+    # Entity types whose backend table has an is_deleted column AND a guid (so orphans
+    # can be identified) — see SyncMaintenanceService.SUPPORTED. Currency and Units are
+    # excluded (no guid). Vouchers are handled in the voucher reconciliation path.
+    SOFT_DELETE_SUPPORTED = {
+        'ledger', 'group', 'stockgroup', 'stockcategory', 'costcategory',
+        'costcenter', 'godown', 'vouchertype', 'taxunit', 'stockitem',
+    }
+
+    def soft_delete_orphans(self, company_id: int, entity_type: str, orphan_guids: list) -> int:
+        """Soft-delete DB records that no longer exist in Tally (deleted in Tally).
+
+        Only called when the FULL Tally set for the entity was fetched (sync_and_reconcile
+        always fetches everything), so the orphan set is trustworthy. Returns count deleted.
+        """
+        if not orphan_guids:
+            return 0
+        if entity_type.lower() not in self.SOFT_DELETE_SUPPORTED:
+            logger.debug(f"   ⏭️ Soft-delete not supported for {entity_type}; skipping {len(orphan_guids)} orphan(s)")
+            return 0
+        try:
+            url = f"{self.backend_url}/sync/soft-delete-orphans"
+            payload = {
+                'cmpId': company_id,
+                'entityType': entity_type.lower(),
+                'guids': orphan_guids,
+            }
+            response = requests.post(url, json=payload, headers=self.headers, timeout=30)
+            if response.status_code == 200:
+                deleted = response.json().get('deleted', 0)
+                logger.info(f"   🗑️ Soft-deleted {deleted} orphaned {entity_type}(s) removed from Tally")
+                return deleted
+            logger.warning(f"   ⚠️ Orphan soft-delete failed: HTTP {response.status_code} {response.text[:200]}")
+            return 0
+        except Exception as e:
+            logger.warning(f"   ⚠️ Error soft-deleting orphans: {e}")
+            return 0
+
     @staticmethod
     def _parse_tally_amount(value) -> float:
         """Safely parse Tally amount strings like '5000.00', '-5000.00', '5000.00 Dr', '5000.00 Cr'"""
@@ -370,33 +422,11 @@ class IncrementalSyncManager:
 </ENVELOPE>"""
     
     def fetch_from_tally(self, tdl: str, tally_host: str, tally_port: int) -> Optional[str]:
-        """Fetch data from Tally Prime"""
-        try:
-            url = f"http://{tally_host}:{tally_port}"
-            
-            # Log the XML request being sent
-            # logger.info(f"📤 Sending XML request to Tally on port {tally_port}")
-            # logger.info(f"📋 XML Request:\n{tdl}")
-            
-            response = requests.post(
-                url,
-                data=tdl,
-                headers={'Content-Type': 'application/xml'},
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                logger.info("✅ Successfully fetched data from Tally")
-                return response.text
-            else:
-                logger.error(f"❌ Tally returned HTTP {response.status_code}")
-                return None
-        except requests.exceptions.ConnectionError:
-            logger.error("❌ Could not connect to Tally Prime")
-            return None
-        except Exception as e:
-            logger.error(f"❌ Error fetching from Tally: {e}")
-            return None
+        """Fetch data from Tally Prime (with shared retry/backoff transport)."""
+        text = post_xml_with_retry(tally_host, tally_port, tdl, timeout=30)
+        if text is not None:
+            logger.info("✅ Successfully fetched data from Tally")
+        return text
     
     def parse_xml_response(self, xml_string: str, entity_type: str = 'Ledger') -> List[Dict]:
         """Parse XML response from Tally"""
@@ -1181,6 +1211,73 @@ class IncrementalSyncManager:
 
     # ─── Combined Sync + Reconcile (Single Tally Fetch) ──────────────
 
+    def sync_incremental_fast(self, company_id: int, user_id: int, tally_host: str, tally_port: int,
+                              entity_type: str = 'Ledger', company_name: str = None,
+                              books_from: str = None) -> Dict:
+        """Cheap incremental sync for FREQUENT cycles.
+
+        Unlike sync_and_reconcile (which pulls the FULL table every run to reconcile),
+        this asks Tally to return ONLY records changed since lastAlterID via the
+        AlterIdFilter in the TDL. It upserts those and advances lastAlterID. It does
+        NOT reconcile missing/stale records or detect deletions — that is the job of
+        the periodic deep reconcile (sync_and_reconcile / --deep), which must run on a
+        slower cadence as a safety net.
+
+        First sync (lastAlterID == 0) naturally fetches everything because the filter
+        is `$Alterid > 0`.
+        """
+        endpoint = endpoint_for(entity_type)
+
+        logger.info(f"⚡ Fast incremental: {entity_type} for company {company_id} ({company_name or 'N/A'})")
+
+        # Pre-flight: verify company is loaded in Tally (same guard as deep path)
+        if company_name:
+            is_loaded, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
+            if not is_loaded:
+                error_msg = (f"Company '{company_name}' is not loaded in Tally. "
+                             f"Loaded: {loaded_companies}. Aborting to prevent data mismatch.")
+                logger.error(error_msg)
+                return {'success': False, 'message': error_msg, 'count': 0}
+
+        last_alter_id = self.get_last_alter_id(company_id, entity_type)
+
+        # Real AlterID filter → Tally only returns changed records.
+        tdl = self.generate_incremental_tdl(last_alter_id, entity_type, company_name, books_from)
+        xml_response = self.fetch_from_tally(tdl, tally_host, tally_port)
+        if not xml_response:
+            return {'success': False, 'message': f'Failed to fetch {entity_type} from Tally', 'count': 0}
+
+        changed = self.parse_xml_response(xml_response, entity_type)
+        # Defensive: the filter is server-side, but re-check in case of TDL quirks.
+        changed = [r for r in changed if r.get('alterID', 0) > last_alter_id]
+        logger.info(f"   ⚡ {len(changed)} changed {entity_type} record(s) since AlterID {last_alter_id}")
+
+        total_saved = 0
+        new_max_alter = last_alter_id
+        if changed:
+            prepared = self.prepare_for_database(changed, company_id, user_id, entity_type)
+            for i in range(0, len(prepared), self.BATCH_SIZE):
+                batch = prepared[i:i + self.BATCH_SIZE]
+                success, count = self.save_batch_to_database(batch, company_id, endpoint)
+                if success:
+                    total_saved += count
+                else:
+                    error_detail = getattr(self, '_last_batch_error', '') or 'Unknown error'
+                    logger.error(f"❌ Batch failed during fast sync: {error_detail}")
+                if i + self.BATCH_SIZE < len(prepared):
+                    time.sleep(self.BATCH_DELAY)
+            new_max_alter = max(r.get('alterID', 0) for r in changed)
+            self.save_last_alter_id(company_id, new_max_alter, entity_type)
+
+        return {
+            'success': True,
+            'message': f'Fast-synced {total_saved} {entity_type}(s)',
+            'count': total_saved,
+            'lastAlterID': new_max_alter,
+            'mode': 'fast',
+            'reconciliation': None,  # not performed in fast mode
+        }
+
     def sync_and_reconcile(self, company_id: int, user_id: int, tally_host: str, tally_port: int,
                            entity_type: str = 'Ledger', company_name: str = None,
                            books_from: str = None) -> Dict:
@@ -1192,14 +1289,7 @@ class IncrementalSyncManager:
         4. Auto-sync missing/stale records (data already in memory, no re-fetch)
         5. Return combined sync + reconciliation result
         """
-        endpoint_map = {
-            'Group': '/groups', 'Currency': '/currencies', 'Unit': '/units',
-            'StockGroup': '/stock-groups', 'StockCategory': '/stock-categories',
-            'CostCategory': '/cost-categories', 'CostCenter': '/cost-centers',
-            'Godown': '/godowns', 'VoucherType': '/voucher-types',
-            'TaxUnit': '/tax-units', 'Ledger': '/ledgers', 'StockItem': '/stock-items',
-        }
-        endpoint = endpoint_map.get(entity_type, '/ledgers')
+        endpoint = endpoint_for(entity_type)
 
         logger.info(f"\n{'─'*80}")
         logger.info(f"🔄 Sync + Reconcile: {entity_type} for company {company_id} ({company_name or 'N/A'})")
@@ -1316,6 +1406,21 @@ class IncrementalSyncManager:
         else:
             logger.info(f"   ✅ Reconciliation: all records in sync")
 
+        # 6. Propagate Tally deletions: records in DB but NOT in Tally were deleted
+        #    in Tally and must be soft-deleted. Safe here because we fetched the FULL
+        #    Tally set above. Compare by GUID (durable identity).
+        recon_deleted = 0
+        tally_guids = {rec.get('guid', '') for rec in all_records if rec.get('guid')}
+        orphan_guids = [
+            str(rec.get('guid'))
+            for rec in db_records
+            if rec.get('guid') and str(rec.get('guid')) not in tally_guids
+            and not (rec.get('isDeleted') or rec.get('is_deleted'))
+        ]
+        if orphan_guids:
+            logger.info(f"   🗑️ {len(orphan_guids)} {entity_type}(s) deleted in Tally → soft-deleting in DB")
+            recon_deleted = self.soft_delete_orphans(company_id, entity_type, orphan_guids)
+
         # Write to structured logs
         try:
             sync_logger = get_sync_logger()
@@ -1354,7 +1459,8 @@ class IncrementalSyncManager:
                 'dbCount': db_count,
                 'missing': len(missing_records),
                 'updated': len(stale_records),
-                'synced': recon_synced
+                'synced': recon_synced,
+                'deleted': recon_deleted
             }
         }
 

@@ -19,7 +19,7 @@ a = Analysis(
         (os.path.join(_src_dir, 'sync_vouchers.py'), '.'),
         (os.path.join(_src_dir, 'sync_bills_outstanding.py'), '.'),
         (os.path.join(_src_dir, 'sync_logger.py'), '.'),
-        (os.path.join(_src_dir, 'voucher_reconciliation.py'), '.'),
+        (os.path.join(_src_dir, 'sync_config.py'), '.'),
     ],
     hiddenimports=[
         # HTTP / networking
@@ -59,7 +59,7 @@ a = Analysis(
         'sync_vouchers',
         'sync_bills_outstanding',
         'sync_logger',
-        'voucher_reconciliation',
+        'sync_config',
     ],
     hookspath=[],
     hooksconfig={},

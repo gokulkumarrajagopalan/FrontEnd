@@ -1031,40 +1031,54 @@ class VoucherSyncManager:
         
         # Step 5: Send to backend in batches
         total_saved = 0
+        failed_batches = 0
         batch_num = 0
-        
+
         for i in range(0, len(vouchers), self.BATCH_SIZE):
             batch = vouchers[i:i + self.BATCH_SIZE]
             batch_num += 1
-            
+
             if VERBOSE_MODE:
                 logger.info(f"📤 Batch {batch_num}: sending {len(batch)} vouchers...")
-            
+
             success, saved = self.save_vouchers_to_backend(batch, company_id, user_id, company_guid)
-            
+
             if success:
                 total_saved += saved
             else:
+                failed_batches += 1
                 logger.error(f"❌ Batch {batch_num} failed")
-            
+
             # Delay between batches
             if i + self.BATCH_SIZE < len(vouchers):
                 time.sleep(self.BATCH_DELAY)
-        
-        # Step 6: Update max AlterID
+
+        all_ok = (failed_batches == 0)
         max_alter_id = max(v['alter_id'] for v in vouchers)
-        self.save_last_alter_id(company_id, max_alter_id)
-        
-        logger.info(f"🎉 Voucher sync complete: {total_saved}/{len(vouchers)} vouchers saved")
-        
+
+        # Step 6: Advance the AlterID watermark ONLY if every batch saved. Advancing it after a
+        # failure (e.g. an auth 401) would skip the unsaved vouchers permanently — they'd never be
+        # re-fetched. On failure we keep the previous watermark so the next run retries them.
+        if all_ok:
+            self.save_last_alter_id(company_id, max_alter_id)
+            effective_alter_id = max_alter_id
+        else:
+            effective_alter_id = last_alter_id
+            logger.error(f"⚠️ {failed_batches} batch(es) failed — NOT advancing AlterID watermark "
+                         f"(kept at {last_alter_id}); these vouchers will be retried next sync.")
+
+        logger.info(f"🎉 Voucher sync complete: {total_saved}/{len(vouchers)} vouchers saved"
+                    f"{'' if all_ok else f' ({failed_batches} batch(es) FAILED)'}")
+
         elapsed_ms = int((time.time() - sync_start_time) * 1000)
-        
+
         try:
             get_sync_logger().log_voucher_sync_single(
                 company_name=company_name or f'Company {company_id}',
                 from_date=from_date, to_date=to_date,
                 count=total_saved, elapsed_ms=elapsed_ms,
-                last_alter_id=max_alter_id)
+                last_alter_id=effective_alter_id,
+                error=None if all_ok else f'{failed_batches} batch(es) failed to save')
         except Exception:
             pass
         
@@ -1081,10 +1095,12 @@ class VoucherSyncManager:
             })
         
         return {
-            'success': True,
-            'message': f'Successfully synced {total_saved} vouchers',
+            'success': all_ok,
+            'message': (f'Successfully synced {total_saved} vouchers' if all_ok
+                        else f'Synced {total_saved}/{len(vouchers)} vouchers — {failed_batches} batch(es) '
+                             f'failed; AlterID watermark not advanced (will retry next sync)'),
             'count': total_saved,
-            'lastAlterID': max_alter_id,
+            'lastAlterID': effective_alter_id,
             'elapsedMs': elapsed_ms,
             'tallyRecords': tally_records_cache,
             'stats': {

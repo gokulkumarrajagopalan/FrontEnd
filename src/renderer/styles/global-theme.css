@@ -853,7 +853,7 @@ textarea::placeholder {
 }
 
 /* ==================== GLOBAL DEFAULT BUTTON STYLES ==================== */
-button:not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-outline):not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master-tab):not(.voucher-tab):not(.report-tab):not(.auth-tab-btn):not(.action-btn):not(.close-btn) {
+button:not(.ds-btn):not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-outline):not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master-tab):not(.voucher-tab):not(.report-tab):not(.auth-tab-btn):not(.action-btn):not(.close-btn) {
     background: linear-gradient(135deg, #4f46e5 0%, #2563eb 52%, #0ea5e9 100%);
     color: var(--ds-btn-primary-text);
     box-shadow: 0 10px 26px rgba(37, 99, 235, 0.26);
@@ -861,13 +861,13 @@ button:not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-success):not(.bt
     transition: all 0.3s ease;
 }
 
-button:not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-outline):not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master-tab):not(.voucher-tab):not(.report-tab):not(.auth-tab-btn):not(.action-btn):not(.close-btn):hover {
+button:not(.ds-btn):not(.btn):not(.btn-primary):not(.btn-secondary):not(.btn-success):not(.btn-danger):not(.btn-outline):not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master-tab):not(.voucher-tab):not(.report-tab):not(.auth-tab-btn):not(.action-btn):not(.close-btn):hover {
     background: linear-gradient(135deg, #4338ca 0%, #1d4ed8 54%, #0284c7 100%);
     box-shadow: 0 14px 34px rgba(37, 99, 235, 0.34);
     transform: translateY(-2px);
 }
 
-button:not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master-tab):not(.voucher-tab):not(.report-tab):not(.auth-tab-btn):not(.action-btn):not(.close-btn) span {
+button:not(.ds-btn):not(.btn-logout):not(#logoutBtn):not(.nav-link):not(.nav-tab):not(.master-tab):not(.voucher-tab):not(.report-tab):not(.auth-tab-btn):not(.action-btn):not(.close-btn) span {
     color: inherit;
 }
 
@@ -1809,4 +1809,35 @@ header.h-16 {
 /* --- GENERAL: Card box-shadow fix for dark theme --- */
 .dark-theme [style*="box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08)"] {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* --- CONNECT WEB BUTTON STYLES --- */
+.connect-web-btn {
+    border: 2px solid rgb(37 99 235) !important;
+    background: var(--ds-bg-surface) !important;
+    color: rgb(37 99 235) !important;
+    transition: all var(--ds-duration-base) var(--ds-ease) !important;
+}
+
+.connect-web-btn:hover:not(:disabled) {
+    background: #eff6ff !important;
+    border-color: #1d4ed8 !important;
+    color: #1d4ed8 !important;
+    transform: translateY(-1px) !important;
+}
+
+.connect-web-btn:active:not(:disabled) {
+    transform: translateY(0) !important;
+}
+
+.dark-theme .connect-web-btn {
+    background: var(--ds-bg-surface) !important;
+    color: #60a5fa !important;
+    border-color: #60a5fa !important;
+}
+
+.dark-theme .connect-web-btn:hover:not(:disabled) {
+    background: rgba(96, 165, 250, 0.12) !important;
+    border-color: #93c5fd !important;
+    color: #93c5fd !important;
 }

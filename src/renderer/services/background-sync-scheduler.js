@@ -125,7 +125,13 @@ class BackgroundSyncScheduler {
                         backendUrl: window.apiConfig.baseURL,
                         authToken: authToken,
                         deviceToken: deviceToken,
-                        syncMode: 'all'
+                        syncMode: 'all',
+                        // Sync every master entity in ONE worker process (dependency
+                        // order), instead of one process per entity.
+                        entityType: 'all',
+                        // Background scheduler is the periodic safety net: run the FULL
+                        // fetch + reconcile + Tally-deletion propagation (see --deep).
+                        deep: true
                     });
                     
                     if (result.success) {

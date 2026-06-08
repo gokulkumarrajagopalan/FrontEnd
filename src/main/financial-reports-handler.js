@@ -61,8 +61,8 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                     toDate || 'None',
                     tallyPort.toString(),
                     backendUrl || '',
-                    authToken || 'None',
-                    deviceToken || 'None',
+                    authToken || 'None', // also on argv for older bundled workers that don't read env
+                    deviceToken || 'None', // (Python still prefers env; argv is the fallback)
                     reportType || 'None',
                     financialYear || 'None'
                 ];
@@ -79,8 +79,8 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                     toDate || 'None',
                     tallyPort.toString(),
                     backendUrl || '',
-                    authToken || 'None',
-                    deviceToken || 'None',
+                    authToken || 'None', // also on argv for older bundled workers that don't read env
+                    deviceToken || 'None', // (Python still prefers env; argv is the fallback)
                     reportType || 'None',
                     financialYear || 'None'
                 ];
@@ -89,7 +89,12 @@ function registerFinancialReportsHandler(activeChildProcesses) {
             console.log(`📊 Starting Financial Reports sync for company: ${companyName}`);
             logToFile(`[START] Syncing financial reports for company: ${companyName} (ID: ${cmpId}, Year: ${financialYear})`);
 
-            const child = spawn(command, args, { cwd });
+            // Secrets via env, not argv (avoids leaking into OS process listings).
+            const childEnv = { ...process.env };
+            if (authToken && authToken !== 'None') childEnv.TALLY_AUTH_TOKEN = authToken.toString();
+            if (deviceToken && deviceToken !== 'None') childEnv.TALLY_DEVICE_TOKEN = deviceToken.toString();
+
+            const child = spawn(command, args, { cwd, env: childEnv });
             if (activeChildProcesses) {
                 activeChildProcesses.add(child);
             }

@@ -35,9 +35,9 @@
     "tailwindcss": "^3.4.16"
   },
   "build": {
-    "appId": "com.tallify.desktop",
-    "productName": "Tallify",
-    "copyright": "Copyright © 2025 Tallify Team",
+    "appId": "com.talliffy.desktop",
+    "productName": "Talliffy",
+    "copyright": "Copyright © 2025 Talliffy Team",
     "asar": true,
     "removePackageScripts": true,
     "publish": [
@@ -88,8 +88,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Tallify",
-      "uninstallDisplayName": "Tallify - Professional Accounting & ERP",
+      "shortcutName": "Talliffy",
+      "uninstallDisplayName": "Talliffy - Professional Accounting & ERP",
       "installerIcon": "assets/icon.ico",
       "uninstallerIcon": "assets/icon.ico",
       "installerHeaderIcon": "assets/icon.ico",

@@ -61,6 +61,21 @@ function syncVouchers(params, processRegistry) {
             companyName = null
         } = params;
 
+        // Fail fast if the desktop has no valid session. Without a token the worker would
+        // send an empty `Authorization` header, get 401 on every /vouchers/sync call, and
+        // silently report 0 vouchers synced — looping every sync cycle. Surface the real
+        // reason instead so the user knows to (re)authenticate.
+        if (!authToken || !deviceToken) {
+            console.warn('🔒 Voucher sync skipped: not authenticated (missing authToken/deviceToken). Please log in.');
+            resolve({
+                success: false,
+                message: 'NOT_AUTHENTICATED: no active session — please log in to sync vouchers.',
+                count: 0,
+                notAuthenticated: true
+            });
+            return;
+        }
+
         const isDev = !app.isPackaged;
         const { command, useExe, cwd } = getWorkerExe();
         let args;
@@ -73,6 +88,11 @@ function syncVouchers(params, processRegistry) {
                 '--host', tallyHost,
                 '--port', tallyPort.toString(),
                 '--backend-url', backendUrl || '',
+                // Pass secrets on argv too (in addition to env below). The bundled sync_worker.exe
+                // may predate the env-based secret handling (it doesn't read TALLY_AUTH_TOKEN); without
+                // this it receives no token and every /vouchers/sync call 401s ("Missing Authorization
+                // header"). The current Python reads argv first and env as fallback, so this is safe
+                // for both the old exe and any future rebuild.
                 '--auth-token', authToken || '',
                 '--device-token', deviceToken || '',
                 '--from-date', fromDate,
@@ -112,7 +132,12 @@ function syncVouchers(params, processRegistry) {
             console.log(`${'='.repeat(60)}`);
         }
 
-        const python = spawn(command, args, { cwd });
+        // Secrets via env, not argv (avoids leaking into OS process listings).
+        const childEnv = { ...process.env };
+        if (authToken) childEnv.TALLY_AUTH_TOKEN = authToken.toString();
+        if (deviceToken) childEnv.TALLY_DEVICE_TOKEN = deviceToken.toString();
+
+        const python = spawn(command, args, { cwd, env: childEnv });
         if (processRegistry) processRegistry.add(python);
         let stdout = '';
         let stderr = '';

@@ -65,6 +65,8 @@ function syncBillsOutstanding(params, processRegistry) {
                 '--host', tallyHost,
                 '--port', (tallyPort || 9000).toString(),
                 '--backend-url', backendUrl || '',
+                // Pass secrets on argv too (in addition to env below) so the bundled exe — which
+                // may predate env-based secret handling — still receives the token (else 401s).
                 '--auth-token', authToken || '',
                 '--device-token', deviceToken || ''
             ];
@@ -98,7 +100,12 @@ function syncBillsOutstanding(params, processRegistry) {
             console.log(`${'='.repeat(60)}`);
         }
 
-        const python = spawn(command, args, { cwd });
+        // Secrets via env, not argv (avoids leaking into OS process listings).
+        const childEnv = { ...process.env };
+        if (authToken) childEnv.TALLY_AUTH_TOKEN = authToken.toString();
+        if (deviceToken) childEnv.TALLY_DEVICE_TOKEN = deviceToken.toString();
+
+        const python = spawn(command, args, { cwd, env: childEnv });
         if (processRegistry) processRegistry.add(python);
         let stdout = '';
         let stderr = '';

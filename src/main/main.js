@@ -125,7 +125,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 750,
-    minWidth: 800,
+    minWidth: 900,
     minHeight: 600,
     show: false,
     icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
@@ -556,15 +556,17 @@ async function runWorkerCommand(mode, params = {}) {
     const { command, args: workerArgs, cwd } = getWorkerCommand();
     const finalArgs = [...workerArgs, '--mode', mode];
 
-    // Map parameters to CLI flags
+    // Map parameters to CLI flags.
+    // SECURITY: auth/device tokens are intentionally NOT mapped to argv — they are
+    // passed via the child environment below so they don't appear in OS process
+    // listings, Event logs, or crash dumps. Python reads them from env (see
+    // sync_worker.py resolve_secret()).
     const argMapping = {
       tallyHost: '--host',
       tallyPort: '--port',
       companyId: '--company-id',
       userId: '--user-id',
       backendUrl: '--backend-url',
-      authToken: '--auth-token',
-      deviceToken: '--device-token',
       entityType: '--entity-type',
       maxAlterID: '--max-alter-id',
       companyName: '--company-name',
@@ -573,13 +575,14 @@ async function runWorkerCommand(mode, params = {}) {
       toDate: '--to-date',
       lastAlterID: '--last-voucher-alter-id',
       isFirstSync: '--is-first-sync',
-      syncCacheFile: '--sync-cache-file'
+      syncCacheFile: '--sync-cache-file',
+      deep: '--deep'
     };
 
     for (const [key, flag] of Object.entries(argMapping)) {
       if (params[key] !== undefined && params[key] !== null) {
         // Boolean flags (store_true in argparse) don't take a value
-        if (flag === '--is-first-sync') {
+        if (flag === '--is-first-sync' || flag === '--deep') {
           if (params[key]) finalArgs.push(flag);
         } else {
           finalArgs.push(flag, params[key].toString());
@@ -587,10 +590,23 @@ async function runWorkerCommand(mode, params = {}) {
       }
     }
 
-    // console.log(`🚀 Running worker command: ${command} ${finalArgs.join(' ')} (CWD: ${cwd})`);
+    // Pass secrets via environment (preferred). Also pass on argv as a fallback: the bundled
+    // sync_worker.exe may predate env-based secret handling (it doesn't read TALLY_AUTH_TOKEN),
+    // in which case env-only delivery leaves it with no token and every backend call 401s. The
+    // current Python reads argv first, env as fallback, so this is safe for old and new workers.
+    const childEnv = { ...process.env };
+    if (params.authToken) {
+      childEnv.TALLY_AUTH_TOKEN = params.authToken.toString();
+      finalArgs.push('--auth-token', params.authToken.toString());
+    }
+    if (params.deviceToken) {
+      childEnv.TALLY_DEVICE_TOKEN = params.deviceToken.toString();
+      finalArgs.push('--device-token', params.deviceToken.toString());
+    }
 
     currentWorkerProcess = spawn(command, finalArgs, {
-      cwd: cwd
+      cwd: cwd,
+      env: childEnv
     });
     const child = currentWorkerProcess;
     activeChildProcesses.add(child);

@@ -14,7 +14,8 @@ class SessionManager {
         this.ws                  = null;
         this.reconnectAttempts   = 0;
         this.maxReconnectAttempts = 5;
-        this.reconnectDelay      = 3000;   // ms between reconnect tries
+        this.reconnectDelay      = 3000;   // ms between fast reconnect tries
+        this.maxReconnectDelay   = 30000;  // ms — capped backoff once fast tries are exhausted
         this.reconnectTimer      = null;   // handle for pending setTimeout
         this.isLoggedOut         = false;
         this.isPaused            = false;  // true while device has no internet
@@ -89,6 +90,7 @@ class SessionManager {
         this._stopHeartbeat();
         this._clearReconnectTimer();
         this._closeSocket();
+        this._stopHttpPolling();
         window.removeEventListener('offline', this._onOffline);
         window.removeEventListener('online',  this._onOnline);
         console.log('🛑 SessionManager: Session monitoring stopped');
@@ -115,11 +117,16 @@ class SessionManager {
         if (!this.isPaused)   return; // wasn't paused, nothing to resume
 
         console.log('📶 SessionManager: Network restored — resuming session monitoring');
-        this.isPaused = false;
+        this.isPaused            = false;
+        this.reconnectAttempts   = 0;
+        this._handshakeFailures  = 0;
 
-        // Reset attempt counter: a transient network outage should not
-        // permanently consume reconnect slots.
-        this.reconnectAttempts = 0;
+        // If WebSocket was marked down due to prior handshake failures, give it
+        // another chance now that the network has changed.
+        if (this._wsEndpointDown) {
+            this._wsEndpointDown = false;
+            this._stopHttpPolling();
+        }
 
         this._connectWebSocket();
     }
@@ -128,6 +135,10 @@ class SessionManager {
 
     _connectWebSocket() {
         if (this.isLoggedOut || this.isPaused) return;
+
+        // If the WebSocket endpoint has been confirmed unreachable (e.g. persistent
+        // HTTP 403 on handshake), stop attempting and fall back to HTTP polling.
+        if (this._wsEndpointDown) return;
 
         try {
             const token = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
@@ -138,7 +149,7 @@ class SessionManager {
                 : localStorage.getItem('deviceToken');
 
             if (!token || !deviceToken) {
-                console.error('❌ SessionManager: Missing auth tokens, cannot connect');
+                console.warn('⚠️ SessionManager: Missing auth tokens, cannot connect');
                 return;
             }
 
@@ -146,19 +157,23 @@ class SessionManager {
             const encodedDeviceToken = encodeURIComponent(deviceToken);
             const wsUrlWithParams    = `${this.wsUrl}?token=${encodedToken}&deviceToken=${encodedDeviceToken}&deviceType=DESKTOP`;
 
-            console.log(`🔌 SessionManager: Connecting to WebSocket... (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts + 1})`);
+            // Track whether onopen fired so we can distinguish a dropped connection
+            // from a failed handshake (HTTP 403 / 401 during upgrade).
+            this._wsOpened = false;
+
             this.ws = new WebSocket(wsUrlWithParams);
 
             // ── onopen ──────────────────────────────────────────────────────
             this.ws.onopen = () => {
                 console.log('✅ SessionManager: WebSocket connected successfully');
-                this.reconnectAttempts = 0;
+                this._wsOpened           = true;
+                this._handshakeFailures  = 0;   // reset on successful connection
+                this.reconnectAttempts   = 0;
                 this._startHeartbeat();
             };
 
             // ── onmessage ───────────────────────────────────────────────────
             this.ws.onmessage = (event) => {
-                console.log('📨 SessionManager: Received message from server:', event.data);
                 try {
                     const message = JSON.parse(event.data);
 
@@ -167,12 +182,21 @@ class SessionManager {
                         this.handleSessionInvalidated(
                             message.message || message.reason || 'You have been logged in from another device'
                         );
+                    } else if (message.type === 'ERROR') {
+                        const reason = (message.message || '').toLowerCase();
+                        const authFailure = reason.includes('token') || reason.includes('session')
+                            || reason.includes('device') || reason.includes('user not found')
+                            || reason.includes('invalid');
+                        if (authFailure) {
+                            console.warn('⚠️ SessionManager: server rejected session —', message.message);
+                            this.handleSessionInvalidated(message.message || 'Session is no longer valid');
+                        } else {
+                            console.warn('⚠️ SessionManager: transient server error, will retry —', message.message);
+                        }
                     } else if (message.type === 'HEARTBEAT_ACK') {
-                        console.log('💓 SessionManager: Heartbeat acknowledged');
+                        // silent
                     } else if (message.type === 'CONNECTED') {
                         console.log('✅ SessionManager: Server confirmed connection');
-                    } else if (message.type === 'PONG') {
-                        console.log('🏓 SessionManager: Pong received');
                     }
                 } catch (error) {
                     console.warn('⚠️ SessionManager: Error parsing WebSocket message:', error);
@@ -180,33 +204,101 @@ class SessionManager {
             };
 
             // ── onerror ─────────────────────────────────────────────────────
-            this.ws.onerror = (error) => {
-                console.error('❌ SessionManager: WebSocket error:', error);
-            };
+            // Suppress the raw browser error event — onclose always follows and
+            // contains the actionable information. Logging the raw Event object
+            // adds noise without useful detail.
+            this.ws.onerror = () => {};
 
             // ── onclose ─────────────────────────────────────────────────────
-            this.ws.onclose = () => {
-                console.log('❌ SessionManager: WebSocket disconnected');
+            this.ws.onclose = (evt) => {
                 this._stopHeartbeat();
 
-                // Ignore close events triggered by intentional stop or offline handling
                 if (this.isLoggedOut || this.isPaused) return;
 
-                if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                    this.reconnectAttempts++;
-                    console.log(`🔄 SessionManager: Reconnecting... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                const wasHandshakeFailure = !this._wsOpened;
+
+                if (wasHandshakeFailure) {
+                    // The server rejected the WebSocket upgrade (e.g. HTTP 403).
+                    // This is NOT a dropped connection — it means the endpoint is
+                    // unavailable or rejecting our token at the HTTP layer.
+                    this._handshakeFailures = (this._handshakeFailures || 0) + 1;
+                    const maxHandshakeTries = 3;
+
+                    if (this._handshakeFailures >= maxHandshakeTries) {
+                        // Stop trying — mark endpoint as down and switch to HTTP polling.
+                        console.warn(
+                            `⚠️ SessionManager: WebSocket endpoint rejected connection ` +
+                            `${this._handshakeFailures} time(s) (HTTP 4xx during upgrade). ` +
+                            `Switching to HTTP session polling — real-time push disabled.`
+                        );
+                        this._wsEndpointDown = true;
+                        this._startHttpPolling();
+                        return;
+                    }
+
+                    // Still within retry budget — back off before next attempt.
+                    const backoff = this._handshakeFailures * 10000; // 10s, 20s, 30s
+                    console.warn(`⚠️ SessionManager: WebSocket handshake failed (attempt ${this._handshakeFailures}/${maxHandshakeTries}), retrying in ${backoff / 1000}s`);
                     this._clearReconnectTimer();
-                    this.reconnectTimer = setTimeout(() => {
-                        this._connectWebSocket();
-                    }, this.reconnectDelay);
-                } else {
-                    console.error('❌ SessionManager: Max reconnection attempts reached — logging out');
-                    this.handleSessionInvalidated('Connection lost. Maximum reconnection attempts reached.');
+                    this.reconnectTimer = setTimeout(() => this._connectWebSocket(), backoff);
+                    return;
                 }
+
+                // Dropped an established connection — normal reconnect with backoff.
+                this.reconnectAttempts++;
+                const delay = this.reconnectAttempts <= this.maxReconnectAttempts
+                    ? this.reconnectDelay
+                    : this.maxReconnectDelay;
+                console.log(`🔄 SessionManager: Connection dropped, reconnecting in ${delay / 1000}s... (attempt ${this.reconnectAttempts})`);
+                this._clearReconnectTimer();
+                this.reconnectTimer = setTimeout(() => this._connectWebSocket(), delay);
             };
 
         } catch (error) {
             console.error('❌ SessionManager: Error creating WebSocket:', error);
+        }
+    }
+
+    // ─── HTTP Polling Fallback ─────────────────────────────────────────────────
+
+    _startHttpPolling() {
+        if (this._pollInterval) return; // already running
+        const POLL_MS = 60000; // check every 60 seconds
+        console.log(`🔁 SessionManager: HTTP polling started (every ${POLL_MS / 1000}s)`);
+
+        this._pollInterval = setInterval(async () => {
+            if (this.isLoggedOut) {
+                this._stopHttpPolling();
+                return;
+            }
+            try {
+                const token = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                    ? window.electronAPI.secureStoreGet('authToken')
+                    : localStorage.getItem('authToken');
+                if (!token || !window.apiConfig) return;
+
+                const controller = new AbortController();
+                const tid = setTimeout(() => controller.abort(), 8000);
+                const resp = await fetch(window.apiConfig.getUrl('/auth/validate'), {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    signal: controller.signal
+                });
+                clearTimeout(tid);
+
+                if (resp.status === 401) {
+                    console.warn('⚠️ SessionManager: HTTP poll — session expired (401)');
+                    this._stopHttpPolling();
+                    this.handleSessionInvalidated('Your session has expired. Please log in again.');
+                }
+                // 403 = endpoint missing on this server build; just keep polling silently
+            } catch (_) {}
+        }, POLL_MS);
+    }
+
+    _stopHttpPolling() {
+        if (this._pollInterval) {
+            clearInterval(this._pollInterval);
+            this._pollInterval = null;
         }
     }
 

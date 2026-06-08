@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
+import sys
+import io
+
+# Force UTF-8 stdout/stderr on Windows (cp1252 default can't encode emoji)
+if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if sys.stderr.encoding and sys.stderr.encoding.lower() != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 import requests
 import xml.etree.ElementTree as ET
-import sys
 import re
 import json
 import os
@@ -506,6 +514,29 @@ class FinancialReportSync:
             traceback.print_exc()
             return False
 
+    def _stamp_reports_freshness(self):
+        """Record the current voucher max AlterID as the version these reports were
+        built against, so clients can flag the reports as stale when newer vouchers
+        arrive. Best-effort: never fails the sync."""
+        import requests
+        try:
+            # Current voucher max AlterID from the master-mapping endpoint.
+            mm = requests.get(f"{self.backend_url}/companies/{self.cmp_id}/master-mapping",
+                              headers=self.headers, timeout=15)
+            voucher_alter_id = 0
+            if mm.status_code == 200:
+                voucher_alter_id = (mm.json().get('masters', {}) or {}).get('voucher', 0) or 0
+
+            resp = requests.post(f"{self.backend_url}/companies/{self.cmp_id}/reports-stamp",
+                                 json={'voucherAlterId': voucher_alter_id},
+                                 headers=self.headers, timeout=15)
+            if resp.status_code == 200:
+                print(f"🕒 Stamped reports freshness at voucher AlterID {voucher_alter_id}")
+            else:
+                print(f"⚠️ Could not stamp reports freshness: HTTP {resp.status_code}")
+        except Exception as e:
+            print(f"⚠️ Reports freshness stamp skipped: {e}")
+
     def sync_all(self, report_type=None):
         if report_type == 'balancesheet':
             success = self.fetch_and_sync_balance_sheet()
@@ -531,6 +562,10 @@ class FinancialReportSync:
                 }
             }
         
+        # Stamp report freshness when at least one report synced successfully.
+        if result.get('success') or any(result.get('details', {}).values()):
+            self._stamp_reports_freshness()
+
         print("\n--- Sync Summary ---")
         print(json.dumps(result, indent=2))
         return result
@@ -566,8 +601,13 @@ def main():
     to_date = sys.argv[5] if len(sys.argv) > 5 and sys.argv[5] != 'None' else None
     tally_port = sys.argv[6] if len(sys.argv) > 6 else "9000"
     backend_url = sys.argv[7] if len(sys.argv) > 7 else BACKEND_URL_DEFAULT
-    auth_token = sys.argv[8] if len(sys.argv) > 8 else None
-    device_token = sys.argv[9] if len(sys.argv) > 9 else None
+    # SECURITY: prefer secrets from environment (Electron passes them via env, not
+    # argv, so they don't leak into process listings). Fall back to positional args.
+    import os as _os
+    auth_token = _os.environ.get('TALLY_AUTH_TOKEN') or (
+        sys.argv[8] if len(sys.argv) > 8 and sys.argv[8] != 'None' else None)
+    device_token = _os.environ.get('TALLY_DEVICE_TOKEN') or (
+        sys.argv[9] if len(sys.argv) > 9 and sys.argv[9] != 'None' else None)
     report_type = sys.argv[10] if len(sys.argv) > 10 else None
     financial_year = sys.argv[11] if len(sys.argv) > 11 and sys.argv[11] != 'None' else None
     

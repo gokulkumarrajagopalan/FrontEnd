@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from sync_logger import get_sync_logger
+from tally_http import post_xml_with_retry
 
 # Logging configuration
 LOG_LEVEL = os.getenv('SYNC_LOG_LEVEL', 'INFO')
@@ -133,32 +134,8 @@ class ReconciliationManager:
 </ENVELOPE>"""
     
     def fetch_from_tally(self, tdl: str, tally_host: str, tally_port: int) -> Optional[str]:
-        """Fetch data from Tally Prime"""
-        try:
-            url = f"http://{tally_host}:{tally_port}"
-            
-            # Log the XML request being sent
-            # logger.info(f"📤 Sending XML request to Tally on port {tally_port}")
-            # logger.info(f"📋 XML Request:\n{tdl}")
-            
-            response = requests.post(
-                url,
-                data=tdl,
-                headers={'Content-Type': 'application/xml'},
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                return response.text
-            else:
-                logger.error(f"❌ Tally returned HTTP {response.status_code}")
-                return None
-        except requests.exceptions.ConnectionError:
-            logger.error("❌ Could not connect to Tally Prime")
-            return None
-        except Exception as e:
-            logger.error(f"❌ Error fetching from Tally: {e}")
-            return None
+        """Fetch data from Tally Prime (with shared retry/backoff transport)."""
+        return post_xml_with_retry(tally_host, tally_port, tdl, timeout=30)
     
     def parse_xml_response(self, xml_string: str, entity_type: str = 'Ledger') -> List[Dict]:
         """Parse XML response from Tally"""
@@ -657,6 +634,26 @@ class ReconciliationManager:
             logger.error(f"❌ Error parsing voucher reconciliation XML: {e}")
             return []
     
+    def _soft_delete_orphans(self, company_id: int, entity_type: str, guids: list) -> int:
+        """Soft-delete records that no longer exist in Tally (deleted in Tally).
+        Returns count deleted. Caller is responsible for ensuring `guids` is a
+        trustworthy orphan set (e.g. date-window-scoped for vouchers)."""
+        if not guids:
+            return 0
+        try:
+            url = f"{self.backend_url}/sync/soft-delete-orphans"
+            payload = {'cmpId': company_id, 'entityType': entity_type.lower(), 'guids': guids}
+            resp = requests.post(url, json=payload, headers=self.headers, timeout=60)
+            if resp.status_code == 200:
+                deleted = resp.json().get('deleted', 0)
+                logger.info(f"   🗑️ Soft-deleted {deleted} orphaned {entity_type}(s)")
+                return deleted
+            logger.warning(f"   ⚠️ Orphan soft-delete failed: HTTP {resp.status_code} {resp.text[:200]}")
+            return 0
+        except Exception as e:
+            logger.warning(f"   ⚠️ Error soft-deleting orphans: {e}")
+            return 0
+
     def fetch_db_vouchers(self, company_id: int) -> List[Dict]:
         """Fetch ALL voucher records from database for a specific company"""
         try:
@@ -1105,6 +1102,37 @@ class ReconciliationManager:
             total_to_sync = len(missing_in_db) + len(needs_update)
             logger.info(f"   📝 Missing: {len(missing_in_db)} | Stale: {len(needs_update)} | Extra: {len(extra_in_db)}")
 
+            # Propagate Tally deletions for vouchers. CRITICAL SAFETY: the Tally fetch
+            # only covers [start_dt, end_dt], but fetch_db_vouchers returns ALL vouchers.
+            # So an "extra" voucher is only truly deleted-in-Tally if its date falls
+            # INSIDE the fetched window. Anything outside the window, or with an
+            # unparseable/missing date, is NEVER deleted (fail-safe).
+            deleted_count = 0
+            try:
+                _start_d = start_dt.date()
+                _end_d = end_dt.date()
+                orphan_voucher_guids = []
+                skipped_out_of_range = 0
+                for e in extra_in_db:
+                    rec = db_guid_map.get(e['guid'], {})
+                    vdate_raw = rec.get('voucherDate') or rec.get('date')
+                    if not vdate_raw:
+                        continue  # no date → never delete
+                    try:
+                        vdate = datetime.strptime(str(vdate_raw)[:10], '%Y-%m-%d').date()
+                    except (ValueError, TypeError):
+                        continue  # unparseable → never delete
+                    if _start_d <= vdate <= _end_d:
+                        orphan_voucher_guids.append(str(e['guid']))
+                    else:
+                        skipped_out_of_range += 1
+                if orphan_voucher_guids:
+                    logger.info(f"   🗑️ {len(orphan_voucher_guids)} voucher(s) deleted in Tally (within window) → soft-deleting "
+                                f"({skipped_out_of_range} extra out-of-window kept)")
+                    deleted_count = self._soft_delete_orphans(company_id, 'voucher', orphan_voucher_guids)
+            except Exception as del_err:
+                logger.warning(f"   ⚠️ Voucher orphan soft-delete skipped: {del_err}")
+
             # Re-sync missing/stale vouchers
             synced_count = 0
             if total_to_sync > 0:
@@ -1128,6 +1156,7 @@ class ReconciliationManager:
                 'updated': len(needs_update),
                 'extra': len(extra_in_db),
                 'synced': synced_count,
+                'deleted': deleted_count,
                 'singleFetch': True
             }
             self.log_reconciliation(company_id, 'Voucher', result)
