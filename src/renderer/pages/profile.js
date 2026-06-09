@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     // ============ PROFILE PAGE TEMPLATE ============
     const getProfileTemplate = () => `
         <div style="padding: var(--ds-space-10); width: 100%; box-sizing: border-box;">
@@ -39,19 +39,19 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-5);">
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
                                 <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Full Name</label>
-                                <p id="detailFullName" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">â€”</p>
+                                <p id="detailFullName" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">&mdash;</p>
                             </div>
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
                                 <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">License Number</label>
-                                <p id="detailLicenceNo" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">â€”</p>
+                                <p id="detailLicenceNo" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">&mdash;</p>
                             </div>
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
                                 <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Account Created</label>
-                                <p id="detailCreatedAt" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">â€”</p>
+                                <p id="detailCreatedAt" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">&mdash;</p>
                             </div>
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
-                                <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Plan expired on</label>
-                                <p id="detailEnabled" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">â€”</p>
+                                <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Plan Expiry</label>
+                                <p id="detailEnabled" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">&mdash;</p>
                             </div>
                         </div>
                     </div>
@@ -61,10 +61,10 @@
                 <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; margin-bottom: var(--ds-space-6); border: 1px solid var(--ds-border-default);">
                     <div style="padding: var(--ds-space-4) var(--ds-space-8); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; justify-content: space-between; background: var(--ds-bg-surface-sunken);">
                         <h3 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);"><i class="fas fa-envelope mr-2" style="color: var(--ds-primary-500);"></i> Email Address</h3>
-                        <span id="emailVerifiedBadge" class="ds-badge">â€”</span>
+                        <span id="emailVerifiedBadge" class="ds-badge">&mdash;</span>
                     </div>
                     <div style="padding: var(--ds-space-6) var(--ds-space-8);">
-                        <p id="emailDisplay" style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1) 0;">â€”</p>
+                        <p id="emailDisplay" style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1) 0;">&mdash;</p>
                         <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: 0;">Email is used for password change verification</p>
                     </div>
                 </div>
@@ -73,14 +73,14 @@
                 <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; margin-bottom: var(--ds-space-6); border: 1px solid var(--ds-border-default);">
                     <div style="padding: var(--ds-space-4) var(--ds-space-8); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; justify-content: space-between; background: var(--ds-bg-surface-sunken);">
                         <h3 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);"><i class="fas fa-mobile-alt mr-2" style="color: var(--ds-primary-500);"></i> Mobile Number</h3>
-                        <span id="mobileVerifiedBadge" class="ds-badge">â€”</span>
+                        <span id="mobileVerifiedBadge" class="ds-badge">&mdash;</span>
                     </div>
                     <div style="padding: var(--ds-space-6) var(--ds-space-8);">
                         <!-- Display Mode -->
                         <div id="mobileDisplayMode">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <div>
-                                    <p id="mobileDisplay" style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1) 0;">â€”</p>
+                                    <p id="mobileDisplay" style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1) 0;">&mdash;</p>
                                     <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: 0;">Mobile changes require SMS OTP verification</p>
                                 </div>
                                  <button id="editMobileBtn" class="ds-btn ds-btn-secondary ds-btn-sm">
@@ -195,7 +195,7 @@
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <p style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1) 0;">Password</p>
-                                    <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: 0;">â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢</p>
+                                     <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: 0;">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</p>
                                 </div>
                                  <button id="changePasswordBtn" class="ds-btn ds-btn-secondary" style="background: var(--ds-warning-50); color: var(--ds-warning-700); border-color: var(--ds-warning-200);">
                                     <i class="fas fa-key"></i> Change Password
@@ -310,7 +310,7 @@
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-            const response = await fetch(window.apiConfig.getUrl('/auth/me'), {
+            const response = await fetch(window.apiConfig.getUrl('/users/me'), {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${authToken}`,
@@ -327,7 +327,7 @@
                 throw new Error(result.message || 'Failed to fetch profile');
             }
 
-            profileData = result.data;
+            profileData = result.data || result;
             populateProfile(profileData);
 
             if (loading) loading.style.display = 'none';
@@ -369,7 +369,7 @@
 
             if (loading) {
                 loading.innerHTML = `
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">âŒ</div>
+                    <div style="font-size: 2rem; margin-bottom: 1rem; color: #ef4444;"><i class="fas fa-times-circle"></i></div>
                     <p style="color: #ef4444; font-weight: 600;">Failed to load profile</p>
                     <p style="color: var(--text-tertiary); font-size: 0.875rem;">${error.message}</p>
                     <button onclick="window.fetchAndPopulateProfile()" style="margin-top: 1rem; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
@@ -383,13 +383,16 @@
 
     // ============ POPULATE UI WITH DATA ============
     function populateProfile(data) {
-        setText('profileInitial', (data.fullName || data.username || 'U')[0].toUpperCase());
-        setText('profileName', data.fullName || data.username || 'User');
-        setText('profileUsername', data.username || 'â€”');
+        // Handle nested structure if necessary (checking data.user or root)
+        const user = data.user || data;
+        
+        setText('profileInitial', (user.fullName || user.username || 'U')[0].toUpperCase());
+        setText('profileName', user.fullName || user.username || 'User');
+        setText('profileUsername', user.username || '\u2014');
 
         const roleBadge = document.getElementById('profileRole');
         if (roleBadge) {
-            const role = data.role || 'USER';
+            const role = user.role || 'USER';
             roleBadge.textContent = role;
             const colors = { ADMIN: { bg: '#dcfce7', text: '#15803d' }, MANAGER: { bg: '#fef3c7', text: '#b45309' }, USER: { bg: '#dbeafe', text: '#1d4ed8' } };
             const c = colors[role] || colors.USER;
@@ -397,13 +400,13 @@
             roleBadge.style.color = c.text;
         }
 
-        setText('detailFullName', data.fullName || 'â€”');
-        setText('detailLicenceNo', data.licenceNo || 'â€”');
-        setText('detailCreatedAt', formatDate(data.createdAt));
+        setText('detailFullName', user.fullName || '\u2014');
+        setText('detailLicenceNo', user.licenceNo || '\u2014');
+        setText('detailCreatedAt', formatDate(user.createdAt));
 
         const enabledEl = document.getElementById('detailEnabled');
         if (enabledEl) {
-            const subscription = data.subscription;
+            const subscription = user.subscription;
             if (subscription && subscription.planExpiryDate) {
                 const expiryDate = new Date(subscription.planExpiryDate);
                 const isExpired = subscription.isExpired === true;
@@ -416,38 +419,38 @@
                     enabledEl.innerHTML = `<span style="color: #16a34a; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-calendar-check"></i> ${formatted} (${remainingDays} days left)</span>`;
                 }
             } else {
-                enabledEl.innerHTML = '<span style="color: var(--ds-text-tertiary);">â€”</span>';
+                enabledEl.innerHTML = '<span style="color: var(--ds-text-tertiary);">&mdash;</span>';
             }
         }
 
         // Email
-        setText('emailDisplay', data.email || 'â€”');
-        setVerifiedBadge('emailVerifiedBadge', data.emailVerified);
+        setText('emailDisplay', user.email || '\u2014');
+        setVerifiedBadge('emailVerifiedBadge', user.emailVerified);
 
         // Mobile
-        const mobileText = data.mobile
-            ? (data.countryCode ? `${data.countryCode} ${data.mobile}` : data.mobile)
+        const mobileText = user.mobile
+            ? (user.countryCode ? `${user.countryCode} ${user.mobile}` : user.mobile)
             : 'Not set';
         setText('mobileDisplay', mobileText);
-        setVerifiedBadge('mobileVerifiedBadge', data.mobileVerified);
+        setVerifiedBadge('mobileVerifiedBadge', user.mobileVerified);
 
         // Pre-select country code
         const ccSelect = document.getElementById('countryCodeSelect');
-        if (ccSelect && data.countryCode) {
-            const cc = data.countryCode.startsWith('+') ? data.countryCode : `+${data.countryCode}`;
+        if (ccSelect && user.countryCode) {
+            const cc = user.countryCode.startsWith('+') ? user.countryCode : `+${user.countryCode}`;
             ccSelect.value = cc;
         }
 
         // Update localStorage with latest data
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        currentUser.email = data.email;
-        currentUser.fullName = data.fullName;
-        currentUser.licenceNo = data.licenceNo;
+        currentUser.email = user.email;
+        currentUser.fullName = user.fullName;
+        currentUser.licenceNo = user.licenceNo;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
         // Cache subscription data separately for sync validation
-        if (data.subscription) {
-            localStorage.setItem('subscription', JSON.stringify(data.subscription));
+        if (user.subscription) {
+            localStorage.setItem('subscription', JSON.stringify(user.subscription));
         }
     }
 
@@ -460,7 +463,7 @@
         addClick('sendMobileOtpBtn', () => handleSendMobileOtp());
         addClick('verifyMobileOtpBtn', () => handleVerifyMobileOtp());
 
-        // Password (3-step: verify current â†’ new password â†’ email OTP)
+        // Password (3-step: verify current -> new password -> email OTP)
         addClick('changePasswordBtn', () => showPasswordEdit());
         addClick('cancelPasswordBtn', () => hidePasswordEdit());
         addClick('verifyCurrentPwdBtn', () => handleVerifyCurrentPassword());
@@ -568,7 +571,7 @@
         }
     }
 
-    // ============ PASSWORD CHANGE (3-step: verify current â†’ new password â†’ email OTP) ============
+    // ============ PASSWORD CHANGE (3-step: verify current -> new password -> email OTP) ============
     function showPasswordEdit() {
         hide('passwordDisplayMode');
         show('passwordEditMode');
@@ -799,12 +802,38 @@
         }
     }
 
+    function safeParseDate(dateInput) {
+        if (!dateInput) return null;
+        if (dateInput instanceof Date) return dateInput;
+        if (Array.isArray(dateInput)) {
+            const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
+            return new Date(year, month - 1, day, hour, minute, second);
+        }
+        if (typeof dateInput === 'string') {
+            const d = new Date(dateInput);
+            if (!isNaN(d.getTime())) return d;
+        }
+        if (typeof dateInput === 'object') {
+            const year = dateInput.year;
+            const month = dateInput.monthValue || dateInput.month;
+            const day = dateInput.dayOfMonth || dateInput.day;
+            const hour = dateInput.hour || 0;
+            const minute = dateInput.minute || 0;
+            const second = dateInput.second || 0;
+            if (year && month && day) {
+                let monthIdx = typeof month === 'string' ? new Date(month + " 1, 2000").getMonth() : month - 1;
+                return new Date(year, monthIdx, day, hour, minute, second);
+            }
+        }
+        return null;
+    }
+
     function formatDate(dateStr) {
-        if (!dateStr) return 'â€”';
+        const d = safeParseDate(dateStr);
+        if (!d) return '\u2014';
         try {
-            const d = new Date(dateStr);
             return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-        } catch { return 'â€”'; }
+        } catch { return '\u2014'; }
     }
 
     function showInlineError(containerId, message) {

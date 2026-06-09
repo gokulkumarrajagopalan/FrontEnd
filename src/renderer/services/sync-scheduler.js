@@ -771,8 +771,8 @@ class SyncScheduler {
             console.log(`📊 Fetching master mapping for company ${companyId}...`);
 
             const url = window.apiConfig
-                ? window.apiConfig.getUrl(`/api/companies/${companyId}/master-mapping`)
-                : `${backendUrl}/api/companies/${companyId}/master-mapping`;
+                ? window.apiConfig.getUrl(`/companies/${companyId}/master-mapping`)
+                : `${backendUrl}/companies/${companyId}/master-mapping`;
 
             console.log(`   📡 Trying endpoint: ${url}`);
 

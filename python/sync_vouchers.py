@@ -136,35 +136,39 @@ class VoucherSyncManager:
     
     # ─── AlterID Management ──────────────────────────────────────────
     
-    def get_last_alter_id(self, company_id: int) -> int:
-        """Fetch last synced voucher AlterID from backend"""
+    def get_master_mapping(self, company_id: int) -> dict:
+        """Fetch all entity max AlterIDs from master-mapping endpoint.
+        Returns dict like {'voucher': 412, 'ledger': 300, ...} or {} on failure."""
         try:
-            url = f"{self.backend_url}/api/companies/{company_id}/last-voucher-alter-id"
+            url = f"{self.backend_url}/companies/{company_id}/master-mapping"
             response = requests.get(url, headers=self.headers, timeout=10)
-            
             if response.status_code == 200:
-                data = response.json()
-                last_id = data.get('lastAlterID', 0)
-                logger.info(f"📌 Last synced voucher AlterID: {last_id}")
-                return last_id
+                masters = response.json().get('masters', {})
+                logger.info(f"Fetched master mapping for company {company_id}: voucher AlterID = {masters.get('voucher', 0)}")
+                return masters
             else:
-                logger.warning(f"⚠️ Could not fetch last AlterID (HTTP {response.status_code}), starting from 0")
-                return 0
+                logger.warning(f"Could not fetch master mapping: HTTP {response.status_code}")
+                return {}
         except Exception as e:
-            logger.warning(f"⚠️ Error fetching last AlterID: {e}")
-            return 0
-    
+            logger.warning(f"Error fetching master mapping: {e}")
+            return {}
+
+    def get_last_alter_id(self, company_id: int) -> int:
+        """Fetch last synced voucher AlterID from backend (via master-mapping)"""
+        masters = self.get_master_mapping(company_id)
+        alter_id = masters.get('voucher', 0) or 0
+        logger.info(f"Last synced voucher AlterID: {alter_id}")
+        return alter_id
+
     def save_last_alter_id(self, company_id: int, alter_id: int) -> bool:
         """Save last synced voucher AlterID to backend"""
         try:
-            url = f"{self.backend_url}/api/companies/{company_id}/last-voucher-alter-id"
-            payload = {
-                'lastAlterID': alter_id
-            }
-            response = requests.post(url, json=payload, headers=self.headers, timeout=10)
+            url = f"{self.backend_url}/companies/{company_id}/last-alter-id"
+            response = requests.post(url, json={'lastAlterID': alter_id, 'entityType': 'voucher'},
+                                     headers=self.headers, timeout=10)
             return response.status_code in [200, 201]
         except Exception as e:
-            logger.warning(f"⚠️ Error saving AlterID: {e}")
+            logger.warning(f"Error saving AlterID: {e}")
             return False
     
     # ─── XML Parsing Utilities ───────────────────────────────────────
@@ -1343,20 +1347,43 @@ def main():
             print(json.dumps({'success': False, 'message': 'Backend URL required', 'count': 0}))
             sys.exit(1)
         
-        # Initialize and run
+        # Initialize sync manager
         sync_manager = VoucherSyncManager(backend_url, auth_token, device_token)
-        
-        result = sync_manager.sync_vouchers(
-            company_id=company_id,
-            company_guid=company_guid,
-            user_id=user_id,
-            tally_host=tally_host,
-            tally_port=tally_port,
-            from_date=from_date,
-            to_date=to_date,
-            last_alter_id=last_alter_id,
-            company_name=company_name
-        )
+
+        # Determine first-time vs incremental via master-mapping (authoritative backend state)
+        master_mapping = sync_manager.get_master_mapping(company_id)
+        voucher_alter_id_in_db = master_mapping.get('voucher', 0) or 0
+
+        is_first_time = (voucher_alter_id_in_db == 0)
+
+        if is_first_time:
+            logger.info(f"First-time sync detected (no vouchers in DB). Running month-wise chunked sync.")
+            result = sync_manager.sync_vouchers_chunked(
+                company_id=company_id,
+                company_guid=company_guid,
+                user_id=user_id,
+                tally_host=tally_host,
+                tally_port=tally_port,
+                from_date=from_date,
+                to_date=to_date,
+                last_alter_id=0,
+                company_name=company_name
+            )
+        else:
+            # Incremental: use DB's max voucher AlterID as the watermark
+            effective_alter_id = voucher_alter_id_in_db
+            logger.info(f"Incremental sync: voucher AlterID in DB = {effective_alter_id}")
+            result = sync_manager.sync_vouchers(
+                company_id=company_id,
+                company_guid=company_guid,
+                user_id=user_id,
+                tally_host=tally_host,
+                tally_port=tally_port,
+                from_date=from_date,
+                to_date=to_date,
+                last_alter_id=effective_alter_id,
+                company_name=company_name
+            )
         
         # Output JSON for Electron to parse
         print(json.dumps(result))

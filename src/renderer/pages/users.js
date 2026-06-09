@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     const getUsersTemplate = () => {
         const addUserBtn = window.UIComponents.button({
             id: 'addUserBtn',
@@ -62,10 +62,10 @@
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-4);">
                         <div>
-                            ${window.UIComponents.input({ id: 'password', label: 'Password', type: 'password', placeholder: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' })}
+                            ${window.UIComponents.input({ id: 'password', label: 'Password', type: 'password', placeholder: '&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;' })}
                             <p id="passwordHint" style="font-size: var(--ds-text-3xs); color: var(--ds-text-tertiary); margin-top: var(--ds-space-1);"></p>
                         </div>
-                        ${window.UIComponents.input({ id: 'confirmPassword', label: 'Confirm Password', type: 'password', placeholder: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' })}
+                        ${window.UIComponents.input({ id: 'confirmPassword', label: 'Confirm Password', type: 'password', placeholder: '&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;' })}
                     </div>
                     <div style="display: flex; align-items: center; gap: var(--ds-space-3); padding: var(--ds-space-2) 0;">
                         <input type="checkbox" id="userActive" style="width: 18px; height: 18px; accent-color: var(--ds-primary-600);" checked>

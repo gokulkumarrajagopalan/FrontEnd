@@ -161,7 +161,7 @@ class IncrementalSyncManager:
     def get_master_mapping(self, company_id: int) -> Dict[str, int]:
         """Fetch all entity max alterIDs from master-mapping endpoint"""
         try:
-            url = f"{self.backend_url}/api/companies/{company_id}/master-mapping"
+            url = f"{self.backend_url}/companies/{company_id}/master-mapping"
             response = requests.get(url, headers=self.headers, timeout=10)
             
             if response.status_code == 200:
@@ -217,7 +217,7 @@ class IncrementalSyncManager:
     def save_last_alter_id(self, company_id: int, alter_id: int, entity_type: str) -> bool:
         """Save last synced AlterID to backend for specific entity type"""
         try:
-            url = f"{self.backend_url}/api/companies/{company_id}/last-alter-id"
+            url = f"{self.backend_url}/companies/{company_id}/last-alter-id"
             payload = {
                 'lastAlterID': alter_id,
                 'entityType': entity_type,  # CRITICAL: Track per entity type

@@ -68,11 +68,11 @@
                         <div style="display: flex; align-items: center; gap: var(--ds-space-3);">
                             <div style="text-align: right;">
                                 <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Plan</div>
-                                <div id="subPlanName" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">—</div>
+                                <div id="subPlanName" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">&mdash;</div>
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Expires</div>
-                                <div id="subExpiry" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">—</div>
+                                <div id="subExpiry" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">&mdash;</div>
                             </div>
                             <span id="subStatusBadge" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; background: rgba(16,185,129,0.15); color: #065f46; font-size: 12px; font-weight: 600;">
                                 <i class="fas fa-circle" style="font-size: 7px;"></i> Active
@@ -208,10 +208,38 @@
     }
 
 
+    function safeParseDate(dateInput) {
+        if (!dateInput) return null;
+        if (dateInput instanceof Date) return dateInput;
+        if (Array.isArray(dateInput)) {
+            const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
+            return new Date(year, month - 1, day, hour, minute, second);
+        }
+        if (typeof dateInput === 'string') {
+            const d = new Date(dateInput);
+            if (!isNaN(d.getTime())) return d;
+        }
+        if (typeof dateInput === 'object') {
+            const year = dateInput.year;
+            const month = dateInput.monthValue || dateInput.month;
+            const day = dateInput.dayOfMonth || dateInput.day;
+            const hour = dateInput.hour || 0;
+            const minute = dateInput.minute || 0;
+            const second = dateInput.second || 0;
+            if (year && month && day) {
+                let monthIdx = typeof month === 'string' ? new Date(month + " 1, 2000").getMonth() : month - 1;
+                return new Date(year, monthIdx, day, hour, minute, second);
+            }
+        }
+        return null;
+    }
+
     function formatRelativeTime(isoDate) {
         if (!isoDate) return { display: '--', stale: false };
+        const d = safeParseDate(isoDate);
+        if (!d) return { display: '--', stale: false };
         const now = Date.now();
-        const then = new Date(isoDate).getTime();
+        const then = d.getTime();
         const diffMs = now - then;
         const diffMin = Math.floor(diffMs / 60000);
         const diffHr = Math.floor(diffMs / 3600000);
@@ -424,7 +452,7 @@
         const badgeEl = document.getElementById('subStatusBadge');
 
         // Field name variants from backend (camelCase or snake_case)
-        const licNum = sub.licenseNumber || sub.license_number || sub.tallyLicense || sub.tally_license || '';
+        const licNum = sub.licenseNumber || sub.license_number || sub.tallyLicense || sub.tally_license || sub.licenceNo || sub.licence_no || '';
         const planName = sub.planName || sub.plan_name || sub.plan || '';
         const expiryRaw = sub.planExpiryDate || sub.plan_expiry_date || sub.expiryDate || sub.expiry_date || '';
         const isExpired = sub.isExpired || sub.is_expired || false;
@@ -434,7 +462,9 @@
             const masked = '*'.repeat(Math.max(0, lic.length - 4)) + lic.slice(-4);
             licenseEl.dataset.full = lic;
             licenseEl.dataset.masked = masked;
-            licenseEl.textContent = masked;
+            
+            const showing = licenseEl.dataset.showing === 'true';
+            licenseEl.textContent = showing ? lic : masked;
         }
 
         // Eye icon toggle
@@ -453,13 +483,19 @@
             };
         }
 
-        if (planEl) planEl.textContent = planName || '—';
-        if (expiryEl && expiryRaw) {
-            expiryEl.textContent = new Date(expiryRaw).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        if (planEl) planEl.textContent = planName || '\u2014';
+        if (expiryEl) {
+            const d = safeParseDate(expiryRaw);
+            if (d) {
+                expiryEl.textContent = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            } else {
+                expiryEl.textContent = '\u2014';
+            }
         }
 
         if (badgeEl) {
-            const daysLeft = expiryRaw ? Math.ceil((new Date(expiryRaw) - Date.now()) / 86400000) : null;
+            const d = safeParseDate(expiryRaw);
+            const daysLeft = d ? Math.ceil((d - Date.now()) / 86400000) : null;
             if (isExpired || (daysLeft !== null && daysLeft <= 0)) {
                 badgeEl.style.background = 'rgba(239,68,68,0.15)';
                 badgeEl.style.color = '#991b1b';
@@ -468,6 +504,10 @@
                 badgeEl.style.background = 'rgba(245,158,11,0.15)';
                 badgeEl.style.color = '#92400e';
                 badgeEl.innerHTML = `<i class="fas fa-circle" style="font-size:7px;"></i> Expiring soon`;
+            } else {
+                badgeEl.style.background = 'rgba(16,185,129,0.15)';
+                badgeEl.style.color = '#065f46';
+                badgeEl.innerHTML = '<i class="fas fa-circle" style="font-size: 7px;"></i> Active';
             }
         }
     }
@@ -483,8 +523,8 @@
         try {
             const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
             const licEl = document.getElementById('subLicenseKey');
-            if (licEl && !licEl.dataset.full && user.licenseNumber) {
-                const lic = String(user.licenseNumber);
+            if (licEl && !licEl.dataset.full && (user.licenseNumber || user.licenceNo)) {
+                const lic = String(user.licenseNumber || user.licenceNo);
                 const masked = '*'.repeat(Math.max(0, lic.length - 4)) + lic.slice(-4);
                 licEl.dataset.full = lic;
                 licEl.dataset.masked = masked;
@@ -506,7 +546,7 @@
 
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 6000);
-            const resp = await fetch(window.apiConfig.getUrl('/auth/subscription'), {
+            const resp = await fetch(window.apiConfig.getUrl('/users/me'), {
                 method: 'GET',
                 headers: headers,
                 signal: controller.signal
@@ -521,9 +561,16 @@
 
             if (resp.ok) {
                 const result = await resp.json();
-                const sub = result.data || result;
-                localStorage.setItem('subscription', JSON.stringify(sub));
-                applySubscriptionData(sub);
+                const userData = result.data || result;
+                const user = userData.user || userData;
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                if (user.subscription) {
+                    localStorage.setItem('subscription', JSON.stringify(user.subscription));
+                    applySubscriptionData({
+                        ...user.subscription,
+                        licenceNo: user.licenceNo || user.licenseNumber
+                    });
+                }
             }
         } catch (_) {}
     }

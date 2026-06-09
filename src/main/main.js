@@ -274,6 +274,10 @@ ipcMain.on('quit-and-install-update', () => {
   autoUpdater.quitAndInstall();
 });
 
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
 
 function startSyncWorker(config = {}) {
   if (syncWorker) {

@@ -985,9 +985,13 @@
             }
 
             addImportLog(`   🔄 Syncing master entities...`, 'info');
+            // entity-type 'all' makes the worker sync every master (Group, Ledger, StockItem, …)
+            // in one process. NOTE: 'syncMode' is NOT a recognized worker arg — passing it caused
+            // --entity-type to fall back to its 'Ledger' default, so only ledgers synced first-time.
             const masterResult = await window.electronAPI.incrementalSync({
                 ...syncParams,
-                syncMode: 'all'
+                entityType: 'all',
+                deep: true
             });
 
             if (masterResult.success) {
@@ -1119,24 +1123,13 @@
                                 'X-Device-Token': deviceToken
                             };
                             const updatePayload = JSON.stringify({ firstTimeSyncDone: true });
-                            const candidates = [
-                                `${syncParams.backendUrl}/api/companies/${companyId}`,
-                                `${syncParams.backendUrl}/companies/${companyId}`
-                            ];
-
-                            let updated = false;
-                            let lastStatus = 'n/a';
-                            for (const url of candidates) {
-                                const resp = await fetch(url, { method: 'PUT', headers, body: updatePayload });
-                                if (resp.ok) {
-                                    updated = true;
-                                    console.log(`✅ firstTimeSyncDone flag set for company ${companyId} via ${url}`);
-                                    break;
-                                }
-                                lastStatus = String(resp.status);
-                            }
-                            if (!updated) {
-                                console.warn(`⚠️ firstTimeSyncDone update failed for company ${companyId} (last status: ${lastStatus})`);
+                            // backendUrl already includes the /api context path — do NOT prefix /api again.
+                            const url = `${syncParams.backendUrl}/companies/${companyId}`;
+                            const resp = await fetch(url, { method: 'PUT', headers, body: updatePayload });
+                            if (resp.ok) {
+                                console.log(`✅ firstTimeSyncDone flag set for company ${companyId}`);
+                            } else {
+                                console.warn(`⚠️ firstTimeSyncDone update failed for company ${companyId} (status: ${resp.status})`);
                             }
                         } catch (flagErr) {
                             console.warn('⚠️ Could not update firstTimeSyncDone flag:', flagErr.message);
@@ -1177,6 +1170,64 @@
                 console.error('❌ Bills Outstanding sync error:', bErr);
                 addImportLog(`   ❌ Bills Outstanding error: ${bErr.message}`, 'error');
                 errors.push({ entity: 'Bills Outstanding', message: bErr.message });
+            }
+
+            // ============= STEP 4: FINANCIAL REPORTS SYNC =============
+            // (Balance Sheet, P&L, Trial Balance) — per financial year + a "Full" range,
+            // matching the recurring scheduler so first-time import is complete.
+            try {
+                if (window.electronAPI?.syncFinancialReports) {
+                    const reports = [
+                        { name: 'Balance Sheet', type: 'balancesheet' },
+                        { name: 'Profit & Loss', type: 'profitloss' },
+                        { name: 'Trial Balance', type: 'trailbalance' }
+                    ];
+
+                    const now = new Date();
+                    const currentFy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+                    const todayStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+
+                    const yearsToSync = [];
+                    for (let i = 0; i < 4; i++) {
+                        const fyStart = currentFy - i;
+                        const fromD = `${fyStart}0401`;
+                        const toD = i === 0 ? todayStamp : `${fyStart + 1}0331`;
+                        const fyLabel = `${String(fyStart).substring(2, 4)}-${String(fyStart + 1).substring(2, 4)}`;
+                        yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: fyLabel });
+                    }
+                    // "Full" range from books start (or a safe floor) to today
+                    const fromISO = companyData.syncFromDate || companyData.booksStart || companyData.financialYearStart || '';
+                    const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
+                    yearsToSync.push({ fromDate: fullFromDate, toDate: todayStamp, financialYear: 'Full' });
+
+                    for (const report of reports) {
+                        addImportLog(`   🔄 Syncing ${report.name}...`, 'info');
+                        for (const yr of yearsToSync) {
+                            const financialResult = await window.electronAPI.syncFinancialReports({
+                                ...syncParams,
+                                cmpId: companyId,
+                                fromDate: yr.fromDate,
+                                toDate: yr.toDate,
+                                reportType: report.type,
+                                financialYear: yr.financialYear
+                            });
+
+                            if (financialResult.success) {
+                                addImportLog(`   ✅ ${report.name} (FY ${yr.financialYear}): synced`, 'success');
+                            } else {
+                                const msg = financialResult.error || financialResult.message || 'Failed';
+                                addImportLog(`   ⚠️ ${report.name} (FY ${yr.financialYear}): ${msg}`, 'info');
+                                errors.push({ entity: `${report.name} (FY ${yr.financialYear})`, message: msg });
+                            }
+                        }
+                    }
+                } else {
+                    console.warn('⚠️ syncFinancialReports API not available');
+                }
+            } catch (rErr) {
+                console.error('❌ Financial Reports sync error:', rErr);
+                addImportLog(`   ❌ Financial Reports error: ${rErr.message}`, 'error');
+                errors.push({ entity: 'Financial Reports', message: rErr.message });
             }
 
             return {
@@ -1250,7 +1301,7 @@
             };
 
             const response = await fetch(
-                window.apiConfig.getUrl(`/api/companies/${companyId}/reconcile`),
+                window.apiConfig.getUrl(`/companies/${companyId}/reconcile`),
                 {
                     method: 'POST',
                     headers: headers,

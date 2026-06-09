@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     const getSupportTemplate = () => `
         <div style="padding: var(--ds-space-6); width: 100%; box-sizing: border-box;">
             <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; border: 1px solid var(--ds-border-default);">
@@ -109,7 +109,7 @@
         const deviceToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('deviceToken') : localStorage.getItem('deviceToken'));
 
         try {
-            const response = await fetch(window.apiConfig.getUrl('/api/support/tickets'), {
+            const response = await fetch(window.apiConfig.getUrl('/support/tickets'), {
                 method: 'POST',
                 headers: {
                     'Authorization': 'Bearer ' + authToken,
@@ -152,7 +152,7 @@
         const deviceToken = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') ? window.electronAPI.secureStoreGet('deviceToken') : localStorage.getItem('deviceToken'));
 
         try {
-            const response = await fetch(window.apiConfig.getUrl('/api/support/tickets'), {
+            const response = await fetch(window.apiConfig.getUrl('/support/tickets'), {
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + authToken,
@@ -187,7 +187,7 @@
             CLOSED: { bg: 'var(--ds-bg-surface-sunken)', text: 'var(--ds-text-tertiary)', border: 'var(--ds-border-default)' }
         };
         const sc = statusColors[ticket.status] || statusColors.OPEN;
-        const createdAt = ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'â€”';
+        const createdAt = ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '\u2014';
 
         return `
             <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-lg); padding: var(--ds-space-4); margin-bottom: var(--ds-space-3);">

@@ -93,7 +93,7 @@
             subtitle: 'Manage your application preferences and configurations',
             icon: 'fas fa-cog',
             content: `
-                <div class="settings-container" style="width: 100%; box-sizing: border-box;">
+                <div class="settings-container" style="width: 100%; max-width: 1000px; margin: 0 auto; box-sizing: border-box;">
                     <!-- Modernized Tab Navigation -->
                     <div class="ds-tabs-wrapper" style="margin-bottom: var(--ds-space-8);">
                         <div class="tabs" style="display: flex; gap: var(--ds-space-1); background: var(--ds-bg-surface-sunken); padding: var(--ds-space-1-5); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default);">
@@ -135,39 +135,38 @@
 
                         <!-- Sync Tab -->
                         <div class="tab-content" data-content="sync">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-6);">
-                                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
-                                    ${window.UIComponents.card({
-                title: 'Tally Connection',
-                content: `
+                            ${window.Layout.grid({
+                                columns: 2,
+                                gap: 6,
+                                items: [
+                                    window.UIComponents.card({
+                                        title: 'Tally Connection',
+                                        content: `
                                             <div style="display: flex; flex-direction: column; gap: var(--ds-space-4);">
                                                 ${window.UIComponents.input({
-                    id: 'tallyHost',
-                    type: 'text',
-                    label: 'Tally Host (IP or URL)',
-                    value: settings.tallyHost,
-                    icon: '<i class="fas fa-network-wired"></i>'
-                })}
+                                                    id: 'tallyHost',
+                                                    type: 'text',
+                                                    label: 'Tally Host (IP or URL)',
+                                                    value: settings.tallyHost,
+                                                    icon: '<i class="fas fa-network-wired"></i>'
+                                                })}
                                                 ${window.UIComponents.input({
-                    id: 'tallyPort',
-                    type: 'number',
-                    label: 'Tally Port Number',
-                    value: settings.tallyPort,
-                    icon: '<i class="fas fa-plug"></i>'
-                })}
-                                                <div style="display: flex; align-items: center; gap: var(--ds-space-2); padding: var(--ds-space-3); background: var(--ds-warning-50); border: 1px solid var(--ds-warning-200); border-radius: var(--ds-radius-lg); color: var(--ds-warning-700); font-size: var(--ds-text-xs);">
+                                                    id: 'tallyPort',
+                                                    type: 'number',
+                                                    label: 'Tally Port Number',
+                                                    value: settings.tallyPort,
+                                                    icon: '<i class="fas fa-plug"></i>'
+                                                })}
+                                                <div class="ds-warning-banner" style="display: flex; align-items: center; gap: var(--ds-space-2); padding: var(--ds-space-3); background: var(--ds-warning-50); border: 1px solid var(--ds-warning-200); border-radius: var(--ds-radius-lg); color: var(--ds-warning-700); font-size: var(--ds-text-xs);">
                                                     <i class="fas fa-exclamation-triangle"></i>
                                                     <span>Ensure Tally Prime is running and accessible at this address.</span>
                                                 </div>
                                             </div>
                                         `
-            })}
-                                </div>
-
-                                <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
-                                    ${window.UIComponents.card({
-                title: 'Auto Sync Settings',
-                content: `
+                                    }),
+                                    window.UIComponents.card({
+                                        title: 'Auto Sync Settings',
+                                        content: `
                                             <div style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
                                                 <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: var(--ds-space-4); border-bottom: 1px solid var(--ds-border-default);">
                                                     <div>
@@ -181,12 +180,12 @@
                                                 </div>
 
                                                 ${window.UIComponents.input({
-                    id: 'syncInterval',
-                    type: 'number',
-                    label: 'Sync Interval (minutes)',
-                    value: settings.syncInterval,
-                    icon: '<i class="fas fa-clock"></i>'
-                })}
+                                                    id: 'syncInterval',
+                                                    type: 'number',
+                                                    label: 'Sync Interval (minutes)',
+                                                    value: settings.syncInterval,
+                                                    icon: '<i class="fas fa-clock"></i>'
+                                                })}
 
                                                 <div>
                                                     <label class="ds-label" style="display: block; margin-bottom: var(--ds-space-2); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary);">Batch Size</label>
@@ -201,9 +200,9 @@
                                                 </div>
                                             </div>
                                         `
-            })}
-                                </div>
-                            </div>
+                                    })
+                                ]
+                            })}
                             <!-- Save Settings Button ONLY in Sync Tab -->
                             <div style="display: flex; justify-content: flex-end; margin-top: var(--ds-space-6);">
                                 <button id="saveAllSettingsBtn" class="ds-btn ds-btn-primary" style="min-width: 150px; font-weight: var(--ds-weight-bold); box-shadow: var(--ds-shadow-md);">
@@ -358,17 +357,45 @@
                 <style>
                     /* Premium Tab Styling */
                     .tab.active {
-                        background: white !important;
-                        color: var(--ds-primary-700) !important;
+                        background: var(--ds-bg-surface) !important;
+                        color: var(--ds-primary-600) !important;
                         box-shadow: var(--ds-shadow-md) !important;
                     }
+
+                    .light-theme .tab.active {
+                        background: #ffffff !important;
+                        color: var(--ds-primary-700) !important;
+                    }
+
+                    .dark-theme .tab.active {
+                        background: var(--ds-bg-surface) !important;
+                        color: var(--ds-primary-300) !important;
+                    }
                     
-                    .tab-content { display: none; }
-                    .tab-content.active { display: block; animation: dsFadeIn 0.3s ease; }
+                    /* Override legacy tab-content layout cards */
+                    .tab-content {
+                        display: none;
+                        background: transparent !important;
+                        border-radius: 0 !important;
+                        padding: 0 !important;
+                        box-shadow: none !important;
+                        border-top: none !important;
+                    }
+                    .tab-content.active {
+                        display: block;
+                        animation: dsFadeIn 0.3s ease;
+                    }
                     
                     @keyframes dsFadeIn {
                         from { opacity: 0; transform: translateY(4px); }
                         to { opacity: 1; transform: translateY(0); }
+                    }
+
+                    /* Dark mode semantic banner overrides */
+                    .dark-theme .ds-warning-banner {
+                        background: rgba(234, 179, 8, 0.1) !important;
+                        border-color: rgba(234, 179, 8, 0.3) !important;
+                        color: #fef08a !important;
                     }
 
                     /* Custom Toggle Switch for DS */
@@ -539,10 +566,7 @@
         if (themeSelect) {
             themeSelect.addEventListener('change', () => {
                 const selectedTheme = themeSelect.value;
-                if (selectedTheme === 'auto') {
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    window.themeManager?.setTheme(prefersDark ? 'dark' : 'light');
-                } else if (window.themeManager) {
+                if (window.themeManager) {
                     window.themeManager.setTheme(selectedTheme);
                 }
             });
@@ -603,11 +627,8 @@
                     // Theme - apply it immediately via themeManager
                     const themeSelect = document.getElementById('themeSelect');
                     const selectedTheme = themeSelect?.value || 'light';
-                    if (window.themeManager && (selectedTheme === 'light' || selectedTheme === 'dark')) {
+                    if (window.themeManager) {
                         window.themeManager.setTheme(selectedTheme);
-                    } else if (selectedTheme === 'auto') {
-                        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                        window.themeManager?.setTheme(prefersDark ? 'dark' : 'light');
                     }
 
                     // Save all to appSettings JSON blob

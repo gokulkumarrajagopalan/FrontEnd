@@ -11,7 +11,22 @@ class ThemeManager {
 
     init() {
         // Apply saved theme on load
-        this.applyTheme(this.currentTheme);
+        if (this.currentTheme === 'auto') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            this.applyTheme(prefersDark ? 'dark' : 'light');
+        } else {
+            this.applyTheme(this.currentTheme);
+        }
+
+        // Listen for system theme changes dynamically
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (this.currentTheme === 'auto') {
+                this.applyTheme(e.matches ? 'dark' : 'light');
+                window.dispatchEvent(new CustomEvent('theme-applied', {
+                    detail: { theme: 'auto' }
+                }));
+            }
+        });
 
         // Listen for theme changes
         window.addEventListener('theme-changed', (e) => {
@@ -29,14 +44,20 @@ class ThemeManager {
     }
 
     setTheme(theme) {
-        if (theme !== 'light' && theme !== 'dark') {
+        if (theme !== 'light' && theme !== 'dark' && theme !== 'auto') {
             console.error('Invalid theme:', theme);
             return;
         }
 
         this.currentTheme = theme;
         this.saveTheme(theme);
-        this.applyTheme(theme);
+
+        if (theme === 'auto') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            this.applyTheme(prefersDark ? 'dark' : 'light');
+        } else {
+            this.applyTheme(theme);
+        }
 
         // Notify other components
         window.dispatchEvent(new CustomEvent('theme-applied', {

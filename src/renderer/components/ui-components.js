@@ -181,17 +181,17 @@ const UIComponents = {
         } = options;
 
         return `
-            <div class="${className}" style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default); shadow: var(--ds-shadow-sm); overflow: hidden;">
+            <div class="ds-card ${className}">
                 ${title ? `
-                    <div style="padding: var(--ds-space-4) var(--ds-space-6); border-bottom: 1px solid var(--ds-border-default); background: var(--ds-bg-surface-sunken);">
+                    <div class="ds-card-header">
                         <h3 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${title}</h3>
                     </div>
                 ` : ''}
-                <div style="padding: ${padding};">
+                <div class="ds-card-body" style="padding: ${padding};">
                     ${content}
                 </div>
                 ${footer ? `
-                    <div style="padding: var(--ds-space-4) var(--ds-space-6); border-top: 1px solid var(--ds-border-default); background: var(--ds-bg-surface-sunken);">
+                    <div class="ds-card-footer">
                         ${footer}
                     </div>
                 ` : ''}
@@ -354,7 +354,7 @@ const UIComponents = {
 
         return `
             <div id="${id}" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; padding: var(--ds-space-4);">
-                <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-3xl); shadow: var(--ds-shadow-xl); width: 100%; max-width: ${maxWidth}; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-xl); width: 100%; max-width: ${maxWidth}; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; animation: dsModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;">
                     ${title ? `
                         <div style="padding: var(--ds-space-5) var(--ds-space-8); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; justify-content: space-between;">
                             <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${title}</h3>

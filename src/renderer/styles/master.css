@@ -359,3 +359,192 @@ html body .sync-company-btn {
 html body .sync-company-btn:hover {
     background: linear-gradient(135deg, #929cf9 0%, #5558e8 52%, #7c4fe0 100%) !important;
 }
+
+/* ==================== PAGE CONTENT SCROLLBAR ==================== */
+#page-content::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+#page-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#page-content::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 99px;
+}
+
+#page-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.6);
+}
+
+/* ==================== PAGE CONTENT FADE-IN ==================== */
+#page-content > div,
+#page-content > section,
+#page-content > article {
+    animation: dsPageIn 0.16s ease-out both;
+}
+
+@keyframes dsPageIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== CARD ACCENT VARIANTS ==================== */
+html body .ds-card.ds-card-accent {
+    border-top: 3px solid var(--ds-primary-500);
+}
+
+html body .ds-card.ds-card-accent-success {
+    border-top: 3px solid var(--ds-success-500);
+}
+
+html body .ds-card.ds-card-accent-warning {
+    border-top: 3px solid var(--ds-warning-500);
+}
+
+html body .ds-card.ds-card-accent-danger {
+    border-top: 3px solid var(--ds-danger-500);
+}
+
+/* ==================== ENHANCED TABLE ==================== */
+html body .ds-table tbody tr:nth-child(even) {
+    background: rgba(238, 242, 255, 0.35);
+}
+
+html body .ds-table tbody tr:hover {
+    background: rgba(219, 234, 254, 0.55) !important;
+}
+
+html body .ds-table tbody tr:hover td {
+    color: var(--ds-text-primary) !important;
+}
+
+/* ==================== BADGE SIZE VARIANT ==================== */
+html body .ds-badge-sm {
+    padding: 2px var(--ds-space-2);
+    font-size: 10px;
+}
+
+/* ==================== INPUT LABEL UPPERCASE ==================== */
+html body .ds-label {
+    font-size: var(--ds-text-xs);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-text-secondary);
+    letter-spacing: 0.04em;
+}
+
+/* ==================== SIDEBAR NAV ACTIVE GLOW ==================== */
+html body .ds-nav-link.active {
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* ==================== STAT CARD SUCCESS ACCENT ==================== */
+html body .ds-stat-card.success::before {
+    background: linear-gradient(90deg, var(--ds-success-500), var(--ds-success-400));
+}
+
+html body .ds-stat-card.warning::before {
+    background: linear-gradient(90deg, var(--ds-warning-500), var(--ds-warning-400));
+}
+
+html body .ds-stat-card.danger::before {
+    background: linear-gradient(90deg, var(--ds-danger-500), var(--ds-danger-400));
+}
+
+/* ==================== SECTION HEADER ICON COLOR ==================== */
+html body .ds-section-title i,
+html body .ds-section-title .fas,
+html body .ds-section-title .far {
+    color: var(--ds-primary-500);
+}
+
+/* ==================== BUTTON ICON GAP ==================== */
+html body .ds-btn i,
+html body .ds-btn .fas,
+html body .ds-btn .far {
+    font-size: 0.9em;
+}
+
+/* ==================== FOCUS RING OVERRIDE ==================== */
+html body .ds-btn:focus-visible {
+    outline: 2px solid var(--ds-primary-400);
+    outline-offset: 3px;
+}
+
+html body .ds-input:focus-visible {
+    outline: none;
+}
+
+/* ==================== MODAL ENTER ANIMATION ==================== */
+html body .ds-modal {
+    animation: dsModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes dsModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ==================== ALERT ICON ALIGNMENT ==================== */
+html body .ds-alert i,
+html body .ds-alert .fas {
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* ==================== PAGE HEADER BREADCRUMB ==================== */
+html body .ds-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    font-size: var(--ds-text-xs);
+    color: var(--ds-text-tertiary);
+    margin-bottom: var(--ds-space-4);
+}
+
+html body .ds-breadcrumb-sep {
+    color: var(--ds-gray-300);
+}
+
+html body .ds-breadcrumb a {
+    color: var(--ds-text-link);
+    text-decoration: none;
+}
+
+html body .ds-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+/* ==================== TABLE SORT HEADER ==================== */
+html body .ds-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+html body .ds-table th.sortable:hover {
+    color: var(--ds-primary-600);
+}
+
+html body .ds-table th.sort-asc::after {
+    content: ' ↑';
+    color: var(--ds-primary-500);
+}
+
+html body .ds-table th.sort-desc::after {
+    content: ' ↓';
+    color: var(--ds-primary-500);
+}

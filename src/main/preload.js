@@ -15,6 +15,7 @@ const ALLOWED_SEND_CHANNELS = [
 ];
 
 const ALLOWED_INVOKE_CHANNELS = [
+    'get-app-version',
     'get-system-info',
     'get-backend-url',
     'save-config',

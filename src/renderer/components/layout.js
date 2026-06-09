@@ -165,13 +165,13 @@ const Layout = {
         };
 
         return `
-            <div class="${className}" style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); shadow: var(--ds-shadow-sm); border: 1px solid var(--ds-border-default); padding: var(--ds-space-6);">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--ds-space-4);">
-                    <div style="font-size: var(--ds-text-3xl);">${icon}</div>
-                    ${change ? `<span style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); ${changeColors[changeType]}">${change}</span>` : ''}
+            <div class="ds-stat-card ${className}">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--ds-space-3);">
+                    <div style="font-size: var(--ds-text-2xl);">${icon}</div>
+                    ${change ? `<span style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-semibold); padding: 2px 8px; border-radius: var(--ds-radius-full); background: ${changeType === 'positive' ? 'var(--ds-success-100)' : changeType === 'negative' ? 'var(--ds-danger-100)' : 'var(--ds-gray-100)'}; ${changeColors[changeType]}">${change}</span>` : ''}
                 </div>
-                <h3 style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1);">${title}</h3>
-                <p style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${value}</p>
+                <p style="font-size: var(--ds-text-3xl); font-weight: var(--ds-weight-extrabold); color: var(--ds-text-primary); margin: 0 0 var(--ds-space-1); line-height: 1;">${value}</p>
+                <h3 style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-semibold); color: var(--ds-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin: 0;">${title}</h3>
             </div>
         `;
     },
@@ -189,7 +189,7 @@ const Layout = {
         } = options;
 
         return `
-            <div class="${className}" style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); shadow: var(--ds-shadow-sm); border: 1px solid var(--ds-border-default); padding: var(--ds-space-4); display: flex; align-items: center; justify-content: space-between;">
+            <div class="${className}" style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-xl); box-shadow: var(--ds-shadow-sm); border: 1px solid var(--ds-border-default); padding: var(--ds-space-3) var(--ds-space-4); display: flex; align-items: center; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: var(--ds-space-3);">
                     ${leftActions}
                 </div>

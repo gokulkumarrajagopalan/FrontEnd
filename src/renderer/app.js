@@ -687,10 +687,14 @@ class App {
                             <span id="sidebarAppVersion" style="font-size: 10px; color: rgba(147,197,253,0.55); margin-top: 2px; font-family: var(--ds-font-mono);">v1.0.0</span>
                         </div>
                     </div>
-                    
+
+
+
                     <!-- Navigation Area -->
                     <nav class="ds-sidebar-nav" id="sidebarNav" aria-label="Sidebar navigation">
-                        <div class="ds-nav-section-label">Navigation</div>
+
+                        <!-- Main Section -->
+                        <div class="ds-nav-section-label">Main</div>
                         <a class="ds-nav-link" data-route="company-sync" role="link" tabindex="0" aria-label="My Company">
                             <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-building"></i></span>
                             <span class="ds-nav-text">My Company</span>
@@ -699,13 +703,16 @@ class App {
                             <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-plus-circle"></i></span>
                             <span class="ds-nav-text">Add Company</span>
                         </a>
-                        <a class="ds-nav-link" data-route="settings" role="link" tabindex="0" aria-label="Settings">
-                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-cog"></i></span>
-                            <span class="ds-nav-text">Settings</span>
-                        </a>
+
+                        <!-- Account Section -->
+                        <div class="ds-nav-section-label">Account</div>
                         <a class="ds-nav-link" data-route="profile" role="link" tabindex="0" aria-label="Profile">
-                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-user"></i></span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-user-circle"></i></span>
                             <span class="ds-nav-text">Profile</span>
+                        </a>
+                        <a class="ds-nav-link" data-route="settings" role="link" tabindex="0" aria-label="Settings">
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-sliders-h"></i></span>
+                            <span class="ds-nav-text">Settings</span>
                         </a>
                         <a class="ds-nav-link" id="sidebarNotificationLink" role="link" tabindex="0" aria-label="Notifications" style="cursor: pointer;">
                             <span class="ds-nav-icon" aria-hidden="true" style="position: relative;">
@@ -714,10 +721,13 @@ class App {
                             </span>
                             <span class="ds-nav-text">Notifications</span>
                         </a>
-                        <a class="ds-nav-link" data-route="system-info" role="link" tabindex="0" aria-label="System Info">
-                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-desktop"></i></span>
-                            <span class="ds-nav-text">System Info</span>
+                        <a class="ds-nav-link" data-route="purchase" role="link" tabindex="0" aria-label="Purchase">
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-credit-card"></i></span>
+                            <span class="ds-nav-text">Purchase</span>
                         </a>
+
+                        <!-- Help & System Section -->
+                        <div class="ds-nav-section-label">Help &amp; System</div>
                         <a class="ds-nav-link" data-route="tutorial" role="link" tabindex="0" aria-label="Tutorial">
                             <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-graduation-cap"></i></span>
                             <span class="ds-nav-text">Tutorial</span>
@@ -726,17 +736,17 @@ class App {
                             <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-headset"></i></span>
                             <span class="ds-nav-text">Support</span>
                         </a>
+                        <a class="ds-nav-link" data-route="system-info" role="link" tabindex="0" aria-label="System Info">
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-desktop"></i></span>
+                            <span class="ds-nav-text">System Info</span>
+                        </a>
                         <a class="ds-nav-link" data-route="update-app" role="link" tabindex="0" aria-label="Update App">
-                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-download"></i></span>
+                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-arrow-circle-up"></i></span>
                             <span class="ds-nav-text">Update App</span>
                         </a>
-                        <a class="ds-nav-link" data-route="purchase" role="link" tabindex="0" aria-label="Purchase">
-                            <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-credit-card"></i></span>
-                            <span class="ds-nav-text">Purchase</span>
-                        </a>
-                     
+
                     </nav>
-                    
+
                     <!-- Status Bar -->
                     <div class="ds-sidebar-footer">
                         <div class="ds-sidebar-status">
@@ -751,7 +761,7 @@ class App {
                                 <span class="ds-status-dot online"></span>
                             </div>
                         </div>
-                        
+
                         <!-- Logout Button -->
                         <div class="ds-sidebar-logout">
                             <button id="logoutBtn" class="ds-logout-btn" aria-label="Logout">
@@ -787,6 +797,14 @@ class App {
 
             // Update user info
             this.updateUserInfo();
+
+            // Set sidebar app version dynamically
+            if (window.electronAPI && window.electronAPI.invoke) {
+                window.electronAPI.invoke('get-app-version').then(version => {
+                    const vEl = document.getElementById('sidebarAppVersion');
+                    if (vEl && version) vEl.textContent = `v${version}`;
+                }).catch(() => {});
+            }
 
             // Load companies for global selector (apiConfig should be available by now)
             setTimeout(() => {
@@ -833,6 +851,25 @@ class App {
             const headerUsername = document.getElementById('headerUsername');
             if (headerUsername) {
                 headerUsername.textContent = user.fullName || user.username || 'User';
+            }
+
+            // Populate sidebar user info area
+            const avatarEl = document.getElementById('sidebarUserAvatar');
+            const nameEl = document.getElementById('sidebarUserName');
+            const roleEl = document.getElementById('sidebarUserRole');
+
+            const displayName = user.fullName || user.username || 'User';
+            if (avatarEl) {
+                const words = displayName.trim().split(/\s+/);
+                const initials = words.length >= 2
+                    ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
+                    : displayName.slice(0, 2).toUpperCase();
+                avatarEl.textContent = initials;
+            }
+            if (nameEl) nameEl.textContent = displayName;
+            if (roleEl) {
+                const role = user.role || user.planName || user.plan || 'User';
+                roleEl.textContent = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
             }
 
             // Setup logout button
