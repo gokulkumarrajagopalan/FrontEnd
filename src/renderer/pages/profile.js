@@ -425,14 +425,16 @@
 
         // Email
         setText('emailDisplay', user.email || '\u2014');
-        setVerifiedBadge('emailVerifiedBadge', user.emailVerified);
+        const isEmailVerified = user.emailVerified === true || user.emailVerified === 'Y' || user.isEmailVerified === true || user.email_verified === 'Y' || user.email_verified === true;
+        setVerifiedBadge('emailVerifiedBadge', isEmailVerified);
 
         // Mobile
         const mobileText = user.mobile
             ? (user.countryCode ? `${user.countryCode} ${user.mobile}` : user.mobile)
             : 'Not set';
         setText('mobileDisplay', mobileText);
-        setVerifiedBadge('mobileVerifiedBadge', user.mobileVerified);
+        const isMobileVerified = user.mobileVerified === true || user.mobileVerified === 'Y' || user.isMobileVerified === true || user.mobile_verified === 'Y' || user.mobile_verified === true;
+        setVerifiedBadge('mobileVerifiedBadge', isMobileVerified);
 
         // Pre-select country code
         const ccSelect = document.getElementById('countryCodeSelect');
@@ -446,6 +448,10 @@
         currentUser.email = user.email;
         currentUser.fullName = user.fullName;
         currentUser.licenceNo = user.licenceNo;
+        currentUser.mobile = user.mobile;
+        currentUser.countryCode = user.countryCode;
+        currentUser.emailVerified = isEmailVerified;
+        currentUser.mobileVerified = isMobileVerified;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
         // Cache subscription data separately for sync validation

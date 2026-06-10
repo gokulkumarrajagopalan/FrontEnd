@@ -736,7 +736,7 @@
         });
 
         listSection.style.display = 'block';
-        importContainer.style.display = 'block';
+        updateSelection();
     }
 
     function updateSelection() {
@@ -767,6 +767,12 @@
                 }
             }
         });
+
+        // Show/hide import button based on selections
+        const importContainer = document.getElementById('importButtonContainer');
+        if (importContainer) {
+            importContainer.style.display = selectedCompanies.length > 0 ? 'block' : 'none';
+        }
     }
 
     // Helper function to convert Tally date format to ISO date (YYYY-MM-DD)

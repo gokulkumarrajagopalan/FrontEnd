@@ -54,7 +54,7 @@
             headerActions: `<div style="display: flex; gap: var(--ds-space-3);">${connectWebBtn}${importBtn}</div>`,
             content: `
                 <div style="display: flex; flex-direction: column; gap: var(--ds-space-6); width: 100%;">
-                    <div id="subscriptionCard" style="background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default); border-left: 3px solid var(--ds-primary-500); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--ds-space-3);">
+                    <div id="subscriptionCard" style="background: var(--ds-bg-surface-sunken); padding: var(--ds-space-4); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default); border-left: 3px solid var(--ds-primary-500); display: flex; align-items: center; flex-wrap: wrap; gap: var(--ds-space-8);">
                         <div>
                             <div style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-1);">Subscription Details</div>
                             <div style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: var(--ds-text-primary); display: flex; align-items: center; gap: 8px;">
@@ -65,15 +65,15 @@
                                 </button>
                             </div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: var(--ds-space-3);">
-                            <div style="text-align: right;">
-                                <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Plan</div>
-                                <div id="subPlanName" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">&mdash;</div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Expires</div>
-                                <div id="subExpiry" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">&mdash;</div>
-                            </div>
+                        <div>
+                            <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Plan</div>
+                            <div id="subPlanName" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">&mdash;</div>
+                        </div>
+                        <div>
+                            <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Expires</div>
+                            <div id="subExpiry" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">&mdash;</div>
+                        </div>
+                        <div style="margin-left: auto; display: flex; align-items: center;">
                             <span id="subStatusBadge" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; background: rgba(16,185,129,0.15); color: #065f46; font-size: 12px; font-weight: 600;">
                                 <i class="fas fa-circle" style="font-size: 7px;"></i> Active
                             </span>

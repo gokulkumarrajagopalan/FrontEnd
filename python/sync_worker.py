@@ -261,30 +261,24 @@ from sync_config import SYNC_ORDER as INCREMENTAL_SYNC_ORDER
 
 
 def _sync_one_entity(manager, args, entity_type, force_deep):
-    """Run fast or deep sync for a single entity. Deep when force_deep, or when this
-    entity has never synced (its own lastAlterID is 0)."""
-    deep = force_deep
-    if not deep:
-        last_alter = manager.get_last_alter_id(int(args.company_id), entity_type)
-        if not last_alter:
-            deep = True
-            logger.info(f"ℹ️ {entity_type}: no prior AlterID — running full (deep) first sync")
+    """Sync a single entity with full reconciliation on every run.
 
-    if deep:
-        return manager.sync_and_reconcile(
-            company_id=int(args.company_id), user_id=args.user_id,
-            tally_host=args.host, tally_port=args.port,
-            entity_type=entity_type, company_name=args.company_name)
-    return manager.sync_incremental_fast(
+    Always calls sync_and_reconcile which:
+      1. Fetches ALL records from Tally (one HTTP call)
+      2. Upserts only those with alterID > lastAlterID (incremental)
+      3. Compares full Tally set with DB to detect missing/stale/deleted records
+    The force_deep parameter is kept for API compatibility but has no effect.
+    """
+    return manager.sync_and_reconcile(
         company_id=int(args.company_id), user_id=args.user_id,
         tally_host=args.host, tally_port=args.port,
         entity_type=entity_type, company_name=args.company_name)
 
 
 def run_incremental_sync(args):
-    """Incremental sync. Modes:
-      - DEEP (--deep, or first sync): full fetch + reconcile + deletion propagation.
-      - FAST (default): AlterID-filtered fetch + upsert (cheap, frequent).
+    """Incremental sync with reconciliation on every run.
+    Fetches all records from Tally, upserts only those changed since lastAlterID,
+    then reconciles DB against Tally to detect missing/stale/deleted records.
     When entity_type == 'all', every master entity is synced IN THIS SINGLE PROCESS
     (in dependency order) instead of spawning one process per entity per cycle.
     """
@@ -356,6 +350,43 @@ def run_reconciliation(args):
                 voucher_cache = None
 
         if args.entity_type.lower() == 'all' or args.entity_type.lower() == 'voucher':
+            # ── Incremental AlterID-based voucher sync (runs BEFORE reconciliation) ──
+            # Reconciliation only checks a date window; it never pulls newly altered
+            # vouchers. This step fetches any voucher with AlterID > last watermark,
+            # using a wide date range so prior-FY edits are also captured.
+            if not voucher_cache:
+                try:
+                    voucher_sync_mgr = VoucherSyncManager(args.backend_url, args.auth_token or '', args.device_token or '')
+                    masters = voucher_sync_mgr.get_master_mapping(int(args.company_id))
+                    voucher_alter_id_in_db = masters.get('voucher', 0) or 0
+                    if voucher_alter_id_in_db > 0:
+                        logger.info(f"⚡ Incremental voucher AlterID sync: fetching vouchers with AlterID > {voucher_alter_id_in_db}")
+                        # Use a wide historical from_date so prior-FY altered vouchers are included.
+                        now = datetime.now()
+                        wide_from = f"01-Apr-{now.year - 5}"
+                        wide_to = args.to_date or (
+                            f"31-Mar-{now.year + 1}" if now.month >= 4 else f"31-Mar-{now.year}"
+                        )
+                        incr_result = voucher_sync_mgr.sync_vouchers(
+                            company_id=int(args.company_id),
+                            company_guid=args.company_guid or '',
+                            user_id=args.user_id or 1,
+                            tally_host=args.host,
+                            tally_port=args.port,
+                            from_date=wide_from,
+                            to_date=wide_to,
+                            last_alter_id=voucher_alter_id_in_db,
+                            company_name=args.company_name
+                        )
+                        new_count = incr_result.get('count', 0)
+                        if new_count > 0:
+                            logger.info(f"✅ Incremental voucher sync: {new_count} new/changed voucher(s) synced (AlterID watermark advanced to {incr_result.get('lastAlterID', voucher_alter_id_in_db)})")
+                            # Pass synced records as cache so reconciliation skips a redundant Tally fetch
+                            voucher_cache = incr_result.get('tallyRecords') or None
+                        else:
+                            logger.info(f"✅ Incremental voucher sync: no new vouchers (AlterID > {voucher_alter_id_in_db})")
+                except Exception as incr_err:
+                    logger.warning(f"⚠️ Incremental voucher AlterID sync failed (continuing to reconcile): {incr_err}")
             # Masters are already reconciled inline during sync_and_reconcile().
             # Only voucher reconciliation remains — use in-memory cache when available.
             if voucher_cache:

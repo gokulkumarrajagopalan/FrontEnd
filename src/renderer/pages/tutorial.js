@@ -1,305 +1,402 @@
 (function () {
-    const TUTORIAL_SECTIONS = {
-        "getting-started": {
-            title: "Getting Started",
-            icon: "fas fa-rocket",
-            color: "blue",
-            content: `
-                <div class="tutorial-detail-content">
-                    <section style="margin-bottom: var(--ds-space-8);">
-                        <h4 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-4); color: var(--ds-primary-600);">1. Connect Tally</h4>
-                        <p style="margin-bottom: var(--ds-space-3); line-height: 1.6;">Ensure Tally Prime or Tally.ERP 9 is running on your computer. Your Tally must be configured to allow HTTP services (ODBC port, usually 9000).</p>
-                        <div style="background: var(--ds-bg-subtle); padding: var(--ds-space-4); border-radius: var(--ds-radius-lg); border-left: 4px solid var(--ds-primary-500); font-size: var(--ds-text-sm);">
-                            <i class="fas fa-info-circle mr-2"></i> Go to <b>F1: Help > Settings > Connectivity</b> in Tally to verify the port settings.
-                        </div>
-                    </section>
-                    <section style="margin-bottom: var(--ds-space-8);">
-                        <h4 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-4); color: var(--ds-primary-600);">2. Add Your Company</h4>
-                        <p style="margin-bottom: var(--ds-space-3); line-height: 1.6;">Navigate to the 'Companies' page and click on <b>'Add Company'</b>. Talliffy will automatically detect companies currently open in Tally.</p>
-                    </section>
-                    <section>
-                        <h4 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-4); color: var(--ds-primary-600);">3. Start Initial Sync</h4>
-                        <p style="margin-bottom: var(--ds-space-3); line-height: 1.6;">Once added, click 'Sync Now' to begin pulling your masters and vouchers. Depending on the data size, this may take a few minutes for the first time.</p>
-                    </section>
-                </div>
-            `
-        },
-        "syncing-data": {
-            title: "Syncing Data",
-            icon: "fas fa-sync-alt",
-            color: "green",
-            content: `
-                <div class="tutorial-detail-content">
-                    <section style="margin-bottom: var(--ds-space-8);">
-                        <h4 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-4); color: var(--ds-success-600);">How Synchronization Works</h4>
-                        <p style="margin-bottom: var(--ds-space-3); line-height: 1.6;">Talliffy uses a sophisticated dual-sync approach to ensure your data is always accurate and up-to-date with minimal resource usage.</p>
-                    </section>
-                    <ul style="list-style: none; padding: 0;">
-                        <li style="display: flex; gap: var(--ds-space-4); margin-bottom: var(--ds-space-6);">
-                            <div style="width: 32px; height: 32px; background: var(--ds-success-50); color: var(--ds-success-500); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-bolt"></i></div>
-                            <div>
-                                <b style="display: block; margin-bottom: 4px;">Incremental Sync</b>
-                                <span style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary);">Only new or modified records are fetched using Tally's 'AlterID' mechanism, making syncs lightning fast.</span>
-                            </div>
-                        </li>
-                        <li style="display: flex; gap: var(--ds-space-4); margin-bottom: var(--ds-space-6);">
-                            <div style="width: 32px; height: 32px; background: var(--ds-success-50); color: var(--ds-success-500); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-clock"></i></div>
-                            <div>
-                                <b style="display: block; margin-bottom: 4px;">Background Scheduling</b>
-                                <span style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary);">The dashboard automatically schedules sync tasks based on your preferences, running quietly in the background.</span>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            `
-        },
-        "configuration": {
-            title: "Configuration",
-            icon: "fas fa-cog",
-            color: "indigo",
-            content: `
-                <div class="tutorial-detail-content">
-                    <p style="margin-bottom: var(--ds-space-6); line-height: 1.6;">Customize how Talliffy interacts with your system to match your workflow requirements.</p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-4);">
-                        <div style="padding: var(--ds-space-4); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-lg);">
-                            <h5 style="font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-2);"><i class="fas fa-network-wired mr-2"></i> Connectivity</h5>
-                            <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary);">Set your Tally Host (usually localhost) and Port (default 9000).</p>
-                        </div>
-                        <div style="padding: var(--ds-space-4); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-lg);">
-                            <h5 style="font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-2);"><i class="fas fa-history mr-2"></i> Sync Window</h5>
-                            <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary);">Configure data fetch ranges (e.g., current year, last 30 days).</p>
-                        </div>
-                    </div>
-                </div>
-            `
-        },
-        "troubleshooting": {
-            title: "Troubleshooting",
-            icon: "fas fa-tools",
-            color: "amber",
-            content: `
-                <div class="tutorial-detail-content">
-                    <p style="margin-bottom: var(--ds-space-6); line-height: 1.6;">Facing issues? Here are the most common solutions for connection or data problems.</p>
-                    <div style="background: var(--ds-warning-50); padding: var(--ds-space-6); border-radius: var(--ds-radius-xl);">
-                        <div style="margin-bottom: var(--ds-space-4); display: flex; gap: var(--ds-space-3);">
-                            <i class="fas fa-exclamation-triangle" style="color: var(--ds-warning-500); margin-top: 4px;"></i>
-                            <div>
-                                <b style="display: block; margin-bottom: 2px;">Cannot connect to Tally</b>
-                                <span style="font-size: var(--ds-text-sm);">1. Check if Tally is open. 2. Verify port 9000 is open. 3. Check firewall settings.</span>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: var(--ds-space-3);">
-                            <i class="fas fa-database" style="color: var(--ds-warning-500); margin-top: 4px;"></i>
-                            <div>
-                                <b style="display: block; margin-bottom: 2px;">Sync feels stuck</b>
-                                <span style="font-size: var(--ds-text-sm);">If syncing a very large volume (>50,000 vouchers), Tally may take several minutes to generate the response.</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `
-        },
-        "best-practices": {
-            title: "Best Practices",
-            icon: "fas fa-chart-line",
-            color: "purple",
-            content: `
-                <div class="tutorial-detail-content">
-                    <ul style="list-style: none; padding: 0;">
-                        <li style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-bg-surface); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
-                            <b>Maintain Consistent Connectivity:</b> Keep Tally open and active on the host machine during business hours to ensure background syncs never fail.
-                        </li>
-                        <li style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-bg-surface); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
-                            <b>Monitor Log Outputs:</b> Check the 'Logs' tab periodically to ensure all data modules are synchronizing without errors.
-                        </li>
-                    </ul>
-                </div>
-            `
-        },
-        "video-tutorials": {
-            title: "Video Tutorials",
-            icon: "fas fa-video",
-            color: "red",
-            content: `
-                <div class="tutorial-detail-content">
-                    <p style="margin-bottom: var(--ds-space-6); line-height: 1.6;">Watch our step-by-step visual guides to master Talliffy features quickly.</p>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--ds-space-4);">
-                        <div style="aspect-ratio: 16/9; background: #000; border-radius: var(--ds-radius-lg); position: relative; display: flex; align-items: center; justify-content: center; background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://img.youtube.com/vi/placeholder/0.jpg'); background-size: cover; cursor: pointer;">
-                            <i class="fas fa-play" style="color: white; font-size: 32px;"></i>
-                            <span style="position: absolute; bottom: 8px; left: 8px; color: white; font-size: 10px; font-weight: bold;">Setting up Tally ODBC</span>
-                        </div>
-                        <div style="aspect-ratio: 16/9; background: #000; border-radius: var(--ds-radius-lg); position: relative; display: flex; align-items: center; justify-content: center; background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://img.youtube.com/vi/placeholder/0.jpg'); background-size: cover; cursor: pointer;">
-                            <i class="fas fa-play" style="color: white; font-size: 32px;"></i>
-                            <span style="position: absolute; bottom: 8px; left: 8px; color: white; font-size: 10px; font-weight: bold;">Incremental Sync Deep Dive</span>
-                        </div>
-                    </div>
-                </div>
-            `
-        }
+
+    /* ── color palette (resolved from ds vars with safe hex fallbacks) ── */
+    const THEME = {
+        blue:   { bg: '#EFF6FF', icon: '#3B82F6', border: '#BFDBFE', text: '#1D4ED8' },
+        green:  { bg: '#F0FDF4', icon: '#22C55E', border: '#BBF7D0', text: '#15803D' },
+        indigo: { bg: '#EEF2FF', icon: '#6366F1', border: '#C7D2FE', text: '#4338CA' },
+        amber:  { bg: '#FFFBEB', icon: '#F59E0B', border: '#FDE68A', text: '#B45309' },
+        purple: { bg: '#FAF5FF', icon: '#A855F7', border: '#E9D5FF', text: '#7E22CE' },
+        teal:   { bg: '#F0FDFA', icon: '#14B8A6', border: '#99F6E4', text: '#0F766E' },
     };
 
-    const getTutorialTemplate = () => `
-        <div class="tutorial-container" style="padding: var(--ds-space-6); width: 100%; box-sizing: border-box; transition: all 0.3s ease;">
-            <div id="tutorial-main-view">
-                <!-- HEADER -->
-                <div class="tutorial-header" style="margin-bottom: var(--ds-space-10); text-align: left;">
-                    <h1 style="font-size: var(--ds-text-4xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2); display: flex; align-items: center; gap: var(--ds-space-4);">
-                        <i class="fas fa-graduation-cap" style="color: var(--ds-primary-500);"></i> Tutorial
-                    </h1>
-                    <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-lg);">
-                        Master Talliffy with our comprehensive guides and resources
-                    </p>
+    /* ── section definitions ─────────────────────────────────────────── */
+    const SECTIONS = [
+        {
+            key: 'getting-started',
+            title: 'Getting Started',
+            icon: 'fas fa-rocket',
+            color: 'blue',
+            desc: 'Connect Tally, add your company, and run your first sync in minutes.',
+            content: () => `
+                <div class="tut-steps">
+                    ${step(1, 'blue', 'fas fa-plug', 'Open Tally Prime',
+                        `Make sure Tally Prime is running and HTTP services are enabled.
+                         Go to <b>F1: Help → Settings → Connectivity</b> and confirm the port
+                         (default <code style="background:#EFF6FF;padding:1px 6px;border-radius:4px;font-size:12px;">9000</code>)
+                         is active.`)}
+                    ${step(2, 'blue', 'fas fa-building', 'Add Your Company',
+                        `Click <b>Add Company</b> in the sidebar. Talliffy will automatically detect
+                         companies currently open in Tally. Select the correct company and confirm.`)}
+                    ${step(3, 'blue', 'fas fa-database', 'Run the Initial Sync',
+                        `Click <b>Sync Now</b> on the company card. The first sync pulls all masters
+                         (ledgers, groups, stock items, voucher types, etc.) and all vouchers for the
+                         selected date range. Depending on data size this may take a few minutes.`)}
+                    ${step(4, 'blue', 'fas fa-chart-bar', 'Explore Your Dashboard',
+                        `Once sync completes, navigate to the company to access Trial Balance,
+                         Profit & Loss, Balance Sheet, Ledger reports, and Vouchers — all powered
+                         by your live Tally data.`)}
+                </div>
+                ${callout('blue', 'fas fa-info-circle',
+                    'Subsequent syncs are incremental and usually complete in seconds, using Tally\'s AlterID mechanism to fetch only changed records.')}
+            `
+        },
+        {
+            key: 'syncing-data',
+            title: 'Syncing Data',
+            icon: 'fas fa-sync-alt',
+            color: 'green',
+            desc: 'Understand how masters, vouchers and reports stay in sync automatically.',
+            content: () => `
+                ${sectionHeading('green', 'What gets synced?')}
+                <div class="tut-grid-2" style="margin-bottom:24px;">
+                    ${infoBox('green', 'fas fa-layer-group', 'Masters',
+                        'Groups, Ledgers, Stock Items, Stock Groups, Units, Godowns, Voucher Types, Cost Centres, Cost Categories, Tax Units, Currency')}
+                    ${infoBox('green', 'fas fa-file-invoice', 'Vouchers',
+                        'All voucher types — Sales, Purchase, Payment, Receipt, Journal, Contra — with full ledger entries, inventory lines, bill allocations, and batch details')}
+                </div>
+                ${sectionHeading('green', 'How the sync works')}
+                <div class="tut-timeline">
+                    ${timelineItem('green', 'fas fa-bolt', 'Incremental Sync (default)',
+                        'Every sync compares Tally\'s <b>AlterID</b> watermark with the last saved value. Only records modified since then are fetched — keeping syncs fast and light.')}
+                    ${timelineItem('green', 'fas fa-check-double', 'Reconciliation on Every Sync',
+                        'After fetching changed records, Talliffy compares the full Tally record set against the database to detect any missing, stale, or deleted records and corrects them automatically.')}
+                    ${timelineItem('green', 'fas fa-clock', 'Background Scheduling',
+                        'Sync runs automatically at the interval you configure in Settings. You can also trigger a manual sync at any time from the company card.')}
+                </div>
+            `
+        },
+        {
+            key: 'configuration',
+            title: 'Configuration',
+            icon: 'fas fa-sliders-h',
+            color: 'indigo',
+            desc: 'Fine-tune your Tally connection, sync interval, and date range.',
+            content: () => `
+                ${sectionHeading('indigo', 'Connection Settings')}
+                <div class="tut-grid-2" style="margin-bottom:28px;">
+                    ${infoBox('indigo', 'fas fa-network-wired', 'Tally Host',
+                        'Usually <code style="background:#EEF2FF;padding:1px 6px;border-radius:4px;font-size:12px;">localhost</code> when Tally is on the same machine. Enter the IP address if Tally runs on a separate server on your network.')}
+                    ${infoBox('indigo', 'fas fa-hashtag', 'Tally Port',
+                        'Default is <code style="background:#EEF2FF;padding:1px 6px;border-radius:4px;font-size:12px;">9000</code>. Change only if you configured a custom port in Tally\'s Connectivity settings.')}
+                </div>
+                ${sectionHeading('indigo', 'Sync Settings')}
+                <div class="tut-grid-2" style="margin-bottom:8px;">
+                    ${infoBox('indigo', 'fas fa-history', 'Sync Interval',
+                        'How often automatic background sync runs. Shorter intervals keep data more up-to-date; longer intervals reduce system load.')}
+                    ${infoBox('indigo', 'fas fa-calendar-alt', 'Date Range',
+                        'Controls the voucher window fetched from Tally (e.g. current financial year). Masters are always synced in full regardless of date range.')}
+                </div>
+                ${callout('indigo', 'fas fa-lock', 'Your authentication tokens are stored securely and never exposed in process listings or logs.')}
+            `
+        },
+        {
+            key: 'troubleshooting',
+            title: 'Troubleshooting',
+            icon: 'fas fa-tools',
+            color: 'amber',
+            desc: 'Quick fixes for the most common connection and data sync issues.',
+            content: () => `
+                ${issue('Cannot connect to Tally',
+                    ['Confirm Tally Prime is open and not minimised to tray.',
+                     'Go to <b>F1: Help → Settings → Connectivity</b> and verify HTTP port is enabled.',
+                     'Check your firewall — port 9000 must be accessible from Talliffy.',
+                     'If Tally is on a different machine, ensure the host IP in Settings is correct.'])}
+                ${issue('Sync stuck or very slow',
+                    ['Large initial syncs (>50 k vouchers) can take several minutes — this is normal.',
+                     'Talliffy syncs vouchers in monthly chunks; watch the log for per-chunk progress.',
+                     'If stuck for >10 min, click <b>Stop Sync</b>, restart Tally, then retry.'])}
+                ${issue('Data not updating after a change in Tally',
+                    ['Trigger a manual sync using the <b>Sync Now</b> button.',
+                     'Ensure background sync is enabled and the interval has not been set too high.',
+                     'If a record is still stale, the next reconciliation cycle will detect and fix it.'])}
+                ${issue('Company not appearing when adding',
+                    ['The company must be open (not just loaded) in Tally at the time of detection.',
+                     'Open the company in Tally, then click <b>Refresh</b> on the Add Company screen.'])}
+            `
+        },
+        {
+            key: 'best-practices',
+            title: 'Best Practices',
+            icon: 'fas fa-star',
+            color: 'purple',
+            desc: 'Tips for reliable syncs, clean data, and optimal performance.',
+            content: () => `
+                <div class="tut-practices">
+                    ${practice('purple', 'fas fa-power-off',    'Keep Tally open during business hours',  'Talliffy\'s background sync depends on Tally\'s HTTP service. Closing Tally pauses all automatic syncs.')}
+                    ${practice('purple', 'fas fa-calendar-check','Sync before generating reports',          'Always run a manual sync before opening financial reports to ensure you\'re viewing the latest data from Tally.')}
+                    ${practice('purple', 'fas fa-list-alt',      'Review the sync log periodically',       'Open <b>Logs</b> from the sidebar to verify that all entities are syncing without errors or warnings.')}
+                    ${practice('purple', 'fas fa-building',      'One company per Tally instance',         'If you manage multiple companies, open them one at a time in Tally when syncing to avoid cross-company data issues.')}
+                    ${practice('purple', 'fas fa-wifi',          'Stable network for remote Tally',        'When Tally runs on a server, a stable LAN connection is essential. Wireless or VPN connections may cause timeout errors during large syncs.')}
+                </div>
+            `
+        },
+        {
+            key: 'whats-synced',
+            title: "What's Synced",
+            icon: 'fas fa-table',
+            color: 'teal',
+            desc: 'Full list of every entity Talliffy pulls from Tally and stores.',
+            content: () => `
+                ${sectionHeading('teal', 'Master Data')}
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:28px;">
+                    ${badge('teal','Groups')}${badge('teal','Ledgers')}${badge('teal','Stock Items')}
+                    ${badge('teal','Stock Groups')}${badge('teal','Stock Categories')}${badge('teal','Units')}
+                    ${badge('teal','Godowns')}${badge('teal','Voucher Types')}${badge('teal','Cost Centres')}
+                    ${badge('teal','Cost Categories')}${badge('teal','Tax Units')}${badge('teal','Currency')}
+                </div>
+                ${sectionHeading('teal', 'Voucher Data')}
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:28px;">
+                    ${badge('teal','Voucher Headers')}${badge('teal','Ledger Entries')}${badge('teal','Bill Allocations')}
+                    ${badge('teal','Inventory Entries')}${badge('teal','Batch Allocations')}${badge('teal','Cost Allocations')}
+                </div>
+                ${sectionHeading('teal', 'Reports')}
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:8px;">
+                    ${badge('teal','Trial Balance')}${badge('teal','Profit & Loss')}${badge('teal','Balance Sheet')}
+                    ${badge('teal','Bills Receivable')}${badge('teal','Bills Payable')}
+                </div>
+            `
+        },
+    ];
+
+    /* ── reusable component helpers ──────────────────────────────────── */
+    function step(num, color, icon, title, body) {
+        const t = THEME[color];
+        return `
+            <div style="display:flex;gap:16px;margin-bottom:24px;align-items:flex-start;">
+                <div style="min-width:40px;height:40px;background:${t.bg};border:1px solid ${t.border};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:${t.text};font-size:15px;flex-shrink:0;">${num}</div>
+                <div>
+                    <div style="font-weight:600;color:var(--ds-text-primary,#111827);margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                        <i class="${icon}" style="color:${t.icon};font-size:13px;"></i>${title}
+                    </div>
+                    <p style="font-size:14px;line-height:1.65;color:var(--ds-text-secondary,#4B5563);margin:0;">${body}</p>
+                </div>
+            </div>`;
+    }
+
+    function callout(color, icon, text) {
+        const t = THEME[color];
+        return `
+            <div style="background:${t.bg};border-left:4px solid ${t.icon};border-radius:8px;padding:14px 16px;display:flex;gap:10px;align-items:flex-start;margin-top:8px;">
+                <i class="${icon}" style="color:${t.icon};margin-top:2px;flex-shrink:0;"></i>
+                <span style="font-size:13px;line-height:1.6;color:${t.text};">${text}</span>
+            </div>`;
+    }
+
+    function sectionHeading(color, text) {
+        const t = THEME[color];
+        return `<h4 style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${t.icon};margin:0 0 14px;">${text}</h4>`;
+    }
+
+    function infoBox(color, icon, title, body) {
+        const t = THEME[color];
+        return `
+            <div style="padding:16px;border:1px solid ${t.border};border-radius:12px;background:${t.bg};">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                    <i class="${icon}" style="color:${t.icon};font-size:14px;"></i>
+                    <span style="font-weight:600;font-size:14px;color:var(--ds-text-primary,#111827);">${title}</span>
+                </div>
+                <p style="font-size:13px;line-height:1.6;color:var(--ds-text-secondary,#4B5563);margin:0;">${body}</p>
+            </div>`;
+    }
+
+    function timelineItem(color, icon, title, body) {
+        const t = THEME[color];
+        return `
+            <div style="display:flex;gap:14px;margin-bottom:20px;">
+                <div style="min-width:34px;height:34px;background:${t.bg};border:1px solid ${t.border};border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="${icon}" style="color:${t.icon};font-size:13px;"></i>
+                </div>
+                <div>
+                    <div style="font-weight:600;font-size:14px;color:var(--ds-text-primary,#111827);margin-bottom:4px;">${title}</div>
+                    <p style="font-size:13px;line-height:1.65;color:var(--ds-text-secondary,#4B5563);margin:0;">${body}</p>
+                </div>
+            </div>`;
+    }
+
+    function issue(title, items) {
+        return `
+            <div style="margin-bottom:20px;border:1px solid #FDE68A;border-radius:12px;overflow:hidden;">
+                <div style="background:#FFFBEB;padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #FDE68A;">
+                    <i class="fas fa-exclamation-triangle" style="color:#F59E0B;font-size:13px;"></i>
+                    <span style="font-weight:600;font-size:14px;color:#92400E;">${title}</span>
+                </div>
+                <div style="padding:14px 16px;background:#fff;">
+                    <ol style="margin:0;padding-left:18px;">
+                        ${items.map(i => `<li style="font-size:13px;line-height:1.65;color:var(--ds-text-secondary,#4B5563);margin-bottom:6px;">${i}</li>`).join('')}
+                    </ol>
+                </div>
+            </div>`;
+    }
+
+    function practice(color, icon, title, body) {
+        const t = THEME[color];
+        return `
+            <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--ds-border-default,#E5E7EB);border-radius:12px;margin-bottom:12px;">
+                <div style="min-width:36px;height:36px;background:${t.bg};border:1px solid ${t.border};border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="${icon}" style="color:${t.icon};font-size:14px;"></i>
+                </div>
+                <div>
+                    <div style="font-weight:600;font-size:14px;color:var(--ds-text-primary,#111827);margin-bottom:4px;">${title}</div>
+                    <p style="font-size:13px;line-height:1.6;color:var(--ds-text-secondary,#4B5563);margin:0;">${body}</p>
+                </div>
+            </div>`;
+    }
+
+    function badge(color, label) {
+        const t = THEME[color];
+        return `<div style="padding:8px 12px;background:${t.bg};border:1px solid ${t.border};border-radius:8px;font-size:13px;font-weight:500;color:${t.text};text-align:center;">${label}</div>`;
+    }
+
+    /* ── card for the main grid ──────────────────────────────────────── */
+    function tutorialCard(s) {
+        const t = THEME[s.color];
+        return `
+            <div class="tut-card" data-section="${s.key}"
+                style="background:var(--ds-bg-surface,#fff);padding:24px;border-radius:16px;border:1px solid var(--ds-border-default,#E5E7EB);cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column;align-items:flex-start;box-shadow:0 1px 3px rgba(0,0,0,.06);"
+                onmouseover="this.style.borderColor='${t.icon}';this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.10)'"
+                onmouseout="this.style.borderColor='var(--ds-border-default,#E5E7EB)';this.style.transform='translateY(0)';this.style.boxShadow='0 1px 3px rgba(0,0,0,.06)'">
+                <div style="width:48px;height:48px;background:${t.bg};color:${t.icon};border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:16px;border:1px solid ${t.border};">
+                    <i class="${s.icon}"></i>
+                </div>
+                <h3 style="font-size:15px;font-weight:700;color:var(--ds-text-primary,#111827);margin:0 0 6px;">${s.title}</h3>
+                <p style="font-size:13px;color:var(--ds-text-tertiary,#6B7280);line-height:1.55;margin:0 0 auto;flex:1;">${s.desc}</p>
+                <div class="tut-learn" style="margin-top:16px;color:${t.icon};font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;opacity:0;transition:opacity 0.2s;">
+                    Learn more <i class="fas fa-arrow-right" style="font-size:10px;"></i>
+                </div>
+            </div>`;
+    }
+
+    /* ── main grid template ──────────────────────────────────────────── */
+    function getMainTemplate() {
+        return `
+            <div style="padding:32px;max-width:1100px;">
+                <!-- page header -->
+                <div style="margin-bottom:32px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+                        <div style="width:40px;height:40px;background:#EFF6FF;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                            <i class="fas fa-graduation-cap" style="color:#3B82F6;font-size:18px;"></i>
+                        </div>
+                        <h1 style="font-size:24px;font-weight:700;color:var(--ds-text-primary,#111827);margin:0;">Tutorial</h1>
+                    </div>
+                    <p style="color:var(--ds-text-tertiary,#6B7280);font-size:14px;margin:0 0 0 52px;">Master Talliffy with step-by-step guides and reference material</p>
                 </div>
 
-                <!-- CONTENT GRID -->
-                <div class="tutorial-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--ds-space-6); margin-bottom: var(--ds-space-10);">
-                    ${tutorialCard("fas fa-rocket", "Getting Started", "Learn how to add your first company and start syncing", "blue", "getting-started")}
-                    ${tutorialCard("fas fa-sync-alt", "Syncing Data", "Understand how data synchronization works seamlessly", "green", "syncing-data")}
-                    ${tutorialCard("fas fa-cog", "Configuration", "Fine-tune your Tally connection and sync preferences", "indigo", "configuration")}
-                    ${tutorialCard("fas fa-tools", "Troubleshooting", "Quick solutions for common connection and data issues", "amber", "troubleshooting")}
-                    ${tutorialCard("fas fa-chart-line", "Best Practices", "Expert tips for optimal performance and data integrity", "purple", "best-practices")}
-                    ${tutorialCard("fas fa-video", "Video Tutorials", "Step-by-step visual guides for all core features", "red", "video-tutorials")}
+                <!-- card grid -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:32px;">
+                    ${SECTIONS.map(tutorialCard).join('')}
                 </div>
 
-                <!-- HELP BANNER -->
-                <div class="help-banner" style="padding: var(--ds-space-10); background: linear-gradient(135deg, var(--ds-primary-600) 0%, var(--ds-primary-800) 100%); border-radius: var(--ds-radius-2xl); color: var(--ds-text-inverse); display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-6); box-shadow: var(--ds-shadow-lg);">
-                    <div style="display: flex; align-items: center; gap: var(--ds-space-8);">
-                        <div style="width: 64px; height: 64px; background: rgba(255, 255, 255, 0.2); border-radius: var(--ds-radius-full); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-3xl); flex-shrink: 0; box-shadow: var(--ds-shadow-sm);">
-                            <i class="fas fa-book-open"></i>
+                <!-- help banner -->
+                <div style="background:linear-gradient(135deg,#1D4ED8 0%,#4338CA 100%);border-radius:16px;padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;box-shadow:0 4px 16px rgba(59,130,246,.3);">
+                    <div style="display:flex;align-items:center;gap:20px;">
+                        <div style="width:52px;height:52px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+                            <i class="fas fa-headset" style="color:#fff;"></i>
                         </div>
                         <div>
-                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-1);">
-                                Need More Help?
-                            </h3>
-                            <p style="opacity: 0.9; font-size: var(--ds-text-md); line-height: 1.5; max-width: 440px;">
-                                Our extensive knowledge base contains detailed documentation, FAQs, and developer guides.
-                            </p>
+                            <h3 style="font-size:16px;font-weight:700;color:#fff;margin:0 0 4px;">Need personalised help?</h3>
+                            <p style="font-size:13px;color:rgba(255,255,255,.8);margin:0;max-width:420px;">Contact our support team or browse the knowledge base for detailed documentation and FAQs.</p>
                         </div>
                     </div>
-
-                    <button class="ds-btn" style="background: var(--ds-text-inverse); color: var(--ds-primary-600); border: none; font-weight: var(--ds-weight-bold); padding: var(--ds-space-3) var(--ds-space-6); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                        Visit Knowledge Base <i class="fas fa-external-link-alt ml-2"></i>
+                    <button id="tut-support-btn" style="background:#fff;color:#1D4ED8;border:none;border-radius:10px;font-weight:700;font-size:13px;padding:10px 22px;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.12);">
+                        Contact Support <i class="fas fa-external-link-alt" style="margin-left:6px;font-size:11px;"></i>
                     </button>
                 </div>
-            </div>
-            <div id="tutorial-detail-view" style="display: none;">
-                <!-- Content will be injected here -->
-            </div>
-        </div>
-    `;
+            </div>`;
+    }
 
-    const getDetailTemplate = (section) => {
-        const colors = {
-            blue: 'var(--ds-primary-500)',
-            green: 'var(--ds-success-500)',
-            indigo: 'var(--ds-indigo-500)',
-            amber: 'var(--ds-warning-500)',
-            purple: 'var(--ds-purple-500)',
-            red: 'var(--ds-error-500)'
-        };
-        const color = colors[section.color] || colors.blue;
-
+    /* ── detail view template ────────────────────────────────────────── */
+    function getDetailTemplate(s) {
+        const t = THEME[s.color];
         return `
-            <div class="detail-container">
-                <button id="tutorial-back-btn" style="background: none; border: none; color: var(--ds-text-tertiary); cursor: pointer; display: flex; align-items: center; gap: var(--ds-space-2); margin-bottom: var(--ds-space-8); padding: var(--ds-space-2) 0; font-weight: var(--ds-weight-medium); transition: color 0.2s;">
-                    <i class="fas fa-arrow-left"></i> Back to Tutorials
+            <div style="padding:32px;max-width:860px;">
+                <!-- back button -->
+                <button id="tut-back-btn"
+                    style="display:inline-flex;align-items:center;gap:8px;background:var(--ds-bg-subtle,#F9FAFB);border:1px solid var(--ds-border-default,#E5E7EB);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ds-text-secondary,#4B5563);cursor:pointer;margin-bottom:28px;transition:all 0.15s;"
+                    onmouseover="this.style.borderColor='${t.icon}';this.style.color='${t.icon}'"
+                    onmouseout="this.style.borderColor='var(--ds-border-default,#E5E7EB)';this.style.color='var(--ds-text-secondary,#4B5563)'">
+                    <i class="fas fa-arrow-left" style="font-size:11px;"></i> Back to Tutorials
                 </button>
 
-                <div style="display: flex; align-items: center; gap: var(--ds-space-6); margin-bottom: var(--ds-space-10);">
-                    <div style="width: 72px; height: 72px; background: var(--ds-bg-surface); color: ${color}; border-radius: var(--ds-radius-2xl); display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: var(--ds-shadow-sm); border: 1px solid var(--ds-border-default);">
-                        <i class="${section.icon}"></i>
+                <!-- section header -->
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px;">
+                    <div style="width:60px;height:60px;background:${t.bg};color:${t.icon};border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;border:1px solid ${t.border};flex-shrink:0;">
+                        <i class="${s.icon}"></i>
                     </div>
                     <div>
-                        <h2 style="font-size: var(--ds-text-3xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: 4px;">${section.title}</h2>
-                        <div style="height: 4px; width: 48px; background: ${color}; border-radius: 2px;"></div>
+                        <h2 style="font-size:22px;font-weight:700;color:var(--ds-text-primary,#111827);margin:0 0 6px;">${s.title}</h2>
+                        <p style="font-size:14px;color:var(--ds-text-tertiary,#6B7280);margin:0;">${s.desc}</p>
                     </div>
                 </div>
 
-                <div style="background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-2xl); padding: var(--ds-space-10); box-shadow: var(--ds-shadow-sm);">
-                    ${section.content}
+                <!-- content card -->
+                <div style="background:var(--ds-bg-surface,#fff);border:1px solid var(--ds-border-default,#E5E7EB);border-radius:16px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                    <style>
+                        .tut-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+                        @media(max-width:600px){.tut-grid-2{grid-template-columns:1fr;}}
+                    </style>
+                    ${s.content()}
                 </div>
-            </div>
-        `;
-    };
+            </div>`;
+    }
 
-    const tutorialCard = (iconClass, title, desc, colorTheme, sectionKey) => {
-        const colors = {
-            blue: { bg: 'var(--ds-primary-50)', icon: 'var(--ds-primary-500)', border: 'var(--ds-primary-100)' },
-            green: { bg: 'var(--ds-success-50)', icon: 'var(--ds-success-500)', border: 'var(--ds-success-100)' },
-            indigo: { bg: 'var(--ds-indigo-50)', icon: 'var(--ds-indigo-500)', border: 'var(--ds-indigo-100)' },
-            amber: { bg: 'var(--ds-warning-50)', icon: 'var(--ds-warning-500)', border: 'var(--ds-warning-100)' },
-            purple: { bg: 'var(--ds-purple-50)', icon: 'var(--ds-purple-500)', border: 'var(--ds-purple-100)' },
-            red: { bg: 'var(--ds-error-50)', icon: 'var(--ds-error-500)', border: 'var(--ds-error-100)' }
-        };
-        const theme = colors[colorTheme] || colors.blue;
-
-        return `
-            <div class="tutorial-card" data-section="${sectionKey}" style="background: var(--ds-bg-surface); padding: var(--ds-space-8); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default); cursor: pointer; transition: all var(--ds-duration-base) var(--ds-ease); display: flex; flex-direction: column; align-items: flex-start; text-align: left; position: relative; overflow: hidden; box-shadow: var(--ds-shadow-sm);"
-            onmouseover="this.style.borderColor='${theme.icon}'; this.style.transform='translateY(-4px)'; this.style.boxShadow='var(--ds-shadow-md)'"
-            onmouseout="this.style.borderColor='var(--ds-border-default)'; this.style.transform='translateY(0)'; this.style.boxShadow='var(--ds-shadow-sm)'">
-                
-                <div style="width: 50px; height: 50px; background: ${theme.bg}; color: ${theme.icon}; border-radius: var(--ds-radius-xl); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-xl); margin-bottom: var(--ds-space-5); transition: all var(--ds-duration-base) var(--ds-ease); border: 1px solid ${theme.border};">
-                    <i class="${iconClass}"></i>
-                </div>
-                
-                <h3 style="font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2);">
-                    ${title}
-                </h3>
-                
-                <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm); line-height: 1.6;">
-                    ${desc}
-                </p>
-
-                <div class="learn-more-link" style="margin-top: auto; padding-top: var(--ds-space-4); color: ${theme.icon}; font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); display: flex; align-items: center; gap: var(--ds-space-2); opacity: 0; transition: opacity var(--ds-duration-base) var(--ds-ease);">
-                    Learn More <i class="fas fa-arrow-right"></i>
-                </div>
-            </div>
-        `;
-    };
-
+    /* ── init ────────────────────────────────────────────────────────── */
     window.initializeTutorial = function () {
-        const content = document.getElementById('page-content');
-        if (content) {
-            content.innerHTML = getTutorialTemplate();
+        const root = document.getElementById('page-content');
+        if (!root) return;
 
-            const mainView = document.getElementById('tutorial-main-view');
-            const detailView = document.getElementById('tutorial-detail-view');
-            const cards = content.querySelectorAll('.tutorial-card');
+        const wrapper = document.createElement('div');
+        wrapper.id = 'tut-wrapper';
 
-            cards.forEach(card => {
-                // Hover effect for Learn More
-                card.addEventListener('mouseenter', () => {
-                    const arrow = card.querySelector('.learn-more-link');
-                    if (arrow) arrow.style.opacity = '1';
-                });
-                card.addEventListener('mouseleave', () => {
-                    const arrow = card.querySelector('.learn-more-link');
-                    if (arrow) arrow.style.opacity = '0';
-                });
+        const mainEl  = document.createElement('div');
+        mainEl.id     = 'tut-main';
+        mainEl.innerHTML = getMainTemplate();
 
-                // Click to view detail
-                card.addEventListener('click', () => {
-                    const sectionKey = card.getAttribute('data-section');
-                    const section = TUTORIAL_SECTIONS[sectionKey];
-                    if (section) {
-                        detailView.innerHTML = getDetailTemplate(section);
-                        mainView.style.display = 'none';
-                        detailView.style.display = 'block';
+        const detailEl = document.createElement('div');
+        detailEl.id   = 'tut-detail';
+        detailEl.style.display = 'none';
 
-                        // Hook up back button
-                        const backBtn = document.getElementById('tutorial-back-btn');
-                        backBtn.addEventListener('click', () => {
-                            detailView.style.display = 'none';
-                            mainView.style.display = 'block';
-                        });
+        wrapper.appendChild(mainEl);
+        wrapper.appendChild(detailEl);
+        root.innerHTML = '';
+        root.appendChild(wrapper);
 
-                        // Hover for back button
-                        backBtn.addEventListener('mouseenter', () => backBtn.style.color = 'var(--ds-primary-500)');
-                        backBtn.addEventListener('mouseleave', () => backBtn.style.color = 'var(--ds-text-tertiary)');
-                    }
-                });
+        /* card clicks */
+        mainEl.querySelectorAll('.tut-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                const link = card.querySelector('.tut-learn');
+                if (link) link.style.opacity = '1';
+            });
+            card.addEventListener('mouseleave', () => {
+                const link = card.querySelector('.tut-learn');
+                if (link) link.style.opacity = '0';
+            });
+            card.addEventListener('click', () => {
+                const s = SECTIONS.find(x => x.key === card.dataset.section);
+                if (!s) return;
+                detailEl.innerHTML = getDetailTemplate(s);
+                mainEl.style.display  = 'none';
+                detailEl.style.display = 'block';
+
+                const backBtn = document.getElementById('tut-back-btn');
+                if (backBtn) {
+                    backBtn.addEventListener('click', () => {
+                        detailEl.style.display = 'none';
+                        mainEl.style.display   = 'block';
+                    });
+                }
+
+                /* scroll detail to top */
+                root.scrollTop = 0;
+            });
+        });
+
+        /* support button */
+        const supportBtn = document.getElementById('tut-support-btn');
+        if (supportBtn) {
+            supportBtn.addEventListener('click', () => {
+                if (window.app && window.app.navigate) window.app.navigate('support');
             });
         }
     };
 })();
-
