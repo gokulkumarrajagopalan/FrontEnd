@@ -210,12 +210,126 @@
         });
     }
 
+    function showBetaTrialPopup(planName) {
+        if (localStorage.getItem('betaTrialActivated') === 'true') return;
+        const popupId = window.Popup.show({
+            title: '',
+            size: 'sm',
+            closeable: true,
+            content: `
+                <div style="text-align: center; padding: var(--ds-space-2) 0;">
+                    <!-- Icon -->
+                    <div style="position: relative; display: inline-flex; align-items: center; justify-content: center; width: 72px; height: 72px; margin: 0 auto var(--ds-space-5);">
+                        <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(79,70,229,0.15)); border-radius: 50%; animation: pulse 2s infinite;"></div>
+                        <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #7c3aed, #4f46e5); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; box-shadow: 0 8px 24px rgba(99,70,229,0.35);">
+                            <i class="fas fa-flask"></i>
+                        </div>
+                    </div>
+
+                    <!-- Badge -->
+                    <div style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 14px; border-radius: 999px; margin-bottom: var(--ds-space-4);">
+                        <i class="fas fa-star" style="font-size: 9px;"></i> Beta Trial
+                    </div>
+
+                    <!-- Heading -->
+                    <h2 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2);">
+                        You're on the Beta!
+                    </h2>
+                    <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-sm); margin-bottom: var(--ds-space-6); line-height: 1.6;">
+                        Talliffy is currently in <strong>Beta</strong>. Enjoy all <strong>${planName}</strong> features completely
+                        <span style="color: #7c3aed; font-weight: 700;">free</span> during this period. No payment needed.
+                    </p>
+
+                    <!-- Feature highlights -->
+                    <div style="background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(79,70,229,0.06)); border: 1px solid rgba(139,92,246,0.2); border-radius: var(--ds-radius-xl); padding: var(--ds-space-4) var(--ds-space-5); margin-bottom: var(--ds-space-6); text-align: left;">
+                        <div style="display: flex; flex-direction: column; gap: var(--ds-space-2);">
+                            <div style="display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm); color: var(--ds-text-secondary);">
+                                <i class="fas fa-check-circle" style="color: #7c3aed; font-size: 14px; flex-shrink: 0;"></i>
+                                <span>All features unlocked at no cost</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm); color: var(--ds-text-secondary);">
+                                <i class="fas fa-check-circle" style="color: #7c3aed; font-size: 14px; flex-shrink: 0;"></i>
+                                <span>No credit card required</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm); color: var(--ds-text-secondary);">
+                                <i class="fas fa-check-circle" style="color: #7c3aed; font-size: 14px; flex-shrink: 0;"></i>
+                                <span>Access continues until official launch</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm); color: var(--ds-text-secondary);">
+                                <i class="fas fa-check-circle" style="color: #7c3aed; font-size: 14px; flex-shrink: 0;"></i>
+                                <span>Help shape the product with your feedback</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="display: flex; flex-direction: column; gap: var(--ds-space-3);">
+                        <button id="betaActivateBtn" style="width: 100%; padding: 12px 20px; background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); color: #fff; border: none; border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(99,70,229,0.4); transition: opacity 0.15s;">
+                            <i class="fas fa-rocket"></i> Activate Beta Trial
+                        </button>
+                        <button id="betaCancelBtn" style="width: 100%; padding: 11px 20px; background: transparent; color: var(--ds-text-secondary); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); cursor: pointer; transition: background 0.15s;">
+                            Maybe Later
+                        </button>
+                    </div>
+
+                    <!-- Footer note -->
+                    <p style="margin-top: var(--ds-space-5); font-size: var(--ds-text-2xs); color: var(--ds-text-tertiary); line-height: 1.5;">
+                        <i class="fas fa-lock" style="margin-right: 4px;"></i>
+                        Your data is always secure. Beta access is subject to our terms of service.
+                    </p>
+                </div>
+            `
+        });
+
+        setTimeout(() => {
+            document.getElementById('betaActivateBtn')?.addEventListener('click', () => {
+                localStorage.setItem('betaTrialActivated', 'true');
+                window.Popup.close(popupId);
+                const successPopupId = window.Popup.show({
+                    title: 'Beta Trial Activated!',
+                    size: 'sm',
+                    closeable: true,
+                    content: `
+                        <div style="text-align: center; padding: var(--ds-space-4) 0;">
+                            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; margin: 0 auto var(--ds-space-5); box-shadow: 0 8px 24px rgba(16,185,129,0.35);">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h2 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-3);">You're all set!</h2>
+                            <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-sm); line-height: 1.6; margin-bottom: var(--ds-space-6);">
+                                Your <strong>${planName}</strong> beta trial is now active. Enjoy all features at no cost. We'll notify you before the trial ends.
+                            </p>
+                            <button id="betaDoneBtn" style="width: 100%; padding: 12px 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); cursor: pointer; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
+                                <i class="fas fa-thumbs-up"></i> Great, Let's Go!
+                            </button>
+                        </div>
+                    `
+                });
+                setTimeout(() => {
+                    document.getElementById('betaDoneBtn')?.addEventListener('click', () => {
+                        window.Popup.close(successPopupId);
+                    });
+                }, 50);
+            });
+
+            document.getElementById('betaCancelBtn')?.addEventListener('click', () => {
+                window.Popup.close(popupId);
+            });
+        }, 50);
+    }
+
     window.initializePurchase = function () {
         console.log('Initializing Purchase Page...');
         const content = document.getElementById('page-content');
         if (content) {
             content.innerHTML = getPurchaseTemplate();
             initDurationToggle();
+
+            document.getElementById('basicBtn')?.addEventListener('click', () => {
+                showBetaTrialPopup('Basic');
+            });
+            document.getElementById('proBtn')?.addEventListener('click', () => {
+                showBetaTrialPopup('Professional');
+            });
         }
     };
 })();

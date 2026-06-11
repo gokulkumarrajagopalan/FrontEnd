@@ -876,49 +876,63 @@ class App {
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', () => {
-                    window.Popup.show({
+                    const _logoutPopupId = window.Popup.show({
                         title: 'Select Logout Scope',
                         size: 'sm',
                         closeable: true,
                         content: `
-                            <div style="text-align: center; padding: var(--ds-space-2) 0;">
+                            <div style="text-align: center; padding: var(--ds-space-2) 0 var(--ds-space-2);">
                                 <div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, rgba(79,70,229,0.1), rgba(37,99,235,0.1)); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--ds-space-4); color: #4f46e5; font-size: 24px;">
                                     <i class="fas fa-sign-out-alt"></i>
                                 </div>
                                 <p style="color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-md); margin-bottom: var(--ds-space-2);">Choose how you want to log out</p>
-                                <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-xs); line-height: 1.5; margin: 0;">
-                                    The Desktop app manages continuous Tally data synchronization. You can sign out of Web & Mobile apps to keep this syncing session active.
+                                <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-xs); line-height: 1.5; margin-bottom: var(--ds-space-5);">
+                                    The Desktop app manages continuous Tally data synchronization.<br>You can sign out of Web &amp; Mobile apps to keep this syncing session active.
                                 </p>
+                                <div style="display: flex; flex-direction: column; gap: var(--ds-space-3);">
+                                    <button id="logoutThisDevice_btn"
+                                        style="width: 100%; padding: 11px var(--ds-space-5); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: #fff; cursor: pointer; border: none; background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%); box-shadow: 0 2px 8px rgba(79,70,229,0.3); transition: all 0.2s;"
+                                        onmouseover="this.style.filter='brightness(1.1)'; this.style.transform='translateY(-1px)'"
+                                        onmouseout="this.style.filter='none'; this.style.transform='translateY(0)'">
+                                        <i class="fas fa-desktop" style="margin-right: 8px;"></i>Logout This Device
+                                    </button>
+                                    <button id="logoutWebMobile_btn"
+                                        style="width: 100%; padding: 11px var(--ds-space-5); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: #fff; cursor: pointer; border: none; background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); box-shadow: 0 2px 8px rgba(217,119,6,0.3); transition: all 0.2s;"
+                                        onmouseover="this.style.filter='brightness(1.1)'; this.style.transform='translateY(-1px)'"
+                                        onmouseout="this.style.filter='none'; this.style.transform='translateY(0)'">
+                                        <i class="fas fa-globe" style="margin-right: 8px;"></i>Logout Web &amp; Mobile
+                                    </button>
+                                    <button id="logoutAllDevices_btn"
+                                        style="width: 100%; padding: 11px var(--ds-space-5); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: #fff; cursor: pointer; border: none; background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); box-shadow: 0 2px 8px rgba(220,38,38,0.3); transition: all 0.2s;"
+                                        onmouseover="this.style.filter='brightness(1.1)'; this.style.transform='translateY(-1px)'"
+                                        onmouseout="this.style.filter='none'; this.style.transform='translateY(0)'">
+                                        <i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i>Logout All Devices
+                                    </button>
+                                    <button id="logoutCancel_btn"
+                                        style="width: 100%; padding: 11px var(--ds-space-5); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-secondary); cursor: pointer; background: transparent; border: 1px solid var(--ds-border-default); transition: all 0.2s;"
+                                        onmouseover="this.style.background='var(--ds-bg-surface-sunken)'"
+                                        onmouseout="this.style.background='transparent'">
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
-                        `,
-                        buttons: [
-                            {
-                                text: 'Logout This Device',
-                                variant: 'primary',
-                                onClick: async () => {
-                                    await this.handleLogout('CURRENT');
-                                }
-                            },
-                            {
-                                text: 'Logout Web & Mobile',
-                                variant: 'warning',
-                                onClick: async () => {
-                                    await this.handleLogout('WEB_MOBILE');
-                                }
-                            },
-                            {
-                                text: 'Logout All Devices',
-                                variant: 'danger',
-                                onClick: async () => {
-                                    await this.handleLogout('ALL');
-                                }
-                            },
-                            {
-                                text: 'Cancel',
-                                variant: 'secondary',
-                                dismissOnClick: true
-                            }
-                        ]
+                        `
+                    });
+
+                    document.getElementById('logoutThisDevice_btn')?.addEventListener('click', async () => {
+                        window.Popup.close(_logoutPopupId);
+                        await this.handleLogout('CURRENT');
+                    });
+                    document.getElementById('logoutWebMobile_btn')?.addEventListener('click', async () => {
+                        window.Popup.close(_logoutPopupId);
+                        await this.handleLogout('WEB_MOBILE');
+                    });
+                    document.getElementById('logoutAllDevices_btn')?.addEventListener('click', async () => {
+                        window.Popup.close(_logoutPopupId);
+                        await this.handleLogout('ALL');
+                    });
+                    document.getElementById('logoutCancel_btn')?.addEventListener('click', () => {
+                        window.Popup.close(_logoutPopupId);
                     });
                 });
             }

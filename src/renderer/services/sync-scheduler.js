@@ -78,6 +78,7 @@ class SyncScheduler {
             // Read all settings and auth once
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const tallyPort = appSettings.tallyPort || 9000;
+            const tallyHost = appSettings.tallyHost || 'localhost';
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
             const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
                 ? window.electronAPI.secureStoreGet('authToken')
@@ -95,7 +96,7 @@ class SyncScheduler {
             if (window.LicenseValidator) {
                 const userLicense = currentUser?.licenceNo || currentUser?.licenseNumber || localStorage.getItem('userLicenseNumber');
 
-                const isValid = await window.LicenseValidator.validateAndNotify(userLicense, tallyPort);
+                const isValid = await window.LicenseValidator.validateAndNotify(userLicense, tallyHost, tallyPort);
                 if (!isValid) {
                     console.error('❌ License validation failed - sync aborted');
                     return;

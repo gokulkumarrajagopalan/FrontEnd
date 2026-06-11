@@ -1359,7 +1359,8 @@
             const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
                 ? window.electronAPI.secureStoreGet('authToken')
                 : localStorage.getItem('authToken');
-            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            if (!currentUser && window.authService) currentUser = window.authService.getCurrentUser();
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
 
             console.log('🔐 Import - Auth check:', {
@@ -1377,7 +1378,7 @@
                 return;
             }
 
-            if (!currentUser || !currentUser.userId) {
+            if (!currentUser || !currentUser.userId || isNaN(currentUser.userId)) {
                 addImportLog('User information not found. Please login again.', 'error');
                 console.error('No currentUser in localStorage or missing userId');
                 showStatus('User session invalid. Please login again.', 'error');

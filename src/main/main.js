@@ -54,8 +54,8 @@ if (process.defaultApp) {
 // Check if running in development mode
 const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
 
-// Load environment variables — dev only
-if (isDev) {
+// Load environment variables from .env if present (dev and unpackaged production)
+{
   const _envPath = path.join(__dirname, '../../.env');
   try {
     if (fs.existsSync(_envPath)) {
@@ -71,7 +71,7 @@ function _loadUserConfig() {
     const cfgPath = path.join(app.getPath('appData'), 'DesktopApp', 'config.json');
     if (fs.existsSync(cfgPath)) {
       const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-      if (cfg.backendUrl && !process.env.BACKEND_URL) {
+      if (cfg.backendUrl) {
         process.env.BACKEND_URL = cfg.backendUrl;
       }
     }
@@ -767,8 +767,8 @@ function _resolveBackendUrl() {
     }
   } catch (e) { if (isDev) console.error('config.json read error:', e); }
 
-  // 3. .env file in project root (dev only)
-  if (isDev) {
+  // 3. .env file in project root
+  {
     const envPath = path.join(__dirname, '../../.env');
     try {
       if (fs.existsSync(envPath)) {
@@ -806,9 +806,17 @@ ipcMain.handle('save-config', async (event, config) => {
       security.validateBackendUrl(config.backendUrl);
     }
     const cfgPath = path.join(app.getPath('userData'), 'config.json');
-    const existing = fs.existsSync(cfgPath)
-      ? JSON.parse(fs.readFileSync(cfgPath, 'utf-8'))
-      : {};
+    let existing = {};
+    if (fs.existsSync(cfgPath)) {
+      try {
+        const content = fs.readFileSync(cfgPath, 'utf-8').trim();
+        if (content) {
+          existing = JSON.parse(content);
+        }
+      } catch (parseError) {
+        console.error('Warning: config.json is corrupted, resetting to empty config:', parseError);
+      }
+    }
     const updated = { ...existing, ...config };
     fs.writeFileSync(cfgPath, JSON.stringify(updated, null, 2), 'utf-8');
     // Also update live env so sync workers spawned later get the new URL
@@ -1236,7 +1244,16 @@ ipcMain.on('secure-store-get-sync', (event, key) => {
       event.returnValue = null;
       return;
     }
-    const store = JSON.parse(fs.readFileSync(secureStorePath, 'utf-8'));
+    let store = {};
+    try {
+      const content = fs.readFileSync(secureStorePath, 'utf-8').trim();
+      if (content) {
+        store = JSON.parse(content);
+      }
+    } catch (parseError) {
+      console.error('Warning: secure_store.json is corrupted, resetting to empty store:', parseError);
+      store = {};
+    }
     const storedValue = store[key];
     if (!storedValue) {
       event.returnValue = null;
@@ -1264,7 +1281,14 @@ ipcMain.on('secure-store-set-sync', (event, { key, value }) => {
     const secureStorePath = path.join(app.getPath('userData'), 'secure_store.json');
     let store = {};
     if (fs.existsSync(secureStorePath)) {
-      store = JSON.parse(fs.readFileSync(secureStorePath, 'utf-8'));
+      try {
+        const content = fs.readFileSync(secureStorePath, 'utf-8').trim();
+        if (content) {
+          store = JSON.parse(content);
+        }
+      } catch (parseError) {
+        console.error('Warning: secure_store.json is corrupted, resetting to empty store:', parseError);
+      }
     }
     
     let storedValue;
@@ -1286,8 +1310,16 @@ ipcMain.on('secure-store-set-sync', (event, { key, value }) => {
 ipcMain.on('secure-store-delete-sync', (event, key) => {
   try {
     const secureStorePath = path.join(app.getPath('userData'), 'secure_store.json');
+    let store = {};
     if (fs.existsSync(secureStorePath)) {
-      const store = JSON.parse(fs.readFileSync(secureStorePath, 'utf-8'));
+      try {
+        const content = fs.readFileSync(secureStorePath, 'utf-8').trim();
+        if (content) {
+          store = JSON.parse(content);
+        }
+      } catch (parseError) {
+        console.error('Warning: secure_store.json is corrupted, resetting to empty store:', parseError);
+      }
       delete store[key];
       fs.writeFileSync(secureStorePath, JSON.stringify(store, null, 2), 'utf-8');
     }

@@ -156,7 +156,7 @@ class AuthService {
             }
             localStorage.setItem('currentUser', JSON.stringify(user));
             localStorage.setItem('loginTime', new Date().toISOString());
-            localStorage.setItem('sessionExpiry', (new Date().getTime() + (24 * 60 * 60 * 1000)).toString());
+            localStorage.setItem('sessionExpiry', (new Date().getTime() + (7 * 24 * 60 * 60 * 1000)).toString());
 
             this.setupTokenInterceptor();
             this.initializeSyncAfterLogin();
@@ -294,12 +294,28 @@ class AuthService {
      * Load auth state from localStorage (consistent storage)
      */
     loadAuthState() {
-        // Check if session has expired (7 days)
+        // Check if session has expired
         const sessionExpiry = localStorage.getItem('sessionExpiry');
         if (sessionExpiry && new Date().getTime() > parseInt(sessionExpiry)) {
-            console.warn('⚠️ Session expired, logging out...');
-            this.clearLocalData();
-            return;
+            // Before clearing, check if the JWT token itself is still valid
+            const storedToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+                ? window.electronAPI.secureStoreGet('authToken')
+                : localStorage.getItem('authToken');
+            let jwtStillValid = false;
+            if (storedToken) {
+                try {
+                    const decoded = JSON.parse(atob(storedToken.split('.')[1]));
+                    jwtStillValid = Math.floor(Date.now() / 1000) < (decoded.exp || 0);
+                } catch (_) {}
+            }
+            if (jwtStillValid) {
+                // Token is valid — refresh the client-side expiry and continue
+                localStorage.setItem('sessionExpiry', (new Date().getTime() + (7 * 24 * 60 * 60 * 1000)).toString());
+            } else {
+                console.warn('⚠️ Session expired, logging out...');
+                this.clearLocalData();
+                return;
+            }
         }
 
         if (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') {
@@ -436,7 +452,7 @@ class AuthService {
             localStorage.setItem('loginTime', new Date().toISOString());
 
             // Set session expiry to 24 hours from now
-            const expiry = new Date().getTime() + (24 * 60 * 60 * 1000);
+            const expiry = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
             localStorage.setItem('sessionExpiry', expiry.toString());
 
             // Store license number separately for easy access during sync validation
