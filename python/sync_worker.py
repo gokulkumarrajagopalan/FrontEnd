@@ -261,15 +261,28 @@ from sync_config import SYNC_ORDER as INCREMENTAL_SYNC_ORDER
 
 
 def _sync_one_entity(manager, args, entity_type, force_deep):
-    """Sync a single entity with full reconciliation on every run.
+    """Sync a single master entity.
 
-    Always calls sync_and_reconcile which:
-      1. Fetches ALL records from Tally (one HTTP call)
-      2. Upserts only those with alterID > lastAlterID (incremental)
-      3. Compares full Tally set with DB to detect missing/stale/deleted records
-    The force_deep parameter is kept for API compatibility but has no effect.
+    Two modes, selected by force_deep (the --deep flag):
+
+    • force_deep == False (normal / app-open / periodic sync): SYNC ONLY.
+      Calls sync_incremental_fast — a TDL with `$Alterid > lastAlterID`, so Tally
+      returns ONLY changed records, which are upserted. NO full-table reconcile,
+      NO missing/stale/deletion detection. This is the cheap, frequent path.
+
+    • force_deep == True (the 2-hourly reconcile cycle, or first-time): SYNC + RECONCILE.
+      Calls sync_and_reconcile — one full-table fetch, upsert changed, compare the
+      whole Tally set against the DB to catch missing/stale/deleted records.
+
+    Reconciliation deliberately does NOT run on every sync (it is the slow safety net);
+    it runs only when the caller passes --deep, matching the 1×/2h reconcile cadence.
     """
-    return manager.sync_and_reconcile(
+    if force_deep:
+        return manager.sync_and_reconcile(
+            company_id=int(args.company_id), user_id=args.user_id,
+            tally_host=args.host, tally_port=args.port,
+            entity_type=entity_type, company_name=args.company_name)
+    return manager.sync_incremental_fast(
         company_id=int(args.company_id), user_id=args.user_id,
         tally_host=args.host, tally_port=args.port,
         entity_type=entity_type, company_name=args.company_name)
@@ -361,12 +374,12 @@ def run_reconciliation(args):
                     voucher_alter_id_in_db = masters.get('voucher', 0) or 0
                     if voucher_alter_id_in_db > 0:
                         logger.info(f"⚡ Incremental voucher AlterID sync: fetching vouchers with AlterID > {voucher_alter_id_in_db}")
-                        # Use a wide historical from_date so prior-FY altered vouchers are included.
+                        # Use a wide historical window so prior-FY altered vouchers are included.
+                        # AlterID is the only real filter; the date span just must never exclude
+                        # a changed voucher (kept consistent with run_sync_vouchers).
                         now = datetime.now()
-                        wide_from = f"01-Apr-{now.year - 5}"
-                        wide_to = args.to_date or (
-                            f"31-Mar-{now.year + 1}" if now.month >= 4 else f"31-Mar-{now.year}"
-                        )
+                        wide_from = f"01-Apr-{now.year - 10}"
+                        wide_to = f"31-Mar-{now.year + 2}"
                         incr_result = voucher_sync_mgr.sync_vouchers(
                             company_id=int(args.company_id),
                             company_guid=args.company_guid or '',
@@ -675,7 +688,21 @@ def run_fetch_master_data(args):
 
 
 def run_sync_vouchers(args):
-    """Run voucher sync (sync_vouchers.py logic)."""
+    """Run voucher sync (sync_vouchers.py logic).
+
+    Two modes, distinguished by whether explicit dates were passed:
+
+    1. FIRST-TIME (explicit from/to dates supplied by the renderer's monthly-chunk loop):
+       Honor the given date window exactly. The renderer walks the books period
+       month-by-month and relies on each chunk being scoped to its own dates.
+
+    2. INCREMENTAL (no dates supplied — renderer sends empty from/to):
+       AlterID is the ONLY filter that should matter. We deliberately use a very
+       wide date window so a voucher edited in ANY prior financial year (which would
+       otherwise fall outside the current-FY window and be silently skipped) is still
+       picked up purely by its AlterID. The watermark is taken from the backend
+       master-mapping (authoritative) so it never regresses to a stale localStorage 0.
+    """
     try:
         company_id = int(args.company_id) if args.company_id else 1
         company_guid = args.company_guid or ''
@@ -684,19 +711,6 @@ def run_sync_vouchers(args):
         backend_url = args.backend_url or os.getenv('BACKEND_URL', '')
         auth_token = args.auth_token or ''
         device_token = args.device_token or ''
-        
-        # Compute sensible date defaults based on Indian financial year (Apr-Mar)
-        now = datetime.now()
-        if now.month >= 4:
-            default_from = f"01-Apr-{now.year}"
-            default_to = f"31-Mar-{now.year + 1}"
-        else:
-            default_from = f"01-Apr-{now.year - 1}"
-            default_to = f"31-Mar-{now.year}"
-        
-        from_date = args.from_date or default_from
-        to_date = args.to_date or default_to
-        last_alter_id = args.last_voucher_alter_id
         company_name = args.company_name
         user_id = args.user_id or 1
 
@@ -709,6 +723,35 @@ def run_sync_vouchers(args):
             return
 
         sync_manager = VoucherSyncManager(backend_url, auth_token, device_token)
+
+        # Explicit dates ⇒ first-time chunked sync; honor them verbatim.
+        _from = (args.from_date or '').strip()
+        _to = (args.to_date or '').strip()
+        dates_provided = bool(_from) and bool(_to) and _from.lower() != 'none' and _to.lower() != 'none'
+
+        now = datetime.now()
+        if dates_provided:
+            from_date = _from
+            to_date = _to
+            last_alter_id = args.last_voucher_alter_id
+            logger.info(f"🧾 Voucher sync (explicit range / first-time chunk): {from_date} → {to_date}, "
+                        f"AlterID > {last_alter_id if last_alter_id is not None else 'DB watermark'}")
+        else:
+            # Incremental: AlterID-only. Wide window ⇒ date never excludes a changed voucher.
+            from_date = f"01-Apr-{now.year - 10}"
+            to_date = f"31-Mar-{now.year + 2}"
+            # Authoritative watermark from backend; never trust a possibly-stale passed 0.
+            try:
+                masters = sync_manager.get_master_mapping(company_id)
+                db_alter_id = masters.get('voucher', 0) or 0
+            except Exception as mm_err:
+                logger.warning(f"⚠️ Could not fetch voucher watermark from backend: {mm_err}")
+                db_alter_id = 0
+            passed_alter_id = args.last_voucher_alter_id or 0
+            last_alter_id = max(db_alter_id, passed_alter_id)
+            logger.info(f"🧾 Voucher sync (incremental / AlterID-only): wide window {from_date} → {to_date}, "
+                        f"AlterID > {last_alter_id} (DB={db_alter_id}, passed={passed_alter_id})")
+
         result = sync_manager.sync_vouchers(
             company_id=company_id,
             company_guid=company_guid,

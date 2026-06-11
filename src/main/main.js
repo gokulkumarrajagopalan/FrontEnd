@@ -919,7 +919,11 @@ ipcMain.handle("incremental-sync", async (event, config) => {
       console.log(`\n${'='.repeat(60)}`);
       console.log(`🔄 INCREMENTAL SYNC STARTED: ${entityType.toUpperCase()}`);
       console.log(`   Company: ${companyId}`);
-      console.log(`   Max AlterID: ${maxAlterID}`);
+      if (maxAlterID !== undefined && maxAlterID !== null) {
+        console.log(`   Max AlterID: ${maxAlterID}`);
+      } else {
+        console.log(`   Max AlterID: [per-entity, fetched from master-mapping by worker]`);
+      }
       console.log(`${'='.repeat(60)}`);
     }
 

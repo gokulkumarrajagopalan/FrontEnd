@@ -1558,10 +1558,24 @@ def main():
                     # Fetch master mapping once for this company (more efficient)
                     logger.info(f"📊 Fetching master mapping for company {cmp_id}...")
                     master_mapping = sync_manager.get_master_mapping(cmp_id)
-                    
+
+                    # Log the full master mapping so the terminal shows real AlterIDs
+                    logger.info(f"📋 Master mapping (AlterIDs in DB):")
+                    _entity_key_map_log = {
+                        'group': 'Group', 'currency': 'Currency', 'units': 'Unit',
+                        'stockgroup': 'StockGroup', 'stockcategory': 'StockCategory',
+                        'costcategory': 'CostCategory', 'costcenter': 'CostCenter',
+                        'godown': 'Godown', 'vouchertype': 'VoucherType',
+                        'taxunit': 'TaxUnit', 'ledger': 'Ledger', 'stockitem': 'StockItem',
+                        'voucher': 'Voucher',
+                    }
+                    for _k, _v in sorted(master_mapping.items()):
+                        _label = _entity_key_map_log.get(_k, _k)
+                        logger.info(f"   {_label:<16}: AlterID = {_v}")
+
                     for sync_entity, sync_endpoint in SYNC_ORDER:
                         logger.info(f"\n🔄 Syncing {sync_entity}...")
-                        
+
                         # Get entity-specific max alterID from master mapping
                         entity_key_map = {
                             'Group': 'group',
@@ -1579,7 +1593,8 @@ def main():
                         }
                         entity_key = entity_key_map.get(sync_entity, sync_entity.lower())
                         max_alter_id = master_mapping.get(entity_key, 0)
-                        
+                        logger.info(f"   AlterID > {max_alter_id} ({'first-time' if max_alter_id == 0 else 'incremental'})")
+
                         is_first_sync = (max_alter_id == 0)
                         
                         # Execute sync for this entity
@@ -1638,9 +1653,10 @@ def main():
                     }
                     entity_key = entity_key_map.get(entity_type, entity_type.lower())
                     max_alter_id = master_mapping.get(entity_key, 0)
-                    
+                    logger.info(f"   AlterID > {max_alter_id} ({'first-time' if max_alter_id == 0 else 'incremental'})")
+
                     is_first_sync = (max_alter_id == 0)
-                    
+
                     # Execute sync for this company
                     result = sync_manager.sync_incremental(
                         company_id=cmp_id,
@@ -1691,9 +1707,10 @@ def main():
             # Check if syncing all entities
             if entity_type.lower() == 'all':
                 logger.info(f"🔄 Syncing ALL entities for company {company_id} in Tally dependency order")
-                
+
                 # Get master mapping once for all entities
                 master_mapping = sync_manager.get_master_mapping(company_id)
+                logger.info(f"📋 Master mapping (AlterIDs in DB): {master_mapping}")
                 entity_key_map = {
                     'Group': 'group',
                     'Currency': 'currency',

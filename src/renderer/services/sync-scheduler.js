@@ -258,8 +258,31 @@ class SyncScheduler {
                         totalUpdated += result.totalUpdated || 0;
                         totalSynced += result.totalSynced || 0;
 
-                        if (result.totalSynced > 0) {
-                            console.log(`✅ ${company.name}: Reconciled and synced ${result.totalSynced} records`);
+                        const changed = (result.totalSynced || 0) + (result.totalMissing || 0) + (result.totalUpdated || 0);
+                        if (changed > 0) {
+                            console.log(`✅ ${company.name}: Reconciled and synced ${result.totalSynced || 0} records`);
+
+                            // Reconciliation pulled in new/changed vouchers → the financial reports
+                            // (Balance Sheet, P&L, Trial Balance) are now stale. Refresh them FY-wise
+                            // so reports reflect the reconciled data instead of waiting a full cycle.
+                            try {
+                                console.log(`  📊 ${company.name}: Refreshing financial reports after reconciliation...`);
+                                const rep = await this.syncFinancialReportsAllYears(
+                                    company,
+                                    userId,
+                                    appSettings.tallyPort || 9000,
+                                    appSettings.backendUrl || window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL,
+                                    authToken,
+                                    deviceToken
+                                );
+                                if (rep.success) {
+                                    console.log(`  ✅ ${company.name}: Financial reports refreshed`);
+                                } else {
+                                    console.warn(`  ⚠️ ${company.name}: Some reports failed to refresh:`, rep.errors);
+                                }
+                            } catch (repErr) {
+                                console.error(`  ❌ ${company.name}: Report refresh error:`, repErr);
+                            }
                         }
                     }
                 } catch (error) {
@@ -506,24 +529,16 @@ class SyncScheduler {
                                     'X-Device-Token': deviceToken
                                 };
                                 const updatePayload = JSON.stringify({ firstTimeSyncDone: true });
-                                const candidates = [
-                                    `${backendUrl}/api/companies/${companyId}`,
-                                    `${backendUrl}/companies/${companyId}`
-                                ];
-
-                                let updated = false;
-                                let lastStatus = 'n/a';
-                                for (const url of candidates) {
-                                    const resp = await fetch(url, { method: 'PUT', headers, body: updatePayload });
-                                    if (resp.ok) {
-                                        updated = true;
-                                        console.log(`  📝 firstTimeSyncDone flag set for company ${companyId} via ${url}`);
-                                        break;
-                                    }
-                                    lastStatus = String(resp.status);
-                                }
-                                if (!updated) {
-                                    console.warn(`⚠️ firstTimeSyncDone update failed for company ${companyId} (last status: ${lastStatus})`);
+                                // Dedicated endpoint — flips ONLY first_time_sync_done (the generic
+                                // PUT /{id} validates a full Company body and 400s on a partial payload).
+                                const url = window.apiConfig
+                                    ? window.apiConfig.getUrl(`/companies/${companyId}/first-time-sync-done`)
+                                    : `${backendUrl}/companies/${companyId}/first-time-sync-done`;
+                                const resp = await fetch(url, { method: 'PUT', headers, body: updatePayload });
+                                if (resp.ok) {
+                                    console.log(`  📝 first_time_sync_done column set (Y) for company ${companyId}`);
+                                } else {
+                                    console.warn(`⚠️ firstTimeSyncDone update failed for company ${companyId} (status: ${resp.status})`);
                                 }
                             } catch (e) {
                                 console.warn('⚠️ Could not update firstTimeSyncDone:', e.message);
@@ -638,30 +653,8 @@ class SyncScheduler {
                 try {
                     if (window.electronAPI?.syncFinancialReports) {
                         console.log(`  📦 ${report.name}: Syncing all financial years...`);
-                        
-                        const now = new Date();
-                        const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-                        
-                        const yearsToSync = [];
-                        for (let i = 0; i < 4; i++) {
-                            const fyStart = currentYear - i;
-                            const fromD = `${fyStart}0401`;
-                            const toD = i === 0 
-                                ? `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
-                                : `${fyStart + 1}0331`;
-                                
-                            const shortStart = String(fyStart).substring(2, 4);
-                            const shortEnd = String(fyStart + 1).substring(2, 4);
-                            const fyLabel = `${shortStart}-${shortEnd}`;
-                            
-                            yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: fyLabel });
-                        }
 
-                        // Also add "Full" sync option (from first year start to today date)
-                        const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
-                        const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
-                        const fullToDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-                        yearsToSync.push({ fromDate: fullFromDate, toDate: fullToDate, financialYear: 'Full' });
+                        const yearsToSync = this.getReportFinancialYears(company);
 
                         for (const yr of yearsToSync) {
                             console.log(`  📦 ${report.name} for FY ${yr.financialYear}: ${yr.fromDate} → ${yr.toDate}`);
@@ -708,6 +701,71 @@ class SyncScheduler {
         }
 
         return result;
+    }
+
+    /**
+     * Compute the list of financial years to sync reports for: the last 4 FYs
+     * (current FY runs up to today) plus a "Full" span from books-start to today.
+     * Single source of truth used by both the main sync and reconciliation refresh.
+     */
+    getReportFinancialYears(company) {
+        const now = new Date();
+        const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+        const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+
+        const yearsToSync = [];
+        for (let i = 0; i < 4; i++) {
+            const fyStart = currentYear - i;
+            const fromD = `${fyStart}0401`;
+            const toD = i === 0 ? today : `${fyStart + 1}0331`;
+            const shortStart = String(fyStart).substring(2, 4);
+            const shortEnd = String(fyStart + 1).substring(2, 4);
+            yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: `${shortStart}-${shortEnd}` });
+        }
+
+        const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
+        const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
+        yearsToSync.push({ fromDate: fullFromDate, toDate: today, financialYear: 'Full' });
+        return yearsToSync;
+    }
+
+    /**
+     * Sync Balance Sheet, P&L and Trial Balance for every financial year for one company.
+     * Used by reconciliation to refresh reports after voucher changes are pulled in.
+     * (The main sync does the same inline so it can drive the progress bar.)
+     */
+    async syncFinancialReportsAllYears(company, userId, tallyPort, backendUrl, authToken, deviceToken) {
+        if (!window.electronAPI?.syncFinancialReports) {
+            return { success: false, errors: ['syncFinancialReports API unavailable'] };
+        }
+        const companyId = company.id;
+        const companyName = company.name;
+        const reports = [
+            { name: 'Balance Sheet', type: 'balancesheet' },
+            { name: 'Profit & Loss', type: 'profitloss' },
+            { name: 'Trial Balance', type: 'trailbalance' }
+        ];
+        const years = this.getReportFinancialYears(company);
+        const errors = [];
+
+        for (const report of reports) {
+            for (const yr of years) {
+                try {
+                    const r = await window.electronAPI.syncFinancialReports({
+                        companyId, cmpId: companyId, userId,
+                        fromDate: yr.fromDate, toDate: yr.toDate,
+                        authToken, deviceToken, tallyPort, backendUrl,
+                        companyName, reportType: report.type, financialYear: yr.financialYear
+                    });
+                    if (!r.success) {
+                        errors.push(`${report.name} (FY ${yr.financialYear}): ${r.error || r.message || 'failed'}`);
+                    }
+                } catch (e) {
+                    errors.push(`${report.name} (FY ${yr.financialYear}): ${e.message}`);
+                }
+            }
+        }
+        return { success: errors.length === 0, errors };
     }
 
     async syncEntity(companyId, companyName, userId, entityType, maxAlterID, tallyPort, backendUrl, authToken, deviceToken) {

@@ -227,20 +227,17 @@ class AppInitializer {
                 }
             }
             
-            // CASE 2: Run reconciliation after app-start sync
-            console.log('🔍 Starting post-login reconciliation...');
-            setTimeout(async () => {
-                await this.runReconciliation(companies, currentUser, authToken, deviceToken, appSettings);
+            // NOTE: Reconciliation is intentionally NOT run here. It is decoupled from sync
+            // and runs on its own 1-hour schedule (see BackgroundSyncScheduler.startReconciliationScheduler),
+            // which waits until any in-progress sync has finished (UI showing 100%) before reconciling.
+            // This keeps reconciliation off the "every sync" path.
+            if (window.notificationService && typeof window.notificationService.system === 'function') {
+                const msg = totalSynced > 0
+                    ? `Sync complete: ${totalSynced} records synced`
+                    : 'Sync complete — all data up to date';
+                window.notificationService.system('Talliffy Sync', msg);
+            }
 
-                // Fire OS system notification after sync + recon complete
-                if (window.notificationService && typeof window.notificationService.system === 'function') {
-                    const msg = totalSynced > 0
-                        ? `Sync & Reconciliation complete: ${totalSynced} records synced`
-                        : 'Sync & Reconciliation complete — all data in sync';
-                    window.notificationService.system('Talliffy Sync', msg);
-                }
-            }, 2000); // 2 second delay after sync completes
-            
         } catch (error) {
             console.error('❌ App-start sync error:', error);
         }
@@ -414,9 +411,31 @@ class AppInitializer {
                         totalMissing += result.totalMissing || 0;
                         totalUpdated += result.totalUpdated || 0;
                         totalSynced += result.totalSynced || 0;
-                        
-                        if (result.totalSynced > 0) {
-                            console.log(`✅ ${company.name}: Reconciled and synced ${result.totalSynced} records`);
+
+                        const changed = (result.totalSynced || 0) + (result.totalMissing || 0) + (result.totalUpdated || 0);
+                        if (changed > 0) {
+                            console.log(`✅ ${company.name}: Reconciled and synced ${result.totalSynced || 0} records`);
+
+                            // Reconciliation pulled in new/changed vouchers → refresh the financial
+                            // reports FY-wise so Balance Sheet / P&L / Trial Balance reflect them.
+                            try {
+                                console.log(`  📊 ${company.name}: Refreshing financial reports after reconciliation...`);
+                                const rep = await this.syncFinancialReportsAllYears(
+                                    company,
+                                    currentUser.userId,
+                                    appSettings.tallyPort || 9000,
+                                    window.apiConfig.baseURL,
+                                    authToken,
+                                    deviceToken
+                                );
+                                if (rep.success) {
+                                    console.log(`  ✅ ${company.name}: Financial reports refreshed`);
+                                } else {
+                                    console.warn(`  ⚠️ ${company.name}: Some reports failed to refresh:`, rep.errors);
+                                }
+                            } catch (repErr) {
+                                console.error(`  ❌ ${company.name}: Report refresh error:`, repErr);
+                            }
                         } else {
                             console.log(`✅ ${company.name}: All records in sync`);
                         }
@@ -445,6 +464,68 @@ class AppInitializer {
         } catch (error) {
             console.error('❌ Reconciliation error:', error);
         }
+    }
+
+    /**
+     * Compute the list of financial years to sync reports for: last 4 FYs
+     * (current FY up to today) plus a "Full" span from books-start to today.
+     */
+    static getReportFinancialYears(company) {
+        const now = new Date();
+        const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+        const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+
+        const yearsToSync = [];
+        for (let i = 0; i < 4; i++) {
+            const fyStart = currentYear - i;
+            const fromD = `${fyStart}0401`;
+            const toD = i === 0 ? today : `${fyStart + 1}0331`;
+            const shortStart = String(fyStart).substring(2, 4);
+            const shortEnd = String(fyStart + 1).substring(2, 4);
+            yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: `${shortStart}-${shortEnd}` });
+        }
+
+        const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
+        const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
+        yearsToSync.push({ fromDate: fullFromDate, toDate: today, financialYear: 'Full' });
+        return yearsToSync;
+    }
+
+    /**
+     * Sync Balance Sheet, P&L and Trial Balance for every financial year for one company.
+     */
+    static async syncFinancialReportsAllYears(company, userId, tallyPort, backendUrl, authToken, deviceToken) {
+        if (!window.electronAPI?.syncFinancialReports) {
+            return { success: false, errors: ['syncFinancialReports API unavailable'] };
+        }
+        const companyId = company.id;
+        const companyName = company.name;
+        const reports = [
+            { name: 'Balance Sheet', type: 'balancesheet' },
+            { name: 'Profit & Loss', type: 'profitloss' },
+            { name: 'Trial Balance', type: 'trailbalance' }
+        ];
+        const years = this.getReportFinancialYears(company);
+        const errors = [];
+
+        for (const report of reports) {
+            for (const yr of years) {
+                try {
+                    const r = await window.electronAPI.syncFinancialReports({
+                        companyId, cmpId: companyId, userId,
+                        fromDate: yr.fromDate, toDate: yr.toDate,
+                        authToken, deviceToken, tallyPort, backendUrl,
+                        companyName, reportType: report.type, financialYear: yr.financialYear
+                    });
+                    if (!r.success) {
+                        errors.push(`${report.name} (FY ${yr.financialYear}): ${r.error || r.message || 'failed'}`);
+                    }
+                } catch (e) {
+                    errors.push(`${report.name} (FY ${yr.financialYear}): ${e.message}`);
+                }
+            }
+        }
+        return { success: errors.length === 0, errors };
     }
 
     /**

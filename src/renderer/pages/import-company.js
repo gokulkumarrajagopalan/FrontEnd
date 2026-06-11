@@ -1121,7 +1121,19 @@
                         console.log(`✅ Voucher sync completed: ${totalVouchers} vouchers in ${chunks.length} months`);
                         addImportLog(`   📊 Voucher sync total: ${totalVouchers} vouchers synced`, 'success');
 
-                        // Mark first-time sync as done on backend with response validation
+                        // Local fallback marker so the background scheduler won't re-run first-time
+                        // monthly chunks even if the backend firstTimeSyncDone PUT below fails.
+                        try {
+                            const m = JSON.parse(localStorage.getItem('voucherFirstTimeDone') || '{}');
+                            m[companyId] = true;
+                            localStorage.setItem('voucherFirstTimeDone', JSON.stringify(m));
+                        } catch (_) { /* ignore */ }
+
+                        // Mark first-time sync as done on backend via the dedicated endpoint that
+                        // flips ONLY the first_time_sync_done column. The generic PUT /companies/{id}
+                        // validates a full Company body (@NotBlank name/address/country, @NotNull
+                        // financial-year/books-start) and would 400 on this partial payload, leaving
+                        // the flag unset and the company stuck repeating its first-time monthly sync.
                         try {
                             const headers = {
                                 'Content-Type': 'application/json',
@@ -1130,10 +1142,10 @@
                             };
                             const updatePayload = JSON.stringify({ firstTimeSyncDone: true });
                             // backendUrl already includes the /api context path — do NOT prefix /api again.
-                            const url = `${syncParams.backendUrl}/companies/${companyId}`;
+                            const url = `${syncParams.backendUrl}/companies/${companyId}/first-time-sync-done`;
                             const resp = await fetch(url, { method: 'PUT', headers, body: updatePayload });
                             if (resp.ok) {
-                                console.log(`✅ firstTimeSyncDone flag set for company ${companyId}`);
+                                console.log(`✅ first_time_sync_done column set (Y) for company ${companyId}`);
                             } else {
                                 console.warn(`⚠️ firstTimeSyncDone update failed for company ${companyId} (status: ${resp.status})`);
                             }
@@ -1615,6 +1627,10 @@
                                         fromDate: _reconFromDate,
                                         toDate: _reconToDate
                                     });
+
+                                    // Stamp the reconcile watermark so the 2-hourly background
+                                    // reconciliation doesn't redundantly re-run right after import.
+                                    try { localStorage.setItem('lastReconcileTime', Date.now().toString()); } catch (_) {}
 
                                     if (reconResult.success) {
                                         console.log(`✅ Reconciliation complete for ${company.name}: ${reconResult.totalMissing || 0} missing, ${reconResult.totalSynced || 0} synced`);

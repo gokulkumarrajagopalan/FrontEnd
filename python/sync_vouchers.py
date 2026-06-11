@@ -1370,17 +1370,24 @@ def main():
                 company_name=company_name
             )
         else:
-            # Incremental: use DB's max voucher AlterID as the watermark
+            # Incremental: use DB's max voucher AlterID as the watermark, and a WIDE date
+            # window so AlterID is the ONLY effective filter. A current-FY window would
+            # silently skip vouchers edited in a prior financial year even though their
+            # AlterID is newer — so we span many years instead of restricting to from/to.
             effective_alter_id = voucher_alter_id_in_db
-            logger.info(f"Incremental sync: voucher AlterID in DB = {effective_alter_id}")
+            _now = datetime.now()
+            wide_from = f"01-Apr-{_now.year - 10}"
+            wide_to = f"31-Mar-{_now.year + 2}"
+            logger.info(f"Incremental sync (AlterID-only): voucher AlterID in DB = {effective_alter_id}, "
+                        f"wide window {wide_from} → {wide_to}")
             result = sync_manager.sync_vouchers(
                 company_id=company_id,
                 company_guid=company_guid,
                 user_id=user_id,
                 tally_host=tally_host,
                 tally_port=tally_port,
-                from_date=from_date,
-                to_date=to_date,
+                from_date=wide_from,
+                to_date=wide_to,
                 last_alter_id=effective_alter_id,
                 company_name=company_name
             )

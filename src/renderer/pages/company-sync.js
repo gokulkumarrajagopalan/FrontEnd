@@ -962,24 +962,16 @@
                                     'X-Device-Token': deviceToken
                                 };
                                 const updatePayload = JSON.stringify({ firstTimeSyncDone: true });
-                                const candidates = [
-                                    `${backendUrl}/api/companies/${company.id}`,
-                                    `${backendUrl}/companies/${company.id}`
-                                ];
-
-                                let updated = false;
-                                let lastStatus = 'n/a';
-                                for (const url of candidates) {
-                                    const resp = await fetch(url, { method: 'PUT', headers, body: updatePayload });
-                                    if (resp.ok) {
-                                        updated = true;
-                                        console.log(`   📝 firstTimeSyncDone updated for ${company.name} via ${url}`);
-                                        break;
-                                    }
-                                    lastStatus = String(resp.status);
-                                }
-                                if (!updated) {
-                                    console.warn(`⚠️ firstTimeSyncDone update failed for ${company.name} (last status: ${lastStatus})`);
+                                // Dedicated endpoint — flips ONLY first_time_sync_done (the generic
+                                // PUT /{id} validates a full Company body and 400s on a partial payload).
+                                const url = window.apiConfig
+                                    ? window.apiConfig.getUrl(`/companies/${company.id}/first-time-sync-done`)
+                                    : `${backendUrl}/companies/${company.id}/first-time-sync-done`;
+                                const resp = await fetch(url, { method: 'PUT', headers, body: updatePayload });
+                                if (resp.ok) {
+                                    console.log(`   📝 first_time_sync_done column set (Y) for ${company.name}`);
+                                } else {
+                                    console.warn(`⚠️ firstTimeSyncDone update failed for ${company.name} (status: ${resp.status})`);
                                 }
                             } catch (e) {
                                 console.warn('⚠️ Could not update firstTimeSyncDone:', e.message);
