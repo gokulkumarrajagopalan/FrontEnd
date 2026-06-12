@@ -70,17 +70,17 @@ html body .btn {
 
 html body .btn-primary,
 html body .btn-erp {
-    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 55%, #0ea5e9 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(234, 61, 29, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.30), 0 10px 24px rgba(37, 99, 235, 0.20);
+    border: 1px solid rgba(37, 99, 235, 0.25);
 }
 
 html body .btn-primary:hover,
 html body .btn-erp:hover {
-    background: linear-gradient(135deg, var(--primary-400) 0%, var(--primary-500) 100%);
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 55%, #0ea5e9 100%);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.36), 0 14px 30px rgba(37, 99, 235, 0.26);
 }
 
 html body .btn-secondary {

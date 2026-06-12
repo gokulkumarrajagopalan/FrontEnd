@@ -14,7 +14,7 @@
     "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00001def",
     "isGroup": "No",
     "parentGroup": "Sales Accounts",
-    "subAmount": "",
+    "subAmount": "6300.00",
     "mainAmount": ""
   },
   {
@@ -23,7 +23,7 @@
     "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00000ef7",
     "isGroup": "No",
     "parentGroup": "Sales Accounts",
-    "subAmount": "",
+    "subAmount": "10983.81",
     "mainAmount": ""
   },
   {
@@ -41,7 +41,7 @@
     "guid": "b8ff75ff-2077-4339-9a20-33df86b31660-00001e8a",
     "isGroup": "No",
     "parentGroup": "Direct Incomes",
-    "subAmount": "",
+    "subAmount": "346815.00",
     "mainAmount": ""
   },
   {
