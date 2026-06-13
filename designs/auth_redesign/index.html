@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Talliffy — Sign In (Quiet Ledger redesign)</title>
+<style>
+    /* =====================================================================
+       QUIET LEDGER — Talliffy auth redesign (standalone preview)
+       Warm stone + graphite monochrome. Single desaturated ink accent.
+       Mirrors the real markup (.auth-background > .auth-shell > .auth-hero
+       + .auth-panel > .auth-card) so styles port back 1:1 to auth.js.
+       ===================================================================== */
+
+    /* ----- tokens (locally scoped neutral system) ----- */
+    .auth-background {
+        /* spacing scale mirrors --ds-space-* */
+        --sp-1: 0.25rem;  --sp-1-5: 0.375rem; --sp-2: 0.5rem;  --sp-3: 0.75rem;
+        --sp-4: 1rem;     --sp-5: 1.25rem;    --sp-6: 1.5rem;  --sp-8: 2rem;
+        --sp-10: 2.5rem;  --sp-12: 3rem;
+
+        /* neutral ink palette */
+        --ink:        #1c1917;   /* primary text */
+        --ink-2:      #57534e;   /* secondary text */
+        --ink-3:      #8a8a85;   /* tertiary / micro-labels */
+        --accent:     #292524;   /* single desaturated graphite-ink accent (CTA) */
+        --accent-soft:#44403c;
+
+        /* surfaces */
+        --page:       #f6f6f4;   /* warm stone page background */
+        --hero:       #1c1c1a;   /* deep warm graphite (neutral, never blue-black) */
+        --hero-2:     #242421;
+        --card:       #ffffff;   /* clean white card */
+        --hairline:   #e7e5e4;   /* hairline borders */
+        --hairline-2: #dcdad6;
+        --sunken:     #f2f1ee;   /* faint sunken neutral */
+
+        /* on-dark warm whites */
+        --on-dark:    #f5f5f4;
+        --on-dark-2:  rgba(245, 245, 244, 0.74);
+        --on-dark-3:  rgba(245, 245, 244, 0.60);
+        --hero-line:  rgba(245, 245, 244, 0.12);
+        --hero-fill:  rgba(245, 245, 244, 0.045);
+
+        /* status (muted, functional) */
+        --err-bg: #fef2f2; --err-bd: #fde0e0; --err-fg: #b91c1c;
+        --ok-bg:  #f3f6f3; --ok-bd:  #dde7dd; --ok-fg:  #3f6f4f;
+
+        --mono: "SFMono-Regular", ui-monospace, "JetBrains Mono", "Menlo", "Consolas", monospace;
+        --sans: -apple-system, "Segoe UI", "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+        font-family: -apple-system, "Segoe UI", "Inter", Roboto, sans-serif;
+        background: #f6f6f4;
+        color: #1c1917;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+
+    /* ---------------------------------------------------------------- shell */
+    .auth-background {
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 50% 0%, rgba(28, 25, 23, 0.025), transparent 60%),
+            var(--page);
+        color: var(--ink);
+        font-family: var(--sans);
+    }
+
+    .auth-shell {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    /* ------------------------------------------------------------- hero (L) */
+    .auth-hero {
+        position: relative;
+        width: 50%;
+        overflow: hidden;
+        padding: var(--sp-12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background:
+            radial-gradient(circle at 14% 12%, rgba(245, 245, 244, 0.05), transparent 30%),
+            linear-gradient(168deg, var(--hero-2) 0%, var(--hero) 60%);
+        color: var(--on-dark);
+    }
+
+    /* hairline framing — restraint as the statement */
+    .auth-hero::before {
+        content: '';
+        position: absolute;
+        inset: 22px;
+        border-radius: 16px;
+        border: 1px solid var(--hero-line);
+        pointer-events: none;
+    }
+
+    /* a single thin accent rule (the editorial signature) */
+    .auth-hero::after {
+        content: '';
+        position: absolute;
+        top: 22px;
+        left: 22px;
+        width: 56px;
+        height: 2px;
+        background: var(--on-dark);
+        opacity: 0.85;
+        pointer-events: none;
+    }
+
+    .auth-hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 480px;
+        width: 100%;
+    }
+
+    .auth-brand {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-4);
+        margin-bottom: var(--sp-10);
+    }
+
+    .auth-brand-mark {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--on-dark);
+        color: var(--hero);
+        flex-shrink: 0;
+    }
+
+    .auth-brand-mark svg { width: 30px; height: 30px; display: block; }
+
+    .auth-brand-copy h1 {
+        margin: 0;
+        color: var(--on-dark);
+        font-size: 1.9rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.02em;
+    }
+
+    .auth-brand-copy p {
+        margin: 6px 0 0;
+        color: var(--on-dark-2);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+    }
+
+    .auth-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--sp-2);
+        padding: var(--sp-2) var(--sp-3);
+        border-radius: 999px;
+        margin-bottom: var(--sp-6);
+        background: var(--hero-fill);
+        border: 1px solid var(--hero-line);
+        color: var(--on-dark-2);
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    .auth-badge svg { width: 13px; height: 13px; opacity: 0.85; }
+
+    .auth-hero-title {
+        margin: 0 0 var(--sp-5);
+        color: var(--on-dark);
+        font-size: clamp(2.2rem, 3.4vw, 3.4rem);
+        font-weight: 800;
+        line-height: 1.06;
+        letter-spacing: -0.025em;
+    }
+
+    .auth-hero-copy {
+        margin: 0 0 var(--sp-8);
+        color: var(--on-dark-2);
+        font-size: 1rem;
+        line-height: 1.7;
+        max-width: 42ch;
+    }
+
+    /* stat chips — monospace micro-label system */
+    .auth-hero-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+        margin-bottom: var(--sp-8);
+        border-top: 1px solid var(--hero-line);
+        border-bottom: 1px solid var(--hero-line);
+    }
+
+    .auth-stat {
+        padding: var(--sp-4);
+        border-right: 1px solid var(--hero-line);
+    }
+    .auth-stat:last-child { border-right: none; }
+
+    .auth-stat-value {
+        display: block;
+        margin-bottom: var(--sp-1);
+        color: var(--on-dark);
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+
+    .auth-stat-label {
+        color: var(--on-dark-3);
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    .auth-feature-list {
+        display: grid;
+        gap: var(--sp-4);
+    }
+
+    .auth-feature-card {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--sp-4);
+        padding: var(--sp-4) 0;
+        border-top: 1px solid var(--hero-line);
+        background: transparent;
+    }
+    .auth-feature-card:first-child { border-top: none; }
+
+    .auth-feature-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        background: var(--hero-fill);
+        border: 1px solid var(--hero-line);
+        color: var(--on-dark);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .auth-feature-icon svg { width: 17px; height: 17px; }
+
+    .auth-feature-card h3,
+    .auth-feature-card p { margin: 0; }
+
+    .auth-feature-card h3 {
+        color: var(--on-dark);
+        font-size: 0.92rem;
+        font-weight: 700;
+    }
+
+    .auth-feature-card p {
+        margin-top: 4px;
+        color: var(--on-dark-2);
+        font-size: 0.8rem;
+        line-height: 1.55;
+    }
+
+    .auth-footer-copy {
+        margin-top: var(--sp-10);
+        color: var(--on-dark-3);
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.06em;
+    }
+
+    /* ------------------------------------------------------------ panel (R) */
+    .auth-panel {
+        width: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--sp-8);
+    }
+    .auth-panel-scroll { overflow-y: auto; }
+
+    .auth-panel-inner {
+        width: 100%;
+        max-width: 440px;
+    }
+    .auth-panel-inner.auth-panel-wide { max-width: 560px; }
+
+    .auth-card {
+        position: relative;
+        background: var(--card);
+        border: 1px solid var(--hairline);
+        border-radius: 18px;
+        padding: var(--sp-10);
+        box-shadow:
+            0 1px 2px rgba(28, 25, 23, 0.04),
+            0 18px 40px -22px rgba(28, 25, 23, 0.14);
+        overflow: hidden;
+    }
+    /* no colored top bar — a single hairline accent instead */
+    .auth-card::before { content: none; }
+
+    /* tab switcher */
+    .auth-tab-switcher {
+        display: flex;
+        gap: var(--sp-1);
+        padding: var(--sp-1);
+        border-radius: 12px;
+        margin-bottom: var(--sp-8);
+        background: var(--sunken);
+        border: 1px solid var(--hairline);
+    }
+    .auth-tab {
+        flex: 1;
+        padding: var(--sp-3);
+        font-size: 0.85rem;
+        font-weight: 700;
+        border: none;
+        background: transparent;
+        color: var(--ink-3);
+        cursor: pointer;
+        transition: all 0.18s var(--ease);
+        border-radius: 8px;
+        font-family: var(--sans);
+        letter-spacing: 0.01em;
+        text-transform: none;
+    }
+    .auth-tab:hover { color: var(--ink-2); }
+    .auth-tab.is-active {
+        background: var(--card);
+        color: var(--ink);
+        box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06), 0 0 0 1px var(--hairline);
+    }
+
+    .auth-heading { margin-bottom: var(--sp-6); }
+    .auth-heading h2 {
+        margin: 0;
+        font-size: 1.7rem;
+        color: var(--ink);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+    .auth-heading p {
+        margin: 8px 0 0;
+        color: var(--ink-2);
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    /* status messages */
+    .msg {
+        margin-bottom: var(--sp-4);
+        padding: var(--sp-4);
+        border-radius: 14px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: var(--sp-2);
+    }
+    .msg svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .msg-error   { background: var(--err-bg); border: 1px solid var(--err-bd); color: var(--err-fg); }
+    .msg-success { background: var(--ok-bg);  border: 1px solid var(--ok-bd);  color: var(--ok-fg); }
+    .hidden { display: none !important; }
+
+    /* primary action block (browser login) */
+    .auth-browser-login-box {
+        padding: var(--sp-6);
+        background: var(--sunken);
+        border: 1px solid var(--hairline);
+        border-radius: 12px;
+        text-align: center;
+        margin-bottom: var(--sp-6);
+    }
+    .auth-browser-login-box .note {
+        margin-bottom: var(--sp-4);
+        color: var(--ink-2);
+        font-size: 0.85rem;
+        line-height: 1.6;
+    }
+
+    /* buttons */
+    .ds-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--sp-2);
+        padding: var(--sp-3) var(--sp-5);
+        border: 1px solid transparent;
+        border-radius: 10px;
+        font-family: var(--sans);
+        font-size: 0.9rem;
+        font-weight: 700;
+        line-height: 1.2;
+        cursor: pointer;
+        transition: all 0.18s var(--ease);
+        white-space: nowrap;
+    }
+    .ds-btn svg { width: 16px; height: 16px; }
+    .ds-btn.w-full { width: 100%; }
+    .ds-btn-lg { padding: 0.9rem var(--sp-6); font-size: 0.95rem; }
+
+    /* primary = graphite ink (the single accent) */
+    .ds-btn-primary {
+        background: var(--accent);
+        color: var(--on-dark);
+        border-color: var(--accent);
+        box-shadow: 0 1px 2px rgba(28, 25, 23, 0.18), 0 12px 24px -12px rgba(28, 25, 23, 0.4);
+    }
+    .ds-btn-primary:hover {
+        background: var(--accent-soft);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(28, 25, 23, 0.2), 0 16px 30px -12px rgba(28, 25, 23, 0.45);
+    }
+    .ds-btn-primary:active { transform: translateY(0); }
+
+    /* secondary = quiet outline */
+    .ds-btn-secondary {
+        background: var(--card);
+        color: var(--ink);
+        border-color: var(--hairline-2);
+    }
+    .ds-btn-secondary:hover {
+        background: var(--sunken);
+        border-color: var(--ink-3);
+        transform: translateY(-1px);
+    }
+    .ds-btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+    /* divider */
+    .auth-divider {
+        margin-top: var(--sp-3);
+        display: flex;
+        align-items: center;
+        gap: var(--sp-3);
+    }
+    .auth-divider-line { flex: 1; height: 1px; background: var(--hairline-2); }
+    .auth-divider span {
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        color: var(--ink-3);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    /* legacy toggle link */
+    .auth-legacy-toggle-wrap { text-align: center; margin-top: var(--sp-4); }
+    .auth-legacy-toggle {
+        background: none;
+        border: none;
+        color: var(--ink-3);
+        font-size: 0.78rem;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        transition: color 0.18s var(--ease);
+    }
+    .auth-legacy-toggle:hover { color: var(--ink); }
+
+    /* legacy form + inputs */
+    #loginForm {
+        margin-top: var(--sp-5);
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-5);
+    }
+
+    .field-label {
+        display: block;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        font-weight: 600;
+        color: var(--ink-2);
+        margin-bottom: var(--sp-2);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+    }
+    .field-wrap { position: relative; width: 100%; }
+    .field-icon {
+        position: absolute;
+        left: var(--sp-4);
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--ink-3);
+        display: flex;
+        pointer-events: none;
+    }
+    .field-icon svg { width: 16px; height: 16px; }
+
+    .ds-input {
+        width: 100%;
+        padding: 0.7rem var(--sp-4) 0.7rem 2.6rem;
+        background: var(--card);
+        border: 1px solid var(--hairline-2);
+        border-radius: 12px;
+        font-family: var(--sans);
+        font-size: 0.9rem;
+        color: var(--ink);
+        transition: all 0.18s var(--ease);
+    }
+    .ds-input::placeholder { color: var(--ink-3); }
+    .ds-input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(41, 37, 36, 0.10);
+    }
+
+    .field-suffix {
+        position: absolute;
+        right: var(--sp-3);
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: var(--ink-3);
+        display: flex;
+        align-items: center;
+    }
+    .field-suffix:hover { color: var(--ink); }
+    .field-suffix svg { width: 17px; height: 17px; }
+
+    /* spinner */
+    .ds-spinner {
+        display: inline-block;
+        width: 26px;
+        height: 26px;
+        border: 2px solid var(--hairline-2);
+        border-top-color: var(--accent);
+        border-radius: 999px;
+        animation: ds-spin 0.7s linear infinite;
+    }
+    @keyframes ds-spin { to { transform: rotate(360deg); } }
+    .auth-loading {
+        padding: var(--sp-3);
+        border-radius: 14px;
+        background: var(--sunken);
+        border: 1px solid var(--hairline);
+        text-align: center;
+    }
+
+    /* link */
+    .auth-link-btn, .auth-link-btn:hover {
+        color: var(--ink);
+        font-weight: 700;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    /* quiet trust / sign-up prompt row beneath the card */
+    .auth-card-aside {
+        margin-top: var(--sp-5);
+        padding-top: var(--sp-5);
+        border-top: 1px solid var(--hairline);
+        text-align: center;
+        color: var(--ink-2);
+        font-size: 0.82rem;
+        line-height: 1.6;
+    }
+    .auth-card-aside .auth-aside-link {
+        background: none;
+        border: none;
+        padding: 0;
+        margin-left: var(--sp-1);
+        color: var(--ink);
+        font-family: inherit;
+        font-size: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+    .auth-card-aside .auth-aside-link:hover { color: var(--ink-2); }
+
+    /* ----- page load reveal (restrained) ----- */
+    @media (prefers-reduced-motion: no-preference) {
+        .reveal { opacity: 0; transform: translateY(10px); animation: rise 0.6s var(--ease) forwards; }
+        .reveal-1 { animation-delay: 0.05s; }
+        .reveal-2 { animation-delay: 0.12s; }
+        .reveal-3 { animation-delay: 0.20s; }
+        .reveal-4 { animation-delay: 0.28s; }
+        @keyframes rise { to { opacity: 1; transform: none; } }
+    }
+
+    /* --------------------------------------------------------- responsive */
+    @media (max-width: 1100px) {
+        .auth-shell { flex-direction: column; }
+        .auth-hero, .auth-panel { width: 100%; }
+        .auth-hero { min-height: 520px; }
+    }
+    @media (max-width: 760px) {
+        .auth-background, .auth-shell { min-height: auto; }
+        .auth-hero { padding: var(--sp-8); min-height: auto; }
+        .auth-panel { padding: var(--sp-4); }
+        .auth-card { border-radius: 18px; padding: var(--sp-6); }
+        .auth-hero-stats, .auth-field-grid { grid-template-columns: 1fr; }
+        .auth-hero-stats { border: none; }
+        .auth-stat { border-right: none; border-bottom: 1px solid var(--hero-line); padding: var(--sp-3) 0; }
+        .auth-stat:last-child { border-bottom: none; }
+    }
+</style>
+</head>
+<body>
+    <div class="auth-background">
+        <div class="auth-shell">
+            <!-- ============================ HERO (left) ============================ -->
+            <div class="auth-hero">
+                <div class="auth-hero-content">
+                    <div class="auth-brand reveal reveal-1">
+                        <div class="auth-brand-mark">
+                            <!-- bar-chart brand glyph -->
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                                <line x1="6"  y1="20" x2="6"  y2="13" />
+                                <line x1="12" y1="20" x2="12" y2="7" />
+                                <line x1="18" y1="20" x2="18" y2="10" />
+                            </svg>
+                        </div>
+                        <div class="auth-brand-copy">
+                            <h1>Talliffy</h1>
+                            <p>Cloud sync platform</p>
+                        </div>
+                    </div>
+
+                    <div class="auth-badge reveal reveal-2">
+                        <!-- sparkle -->
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2z"/></svg>
+                        Modern finance operations for Tally teams
+                    </div>
+
+                    <h2 class="auth-hero-title reveal reveal-2">Move from legacy screens to a workspace your client can actually love.</h2>
+                    <p class="auth-hero-copy reveal reveal-3">Talliffy keeps Tally data, sync status, and user access in one cleaner flow with real-time feedback and a sharper visual system.</p>
+
+                    <div class="auth-hero-stats reveal reveal-3">
+                        <div class="auth-stat">
+                            <span class="auth-stat-value">Live</span>
+                            <span class="auth-stat-label">sync visibility</span>
+                        </div>
+                        <div class="auth-stat">
+                            <span class="auth-stat-value">Secure</span>
+                            <span class="auth-stat-label">team access</span>
+                        </div>
+                        <div class="auth-stat">
+                            <span class="auth-stat-value">Fast</span>
+                            <span class="auth-stat-label">daily workflows</span>
+                        </div>
+                    </div>
+
+                    <div class="auth-feature-list reveal reveal-4">
+                        <div class="auth-feature-card">
+                            <div class="auth-feature-icon">
+                                <!-- sync / refresh -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+                                    <path d="M21 4v4h-4"/><path d="M3 20v-4h4"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>Auto sync with Tally</h3>
+                                <p>Real-time updates, cleaner status states, and less second-guessing during daily operations.</p>
+                            </div>
+                        </div>
+                        <div class="auth-feature-card">
+                            <div class="auth-feature-icon">
+                                <!-- lock / shield -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3>Enterprise-grade access</h3>
+                                <p>Protected sign-in, shared team control, and a more credible first impression for clients.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auth-footer-copy reveal reveal-4">© 2026 Talliffy. Built for modern Tally workflows.</div>
+                </div>
+            </div>
+
+            <!-- ============================ PANEL (right) ============================ -->
+            <div class="auth-panel">
+                <div class="auth-panel-inner">
+                    <div class="auth-card reveal reveal-2">
+                        <div class="auth-tab-switcher">
+                            <button id="signinTab" class="auth-tab is-active">Sign In</button>
+                            <button id="signupTab" class="auth-tab">Sign Up</button>
+                        </div>
+
+                        <div id="signinForm">
+                            <div class="auth-heading">
+                                <h2>Welcome back</h2>
+                                <p>Pick up where your team left off with a cleaner, faster workspace.</p>
+                            </div>
+
+                            <!-- error / success slots (hidden by default; shown here for reference if needed) -->
+                            <div id="errorMessage" class="msg msg-error hidden">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                                <span class="msg-text">Something went wrong. Please try again.</span>
+                            </div>
+                            <div id="successMessage" class="msg msg-success hidden">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+                                <span class="msg-text">Signed in successfully.</span>
+                            </div>
+
+                            <div class="auth-browser-login-box">
+                                <div class="note">To ensure a secure and synchronized session, please sign in using your web browser.</div>
+                                <button id="mainBrowserLoginBtn" class="ds-btn ds-btn-primary ds-btn-lg w-full" type="button">
+                                    <span class="ds-btn-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                    </span>
+                                    <span class="ds-btn-text">Sign In in Browser</span>
+                                </button>
+                            </div>
+
+                            <div class="auth-divider">
+                                <div class="auth-divider-line"></div>
+                                <span>Advanced</span>
+                                <div class="auth-divider-line"></div>
+                            </div>
+
+                            <div class="auth-legacy-toggle-wrap">
+                                <button type="button" id="showLegacyLogin" class="auth-legacy-toggle">Sign in with credentials (legacy)</button>
+                            </div>
+
+                            <form id="loginForm" class="hidden">
+                                <div>
+                                    <label class="field-label" for="username">Username</label>
+                                    <div class="field-wrap">
+                                        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                                        <input type="text" id="username" class="ds-input" placeholder="Enter your username" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="field-label" for="password">Password</label>
+                                    <div class="field-wrap">
+                                        <span class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                                        <input type="password" id="password" class="ds-input" placeholder="Enter password" required />
+                                        <span id="toggleLoginPassword" class="field-suffix" role="button" tabindex="0" aria-label="Show password">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </span>
+                                    </div>
+                                </div>
+                                <button id="loginBtn" class="ds-btn ds-btn-secondary w-full" type="submit">
+                                    <span class="ds-btn-text">Sign In</span>
+                                </button>
+                                <div id="loadingSpinner" class="hidden auth-loading">
+                                    <div class="ds-spinner"></div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div id="signupFormContainer" class="hidden"></div>
+                    </div>
+
+                    <div class="auth-card-aside">
+                        New to Talliffy?
+                        <button type="button" id="signupPrompt" class="auth-aside-link">Sign Up</button>
+                    </div>
+
+                    <p style="text-align:center; margin-top:18px; font-family:var(--mono); font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; color:#8a8a85;">
+                        Preview · click the legacy link to expand the form
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Minimal interactivity so the preview demonstrates real states.
+        (function () {
+            var toggle = document.getElementById('showLegacyLogin');
+            var form = document.getElementById('loginForm');
+            if (toggle && form) {
+                toggle.addEventListener('click', function () {
+                    form.classList.toggle('hidden');
+                    toggle.textContent = form.classList.contains('hidden')
+                        ? 'Sign in with credentials (legacy)'
+                        : 'Hide credentials form';
+                });
+            }
+            // password show/hide
+            var eye = document.getElementById('toggleLoginPassword');
+            var pwd = document.getElementById('password');
+            if (eye && pwd) {
+                eye.addEventListener('click', function () {
+                    pwd.type = pwd.type === 'password' ? 'text' : 'password';
+                });
+            }
+            // tab visual switch (preview only)
+            var si = document.getElementById('signinTab');
+            var su = document.getElementById('signupTab');
+            if (si && su) {
+                si.addEventListener('click', function () { si.classList.add('is-active'); su.classList.remove('is-active'); });
+                su.addEventListener('click', function () { su.classList.add('is-active'); si.classList.remove('is-active'); });
+            }
+            // sign-up prompt row beneath the card mirrors the Sign Up tab
+            var prompt = document.getElementById('signupPrompt');
+            if (prompt && su) {
+                prompt.addEventListener('click', function () { su.click(); });
+            }
+        })();
+    </script>
+</body>
+</html>

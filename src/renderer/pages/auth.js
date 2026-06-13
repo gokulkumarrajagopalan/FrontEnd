@@ -220,11 +220,63 @@
     const AUTH_SHARED_STYLES = `
     <style>
         .auth-background {
+            --ds-primary-100: #dbeafe;
+            --ds-primary-500: #3b82f6;
+            --ds-primary-600: #2563eb;
+            --ds-primary-700: #1d4ed8;
+            --ds-primary-800: #1e40af;
+            --ds-primary-900: #1e3a8a;
+            --ds-gradient-primary: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+            --ds-gradient-primary-hover: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+
+            --ds-text-primary: #0f172a;
+            --ds-text-secondary: #475569;
+            --ds-text-tertiary: #64748b;
+            --ds-text-link: #2563eb;
+            --ds-text-link-hover: #1d4ed8;
+
+            --ds-border-default: #e2e8f0;
+            --ds-border-strong: #cbd5e1;
+            --ds-border-focus: #3b82f6;
+
+            --ds-bg-app: #f8fafc;
+            --ds-bg-surface: #ffffff;
+            --ds-bg-surface-sunken: #f1f5f9;
+            --ds-bg-hover: #f1f5f9;
+
+            --ds-input-border: #e2e8f0;
+            --ds-input-text: #0f172a;
+            --ds-input-placeholder: #94a3b8;
+            --ds-input-focus-ring: rgba(37, 99, 235, 0.15);
+            --ds-btn-primary-bg: #2563eb;
+            --ds-btn-primary-bg-hover: #1d4ed8;
+            --ds-btn-secondary-bg: #ffffff;
+            --ds-btn-secondary-bg-hover: #f8fafc;
+            --ds-btn-secondary-text: #0f172a;
+            --ds-btn-secondary-border: #e2e8f0;
+
+            --auth-ink: #0f172a;
+            --auth-ink-2: #475569;
+            --auth-ink-3: #64748b;
+            --auth-accent: #2563eb;
+            --auth-accent-soft: #3b82f6;
+            --auth-page: #ffffff;
+            --auth-hero: #ffffff;
+            --auth-hero-2: #ffffff;
+            --auth-card: #ffffff;
+            --auth-hairline: #e2e8f0;
+            --auth-hairline-2: #cbd5e1;
+            --auth-sunken: #f1f5f9;
+            --auth-on-dark: #0f172a;
+            --auth-on-dark-2: #475569;
+            --auth-on-dark-3: #64748b;
+            --auth-hero-line: #e2e8f0;
+            --auth-hero-fill: #eff6ff;
+            --auth-mono: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+
             min-height: 100vh;
-            background:
-                radial-gradient(circle at top left, rgba(91, 140, 255, 0.14), transparent 34%),
-                radial-gradient(circle at bottom right, rgba(20, 184, 166, 0.12), transparent 30%),
-                linear-gradient(180deg, #f4f7fc 0%, #eef4ff 48%, #f8fbff 100%);
+            background: var(--auth-page);
+            color: var(--auth-ink);
         }
 
         .auth-shell {
@@ -240,20 +292,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background:
-                radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.16), transparent 22%),
-                radial-gradient(circle at 84% 20%, rgba(20, 184, 166, 0.22), transparent 26%),
-                linear-gradient(145deg, #0f172a 0%, #1e1b4b 35%, #274bdb 74%, #14b8a6 100%);
+            color: var(--auth-ink);
+            background: var(--auth-hero);
         }
 
-        .auth-hero::before {
-            content: '';
-            position: absolute;
-            inset: 24px;
-            border-radius: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-            pointer-events: none;
+        .auth-hero #particlesCanvas {
+            display: none !important;
         }
 
         .auth-hero-content {
@@ -264,149 +308,82 @@
         }
 
         .auth-brand {
-            display: flex;
-            align-items: center;
-            gap: var(--ds-space-4);
-            margin-bottom: var(--ds-space-8);
-        }
-
-        .auth-brand-mark {
-            width: 76px;
-            height: 76px;
-            border-radius: 24px;
-            padding: 10px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.26), rgba(255,255,255,0.1));
-            box-shadow: 0 22px 40px rgba(15, 23, 42, 0.24);
-            backdrop-filter: blur(16px);
-        }
-
-        .auth-brand-mark img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-        }
-
-        .auth-brand-copy h1 {
-            margin: 0;
-            color: white;
-            font-size: var(--ds-text-5xl);
-            font-weight: var(--ds-weight-extrabold);
-            line-height: 1;
-        }
-
-        .auth-brand-copy p {
-            margin: var(--ds-space-1) 0 0;
-            color: rgba(219, 234, 254, 0.82);
-            font-size: var(--ds-text-sm);
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+            display: none;
         }
 
         .auth-badge {
             display: inline-flex;
             align-items: center;
             gap: var(--ds-space-2);
-            padding: var(--ds-space-2) var(--ds-space-3);
+            padding: 6px 14px;
             border-radius: 999px;
-            margin-bottom: var(--ds-space-5);
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: var(--ds-text-xs);
-            font-weight: var(--ds-weight-semibold);
-            backdrop-filter: blur(12px);
+            margin-bottom: var(--ds-space-6);
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
 
         .auth-hero-title {
-            margin: 0 0 var(--ds-space-4);
-            color: white;
-            font-size: clamp(2.6rem, 4vw, 4.4rem);
-            font-weight: var(--ds-weight-extrabold);
-            line-height: 1.02;
-        }
-
-        .auth-hero-copy {
             margin: 0 0 var(--ds-space-8);
-            color: rgba(219, 234, 254, 0.85);
-            font-size: var(--ds-text-base);
-            line-height: 1.75;
+            color: var(--auth-ink);
+            font-size: clamp(2rem, 3vw, 2.5rem);
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
         }
-
-        .auth-hero-stats {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: var(--ds-space-3);
-            margin-bottom: var(--ds-space-8);
-        }
-
-        .auth-stat {
-            padding: var(--ds-space-4);
-            border-radius: 18px;
-            background: rgba(255, 255, 255, 0.09);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(12px);
-        }
-
-        .auth-stat-value {
-            display: block;
-            margin-bottom: var(--ds-space-1);
-            color: white;
-            font-size: var(--ds-text-xl);
-            font-weight: var(--ds-weight-bold);
-        }
-
-        .auth-stat-label {
-            color: rgba(219, 234, 254, 0.72);
-            font-size: var(--ds-text-xs);
+        
+        .auth-hero-title span {
+            color: var(--auth-accent);
         }
 
         .auth-feature-list {
             display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: var(--ds-space-4);
+            margin-bottom: var(--ds-space-8);
         }
 
         .auth-feature-card {
             display: flex;
+            flex-direction: column;
             align-items: flex-start;
-            gap: var(--ds-space-4);
-            padding: var(--ds-space-4);
+            gap: var(--ds-space-3);
+            padding: var(--ds-space-5);
+            border: 1px solid #dbeafe;
             border-radius: 20px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(14px);
-            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.14);
+            background: #eff6ff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+            height: 100%;
         }
 
         .auth-feature-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 16px;
-            background: var(--ds-gradient-primary);
-            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: #dbeafe;
+            color: #2563eb;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
-            box-shadow: 0 16px 28px rgba(59, 109, 246, 0.24);
-        }
-
-        .auth-feature-card h3,
-        .auth-feature-card p {
-            margin: 0;
+            font-size: 1.1rem;
         }
 
         .auth-feature-card h3 {
-            color: white;
-            font-size: var(--ds-text-base);
-            font-weight: var(--ds-weight-bold);
+            margin: 0;
+            color: var(--auth-ink);
+            font-size: 0.95rem;
+            font-weight: 700;
         }
 
         .auth-feature-card p {
-            margin-top: var(--ds-space-1);
-            color: rgba(219, 234, 254, 0.74);
-            font-size: var(--ds-text-xs);
-            line-height: 1.6;
+            margin: 0;
+            color: var(--auth-ink-2);
+            font-size: 0.85rem;
+            line-height: 1.5;
         }
 
         .auth-panel {
@@ -415,6 +392,7 @@
             align-items: center;
             justify-content: center;
             padding: var(--ds-space-8);
+            background: #f8fafc;
         }
 
         .auth-panel-scroll {
@@ -423,44 +401,17 @@
 
         .auth-panel-inner {
             width: 100%;
-            max-width: 460px;
-        }
-
-        .auth-panel-inner.auth-panel-wide {
-            max-width: 560px;
+            max-width: 440px;
         }
 
         .auth-card {
             position: relative;
-            background: rgba(255, 255, 255, 0.82);
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            border-radius: 32px;
+            background: var(--auth-card);
+            border: none;
+            border-radius: 24px;
             padding: var(--ds-space-10);
-            box-shadow: 0 32px 80px rgba(15, 23, 42, 0.12);
-            backdrop-filter: blur(22px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
             overflow: hidden;
-        }
-
-        .auth-card::before {
-            content: '';
-            position: absolute;
-            inset: 0 0 auto 0;
-            height: 4px;
-            background: var(--ds-gradient-primary);
-        }
-
-        .auth-tab-switcher {
-            display: flex;
-            gap: var(--ds-space-1);
-            padding: var(--ds-space-1);
-            border-radius: 18px;
-            margin-bottom: var(--ds-space-8);
-            background: rgba(227, 236, 252, 0.72);
-            border: 1px solid rgba(191, 210, 255, 0.6);
-        }
-
-        .auth-tab {
-            position: relative;
         }
 
         .auth-heading {
@@ -469,201 +420,92 @@
 
         .auth-heading h2 {
             margin: 0;
-            font-size: var(--ds-text-3xl);
-            color: var(--ds-text-primary);
-            font-weight: var(--ds-weight-extrabold);
+            font-size: 1.7rem;
+            color: var(--auth-ink);
+            font-weight: 800;
+            letter-spacing: -0.02em;
         }
 
         .auth-heading p {
             margin: var(--ds-space-1) 0 0;
-            color: var(--ds-text-tertiary);
-            font-size: var(--ds-text-sm);
-            line-height: 1.7;
-        }
-
-        .auth-mode-toggle {
-            margin-bottom: var(--ds-space-6);
-            display: flex;
-            gap: var(--ds-space-1);
-            padding: var(--ds-space-1);
-            background: rgba(241, 245, 255, 0.84);
-            border-radius: 18px;
-            border: 1px solid rgba(216, 228, 247, 0.9);
-        }
-
-        .login-mode-btn {
-            color: var(--ds-text-tertiary);
-        }
-
-        input[name="loginMode"]:checked + .login-mode-btn {
-            background: linear-gradient(180deg, #ffffff 0%, #f6f9ff 100%);
-            color: var(--ds-primary-700);
-            font-weight: var(--ds-weight-bold);
-            box-shadow: 0 14px 22px rgba(59, 109, 246, 0.12);
-        }
-
-        input[name="loginMode"]:not(:checked) + .login-mode-btn {
-            color: var(--ds-text-tertiary);
-        }
-
-        .auth-inline-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: var(--ds-space-4);
-        }
-
-        .auth-field-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--ds-space-4);
-        }
-
-        .auth-panel-note {
-            padding: var(--ds-space-4);
-            background: linear-gradient(180deg, rgba(238, 243, 251, 0.92) 0%, rgba(248, 251, 255, 0.92) 100%);
-            border-radius: 20px;
-            border: 1px solid var(--ds-border-default);
-        }
-
-        .auth-divider {
-            margin-top: var(--ds-space-3);
-            display: flex;
-            align-items: center;
-            gap: var(--ds-space-3);
-        }
-
-        .auth-divider-line {
-            flex: 1;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.55), transparent);
-        }
-
-        .auth-secondary-action {
-            width: 100%;
-            padding: var(--ds-space-3);
-            border: 1px solid rgba(191, 210, 255, 0.9);
-            border-radius: 18px;
-            background: rgba(255, 255, 255, 0.76);
-            color: var(--ds-primary-700);
-            font-size: var(--ds-text-sm);
-            font-weight: var(--ds-weight-bold);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--ds-space-2);
-            transition: all var(--ds-duration-base) var(--ds-ease);
-            box-shadow: 0 12px 24px rgba(148, 163, 184, 0.1);
-        }
-
-        .auth-secondary-action:hover {
-            background: rgba(239, 244, 255, 0.98);
-            transform: translateY(-1px);
-            box-shadow: 0 16px 28px rgba(59, 109, 246, 0.12);
-        }
-
-        .auth-link-btn,
-        .auth-link-btn:hover {
-            color: var(--ds-primary-600);
-            font-weight: var(--ds-weight-bold);
-            text-decoration: none;
+            color: var(--auth-ink-2);
+            font-size: 0.9rem;
+            line-height: 1.6;
         }
 
         .auth-loading {
             padding: var(--ds-space-3);
-            border-radius: 18px;
-            background: rgba(238, 243, 251, 0.7);
-            border: 1px solid rgba(216, 228, 247, 0.9);
-        }
-
-        .auth-refresh-btn {
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: 12px;
-            background: rgba(91, 140, 255, 0.1);
-            color: var(--ds-primary-600);
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--ds-duration-base) var(--ds-ease);
-        }
-
-        .auth-refresh-btn:hover {
-            background: rgba(91, 140, 255, 0.18);
-            transform: translateY(-1px);
-        }
-
-        .auth-refresh-btn.refreshing {
-            background: rgba(124, 58, 237, 0.12);
-            color: #7c3aed;
-        }
-
-        .auth-refresh-btn.refreshing i {
-            animation: auth-refresh-spin 0.8s linear infinite;
+            border-radius: 14px;
+            background: var(--auth-sunken);
+            border: 1px solid var(--auth-hairline);
         }
 
         .auth-footer-copy {
-            margin-top: var(--ds-space-10);
-            color: rgba(219, 234, 254, 0.58);
-            font-size: var(--ds-text-xs);
+            display: none;
         }
 
-        @keyframes auth-refresh-spin {
-            to {
-                transform: rotate(360deg);
-            }
+        /* ---- component overrides scoped to the auth page only ---- */
+        .auth-background .ds-btn,
+        .auth-background .ds-btn-primary,
+        .auth-background .ds-btn-secondary {
+            border-radius: 9999px; /* Pill buttons for modern look */
         }
 
-        @media (max-width: 1100px) {
-            .auth-shell {
-                flex-direction: column;
-            }
-
-            .auth-hero,
-            .auth-panel {
-                width: 100%;
-            }
-
-            .auth-hero {
-                min-height: 520px;
-            }
+        .auth-background .ds-btn-primary {
+            background: var(--auth-accent);
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+            font-weight: 600;
         }
 
-        @media (max-width: 760px) {
-            .auth-background,
-            .auth-shell {
-                min-height: auto;
-            }
+        .auth-background .ds-btn-primary:hover:not(:disabled) {
+            background: var(--ds-primary-700);
+            box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
+            transform: translateY(-1px);
+        }
 
-            .auth-hero {
-                padding: var(--ds-space-8);
-                min-height: auto;
-            }
+        .auth-background .ds-input {
+            background: #f1f5f9;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            color: var(--auth-ink);
+            padding: 0.8rem 1rem;
+        }
+        
+        .auth-background .input-wrapper {
+            background: #f1f5f9;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .auth-background .input-wrapper:focus-within {
+            border-color: var(--auth-accent);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
 
-            .auth-panel {
-                padding: var(--ds-space-4);
-            }
+        .auth-background .ds-input:focus {
+            outline: none;
+            border-color: var(--auth-accent);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
 
-            .auth-card {
-                border-radius: 24px;
-                padding: var(--ds-space-6);
-            }
-
-            .auth-hero-stats,
-            .auth-field-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .auth-inline-row {
-                flex-direction: column;
-                align-items: flex-start;
-            }
+        .auth-link-btn {
+            color: var(--auth-accent);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        
+        .auth-link-btn:hover {
+            text-decoration: underline;
         }
     </style>
-    `;
+`;
 
     // ============= DUAL-MODE LOGIN TEMPLATE =============
     const getLoginTemplate = () => `
@@ -671,40 +513,13 @@
     <div class="auth-background">
         <div class="auth-shell">
             <div class="auth-hero">
-                <canvas id="particlesCanvas" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
-                <div class="auth-hero-content">
-                    <div class="auth-brand">
-                        <div class="auth-brand-mark">
-                            <img src="assets/brand/talliffy-icon.png" alt="Talliffy logo" />
-                        </div>
-                        <div class="auth-brand-copy">
-                            <h1>Talliffy</h1>
-                            <p>Cloud sync platform</p>
-                        </div>
-                    </div>
-
+                <div class="auth-hero-content" style="max-width: 600px;">
                     <div class="auth-badge">
-                        <i class="fas fa-sparkles"></i>
-                        Modern finance operations for Tally teams
+                        <i class="fas fa-shield-alt"></i>
+                        NEXT-GEN AUTHENTICATION
                     </div>
 
-                    <h2 class="auth-hero-title">Move from legacy screens to a workspace your client can actually love.</h2>
-                    <p class="auth-hero-copy">Talliffy keeps Tally data, sync status, and user access in one cleaner flow with real-time feedback and a sharper visual system.</p>
-
-                    <div class="auth-hero-stats">
-                        <div class="auth-stat">
-                            <span class="auth-stat-value">Live</span>
-                            <span class="auth-stat-label">sync visibility</span>
-                        </div>
-                        <div class="auth-stat">
-                            <span class="auth-stat-value">Secure</span>
-                            <span class="auth-stat-label">team access</span>
-                        </div>
-                        <div class="auth-stat">
-                            <span class="auth-stat-value">Fast</span>
-                            <span class="auth-stat-label">daily workflows</span>
-                        </div>
-                    </div>
+                    <h2 class="auth-hero-title">The future of <span>Tally Operations</span> is here.</h2>
 
                     <div class="auth-feature-list">
                         <div class="auth-feature-card">
@@ -712,59 +527,66 @@
                                 <i class="fas fa-sync-alt"></i>
                             </div>
                             <div>
-                                <h3>Auto sync with Tally</h3>
-                                <p>Real-time updates, cleaner status states, and less second-guessing during daily operations.</p>
+                                <h3>Continuous Sync</h3>
+                                <p>Tally data stays current effortlessly.</p>
                             </div>
                         </div>
                         <div class="auth-feature-card">
                             <div class="auth-feature-icon">
-                                <i class="fas fa-lock"></i>
+                                <i class="fas fa-cloud"></i>
                             </div>
                             <div>
-                                <h3>Enterprise-grade access</h3>
-                                <p>Protected sign-in, shared team control, and a more credible first impression for clients.</p>
+                                <h3>Work Anywhere</h3>
+                                <p>Access reports from any modern browser.</p>
+                            </div>
+                        </div>
+                        <div class="auth-feature-card">
+                            <div class="auth-feature-icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <div>
+                                <h3>Faster Decisions</h3>
+                                <p>Insights from raw vouchers in seconds.</p>
+                            </div>
+                        </div>
+                        <div class="auth-feature-card">
+                            <div class="auth-feature-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div>
+                                <h3>Multi-Company</h3>
+                                <p>Manage unlimited Tally companies in one place.</p>
                             </div>
                         </div>
                     </div>
-
-                    <div class="auth-footer-copy">(c) 2026 Talliffy. Built for modern Tally workflows.</div>
                 </div>
             </div>
 
             <div class="auth-panel">
                 <div class="auth-panel-inner">
                     <div class="auth-card">
-                        <div class="auth-tab-switcher">
-                            <button id="signinTab" class="ds-tab-btn auth-tab" style="flex: 1; padding: var(--ds-space-3); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); border: none; background: transparent; color: var(--ds-text-secondary); cursor: pointer; transition: all var(--ds-duration-base) var(--ds-ease); border-radius: 14px;">
-                                Sign In
-                            </button>
-                            <button id="signupTab" class="ds-tab-btn auth-tab" style="flex: 1; padding: var(--ds-space-3); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); border: none; background: transparent; color: var(--ds-text-secondary); cursor: pointer; transition: all var(--ds-duration-base) var(--ds-ease); border-radius: 14px;">
-                                Sign Up
-                            </button>
-                        </div>
-
                         <div id="signinForm">
                             <div class="auth-heading">
                                 <h2>Welcome back</h2>
                                 <p>Pick up where your team left off with a cleaner, faster workspace.</p>
                             </div>
 
-                            <div id="errorMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-error-50); border: 1px solid var(--ds-error-200); border-radius: var(--ds-radius-xl); color: var(--ds-error-700); font-size: var(--ds-text-sm);">
+                            <div id="errorMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; color: #b91c1c; font-size: 0.85rem;">
                                 <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
                                     <i class="fas fa-exclamation-triangle"></i>
                                     <span class="msg-text"></span>
                                 </div>
                             </div>
-
-                            <div id="successMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: var(--ds-success-50); border: 1px solid var(--ds-success-200); border-radius: var(--ds-radius-xl); color: var(--ds-success-700); font-size: var(--ds-text-sm);">
+                            
+                            <div id="successMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; color: #15803d; font-size: 0.85rem;">
                                 <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
                                     <i class="fas fa-check-circle"></i>
                                     <span class="msg-text"></span>
                                 </div>
                             </div>
 
-                            <div class="auth-browser-login-box" style="padding: var(--ds-space-6); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-2xl); text-align: center; margin-bottom: var(--ds-space-6);">
-                                <div style="margin-bottom: var(--ds-space-4); color: var(--ds-text-secondary); font-size: var(--ds-text-sm);">
+                            <div class="auth-browser-login-box" style="padding: var(--ds-space-6); background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; text-align: center;">
+                                <div style="margin-bottom: var(--ds-space-4); color: var(--auth-ink-2); font-size: 0.9rem;">
                                     To ensure a secure and synchronized session, please sign in using your web browser.
                                 </div>
                                 ${window.UIComponents.button({
@@ -777,57 +599,14 @@
                                 })}
                             </div>
 
-                            <div class="auth-divider">
-                                <div class="auth-divider-line"></div>
-                                <span style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary);">Advanced</span>
-                                <div class="auth-divider-line"></div>
-                            </div>
-
-                            <div style="text-align: center;">
-                                <button type="button" id="showLegacyLogin" style="background: none; border: none; color: var(--ds-text-tertiary); font-size: var(--ds-text-xs); cursor: pointer; text-decoration: underline;">
-                                    Sign in with credentials (legacy)
-                                </button>
-                            </div>
-
-                            <form id="loginForm" class="hidden" style="margin-top: var(--ds-space-4); display: flex; flex-direction: column; gap: var(--ds-space-5);">
-                                ${window.UIComponents.input({
-                                    id: 'username',
-                                    label: 'Username',
-                                    placeholder: 'Enter your username',
-                                    icon: '<i class="fas fa-user"></i>'
-                                })}
-                                <div style="position: relative;">
-                                    ${window.UIComponents.input({
-                                        id: 'password',
-                                        type: 'password',
-                                        label: 'Password',
-                                        placeholder: 'Enter password',
-                                        icon: '<i class="fas fa-lock"></i>',
-                                        required: true
-                                    })}
-                                    <span id="toggleLoginPassword" style="position: absolute; right: var(--ds-space-4); bottom: var(--ds-space-3); cursor: pointer; color: var(--ds-text-tertiary); font-size: var(--ds-text-lg);"><i class="fas fa-eye"></i></span>
-                                </div>
-                                ${window.UIComponents.button({
-                                    id: 'loginBtn',
-                                    text: 'Sign In',
-                                    variant: 'secondary',
-                                    type: 'submit',
-                                    fullWidth: true
-                                })}
-                                <div id="loadingSpinner" class="hidden auth-loading" style="text-align: center;">
-                                    ${window.UIComponents.spinner({ size: 'md' })}
-                                </div>
-                            </form>
                         </div>
-                        </div>
-
                         <div id="signupFormContainer" class="hidden"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    `;
+`;
 
     // ============= REGISTRATION FORM CONTENT ONLY =============
     const getSignupFormContent = () => `
@@ -1111,6 +890,7 @@
 
     // ============= OTP VERIFICATION TEMPLATE =============
     const getOtpVerificationTemplate = (username) => `
+    ${AUTH_SHARED_STYLES}
     <div class="auth-background" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--ds-bg-app); padding: var(--ds-space-6);">
         <div style="width: 100%; max-width: 440px; position: relative; z-index: 10;">
             <div style="text-align: center; margin-bottom: var(--ds-space-8);">
@@ -1201,6 +981,7 @@
 
     // ============= MOBILE OTP VERIFICATION TEMPLATE =============
     const getMobileOtpVerificationTemplate = (mobile, username) => `
+    ${AUTH_SHARED_STYLES}
     <div class="auth-background" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--ds-bg-app); padding: var(--ds-space-6);">
         <div style="width: 100%; max-width: 440px; position: relative; z-index: 10;">
             <!-- Header Card Section -->
@@ -1331,18 +1112,19 @@
 
         // Helper function to set active tab styling
         function setActiveTab(activeTab, inactiveTab) {
-            activeTab.style.background = 'linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%)';
-            activeTab.style.color = 'var(--ds-primary-700)';
-            activeTab.style.boxShadow = '0 16px 24px rgba(59, 109, 246, 0.12)';
-            activeTab.style.border = '1px solid rgba(191, 210, 255, 0.9)';
-            activeTab.style.borderRadius = '14px';
-            activeTab.style.transform = 'translateY(-1px)';
+            // Quiet Ledger: neutral graphite-ink tab states (no blue)
+            activeTab.style.background = '#ffffff';
+            activeTab.style.color = '#1c1917';
+            activeTab.style.boxShadow = '0 1px 2px rgba(28, 25, 23, 0.06), 0 0 0 1px #e7e5e4';
+            activeTab.style.border = '1px solid transparent';
+            activeTab.style.borderRadius = '10px';
+            activeTab.style.transform = 'translateY(0)';
 
             inactiveTab.style.background = 'transparent';
-            inactiveTab.style.color = '#64748b';
+            inactiveTab.style.color = '#8a8a85';
             inactiveTab.style.boxShadow = 'none';
             inactiveTab.style.border = '1px solid transparent';
-            inactiveTab.style.borderRadius = '14px';
+            inactiveTab.style.borderRadius = '10px';
             inactiveTab.style.transform = 'translateY(0)';
         }
 
@@ -1372,6 +1154,14 @@
                     fetchAndPopulateLicenseNumber();
                 }, 100);
             });
+
+            // Supporting sign-up prompt row beneath the card mirrors the Sign Up tab
+            const signupPromptBtn = document.getElementById('signupPromptBtn');
+            if (signupPromptBtn) {
+                signupPromptBtn.addEventListener('click', () => {
+                    signupTab.click();
+                });
+            }
         }
 
                         // Handle login mode toggle (legacy fall-back)
@@ -1581,7 +1371,7 @@
                         ctx.beginPath();
                         ctx.moveTo(p.x, p.y);
                         ctx.lineTo(mouse.x, mouse.y);
-                        ctx.strokeStyle = `rgba(147, 197, 253, ${opacity})`;
+                        ctx.strokeStyle = `rgba(245, 245, 244, ${opacity})`;
                         ctx.lineWidth = 1;
                         ctx.stroke();
                     }
