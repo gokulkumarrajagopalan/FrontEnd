@@ -219,290 +219,457 @@
 
     const AUTH_SHARED_STYLES = `
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body { height: 100%; overflow: hidden; }
+
         .auth-background {
-            --ds-primary-100: #dbeafe;
-            --ds-primary-500: #3b82f6;
-            --ds-primary-600: #2563eb;
-            --ds-primary-700: #1d4ed8;
-            --ds-primary-800: #1e40af;
-            --ds-primary-900: #1e3a8a;
-            --ds-gradient-primary: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-            --ds-gradient-primary-hover: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+            --a-blue:       #2563eb;
+            --a-blue-deep:  #1d4ed8;
+            --a-indigo:     #4f46e5;
+            --a-blue-light: #eff6ff;
+            --a-blue-mid:   #dbeafe;
+            --a-ink:        #0f172a;
+            --a-ink-2:      #334155;
+            --a-ink-3:      #64748b;
+            --a-ink-4:      #94a3b8;
+            --a-white:      #ffffff;
+            --a-surface:    #f8fafc;
+            --a-border:     #e2e8f0;
+            --a-border-2:   #cbd5e1;
+            --a-green:      #10b981;
 
-            --ds-text-primary: #0f172a;
-            --ds-text-secondary: #475569;
-            --ds-text-tertiary: #64748b;
-            --ds-text-link: #2563eb;
-            --ds-text-link-hover: #1d4ed8;
-
-            --ds-border-default: #e2e8f0;
-            --ds-border-strong: #cbd5e1;
-            --ds-border-focus: #3b82f6;
-
-            --ds-bg-app: #f8fafc;
-            --ds-bg-surface: #ffffff;
-            --ds-bg-surface-sunken: #f1f5f9;
-            --ds-bg-hover: #f1f5f9;
-
-            --ds-input-border: #e2e8f0;
-            --ds-input-text: #0f172a;
-            --ds-input-placeholder: #94a3b8;
-            --ds-input-focus-ring: rgba(37, 99, 235, 0.15);
-            --ds-btn-primary-bg: #2563eb;
-            --ds-btn-primary-bg-hover: #1d4ed8;
-            --ds-btn-secondary-bg: #ffffff;
-            --ds-btn-secondary-bg-hover: #f8fafc;
-            --ds-btn-secondary-text: #0f172a;
-            --ds-btn-secondary-border: #e2e8f0;
-
-            --auth-ink: #0f172a;
-            --auth-ink-2: #475569;
-            --auth-ink-3: #64748b;
-            --auth-accent: #2563eb;
-            --auth-accent-soft: #3b82f6;
-            --auth-page: #ffffff;
-            --auth-hero: #ffffff;
-            --auth-hero-2: #ffffff;
-            --auth-card: #ffffff;
-            --auth-hairline: #e2e8f0;
-            --auth-hairline-2: #cbd5e1;
-            --auth-sunken: #f1f5f9;
-            --auth-on-dark: #0f172a;
-            --auth-on-dark-2: #475569;
-            --auth-on-dark-3: #64748b;
-            --auth-hero-line: #e2e8f0;
-            --auth-hero-fill: #eff6ff;
-            --auth-mono: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
-
-            min-height: 100vh;
-            background: var(--auth-page);
-            color: var(--auth-ink);
+            font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--a-white);
+            color: var(--a-ink);
+            -webkit-font-smoothing: antialiased;
         }
 
+        /* Full-height shell, no scroll */
         .auth-shell {
             display: flex;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
         }
 
+        /* ═══════════ LEFT HERO ═══════════ */
         .auth-hero {
             position: relative;
-            width: 50%;
+            width: 55%;
+            height: 100vh;
             overflow: hidden;
-            padding: var(--ds-space-12);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--auth-ink);
-            background: var(--auth-hero);
+            padding: 36px 52px;
+            background:
+                radial-gradient(ellipse 80% 60% at 0% 0%,   #c7d9ff 0%, transparent 55%),
+                radial-gradient(ellipse 70% 60% at 100% 100%, #bdd0fc 0%, transparent 55%),
+                linear-gradient(160deg, #e8f0fe 0%, #eef4ff 40%, #f5f8ff 100%);
         }
 
-        .auth-hero #particlesCanvas {
-            display: none !important;
+        /* Dot grid */
+        .auth-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, rgba(37,99,235,0.11) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: radial-gradient(ellipse 85% 85% at 40% 40%, #000 30%, transparent 100%);
+            -webkit-mask-image: radial-gradient(ellipse 85% 85% at 40% 40%, #000 30%, transparent 100%);
+            z-index: 0;
+        }
+
+        /* Glowing orb */
+        .auth-hero::after {
+            content: '';
+            position: absolute;
+            top: -100px; left: -70px;
+            width: 380px; height: 380px;
+            background: radial-gradient(circle, rgba(99,130,255,0.20) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+            animation: auth-orb 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes auth-orb {
+            from { transform: scale(1);    opacity: 0.7; }
+            to   { transform: scale(1.12); opacity: 1;   }
         }
 
         .auth-hero-content {
             position: relative;
             z-index: 2;
-            max-width: 480px;
+            max-width: 500px;
             width: 100%;
         }
 
-        .auth-brand {
-            display: none;
+        /* Brand lockup */
+        .auth-lockup {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            margin-bottom: 22px;
         }
 
+        .auth-lockup-mark {
+            width: 44px; height: 44px;
+            border-radius: 13px;
+            box-shadow: 0 6px 18px -4px rgba(37,99,235,0.32);
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+        .auth-lockup-mark:hover { transform: scale(1.06) rotate(-2deg); }
+
+        .auth-lockup-name {
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--a-ink);
+            line-height: 1.1;
+        }
+        .auth-lockup-name span { color: var(--a-blue); }
+
+        .auth-lockup-tag {
+            font-size: 0.72rem;
+            color: var(--a-ink-3);
+            font-weight: 500;
+            margin-top: 3px;
+        }
+
+        /* Badge */
         .auth-badge {
             display: inline-flex;
             align-items: center;
-            gap: var(--ds-space-2);
-            padding: 6px 14px;
+            gap: 7px;
+            padding: 5px 13px;
             border-radius: 999px;
-            margin-bottom: var(--ds-space-6);
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            color: #1d4ed8;
-            font-size: 0.75rem;
+            margin-bottom: 16px;
+            background: rgba(37,99,235,0.08);
+            border: 1px solid rgba(37,99,235,0.18);
+            color: var(--a-blue-deep);
+            font-size: 0.68rem;
             font-weight: 700;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.07em;
             text-transform: uppercase;
         }
 
+        /* Headline */
         .auth-hero-title {
-            margin: 0 0 var(--ds-space-8);
-            color: var(--auth-ink);
-            font-size: clamp(2rem, 3vw, 2.5rem);
-            font-weight: 800;
-            line-height: 1.2;
-            letter-spacing: -0.02em;
-        }
-        
-        .auth-hero-title span {
-            color: var(--auth-accent);
+            font-size: 1.65rem;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            color: var(--a-ink);
+            margin-bottom: 10px;
+            white-space: nowrap;
         }
 
+        .auth-hero-title .hl {
+            background: linear-gradient(135deg, var(--a-blue) 0%, var(--a-indigo) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-hero-sub {
+            font-size: 0.84rem;
+            line-height: 1.55;
+            color: var(--a-ink-2);
+            max-width: 52ch;
+            margin-bottom: 24px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Feature cards */
         .auth-feature-list {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: var(--ds-space-4);
-            margin-bottom: var(--ds-space-8);
+            gap: 10px;
+            margin-bottom: 24px;
         }
 
         .auth-feature-card {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            gap: var(--ds-space-3);
-            padding: var(--ds-space-5);
-            border: 1px solid #dbeafe;
-            border-radius: 20px;
-            background: #eff6ff;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-            height: 100%;
+            gap: 8px;
+            padding: 14px 14px;
+            background: rgba(255,255,255,0.70);
+            border: 1px solid rgba(255,255,255,0.9);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 6px 18px -10px rgba(37,99,235,0.12);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .auth-feature-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04), 0 16px 32px -12px rgba(37,99,235,0.2);
         }
 
         .auth-feature-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: #dbeafe;
-            color: #2563eb;
+            width: 32px; height: 32px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, var(--a-blue-light) 0%, var(--a-blue-mid) 100%);
+            color: var(--a-blue);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
+            font-size: 0.85rem;
+            box-shadow: 0 3px 6px -2px rgba(37,99,235,0.16);
         }
 
         .auth-feature-card h3 {
-            margin: 0;
-            color: var(--auth-ink);
-            font-size: 0.95rem;
+            font-size: 0.82rem;
             font-weight: 700;
+            color: var(--a-ink);
+            letter-spacing: -0.01em;
         }
-
         .auth-feature-card p {
-            margin: 0;
-            color: var(--auth-ink-2);
-            font-size: 0.85rem;
-            line-height: 1.5;
+            font-size: 0.76rem;
+            color: var(--a-ink-3);
+            line-height: 1.45;
         }
 
+        /* Trust row */
+        .auth-trust-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .auth-trust-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: var(--a-ink-2);
+        }
+        .auth-trust-item i { color: var(--a-green); font-size: 0.78rem; }
+        .auth-trust-divider { width: 1px; height: 14px; background: var(--a-border-2); }
+
+        /* ═══════════ RIGHT PANEL ═══════════ */
         .auth-panel {
-            width: 50%;
+            width: 45%;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: var(--ds-space-8);
-            background: #f8fafc;
+            padding: 40px 36px;
+            background: var(--a-surface);
+            position: relative;
+            overflow: hidden;
         }
 
-        .auth-panel-scroll {
-            overflow-y: auto;
+        .auth-panel::before {
+            content: '';
+            position: absolute;
+            bottom: -80px; right: -80px;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 70%);
+            border-radius: 50%;
         }
 
         .auth-panel-inner {
             width: 100%;
-            max-width: 440px;
+            max-width: 400px;
+            position: relative;
+            z-index: 1;
         }
 
+        /* Card */
         .auth-card {
-            position: relative;
-            background: var(--auth-card);
-            border: none;
+            background: var(--a-white);
+            border: 1px solid var(--a-border);
             border-radius: 24px;
-            padding: var(--ds-space-10);
-            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
+            padding: 32px 30px 28px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 20px 56px -14px rgba(0,0,0,0.10);
+            position: relative;
             overflow: hidden;
         }
 
-        .auth-heading {
-            margin-bottom: var(--ds-space-6);
+        /* Top accent bar */
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--a-blue) 0%, var(--a-indigo) 100%);
+            border-radius: 24px 24px 0 0;
         }
 
-        .auth-heading h2 {
-            margin: 0;
-            font-size: 1.7rem;
-            color: var(--auth-ink);
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-
-        .auth-heading p {
-            margin: var(--ds-space-1) 0 0;
-            color: var(--auth-ink-2);
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
-
-        .auth-loading {
-            padding: var(--ds-space-3);
-            border-radius: 14px;
-            background: var(--auth-sunken);
-            border: 1px solid var(--auth-hairline);
-        }
-
-        .auth-footer-copy {
-            display: none;
-        }
-
-        /* ---- component overrides scoped to the auth page only ---- */
-        .auth-background .ds-btn,
-        .auth-background .ds-btn-primary,
-        .auth-background .ds-btn-secondary {
-            border-radius: 9999px; /* Pill buttons for modern look */
-        }
-
-        .auth-background .ds-btn-primary {
-            background: var(--auth-accent);
-            color: #ffffff;
-            border: none;
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
-            font-weight: 600;
-        }
-
-        .auth-background .ds-btn-primary:hover:not(:disabled) {
-            background: var(--ds-primary-700);
-            box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
-            transform: translateY(-1px);
-        }
-
-        .auth-background .ds-input {
-            background: #f1f5f9;
-            border: 1px solid transparent;
-            border-radius: 12px;
-            color: var(--auth-ink);
-            padding: 0.8rem 1rem;
-        }
-        
-        .auth-background .input-wrapper {
-            background: #f1f5f9;
-            border-radius: 12px;
-            border: 1px solid transparent;
-            transition: all 0.2s;
+        /* Card logo */
+        .auth-card-logo {
             display: flex;
             align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
         }
-        
-        .auth-background .input-wrapper:focus-within {
-            border-color: var(--auth-accent);
-            background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        .auth-card-logo img {
+            width: 34px; height: 34px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px -2px rgba(37,99,235,0.22);
+        }
+        .auth-card-logo-name {
+            font-weight: 800;
+            font-size: 1.05rem;
+            letter-spacing: -0.02em;
+            color: var(--a-ink);
+        }
+        .auth-card-logo-name span { color: var(--a-blue); }
+
+        /* Heading */
+        .auth-heading { margin-bottom: 18px; }
+        .auth-heading h2 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--a-ink);
+            letter-spacing: -0.025em;
+            margin-bottom: 4px;
+        }
+        .auth-heading p {
+            font-size: 0.83rem;
+            color: var(--a-ink-3);
+            line-height: 1.5;
         }
 
-        .auth-background .ds-input:focus {
-            outline: none;
-            border-color: var(--auth-accent);
-            background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        /* Benefit list */
+        .auth-benefit-list {
+            list-style: none;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .auth-benefit-list li {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--a-ink-2);
+        }
+        .auth-benefit-list .benefit-icon {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #15803d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            flex-shrink: 0;
         }
 
-        .auth-link-btn {
-            color: var(--auth-accent);
-            font-weight: 600;
-            text-decoration: none;
+        /* SSO box */
+        .auth-sso-box {
+            background: linear-gradient(160deg, #f8faff 0%, #f0f6ff 100%);
+            border: 1px solid rgba(37,99,235,0.12);
+            border-radius: 16px;
+            padding: 20px 18px;
+            text-align: center;
+            margin-bottom: 16px;
         }
-        
-        .auth-link-btn:hover {
-            text-decoration: underline;
+        .auth-sso-box p {
+            font-size: 0.81rem;
+            color: var(--a-ink-3);
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        /* SSO button */
+        .auth-sso-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            width: 100%;
+            padding: 13px 20px;
+            background: linear-gradient(135deg, var(--a-blue) 0%, var(--a-indigo) 100%);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 4px 6px -1px rgba(37,99,235,0.25), 0 10px 22px -6px rgba(37,99,235,0.32);
+            position: relative;
+            overflow: hidden;
+        }
+        .auth-sso-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(37,99,235,0.30), 0 18px 30px -6px rgba(37,99,235,0.38);
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+        }
+        .auth-sso-btn:active { transform: translateY(0); }
+
+        /* Shimmer */
+        .auth-sso-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 60%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+            transform: skewX(-20deg);
+            animation: auth-shimmer 3.5s ease-in-out infinite;
+        }
+        @keyframes auth-shimmer {
+            0%  { left: -100%; }
+            40% { left: 140%; }
+            100%{ left: 140%; }
+        }
+
+        /* ds-btn-primary override */
+        .auth-background .ds-btn-primary {
+            background: linear-gradient(135deg, var(--a-blue) 0%, var(--a-indigo) 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            box-shadow: 0 4px 6px -1px rgba(37,99,235,0.25);
+        }
+        .auth-background .ds-btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+        }
+
+        /* Secure note */
+        .auth-secure-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.73rem;
+            color: var(--a-ink-4);
+            font-weight: 500;
+        }
+        .auth-secure-note i { color: var(--a-ink-3); }
+
+        /* Misc */
+        .auth-loading {
+            padding: 10px;
+            border-radius: 10px;
+            background: var(--a-surface);
+            border: 1px solid var(--a-border);
+        }
+        .auth-link-btn { color: var(--a-blue); font-weight: 600; text-decoration: none; }
+        .auth-link-btn:hover { text-decoration: underline; }
+
+        /* Responsive: hide hero on small screens */
+        @media (max-width: 860px) {
+            .auth-hero  { display: none; }
+            .auth-panel { width: 100%; }
         }
     </style>
 `;
@@ -511,100 +678,121 @@
     const getLoginTemplate = () => `
     ${AUTH_SHARED_STYLES}
     <div class="auth-background">
-        <div class="auth-shell">
-            <div class="auth-hero">
-                <div class="auth-hero-content" style="max-width: 600px;">
-                    <div class="auth-badge">
-                        <i class="fas fa-shield-alt"></i>
-                        NEXT-GEN AUTHENTICATION
-                    </div>
+      <div class="auth-shell">
 
-                    <h2 class="auth-hero-title">The future of <span>Tally Operations</span> is here.</h2>
+        <!-- ═══ LEFT HERO ═══ -->
+        <div class="auth-hero">
+          <div class="auth-hero-content">
 
-                    <div class="auth-feature-list">
-                        <div class="auth-feature-card">
-                            <div class="auth-feature-icon">
-                                <i class="fas fa-sync-alt"></i>
-                            </div>
-                            <div>
-                                <h3>Continuous Sync</h3>
-                                <p>Tally data stays current effortlessly.</p>
-                            </div>
-                        </div>
-                        <div class="auth-feature-card">
-                            <div class="auth-feature-icon">
-                                <i class="fas fa-cloud"></i>
-                            </div>
-                            <div>
-                                <h3>Work Anywhere</h3>
-                                <p>Access reports from any modern browser.</p>
-                            </div>
-                        </div>
-                        <div class="auth-feature-card">
-                            <div class="auth-feature-icon">
-                                <i class="fas fa-chart-bar"></i>
-                            </div>
-                            <div>
-                                <h3>Faster Decisions</h3>
-                                <p>Insights from raw vouchers in seconds.</p>
-                            </div>
-                        </div>
-                        <div class="auth-feature-card">
-                            <div class="auth-feature-icon">
-                                <i class="fas fa-building"></i>
-                            </div>
-                            <div>
-                                <h3>Multi-Company</h3>
-                                <p>Manage unlimited Tally companies in one place.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="auth-lockup">
+              <img class="auth-lockup-mark" src="assets/brand/talliffy-icon.png" alt="Talliffy" />
+              <div>
+                <div class="auth-lockup-name">Talli<span>ffy</span></div>
+                <div class="auth-lockup-tag">Tally, reimagined for the cloud</div>
+              </div>
             </div>
 
-            <div class="auth-panel">
-                <div class="auth-panel-inner">
-                    <div class="auth-card">
-                        <div id="signinForm">
-                            <div class="auth-heading">
-                                <h2>Welcome back</h2>
-                                <p>Pick up where your team left off with a cleaner, faster workspace.</p>
-                            </div>
-
-                            <div id="errorMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; color: #b91c1c; font-size: 0.85rem;">
-                                <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    <span class="msg-text"></span>
-                                </div>
-                            </div>
-                            
-                            <div id="successMessage" class="hidden" style="margin-bottom: var(--ds-space-4); padding: var(--ds-space-4); background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; color: #15803d; font-size: 0.85rem;">
-                                <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
-                                    <i class="fas fa-check-circle"></i>
-                                    <span class="msg-text"></span>
-                                </div>
-                            </div>
-
-                            <div class="auth-browser-login-box" style="padding: var(--ds-space-6); background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; text-align: center;">
-                                <div style="margin-bottom: var(--ds-space-4); color: var(--auth-ink-2); font-size: 0.9rem;">
-                                    To ensure a secure and synchronized session, please sign in using your web browser.
-                                </div>
-                                ${window.UIComponents.button({
-                                    id: 'mainBrowserLoginBtn',
-                                    text: 'Sign In in Browser',
-                                    icon: '<i class="fas fa-external-link-alt"></i>',
-                                    variant: 'primary',
-                                    fullWidth: true,
-                                    size: 'lg'
-                                })}
-                            </div>
-
-                        </div>
-                        <div id="signupFormContainer" class="hidden"></div>
-                    </div>
-                </div>
+            <div class="auth-badge">
+              <i class="fas fa-shield-alt"></i>
+              NEXT-GEN AUTHENTICATION
             </div>
+
+            <h1 class="auth-hero-title">
+              The future of <span class="hl">Tally Operations</span> is here.
+            </h1>
+            <p class="auth-hero-sub">Keep your books in sync, open live reports from anywhere, and make faster decisions — all from one secure workspace built on Tally.</p>
+
+            <div class="auth-feature-list">
+              <div class="auth-feature-card">
+                <div class="auth-feature-icon"><i class="fas fa-sync-alt"></i></div>
+                <div>
+                  <h3>Continuous Sync</h3>
+                  <p>Tally data stays current, automatically.</p>
+                </div>
+              </div>
+              <div class="auth-feature-card">
+                <div class="auth-feature-icon"><i class="fas fa-cloud"></i></div>
+                <div>
+                  <h3>Work Anywhere</h3>
+                  <p>Access reports from any modern browser.</p>
+                </div>
+              </div>
+              <div class="auth-feature-card">
+                <div class="auth-feature-icon"><i class="fas fa-bolt"></i></div>
+                <div>
+                  <h3>Faster Decisions</h3>
+                  <p>Turn vouchers into insights in seconds.</p>
+                </div>
+              </div>
+              <div class="auth-feature-card">
+                <div class="auth-feature-icon"><i class="fas fa-building"></i></div>
+                <div>
+                  <h3>Multi-Company</h3>
+                  <p>Manage unlimited Tally companies.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="auth-trust-row">
+              <div class="auth-trust-item"><i class="fas fa-lock"></i> Bank-grade encryption</div>
+              <div class="auth-trust-divider"></div>
+              <div class="auth-trust-item"><i class="fas fa-bolt"></i> Real-time sync</div>
+              <div class="auth-trust-divider"></div>
+              <div class="auth-trust-item"><i class="fas fa-headset"></i> Priority support</div>
+            </div>
+
+          </div>
         </div>
+
+        <!-- ═══ RIGHT PANEL ═══ -->
+        <div class="auth-panel">
+          <div class="auth-panel-inner">
+            <div class="auth-card">
+              <div id="signinForm">
+
+                <div class="auth-card-logo">
+                  <img src="assets/brand/talliffy-icon.png" alt="Talliffy" />
+                  <span class="auth-card-logo-name">Talli<span>ffy</span></span>
+                </div>
+
+                <div class="auth-heading">
+                  <h2>Welcome back</h2>
+                  <p>Pick up where your team left off with a cleaner, faster workspace.</p>
+                </div>
+
+                <div id="errorMessage" class="hidden" style="margin-bottom:14px;padding:12px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#b91c1c;font-size:0.82rem;display:flex;align-items:center;gap:8px;">
+                  <i class="fas fa-exclamation-triangle"></i><span class="msg-text"></span>
+                </div>
+                <div id="successMessage" class="hidden" style="margin-bottom:14px;padding:12px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;color:#15803d;font-size:0.82rem;display:flex;align-items:center;gap:8px;">
+                  <i class="fas fa-check-circle"></i><span class="msg-text"></span>
+                </div>
+
+                <ul class="auth-benefit-list">
+                  <li><span class="benefit-icon"><i class="fas fa-check"></i></span> Single sign-on across all your devices</li>
+                  <li><span class="benefit-icon"><i class="fas fa-check"></i></span> Your session stays encrypted end-to-end</li>
+                  <li><span class="benefit-icon"><i class="fas fa-check"></i></span> No extra passwords to remember</li>
+                </ul>
+
+                <div class="auth-sso-box">
+                  <p>To ensure a secure and synchronized session,<br>please sign in using your web browser.</p>
+                  <button id="mainBrowserLoginBtn" class="auth-sso-btn" type="button">
+                    <i class="fas fa-arrow-up-right-from-square"></i>
+                    Sign In in Browser
+                  </button>
+                </div>
+
+                <div class="auth-secure-note">
+                  <i class="fas fa-lock"></i>
+                  Secured with OAuth 2.0 &middot; We never see your password
+                </div>
+
+              </div>
+              <div id="signupFormContainer" class="hidden"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
 `;
 
