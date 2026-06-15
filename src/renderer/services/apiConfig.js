@@ -24,7 +24,7 @@ const apiConfig = {
         } catch (_) {}
 
         // Final fallback: hardcoded default (localhost OK for dev)
-        window._backendUrl = 'http://localhost:8080';
+        window._backendUrl = 'http://35.175.182.24:8080';
         console.log('✅ apiConfig: Using default Backend URL:', window._backendUrl);
     },
 
@@ -64,7 +64,7 @@ const apiConfig = {
         } catch (_) {}
 
         // 5. Hardcoded default — ensures login always has a target URL
-        return 'http://localhost:8080';
+        return 'http://35.175.182.24:8080';
     },
 
     endpoints: {

@@ -41,7 +41,7 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                 toDate = 'None',
                 tallyHost = 'localhost',
                 tallyPort = 9000,
-                backendUrl = process.env.BACKEND_URL || 'http://localhost:8080',
+                backendUrl = process.env.BACKEND_URL || 'http://35.175.182.24:8080',
                 authToken = 'None',
                 deviceToken = 'None',
                 reportType = 'None',

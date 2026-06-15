@@ -16,7 +16,7 @@ import os
 import threading
 
 TALLY_URL_TEMPLATE = "http://localhost:{}"
-BACKEND_URL_DEFAULT = "http://localhost:8080"
+BACKEND_URL_DEFAULT = "http://35.175.182.24:8080"
 
 # --- TDL Requests ---
 TDL_BALANCE_SHEET = """<ENVELOPE>

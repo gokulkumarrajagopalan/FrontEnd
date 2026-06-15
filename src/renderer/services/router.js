@@ -49,7 +49,7 @@ class Router {
 
                 const data = await response.json();
                 if (data.success && data.handoffCode) {
-                    const webBaseUrl = 'http://localhost:3000';
+                    const webBaseUrl = 'http://35.175.182.24';
                     const handoffUrl = `${webBaseUrl}/auth/callback?handoffCode=${data.handoffCode}`;
 
                     if (window.electronAPI && window.electronAPI.openExternalUrl) {

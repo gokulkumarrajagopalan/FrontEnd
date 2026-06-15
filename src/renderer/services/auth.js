@@ -44,7 +44,7 @@ class AuthService {
 
             // 3. Construct Web App Login URL
             // Using the Web App as a proxy for Keycloak ensures consistent branding and session management
-            const webAppBase = 'http://localhost:3000/sso/login';
+            const webAppBase = 'http://35.175.182.24/sso/login';
             const authUrl = `${webAppBase}?` + new URLSearchParams({
                 redirect: 'desktop',
                 state: state
@@ -174,8 +174,8 @@ class AuthService {
             const verifier = localStorage.getItem(this.PKCE_VERIFIER_KEY);
             if (!verifier) throw new Error('PKCE verifier missing');
 
-            const tokenUrl = 'http://localhost:8180/realms/talliffy/protocol/openid-connect/token';
-            const redirectUri = 'http://localhost:3000/auth/callback';
+            const tokenUrl = 'http://35.175.182.24:8180/realms/talliffy/protocol/openid-connect/token';
+            const redirectUri = 'http://35.175.182.24/auth/callback';
             
             const response = await fetch(tokenUrl, {
                 method: 'POST',

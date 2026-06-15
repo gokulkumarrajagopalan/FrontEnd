@@ -782,7 +782,7 @@ function _resolveBackendUrl() {
   }
 
   // 4. Hardcoded fallback
-  return 'http://localhost:8080';
+  return 'http://35.175.182.24:8080';
 }
 
 // Provide backend URL to renderer asynchronously
@@ -1175,9 +1175,9 @@ ipcMain.handle('open-external-url', async (event, url) => {
     
     // Whitelist
     const allowedOrigins = [
-      'http://localhost:8180',
-      'http://localhost:8080',
-      'http://localhost:3000',
+      'http://35.175.182.24:8180',
+      'http://35.175.182.24:8080',
+      'http://35.175.182.24',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:8080',
       'http://127.0.0.1:8180',

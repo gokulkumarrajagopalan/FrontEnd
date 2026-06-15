@@ -2667,7 +2667,7 @@
     // ============= SSO LOGIN (KEYCLOAK PKCE) =============
 
     const SSO_CONFIG = {
-        keycloakUrl: 'http://localhost:8180',
+        keycloakUrl: 'http://35.175.182.24:8180',
         realm: 'talliffy',
         clientId: 'talliffy-electron',
         redirectUri: 'talliffy://auth/callback',
@@ -2798,7 +2798,7 @@
             sessionStorage.setItem('sso_id_token', tokens.id_token || '');
 
             // Exchange the validated Keycloak token for a Talliffy app session.
-            const backendUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL || 'http://localhost:8080';
+            const backendUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL || 'http://35.175.182.24:8080';
             const sessionRes = await fetch(`${backendUrl}/auth/sso/keycloak?deviceType=DESKTOP`, {
                 method: 'POST',
                 headers: {

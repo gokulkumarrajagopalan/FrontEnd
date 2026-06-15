@@ -20,7 +20,7 @@
     const DEFAULT_SETTINGS = {
         [SETTINGS_KEYS.TALLY_HOST]: 'localhost',
         [SETTINGS_KEYS.TALLY_PORT]: 9000,
-        [SETTINGS_KEYS.BACKEND_URL]: 'http://localhost:8080',
+        [SETTINGS_KEYS.BACKEND_URL]: 'http://35.175.182.24:8080',
         [SETTINGS_KEYS.SYNC_INTERVAL]: 30,
         [SETTINGS_KEYS.AUTO_SYNC_ON_STARTUP]: false,
         [SETTINGS_KEYS.THEME]: 'light',
