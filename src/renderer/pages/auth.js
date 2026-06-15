@@ -1643,6 +1643,44 @@
 
     // ============= DUAL-MODE LOGIN FORM SETUP =============
     function setupLoginForm() {
+        // ============= BROWSER LOGIN PRIMARY ACTION =============
+        // Set up SSO button BEFORE the legacy-form guard so it always fires
+        const mainBrowserLoginBtnEarly = document.getElementById('mainBrowserLoginBtn');
+        if (mainBrowserLoginBtnEarly) {
+            mainBrowserLoginBtnEarly.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (window.authService && typeof window.authService.ssoLoginWithBrowser === 'function') {
+                    mainBrowserLoginBtnEarly.disabled = true;
+                    const originalText = mainBrowserLoginBtnEarly.innerHTML;
+                    mainBrowserLoginBtnEarly.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening browser...';
+
+                    try {
+                        const result = await window.authService.ssoLoginWithBrowser();
+                        if (!result.success) throw new Error(result.message);
+
+                        const successMessage = document.getElementById('successMessage');
+                        if (successMessage) {
+                            successMessage.querySelector('.msg-text').textContent = 'Please complete login in your browser...';
+                            successMessage.classList.remove('hidden');
+                        }
+
+                        setTimeout(() => {
+                            mainBrowserLoginBtnEarly.disabled = false;
+                            mainBrowserLoginBtnEarly.innerHTML = originalText;
+                        }, 2000);
+                    } catch (error) {
+                        const errorMessage = document.getElementById('errorMessage');
+                        if (errorMessage) {
+                            errorMessage.querySelector('.msg-text').textContent = error.message || 'Failed to start login';
+                            errorMessage.classList.remove('hidden');
+                        }
+                        mainBrowserLoginBtnEarly.disabled = false;
+                        mainBrowserLoginBtnEarly.innerHTML = originalText;
+                    }
+                }
+            });
+        }
+
         const loginForm = document.getElementById('loginForm');
         if (!loginForm) return;
 
