@@ -7,7 +7,7 @@ const security = require("./security");
 const { findPython } = require("./python-finder");
 const { registerVoucherSyncHandler } = require("./voucher-sync-handler");
 const { registerBillsSyncHandler } = require("./bills-sync-handler");
-const { protocol } = require("electron");
+const { DEFAULT_BACKEND_URL, ALLOWED_EXTERNAL_ORIGINS } = require("./app-urls");
 
 // Single Instance Lock
 const gotTheLock = app.requestSingleInstanceLock();
@@ -20,35 +20,8 @@ if (!gotTheLock) {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
-
-      // For Windows: commandLine contains the deep link URL
-      const url = commandLine.find(arg => arg.startsWith('talliffy://'));
-      if (url) {
-        console.log("🔗 Second instance deep link received:", url);
-        
-        // Show a small notification to inform the user
-        new Notification({
-          title: 'Talliffy SSO',
-          body: 'Completing sign-in from your browser...',
-          silent: true
-        }).show();
-
-        mainWindow.webContents.send('sso-callback', url);
-      }
     }
   });
-}
-
-// Global deep link URL for initial launch
-let initialDeepLink = process.argv.find(arg => arg.startsWith('talliffy://'));
-
-// Register talliffy:// as a custom protocol for SSO OAuth2 callback
-if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient('talliffy', process.execPath, [path.resolve(process.argv[1])]);
-  }
-} else {
-  app.setAsDefaultProtocolClient('talliffy');
 }
 
 // Check if running in development mode
@@ -149,13 +122,6 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     if (isDev) console.log("🔥 Window ready to show - displaying now");
     mainWindow.show();
-    
-    // If we have an initial deep link, send it now
-    if (initialDeepLink) {
-      console.log("🔗 Processing initial deep link:", initialDeepLink);
-      mainWindow.webContents.send('sso-callback', initialDeepLink);
-      initialDeepLink = null;
-    }
   });
 
   setTimeout(() => {
@@ -782,7 +748,7 @@ function _resolveBackendUrl() {
   }
 
   // 4. Hardcoded fallback
-  return 'http://35.175.182.24:8080';
+  return DEFAULT_BACKEND_URL;
 }
 
 // Provide backend URL to renderer asynchronously
@@ -1153,13 +1119,6 @@ app.on("before-quit", () => {
     }
   } catch (_) {}
 });
-// Handle SSO deep link on macOS (open-url event)
-app.on('open-url', (event, url) => {
-  event.preventDefault();
-  if (url.startsWith('talliffy://') && mainWindow) {
-    mainWindow.webContents.send('sso-callback', url);
-  }
-});
 
 // Open SSO URL in system browser (not inside Electron)
 ipcMain.handle('open-external-url', async (event, url) => {
@@ -1173,18 +1132,8 @@ ipcMain.handle('open-external-url', async (event, url) => {
     // Normalized check
     const normalizedUrl = url.trim().toLowerCase();
     
-    // Whitelist
-    const allowedOrigins = [
-      'http://35.175.182.24:8180',
-      'http://35.175.182.24:8080',
-      'http://35.175.182.24',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:8080',
-      'http://127.0.0.1:8180',
-      'https://'
-    ];
-    
-    const isAllowed = allowedOrigins.some(origin => normalizedUrl.startsWith(origin.toLowerCase()));
+    // Whitelist (single source: app-urls.js)
+    const isAllowed = ALLOWED_EXTERNAL_ORIGINS.some(origin => normalizedUrl.startsWith(origin.toLowerCase()));
     
     if (!isAllowed) {
       console.error('🚫 Blocked attempt to open external URL:', url);

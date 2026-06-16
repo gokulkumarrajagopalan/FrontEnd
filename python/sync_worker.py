@@ -296,6 +296,12 @@ def run_incremental_sync(args):
     (in dependency order) instead of spawning one process per entity per cycle.
     """
     try:
+        # Company name is mandatory — every entity fetch is scoped via SVCURRENTCOMPANY,
+        # and an empty name would silently reconcile against the active Tally company.
+        if not args.company_name or not str(args.company_name).strip():
+            print(json.dumps({'success': False, 'message': 'Company name is required', 'count': 0}))
+            return
+
         manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
         force_deep = getattr(args, 'deep', False)
 
@@ -347,6 +353,12 @@ def run_reconciliation(args):
     """Run reconciliation. Master entities are already reconciled inline during sync.
     This function now only handles voucher reconciliation (single Tally identity fetch)."""
     try:
+        # Company name is mandatory — voucher reconciliation fetches from Tally scoped
+        # via SVCURRENTCOMPANY; an empty name would reconcile against the active company.
+        if not args.company_name or not str(args.company_name).strip():
+            print(json.dumps({'success': False, 'message': 'Company name is required', 'count': 0}))
+            return
+
         manager = ReconciliationManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
         sync_manager = IncrementalSyncManager(args.backend_url, args.auth_token, args.device_token, batch_size=args.batch_size)
 
@@ -474,7 +486,16 @@ def run_bills_outstanding_sync(args):
         tally_url = f"http://{args.host}:{args.port}"
         backend_url = args.backend_url.rstrip('/')
         company_id = int(args.company_id)
-        company_name = args.company_name or ''
+        company_name = (args.company_name or '').strip()
+
+        # Hard requirement: without an explicit company name the request would not be
+        # scoped, and Tally would return the *active* company's bills — corrupting this
+        # company's Receivables/Payables. Abort rather than sync the wrong company.
+        if not company_name:
+            logger.error("run_bills_outstanding_sync: missing company_name — aborting to avoid syncing the wrong (active) company")
+            print(json.dumps({'success': False, 'error': 'company_name is required for company-scoped bills sync'}))
+            return
+
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {args.auth_token}' if args.auth_token else '',
@@ -488,13 +509,16 @@ def run_bills_outstanding_sync(args):
 
         def fetch_bills_from_tally(report_name):
             """Fetch bill-wise outstanding using Tally's built-in report export."""
+            from xml.sax.saxutils import escape
+            escaped_company = escape(company_name) if company_name else ""
             xml_req = f"""<ENVELOPE>
 <HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
 <BODY><EXPORTDATA>
 <REQUESTDESC>
     <REPORTNAME>{report_name}</REPORTNAME>
     <STATICVARIABLES>
-        <SVCOMPANY>{company_name}</SVCOMPANY>
+        <SVCOMPANY>{escaped_company}</SVCOMPANY>
+        <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>
         <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
     </STATICVARIABLES>
 </REQUESTDESC>
@@ -716,6 +740,12 @@ def run_sync_vouchers(args):
 
         if not company_guid:
             print(json.dumps({'success': False, 'message': 'Company GUID required', 'count': 0}))
+            return
+
+        # Vouchers are exported scoped via SVCURRENTCOMPANY — without the name Tally
+        # would return the active company's vouchers.
+        if not company_name or not str(company_name).strip():
+            print(json.dumps({'success': False, 'message': 'Company name is required', 'count': 0}))
             return
 
         if not backend_url:

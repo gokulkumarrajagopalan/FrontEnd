@@ -89,7 +89,11 @@ class ReconciliationManager:
         fetch_fields = entity_fields.get(entity_type, "GUID, MASTERID, ALTERID, Name")
         
         # Add company name to STATICVARIABLES if provided
-        company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
+        company_var = ""
+        if company_name:
+            from xml.sax.saxutils import escape
+            escaped_company = escape(company_name)
+            company_var = f"\n                <SVCOMPANY>{escaped_company}</SVCOMPANY>\n                <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>"
         
         # Date range: use books_from if available for accurate ClosingBalance
         # When companies don't maintain opening balances, using BooksFrom as SVFROMDATE
@@ -540,7 +544,11 @@ class ReconciliationManager:
         """Generate TDL to fetch ALL vouchers from Tally for reconciliation (NO AlterID filter).
         Fetches only identity fields (GUID, MASTERID, ALTERID) for comparison."""
         
-        company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
+        company_var = ""
+        if company_name:
+            from xml.sax.saxutils import escape
+            escaped_company = escape(company_name)
+            company_var = f"\n                <SVCOMPANY>{escaped_company}</SVCOMPANY>\n                <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>"
         
         # Use sensible date range defaults
         now = datetime.now()
@@ -967,7 +975,11 @@ class ReconciliationManager:
                     
                     logger.info(f"      📥 Fetching {tally_from} to {tally_to} ({chunk_days}-day chunk)...")
                     
-                    company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
+                    company_var = ""
+                    if company_name:
+                        from xml.sax.saxutils import escape
+                        escaped_company = escape(company_name)
+                        company_var = f"\n                <SVCOMPANY>{escaped_company}</SVCOMPANY>\n                <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>"
                     # Lightweight TDL — identity fields only, NO COMPUTE (sub-table counts kill performance)
                     lightweight_tdl = f"""<ENVELOPE>
     <HEADER>
@@ -1966,13 +1978,16 @@ class ReconciliationManager:
 
     def _fetch_tally_bills(self, tally_host: str, tally_port: int, company_name: str, report_name: str) -> List[Dict]:
         """Fetch Bills Receivable or Bills Payable from Tally's built-in reports."""
+        from xml.sax.saxutils import escape
+        escaped_company = escape(company_name) if company_name else ""
         xml_req = f"""<ENVELOPE>
 <HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
 <BODY><EXPORTDATA>
 <REQUESTDESC>
     <REPORTNAME>{report_name}</REPORTNAME>
     <STATICVARIABLES>
-        <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>
+        <SVCOMPANY>{escaped_company}</SVCOMPANY>
+        <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>
         <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
     </STATICVARIABLES>
 </REQUESTDESC>

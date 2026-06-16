@@ -77,6 +77,8 @@ class SyncManager:
         """Generate TDL for Tally"""
         fetch_fields = self.MASTERS.get(master_type, 'GUID, MASTERID, ALTERID, Name')
         
+        from xml.sax.saxutils import escape
+        escaped_company = escape(self.company_name) if self.company_name else ""
         return f"""<ENVELOPE>
     <HEADER>
         <VERSION>1</VERSION>
@@ -88,7 +90,8 @@ class SyncManager:
         <DESC>
             <STATICVARIABLES>
                 <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-                <SVCURRENTCOMPANY>{self.company_name}</SVCURRENTCOMPANY>
+                <SVCOMPANY>{escaped_company}</SVCOMPANY>
+                <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>
             </STATICVARIABLES>
             <TDL>
                 <TDLMESSAGE>
@@ -534,6 +537,12 @@ def main():
             sys.exit(1)
         
         company_name = sys.argv[1]
+        # Mandatory: an empty name leaves the export unscoped (SVCURRENTCOMPANY),
+        # so Tally would return the active company's masters.
+        if not company_name or not company_name.strip():
+            logger.error("❌ Company name is required (arg 1) — refusing to sync the active Tally company")
+            print(json.dumps({'success': False, 'message': 'Company name is required'}))
+            sys.exit(1)
         cmp_id = int(sys.argv[2])
         user_id = int(sys.argv[3])
         tally_host = sys.argv[4] if len(sys.argv) > 4 else 'localhost'

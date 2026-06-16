@@ -8,17 +8,6 @@ class AuthService {
         this.loadAuthState();
         this.refreshInterval = null;
 
-        // PKCE Storage keys
-        this.PKCE_VERIFIER_KEY = 'pkce_code_verifier';
-        this.PKCE_STATE_KEY = 'pkce_state';
-
-        // Listen for SSO callback from main process (deep link)
-        if (window.electronAPI && typeof window.electronAPI.onSsoCallback === 'function') {
-            window.electronAPI.onSsoCallback((url) => {
-                this.handleSsoCallback(url);
-            });
-        }
-
         console.log('🔐 AuthService initialized:', {
             hasToken: !!this.token,
             hasDeviceToken: !!this.deviceToken,
@@ -26,268 +15,6 @@ class AuthService {
             hasUser: !!this.user,
             userId: this.user?.userId
         });
-    }
-
-    /**
-     * Start the browser-based SSO login flow
-     */
-    async ssoLoginWithBrowser() {
-        try {
-            // 1. Generate PKCE pair
-            const verifier = this.generateCodeVerifier();
-            const challenge = await this.generateCodeChallenge(verifier);
-            const state = this.generateState();
-
-            // 2. Store verifier and state for later validation
-            localStorage.setItem(this.PKCE_VERIFIER_KEY, verifier);
-            localStorage.setItem(this.PKCE_STATE_KEY, state);
-
-            // 3. Construct Web App Login URL
-            // Using the Web App as a proxy for Keycloak ensures consistent branding and session management
-            const webAppBase = 'http://35.175.182.24/sso/login';
-            const authUrl = `${webAppBase}?` + new URLSearchParams({
-                redirect: 'desktop',
-                state: state
-            }).toString();
-
-            console.log('🌐 Opening browser for SSO login:', authUrl);
-            
-            // Try Electron IPC first
-            if (window.electronAPI && window.electronAPI.openExternalUrl) {
-                try {
-                    // Don't await forever, if it doesn't resolve in 2s, assume success and proceed
-                    // (Some Electron versions hang on openExternal if the browser is already open)
-                    const openPromise = window.electronAPI.openExternalUrl(authUrl);
-                    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ timeout: true }), 2000));
-                    
-                    const result = await Promise.race([openPromise, timeoutPromise]);
-                    console.log('✅ Browser open attempt result:', result);
-                } catch (ipcError) {
-                    console.warn('⚠️ Electron openExternalUrl failed, falling back to window.open:', ipcError);
-                    window.open(authUrl, '_blank');
-                }
-            } else {
-                console.log('ℹ️ window.electronAPI.openExternalUrl not found, using window.open');
-                window.open(authUrl, '_blank');
-            }
-
-            return { success: true };
-        } catch (error) {
-            console.error('❌ Failed to start SSO login:', error);
-            return { success: false, message: error.message };
-        }
-    }
-
-    /**
-     * Handle the deep link callback from the browser
-     */
-    async handleSsoCallback(urlStr) {
-        try {
-            console.log('🔗 Received SSO callback URL:', urlStr);
-            const url = new URL(urlStr.replace('talliffy://', 'http://localhost/'));
-            
-            // Handle direct token hand-off from Web App
-            const token = url.searchParams.get('token');
-            const deviceToken = url.searchParams.get('deviceToken');
-            const state = url.searchParams.get('state');
-
-            // Optional: validate state if we started the flow ourselves
-            const storedState = localStorage.getItem(this.PKCE_STATE_KEY);
-            if (storedState && state && state !== storedState) {
-                console.warn('⚠️ State mismatch - possible CSRF');
-            }
-
-            if (token && deviceToken) {
-                console.log('✅ Received direct tokens from browser hand-off');
-                
-                // Extract user info from URL or fetch it if needed
-                const user = {
-                    userId: parseInt(url.searchParams.get('userId')),
-                    username: url.searchParams.get('username'),
-                    fullName: url.searchParams.get('fullName'),
-                    role: url.searchParams.get('role'),
-                    email: url.searchParams.get('email')
-                };
-
-                const result = await this.establishSessionWithTokens(token, deviceToken, user);
-                if (result.success) {
-                    if (window.notificationService) window.notificationService.success('Logged in successfully via Browser', 'Welcome!');
-                    if (window.router) window.router.navigate('dashboard');
-                    return;
-                }
-            }
-
-            // Fallback: Handle standard OIDC code exchange (if still used)
-            const code = url.searchParams.get('code');
-            if (code) {
-                const result = await this.completeSsoExchange(code);
-                if (result.success) {
-                    if (window.notificationService) window.notificationService.success('Logged in successfully via SSO', 'Welcome!');
-                    if (window.router) window.router.navigate('dashboard');
-                    return;
-                }
-            }
-
-            throw new Error('Authentication failed: Missing tokens or code');
-        } catch (error) {
-            console.error('❌ SSO Callback Error:', error);
-            if (window.notificationService) window.notificationService.error(error.message, 'Login Failed');
-        } finally {
-            localStorage.removeItem(this.PKCE_VERIFIER_KEY);
-            localStorage.removeItem(this.PKCE_STATE_KEY);
-        }
-    }
-
-    /**
-     * Establish session with pre-obtained tokens
-     */
-    async establishSessionWithTokens(token, deviceToken, user) {
-        try {
-            this.token = token;
-            this.deviceToken = deviceToken;
-            this.user = user;
-
-            if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
-                window.electronAPI.secureStoreSet('authToken', token);
-                window.electronAPI.secureStoreSet('deviceToken', deviceToken);
-            } else {
-                localStorage.setItem('authToken', token);
-                localStorage.setItem('deviceToken', deviceToken);
-            }
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            localStorage.setItem('loginTime', new Date().toISOString());
-            localStorage.setItem('sessionExpiry', (new Date().getTime() + (7 * 24 * 60 * 60 * 1000)).toString());
-
-            this.setupTokenInterceptor();
-            this.initializeSyncAfterLogin();
-            return { success: true };
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    }
-
-    /**
-     * Exchange the code for tokens and establish session
-     */
-    async completeSsoExchange(code) {
-        try {
-            const verifier = localStorage.getItem(this.PKCE_VERIFIER_KEY);
-            if (!verifier) throw new Error('PKCE verifier missing');
-
-            const tokenUrl = 'http://35.175.182.24:8180/realms/talliffy/protocol/openid-connect/token';
-            const redirectUri = 'http://35.175.182.24/auth/callback';
-            
-            const response = await fetch(tokenUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({
-                    grant_type: 'authorization_code',
-                    client_id: 'talliffy-web',
-                    code: code,
-                    redirect_uri: redirectUri,
-                    code_verifier: verifier
-                })
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error_description || 'Keycloak token exchange failed');
-            }
-
-            let systemId = 'desktop_user';
-            let platform = 'Desktop';
-            if (window.electronAPI && window.electronAPI.getSystemInfo) {
-                try {
-                    const sysInfo = await window.electronAPI.getSystemInfo();
-                    systemId = sysInfo.hostname || 'desktop_user';
-                    platform = sysInfo.platform || 'Desktop';
-                } catch(e) {}
-            }
-
-            const kcTokens = await response.json();
-            const ssoResponse = await fetch(`${window.apiConfig.baseURL}/auth/sso/keycloak`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${kcTokens.access_token}`,
-                    'X-Device-Type': 'DESKTOP',
-                    'X-System-Id': systemId,
-                    'X-Platform': platform
-                }
-            });
-
-            const data = await ssoResponse.json().catch(() => ({}));
-
-            if (ssoResponse.status === 409 && data.error === 'SESSION_CONFLICT') {
-                if (window.electronAPI && window.electronAPI.showSessionConflict) {
-                    const conflictRes = await window.electronAPI.showSessionConflict(data);
-                    if (conflictRes.action === 'LOGOUT_EXISTING') {
-                        const resolveUrl = window.apiConfig.getNestedUrl('auth', 'resolve-conflict') || (window.apiConfig.baseURL + '/auth/resolve-conflict');
-                        const resolveRes = await fetch(resolveUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ conflictToken: data.conflictToken, action: 'LOGOUT_EXISTING' })
-                        });
-                        if (resolveRes.ok) {
-                            return await this.completeSsoExchange(code);
-                        } else {
-                            throw new Error('Failed to resolve active session conflict.');
-                        }
-                    } else {
-                        throw new Error('Login cancelled by user.');
-                    }
-                }
-            }
-
-            if (!ssoResponse.ok) throw new Error(data.message || 'Backend session establishment failed');
-
-            const sessionData = data.data;
-            this.token = sessionData.token;
-            this.deviceToken = sessionData.deviceToken;
-            this.user = {
-                userId: sessionData.userId,
-                username: sessionData.username,
-                fullName: sessionData.fullName,
-                role: sessionData.role,
-                licenseNumber: sessionData.licenceNo || sessionData.licenseNumber
-            };
-
-            if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
-                window.electronAPI.secureStoreSet('authToken', this.token);
-                window.electronAPI.secureStoreSet('deviceToken', this.deviceToken);
-            } else {
-                localStorage.setItem('authToken', this.token);
-                localStorage.setItem('deviceToken', this.deviceToken);
-            }
-            localStorage.setItem('currentUser', JSON.stringify(this.user));
-            localStorage.setItem('loginTime', new Date().toISOString());
-            localStorage.setItem('sessionExpiry', (new Date().getTime() + (24 * 60 * 60 * 1000)).toString());
-
-            this.setupTokenInterceptor();
-            this.initializeSyncAfterLogin();
-            return { success: true };
-        } catch (error) {
-            console.error('❌ SSO Exchange Error:', error);
-            return { success: false, message: error.message };
-        }
-    }
-
-    generateCodeVerifier() {
-        const array = new Uint8Array(32);
-        window.crypto.getRandomValues(array);
-        return Array.from(array, dec => ('0' + dec.toString(16)).substr(-2)).join('');
-    }
-
-    async generateCodeChallenge(verifier) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(verifier);
-        const digest = await window.crypto.subtle.digest('SHA-256', data);
-        return btoa(String.fromCharCode.apply(null, new Uint8Array(digest)))
-            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    }
-
-    generateState() {
-        return 'desktop_' + Math.random().toString(36).substring(2, 15);
     }
 
     /**
@@ -318,15 +45,17 @@ class AuthService {
             }
         }
 
-        if (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function') {
-            this.token = window.electronAPI.secureStoreGet('authToken');
-            this.deviceToken = window.electronAPI.secureStoreGet('deviceToken');
-            this.csrfToken = window.electronAPI.secureStoreGet('csrfToken');
-        } else {
-            this.token = localStorage.getItem('authToken');
-            this.deviceToken = localStorage.getItem('deviceToken');
-            this.csrfToken = localStorage.getItem('csrfToken');
-        }
+        // Read from the secure store, falling back to localStorage. Crucially, we
+        // never overwrite an already-valid in-memory token with an empty read —
+        // doing so would silently log the user out (e.g. if a secure-store write
+        // didn't land). The in-memory value set at login is the source of truth.
+        const secureGet = (key) => (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            ? window.electronAPI.secureStoreGet(key)
+            : null;
+
+        this.token = secureGet('authToken') || localStorage.getItem('authToken') || this.token || null;
+        this.deviceToken = secureGet('deviceToken') || localStorage.getItem('deviceToken') || this.deviceToken || null;
+        this.csrfToken = secureGet('csrfToken') || localStorage.getItem('csrfToken') || this.csrfToken || null;
 
         try {
             this.user = JSON.parse(localStorage.getItem('currentUser') || 'null');
@@ -346,15 +75,17 @@ class AuthService {
         this.csrfToken = null;
         this.user = null;
 
+        // Login persists tokens to BOTH the secure store and localStorage, so the
+        // logout must clear BOTH — otherwise the startup gate (which reads
+        // secureStore || localStorage) still finds a token and skips the login screen.
         if (window.electronAPI && typeof window.electronAPI.secureStoreDelete === 'function') {
             window.electronAPI.secureStoreDelete('authToken');
             window.electronAPI.secureStoreDelete('deviceToken');
             window.electronAPI.secureStoreDelete('csrfToken');
-        } else {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('deviceToken');
-            localStorage.removeItem('csrfToken');
         }
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('deviceToken');
+        localStorage.removeItem('csrfToken');
         localStorage.removeItem('currentUser');
         localStorage.removeItem('loginTime');
         localStorage.removeItem('sessionExpiry');
@@ -397,57 +128,51 @@ class AuthService {
             const data = await response.json();
 
             if (!response.ok) {
-                if (response.status === 409 && data.error === 'SESSION_CONFLICT') {
-                    if (window.electronAPI && window.electronAPI.showSessionConflict) {
-                        const conflictRes = await window.electronAPI.showSessionConflict(data);
-                        if (conflictRes.action === 'LOGOUT_EXISTING') {
-                            const resolveUrl = window.apiConfig.getNestedUrl('auth', 'resolve-conflict') || (window.apiConfig.baseURL + '/auth/resolve-conflict');
-                            const resolveRes = await fetch(resolveUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ conflictToken: data.conflictToken, action: 'LOGOUT_EXISTING' })
-                            });
-                            if (resolveRes.ok) {
-                                return await this.login(username, password);
-                            } else {
-                                return { success: false, message: 'Failed to resolve session conflict.' };
-                            }
-                        } else {
-                            return { success: false, message: 'Login cancelled by user.' };
-                        }
-                    }
-                }
+                // Each system logs in independently — the backend no longer raises
+                // session conflicts, so any non-OK response is a genuine failure.
                 return {
                     success: false,
                     message: data.message || 'Login failed'
                 };
             }
 
+            // The backend wraps the session payload under `data` (ResponseBuilder.success):
+            // { success, message, data: { token, deviceToken, userId, ... } }.
+            // Fall back to the raw body for any flat-shaped response.
+            const payload = (data && data.data) ? data.data : data;
+
+            // Guard: a 200 with no token is still a failed login, not a silent success.
+            if (!payload || !payload.token) {
+                return {
+                    success: false,
+                    message: data.message || 'Login failed: no session token returned'
+                };
+            }
+
             // Store token, device token and user
-            this.token = data.token;
-            this.deviceToken = data.deviceToken;
-            this.csrfToken = data.csrfToken || this.extractCsrfToken(response);
+            this.token = payload.token;
+            this.deviceToken = payload.deviceToken;
+            this.csrfToken = payload.csrfToken || this.extractCsrfToken(response);
             this.user = {
-                userId: data.userId,
-                username: data.username,
-                fullName: data.fullName,
-                role: data.role,
-                licenseNumber: data.licenceNo || data.licenseNumber
+                userId: payload.userId,
+                username: payload.username,
+                fullName: payload.fullName,
+                role: payload.role,
+                licenseNumber: payload.licenceNo || payload.licenseNumber
             };
 
+            // Persist to BOTH the secure store and localStorage so the session
+            // reliably survives reloads (7-day expiry) even if one store fails.
             if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
-                window.electronAPI.secureStoreSet('authToken', data.token);
-                window.electronAPI.secureStoreSet('deviceToken', data.deviceToken);
+                window.electronAPI.secureStoreSet('authToken', payload.token);
+                window.electronAPI.secureStoreSet('deviceToken', payload.deviceToken);
                 if (this.csrfToken) {
                     window.electronAPI.secureStoreSet('csrfToken', this.csrfToken);
                 }
-            } else {
-                localStorage.setItem('authToken', data.token);
-                localStorage.setItem('deviceToken', data.deviceToken);
-                if (this.csrfToken) {
-                    localStorage.setItem('csrfToken', this.csrfToken);
-                }
             }
+            if (payload.token) localStorage.setItem('authToken', payload.token);
+            if (payload.deviceToken) localStorage.setItem('deviceToken', payload.deviceToken);
+            if (this.csrfToken) localStorage.setItem('csrfToken', this.csrfToken);
             localStorage.setItem('currentUser', JSON.stringify(this.user));
             localStorage.setItem('loginTime', new Date().toISOString());
 
@@ -461,8 +186,8 @@ class AuthService {
             }
 
             // Store subscription/plan data for sync validation
-            if (data.subscription) {
-                localStorage.setItem('subscription', JSON.stringify(data.subscription));
+            if (payload.subscription) {
+                localStorage.setItem('subscription', JSON.stringify(payload.subscription));
             }
 
             // Set token in all future requests
@@ -474,8 +199,8 @@ class AuthService {
             return {
                 success: true,
                 message: 'Login successful',
-                token: data.token,
-                deviceToken: data.deviceToken,
+                token: payload.token,
+                deviceToken: payload.deviceToken,
                 user: this.user
             };
         } catch (error) {
@@ -537,42 +262,64 @@ class AuthService {
     }
 
     async logout(scope = 'CURRENT') {
+        // Notify the backend, but never let a slow/hanging request block the UI logout.
         try {
             if (this.token) {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 4000);
                 await fetch(window.apiConfig.getNestedUrl('auth', 'logout'), {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${this.token}`, 'X-Device-Token': this.deviceToken || '', 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ scope })
-                });
+                    body: JSON.stringify({ scope }),
+                    signal: controller.signal
+                }).catch(() => {});
+                clearTimeout(timer);
             }
         } catch (error) { console.error('Logout API error:', error); }
 
+        // "Logout Web & Mobile" ends only the OTHER devices — this desktop stays
+        // signed in and keeps syncing, so we neither clear local data nor redirect.
+        if (scope === 'WEB_MOBILE') {
+            if (window.notificationService) {
+                window.notificationService.info('Signed out of Web & Mobile. This device stays active.');
+            }
+            return true;
+        }
+
+        // CURRENT / ALL → end this device's session and return to the login screen.
         this.clearLocalData();
         if (this.refreshInterval) clearInterval(this.refreshInterval);
         if (window.notificationService) window.notificationService.info('You have been logged out');
-        
+
         setTimeout(() => {
             window.location.hash = '#login';
             window.location.reload();
-        }, 500);
+        }, 400);
         return true;
     }
 
     async refreshToken() {
         if (!this.token) return false;
         try {
-            const response = await fetch(window.apiConfig.getNestedUrl('auth', 'refresh'), {
+            // Use the per-device refresh endpoint: it authenticates with the current
+            // access token + device token and returns new tokens (wrapped under `data`).
+            const response = await fetch(`${window.apiConfig.baseURL}/auth/token/refresh`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' }
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'X-Device-Token': this.deviceToken || '',
+                    'Content-Type': 'application/json'
+                }
             });
             const data = await response.json();
             if (response.ok) {
-                this.token = data.token;
+                const payload = (data && data.data) ? data.data : data;
+                if (!payload.token) return false;
+                this.token = payload.token;
                 if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
-                    window.electronAPI.secureStoreSet('authToken', data.token);
-                } else {
-                    localStorage.setItem('authToken', data.token);
+                    window.electronAPI.secureStoreSet('authToken', payload.token);
                 }
+                localStorage.setItem('authToken', payload.token);
                 return true;
             }
             this.logout();

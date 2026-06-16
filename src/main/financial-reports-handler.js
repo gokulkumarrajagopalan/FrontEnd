@@ -3,6 +3,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { findPython } = require('./python-finder');
+const { DEFAULT_BACKEND_URL } = require('./app-urls');
 
 function logToFile(message) {
     try {
@@ -41,7 +42,7 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                 toDate = 'None',
                 tallyHost = 'localhost',
                 tallyPort = 9000,
-                backendUrl = process.env.BACKEND_URL || 'http://35.175.182.24:8080',
+                backendUrl = process.env.BACKEND_URL || DEFAULT_BACKEND_URL,
                 authToken = 'None',
                 deviceToken = 'None',
                 reportType = 'None',

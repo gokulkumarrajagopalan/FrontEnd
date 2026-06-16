@@ -64,6 +64,9 @@ class MasterDataFetcher:
         """Generate TDL to fetch all records for a master type"""
         fetch_fields = self.MASTERS.get(master_type, 'GUID, MASTERID, ALTERID, Name')
         
+        from xml.sax.saxutils import escape
+        escaped_company = escape(self.company_name) if self.company_name else ""
+        
         return f"""<ENVELOPE>
     <HEADER>
         <VERSION>1</VERSION>
@@ -77,7 +80,8 @@ class MasterDataFetcher:
                 <SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE>
                 <SVTODATE TYPE="Date">01-Jan-1970</SVTODATE>
                 <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-                <SVCURRENTCOMPANY>{self.company_name}</SVCURRENTCOMPANY>
+                <SVCOMPANY>{escaped_company}</SVCOMPANY>
+                <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>
             </STATICVARIABLES>
             <TDL>
                 <TDLMESSAGE>
@@ -191,8 +195,12 @@ def main():
     try:
         if len(sys.argv) < 2:
             raise ValueError("Company name required")
-        
+
         company_name = sys.argv[1]
+        # Empty/blank name would leave the request unscoped → Tally returns the
+        # active company's master data. Refuse rather than sync the wrong company.
+        if not company_name or not company_name.strip():
+            raise ValueError("Company name is required — refusing to fetch the active Tally company")
         tally_host = sys.argv[2] if len(sys.argv) > 2 else 'localhost'
         tally_port = int(sys.argv[3]) if len(sys.argv) > 3 else 9000
         is_first_sync = sys.argv[4].lower() == 'true' if len(sys.argv) > 4 else False

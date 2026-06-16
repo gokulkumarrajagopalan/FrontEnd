@@ -537,7 +537,11 @@ class TallyAPIClient:
         """
         static_vars = ""
         if company:
-            static_vars += f"<SVCOMPANY>{company}</SVCOMPANY>"
+            from xml.sax.saxutils import escape
+            escaped_company = escape(company)
+            # MUST be SVCURRENTCOMPANY — Tally ignores SVCOMPANY and would export
+            # whichever company is currently active, pulling the WRONG company's data.
+            static_vars += f"<SVCOMPANY>{escaped_company}</SVCOMPANY>\n                    <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>"
         
         # Use current FY dates instead of 01-Jan-1970 for accurate balance computation
         if not from_date or not to_date:

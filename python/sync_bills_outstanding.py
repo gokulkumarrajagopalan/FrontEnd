@@ -47,7 +47,9 @@ def verify_tally_company(tally_url, expected_company_name):
     if the requested company (via SVCOMPANY/SVCURRENTCOMPANY) is not loaded.
     This pre-flight check prevents syncing wrong data with wrong company IDs.
     
-    Returns: (is_loaded: bool, active_companies: list[str])
+    Returns: (is_loaded: bool, matched_name: str|None, active_companies: list[str])
+        matched_name is Tally's EXACT company name on an exact match; the caller
+        should use it for SVCURRENTCOMPANY so Tally targets the right company.
     """
     xml_req = """<ENVELOPE>
 <HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
@@ -66,7 +68,7 @@ def verify_tally_company(tally_url, expected_company_name):
                              timeout=10)
         if resp.status_code != 200:
             logger.warning(f"⚠️ Could not verify Tally companies (HTTP {resp.status_code})")
-            return True, []  # Fail-open: proceed if we can't verify
+            return True, None, []  # Fail-open: cannot determine, don't block
 
         text = clean_xml(resp.text)
         root = ET.fromstring(text)
@@ -87,39 +89,29 @@ def verify_tally_company(tally_url, expected_company_name):
                         companies.append(name.strip())
 
         if not companies:
-            # Fallback: try finding company names in any text node
-            for elem in root.iter():
-                if elem.text and expected_company_name.lower() in elem.text.lower():
-                    logger.info(f"✅ Found company reference in Tally response")
-                    return True, [expected_company_name]
             logger.warning(f"⚠️ Could not parse company list from Tally (empty)")
-            return True, []  # Fail-open
+            return True, None, []  # Fail-open: cannot read the list
 
-        # Check if expected company is loaded (case-insensitive match)
+        # STRICT exact match only. A partial/substring match is NOT acceptable:
+        # Tally would silently fall back to the active company and we'd persist the
+        # wrong company's bills under this company's ID.
         expected_lower = expected_company_name.strip().lower()
         for company in companies:
-            if company.lower() == expected_lower:
-                logger.info(f"✅ Company '{expected_company_name}' is loaded in Tally")
-                return True, companies
-        
-        # Fuzzy match: check for partial/substring matches
-        for company in companies:
-            if expected_lower in company.lower() or company.lower() in expected_lower:
-                logger.warning(f"⚠️ Partial company name match: expected='{expected_company_name}', found='{company}'")
-                logger.warning(f"⚠️ Please ensure company names match exactly between app and Tally")
-                return True, companies  # Allow partial match with warning
-        
+            if company.strip().lower() == expected_lower:
+                logger.info(f"✅ Company '{expected_company_name}' is loaded in Tally (exact match: '{company}')")
+                return True, company, companies
+
         logger.error(f"❌ Company '{expected_company_name}' is NOT loaded in Tally!")
         logger.error(f"   Loaded companies: {companies}")
-        logger.error(f"   Tally will return data from the wrong company.")
-        return False, companies
+        logger.error(f"   Tally would return data from the wrong company — aborting.")
+        return False, None, companies
 
     except requests.exceptions.ConnectionError:
         logger.error(f"❌ Cannot connect to Tally at {tally_url}")
-        return False, []
+        return False, None, []
     except Exception as e:
         logger.warning(f"⚠️ Error verifying Tally company: {e}")
-        return True, []  # Fail-open on unexpected errors
+        return True, None, []  # Fail-open on unexpected errors
 
 
 def parse_tally_date(date_str):
@@ -155,13 +147,16 @@ def fetch_bills_from_tally(tally_url, company_name, report_name):
     report_name: 'Bills Receivable' or 'Bills Payable'
     Returns list of bill dicts.
     """
+    from xml.sax.saxutils import escape
+    escaped_company = escape(company_name) if company_name else ""
     xml_req = f"""<ENVELOPE>
 <HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
 <BODY><EXPORTDATA>
 <REQUESTDESC>
     <REPORTNAME>{report_name}</REPORTNAME>
     <STATICVARIABLES>
-        <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>
+        <SVCOMPANY>{escaped_company}</SVCOMPANY>
+        <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>
         <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
     </STATICVARIABLES>
 </REQUESTDESC>
@@ -273,7 +268,14 @@ def main():
         backend_url = (sys.argv[4] if len(sys.argv) > 4 else os.getenv('BACKEND_URL', '')).rstrip('/')
         auth_token = sys.argv[5] if len(sys.argv) > 5 else ''
         device_token = sys.argv[6] if len(sys.argv) > 6 else ''
-        company_name = sys.argv[7] if len(sys.argv) > 7 else ''
+        company_name = (sys.argv[7] if len(sys.argv) > 7 else '').strip()
+
+        # Company name is mandatory: without it the request is unscoped and Tally
+        # returns the active company's bills — corrupting this company's data.
+        if not company_name:
+            logger.error("❌ Company name is required (arg 7) — refusing to sync the active Tally company")
+            print(json.dumps({'success': False, 'message': 'Company name is required', 'count': 0}))
+            sys.exit(1)
 
         tally_url = f"http://{tally_host}:{tally_port}"
         headers = {
@@ -286,7 +288,11 @@ def main():
 
         # Pre-flight check: verify company is loaded in Tally
         if company_name:
-            is_loaded, loaded_companies = verify_tally_company(tally_url, company_name)
+            is_loaded, matched_company_name, loaded_companies = verify_tally_company(tally_url, company_name)
+            # Use Tally's EXACT company name so the bills request targets the right
+            # company (Tally won't switch context on a casing/whitespace mismatch).
+            if is_loaded and matched_company_name:
+                company_name = matched_company_name
             if not is_loaded:
                 error_msg = (f"Company '{company_name}' is not loaded in Tally. "
                             f"Loaded companies: {loaded_companies}. "

@@ -82,9 +82,9 @@ class App {
         try {
             console.log('🚀 App initialization started...');
 
-            const token = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
+            const token = ((window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
                 ? window.electronAPI.secureStoreGet('authToken')
-                : localStorage.getItem('authToken');
+                : null) || localStorage.getItem('authToken');
             if (!token) {
                 console.log('⚠️ No auth token found - rendering login');
                 this.renderLogin();

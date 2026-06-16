@@ -71,7 +71,11 @@ class IncrementalSyncManager:
         if the requested company (via SVCOMPANY/SVCURRENTCOMPANY) is not loaded.
         This pre-flight check prevents syncing wrong data with wrong company IDs.
         
-        Returns: (is_loaded: bool, active_companies: list[str])
+        Returns: (is_loaded: bool, matched_name: str|None, active_companies: list[str])
+            matched_name is the EXACT company name as reported by Tally when an
+            exact match is found — callers should use it for SVCURRENTCOMPANY so
+            Tally targets precisely the right company (it won't switch on a
+            casing/whitespace mismatch and would silently serve the active one).
         """
         xml_req = """<ENVELOPE>
 <HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
@@ -91,7 +95,7 @@ class IncrementalSyncManager:
                                  timeout=10)
             if resp.status_code != 200:
                 logger.warning(f"⚠️ Could not verify Tally companies (HTTP {resp.status_code})")
-                return True, []  # Fail-open
+                return True, None, []  # Fail-open: cannot determine, don't block
 
             text = re.sub(r'[^\x09\x0A\x0D\x20-\x7E\x80-\xFF\u0100-\uFFFF]', '', resp.text)
             root = ET.fromstring(text)
@@ -110,33 +114,31 @@ class IncrementalSyncManager:
                             companies.append(name.strip())
 
             if not companies:
-                for elem in root.iter():
-                    if elem.text and expected_company_name.lower() in elem.text.lower():
-                        return True, [expected_company_name]
+                # We genuinely couldn't read the company list — fail-open so a
+                # parser quirk doesn't block legitimate syncs.
                 logger.warning(f"⚠️ Could not parse company list from Tally (empty)")
-                return True, []
+                return True, None, []
 
             expected_lower = expected_company_name.strip().lower()
+
+            # STRICT exact match only. A partial/substring match is NOT acceptable:
+            # Tally would silently fall back to the active company and we'd persist
+            # the wrong company's data under this company's ID.
             for company in companies:
-                if company.lower() == expected_lower:
-                    logger.info(f"✅ Company '{expected_company_name}' is loaded in Tally")
-                    return True, companies
-            
-            for company in companies:
-                if expected_lower in company.lower() or company.lower() in expected_lower:
-                    logger.warning(f"⚠️ Partial company name match: expected='{expected_company_name}', found='{company}'")
-                    return True, companies
+                if company.strip().lower() == expected_lower:
+                    logger.info(f"✅ Company '{expected_company_name}' is loaded in Tally (exact match: '{company}')")
+                    return True, company, companies
 
             logger.error(f"❌ Company '{expected_company_name}' is NOT loaded in Tally!")
             logger.error(f"   Loaded companies: {companies}")
-            return False, companies
+            return False, None, companies
 
         except requests.exceptions.ConnectionError:
             logger.error(f"❌ Cannot connect to Tally at {tally_url}")
-            return False, []
+            return False, None, []
         except Exception as e:
             logger.warning(f"⚠️ Error verifying Tally company: {e}")
-            return True, []
+            return True, None, []
     
     def fetch_companies(self) -> List[Dict]:
         """Fetch all imported companies from backend"""
@@ -373,7 +375,11 @@ class IncrementalSyncManager:
         fetch_fields = entity_fields.get(entity_type, "GUID, MASTERID, ALTERID, Name")
         
         # Add company name to STATICVARIABLES if provided
-        company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
+        company_var = ""
+        if company_name:
+            from xml.sax.saxutils import escape
+            escaped_company = escape(company_name)
+            company_var = f"\n                <SVCOMPANY>{escaped_company}</SVCOMPANY>\n                <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>"
         
         # Date range for Tally balance computation:
         # - If books_from is provided, use it as SVFROMDATE to capture ALL transactions
@@ -1068,7 +1074,11 @@ class IncrementalSyncManager:
         
         # Pre-flight check: verify company is loaded in Tally
         if company_name:
-            is_loaded, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
+            is_loaded, matched_company_name, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
+            # Use Tally's EXACT company name (casing/spacing) for the data request —
+            # otherwise Tally may not switch context and would serve the active company.
+            if is_loaded and matched_company_name:
+                company_name = matched_company_name
             if not is_loaded:
                 error_msg = (f"Company '{company_name}' is not loaded in Tally. "
                            f"Loaded: {loaded_companies}. Aborting to prevent data mismatch.")
@@ -1232,7 +1242,11 @@ class IncrementalSyncManager:
 
         # Pre-flight: verify company is loaded in Tally (same guard as deep path)
         if company_name:
-            is_loaded, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
+            is_loaded, matched_company_name, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
+            # Use Tally's EXACT company name (casing/spacing) for the data request —
+            # otherwise Tally may not switch context and would serve the active company.
+            if is_loaded and matched_company_name:
+                company_name = matched_company_name
             if not is_loaded:
                 error_msg = (f"Company '{company_name}' is not loaded in Tally. "
                              f"Loaded: {loaded_companies}. Aborting to prevent data mismatch.")
@@ -1297,7 +1311,11 @@ class IncrementalSyncManager:
 
         # Pre-flight: verify company is loaded in Tally
         if company_name:
-            is_loaded, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
+            is_loaded, matched_company_name, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
+            # Use Tally's EXACT company name (casing/spacing) for the data request —
+            # otherwise Tally may not switch context and would serve the active company.
+            if is_loaded and matched_company_name:
+                company_name = matched_company_name
             if not is_loaded:
                 error_msg = (f"Company '{company_name}' is not loaded in Tally. "
                              f"Loaded: {loaded_companies}. Aborting to prevent data mismatch.")

@@ -1,4 +1,14 @@
+// Single source of truth for the renderer's default remote URLs.
+// At runtime the real backend URL comes from the main process (get-backend-url IPC)
+// or the user's settings; these are only the last-resort fallbacks. Other renderer
+// files must read apiConfig.DEFAULT_BACKEND_URL / apiConfig.WEB_APP_URL — never hardcode.
+const DEFAULT_BACKEND_URL = 'http://localhost:8080/api';
+const WEB_APP_URL = 'http://localhost:3000';
+
 const apiConfig = {
+    DEFAULT_BACKEND_URL,
+    WEB_APP_URL,
+
     async initialize() {
         if (typeof window !== 'undefined' && window.electronAPI && window.electronAPI.getBackendUrl) {
             try {
@@ -23,8 +33,8 @@ const apiConfig = {
             }
         } catch (_) {}
 
-        // Final fallback: hardcoded default (localhost OK for dev)
-        window._backendUrl = 'http://35.175.182.24:8080';
+        // Final fallback: default backend URL (single source above)
+        window._backendUrl = DEFAULT_BACKEND_URL;
         console.log('✅ apiConfig: Using default Backend URL:', window._backendUrl);
     },
 
@@ -63,8 +73,8 @@ const apiConfig = {
             if (saved.backendUrl) return saved.backendUrl;
         } catch (_) {}
 
-        // 5. Hardcoded default — ensures login always has a target URL
-        return 'http://35.175.182.24:8080';
+        // 5. Default — ensures login always has a target URL (single source above)
+        return DEFAULT_BACKEND_URL;
     },
 
     endpoints: {

@@ -16,7 +16,7 @@ import os
 import threading
 
 TALLY_URL_TEMPLATE = "http://localhost:{}"
-BACKEND_URL_DEFAULT = "http://35.175.182.24:8080"
+BACKEND_URL_DEFAULT = "http://localhost:8080"
 
 # --- TDL Requests ---
 TDL_BALANCE_SHEET = """<ENVELOPE>
@@ -30,7 +30,8 @@ TDL_BALANCE_SHEET = """<ENVELOPE>
 		<DESC>
 			<STATICVARIABLES>
 				<SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-				<SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>
+				<SVCOMPANY>{escaped_company}</SVCOMPANY>
+				<SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>
 				<SVFROMDATE TYPE='Date'>{from_date}</SVFROMDATE>
 				<SVTODATE TYPE='Date'>{to_date}</SVTODATE>
 				<DSPNameStyle>NameOnly</DSPNameStyle>
@@ -72,7 +73,8 @@ TDL_PROFIT_LOSS = """<ENVELOPE>
 		<DESC>
 			<STATICVARIABLES>
 				<SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-				<SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>
+				<SVCOMPANY>{escaped_company}</SVCOMPANY>
+				<SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>
 				<SVFROMDATE TYPE='Date'>{from_date}</SVFROMDATE>
 				<SVTODATE TYPE='Date'>{to_date}</SVTODATE>
 				<DSPNameStyle>NameOnly</DSPNameStyle>
@@ -114,7 +116,8 @@ TDL_TRIAL_BALANCE = """<ENVELOPE>
 		<DESC>
 			<STATICVARIABLES>
 				<SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-				<SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>
+				<SVCOMPANY>{escaped_company}</SVCOMPANY>
+				<SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>
 				<SVFROMDATE TYPE='Date'>{from_date}</SVFROMDATE>
 				<SVTODATE TYPE='Date'>{to_date}</SVTODATE>
 				<DSPNameStyle>NameOnly</DSPNameStyle>
@@ -537,7 +540,67 @@ class FinancialReportSync:
         except Exception as e:
             print(f"⚠️ Reports freshness stamp skipped: {e}")
 
+    def verify_tally_company(self):
+        """Strictly verify the target company is open in Tally before pulling
+        reports. Tally silently serves the ACTIVE company's data when the named
+        SVCURRENTCOMPANY isn't loaded — which would store the wrong company's
+        financials under this company's ID. On an exact match we adopt Tally's
+        exact name (casing/spacing) for the report requests.
+
+        Returns: (is_loaded: bool, companies: list[str])
+        """
+        xml_req = """<ENVELOPE>
+<HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
+<BODY><EXPORTDATA>
+<REQUESTDESC>
+    <REPORTNAME>List of Companies</REPORTNAME>
+    <STATICVARIABLES>
+        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+    </STATICVARIABLES>
+</REQUESTDESC>
+</EXPORTDATA></BODY></ENVELOPE>"""
+        try:
+            resp = requests.post(self.tally_url, data=xml_req.encode('utf-8'),
+                                 headers={'Content-Type': 'application/xml'}, timeout=10)
+            if resp.status_code != 200:
+                print(f"[WARN] Could not verify Tally companies (HTTP {resp.status_code}); proceeding")
+                return True, []
+            root = ET.fromstring(self._clean_xml(resp.text))
+            companies = []
+            for elem in root.iter('COMPANY'):
+                name = elem.findtext('NAME') or elem.get('NAME', '')
+                if name and name.strip() not in companies:
+                    companies.append(name.strip())
+            if not companies:
+                print("[WARN] Could not parse Tally company list; proceeding")
+                return True, []
+            expected_lower = self.company_name.strip().lower()
+            # STRICT exact match only — a partial match would let Tally serve the
+            # active company's reports under the wrong company ID.
+            for company in companies:
+                if company.strip().lower() == expected_lower:
+                    self.company_name = company  # adopt Tally's exact name
+                    print(f"[OK] Company '{company}' is loaded in Tally")
+                    return True, companies
+            print(f"[ERROR] Company '{self.company_name}' is NOT loaded in Tally. Loaded: {companies}")
+            return False, companies
+        except requests.exceptions.ConnectionError:
+            print(f"[ERROR] Cannot connect to Tally at {self.tally_url}")
+            return False, []
+        except Exception as e:
+            print(f"[WARN] Error verifying Tally company: {e}; proceeding")
+            return True, []
+
     def sync_all(self, report_type=None):
+        # Pre-flight: ensure the correct company is loaded in Tally, else we'd
+        # persist the active company's financials under this company's ID.
+        is_loaded, loaded = self.verify_tally_company()
+        if not is_loaded:
+            msg = (f"Company '{self.company_name}' is not loaded in Tally. "
+                   f"Loaded: {loaded}. Aborting to prevent data mismatch.")
+            print(msg)
+            return {'success': False, 'message': msg, 'details': {}}
+
         if report_type == 'balancesheet':
             success = self.fetch_and_sync_balance_sheet()
             result = {'success': success, 'details': {'balance_sheet': success}}
@@ -595,6 +658,11 @@ def main():
         sys.exit(1)
         
     company_name = sys.argv[1]
+    # Mandatory: the report TDLs are scoped via SVCURRENTCOMPANY, so a blank name
+    # would export the active Tally company's financials into the wrong record.
+    if not company_name or company_name.strip() == '' or company_name == 'None':
+        print(json.dumps({'success': False, 'message': 'Company name is required — refusing to sync the active Tally company'}))
+        sys.exit(1)
     cmp_id = sys.argv[2]
     user_id = sys.argv[3]
     from_date = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] != 'None' else None

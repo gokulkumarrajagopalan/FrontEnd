@@ -67,7 +67,9 @@ class VoucherSyncManager:
     def verify_tally_company(self, tally_host: str, tally_port: int, expected_company_name: str) -> tuple:
         """Verify that the expected company is loaded/open in Tally Prime.
         
-        Returns: (is_loaded: bool, active_companies: list[str])
+        Returns: (is_loaded: bool, matched_name: str|None, active_companies: list[str])
+            matched_name is Tally's EXACT company name on an exact match; callers
+            should use it for SVCURRENTCOMPANY so Tally targets the right company.
         """
         xml_req = """<ENVELOPE>
 <HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
@@ -87,7 +89,7 @@ class VoucherSyncManager:
                                  timeout=10)
             if resp.status_code != 200:
                 logger.warning(f"⚠️ Could not verify Tally companies (HTTP {resp.status_code})")
-                return True, []
+                return True, None, []
 
             text = self.clean_xml(resp.text)
             root = ET.fromstring(text)
@@ -106,33 +108,29 @@ class VoucherSyncManager:
                             companies.append(name.strip())
 
             if not companies:
-                for elem in root.iter():
-                    if elem.text and expected_company_name.lower() in elem.text.lower():
-                        return True, [expected_company_name]
                 logger.warning(f"⚠️ Could not parse company list from Tally (empty)")
-                return True, []
+                return True, None, []
 
             expected_lower = expected_company_name.strip().lower()
+
+            # STRICT exact match only. A partial/substring match is NOT acceptable:
+            # Tally would silently fall back to the active company and we'd persist
+            # the wrong company's vouchers under this company's ID.
             for company in companies:
-                if company.lower() == expected_lower:
-                    logger.info(f"✅ Company '{expected_company_name}' is loaded in Tally")
-                    return True, companies
-            
-            for company in companies:
-                if expected_lower in company.lower() or company.lower() in expected_lower:
-                    logger.warning(f"⚠️ Partial company name match: expected='{expected_company_name}', found='{company}'")
-                    return True, companies
+                if company.strip().lower() == expected_lower:
+                    logger.info(f"✅ Company '{expected_company_name}' is loaded in Tally (exact match: '{company}')")
+                    return True, company, companies
 
             logger.error(f"❌ Company '{expected_company_name}' is NOT loaded in Tally!")
             logger.error(f"   Loaded companies: {companies}")
-            return False, companies
+            return False, None, companies
 
         except requests.exceptions.ConnectionError:
             logger.error(f"❌ Cannot connect to Tally at {tally_url}")
-            return False, []
+            return False, None, []
         except Exception as e:
             logger.warning(f"⚠️ Error verifying Tally company: {e}")
-            return True, []
+            return True, None, []
     
     # ─── AlterID Management ──────────────────────────────────────────
     
@@ -305,7 +303,11 @@ class VoucherSyncManager:
                                        company_name: str = None) -> str:
         """Generate lightweight TDL to fetch ALL voucher identity records (NO AlterID filter).
         Used for reconciliation — only GUID, MASTERID, ALTERID, voucher number/type."""
-        company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
+        company_var = ""
+        if company_name:
+            from xml.sax.saxutils import escape
+            escaped_company = escape(company_name)
+            company_var = f"\n                <SVCOMPANY>{escaped_company}</SVCOMPANY>\n                <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>"
         return f"""<ENVELOPE>
     <HEADER>
         <VERSION>1</VERSION>
@@ -451,7 +453,11 @@ class VoucherSyncManager:
                               company_name: str = None) -> str:
         """Generate TDL to fetch ALL voucher fields with 7 nested collections"""
         
-        company_var = f"\n                <SVCURRENTCOMPANY>{company_name}</SVCURRENTCOMPANY>" if company_name else ""
+        company_var = ""
+        if company_name:
+            from xml.sax.saxutils import escape
+            escaped_company = escape(company_name)
+            company_var = f"\n                <SVCOMPANY>{escaped_company}</SVCOMPANY>\n                <SVCURRENTCOMPANY>{escaped_company}</SVCURRENTCOMPANY>"
         
         return f"""<ENVELOPE>
     <HEADER>
@@ -968,7 +974,11 @@ class VoucherSyncManager:
         
         # Pre-flight check: verify company is loaded in Tally
         if company_name:
-            is_loaded, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
+            is_loaded, matched_company_name, loaded_companies = self.verify_tally_company(tally_host, tally_port, company_name)
+            # Use Tally's EXACT company name for the data request so it targets the
+            # right company (Tally won't switch on a casing/whitespace mismatch).
+            if is_loaded and matched_company_name:
+                company_name = matched_company_name
             if not is_loaded:
                 error_msg = (f"Company '{company_name}' is not loaded in Tally. "
                            f"Loaded: {loaded_companies}. Aborting to prevent data mismatch.")
@@ -1336,10 +1346,17 @@ def main():
         last_alter_id = int(sys.argv[10]) if len(sys.argv) > 10 else None
         company_name = sys.argv[11] if len(sys.argv) > 11 else None
         user_id = int(sys.argv[12]) if len(sys.argv) > 12 else 1
-        
+
         if not company_guid:
             logger.error("❌ Company GUID is required (arg 2)")
             print(json.dumps({'success': False, 'message': 'Company GUID required', 'count': 0}))
+            sys.exit(1)
+
+        # Company name is mandatory: the voucher export is scoped via SVCURRENTCOMPANY,
+        # so an empty name would pull vouchers from the active Tally company instead.
+        if not company_name or not str(company_name).strip():
+            logger.error("❌ Company name is required (arg 11) — refusing to sync the active Tally company")
+            print(json.dumps({'success': False, 'message': 'Company name is required', 'count': 0}))
             sys.exit(1)
         
         if not backend_url:

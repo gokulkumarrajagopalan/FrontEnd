@@ -58,8 +58,7 @@ const ALLOWED_RECEIVE_CHANNELS = [
     'update-not-available',
     'update-error',
     'download-progress',
-    'update-downloaded',
-    'sso-callback'
+    'update-downloaded'
 ];
 
 let contextBridgeReady = false;
@@ -215,13 +214,6 @@ try {
             return ipcRenderer.invoke('show-system-notification', options);
         },
 
-        // SSO deep link callback (talliffy://auth/callback?code=...)
-        onSSOCallback: (callback) => {
-            ipcRenderer.on('sso-callback', (event, url) => callback(url));
-        },
-        onSsoCallback: (callback) => {
-            ipcRenderer.on('sso-callback', (event, url) => callback(url));
-        },
         openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
         showSessionConflict: (conflictData) => ipcRenderer.invoke('show-session-conflict', conflictData),
 

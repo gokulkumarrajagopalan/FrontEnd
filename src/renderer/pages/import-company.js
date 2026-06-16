@@ -1367,10 +1367,11 @@
         addImportLog(`Starting import of ${selectedCompanies.length} company/companies...`, 'info');
 
         try {
-            // Get auth token and user directly from sessionStorage (more reliable)
-            const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
-                ? window.electronAPI.secureStoreGet('authToken')
-                : localStorage.getItem('authToken');
+            // Prefer authService (canonical in-memory token), then secure store, then localStorage.
+            const authToken = (window.authService && typeof window.authService.getToken === 'function' && window.authService.getToken())
+                || (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function'
+                    ? window.electronAPI.secureStoreGet('authToken')
+                    : localStorage.getItem('authToken'));
             let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
             if (!currentUser && window.authService) currentUser = window.authService.getCurrentUser();
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
@@ -1384,7 +1385,7 @@
 
             if (!authToken) {
                 addImportLog('Authentication token not found. Please login.', 'error');
-                console.error('No authToken in localStorage');
+                console.error('No authToken available from authService or secure store');
                 showStatus('Please login to import companies', 'error');
                 importBtn.disabled = false;
                 return;
@@ -1399,9 +1400,10 @@
             }
 
             // Generate device token if missing
-            let deviceToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
-                ? window.electronAPI.secureStoreGet('deviceToken')
-                : localStorage.getItem('deviceToken');
+            let deviceToken = (window.authService && typeof window.authService.getDeviceToken === 'function' && window.authService.getDeviceToken())
+                || (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function'
+                    ? window.electronAPI.secureStoreGet('deviceToken')
+                    : localStorage.getItem('deviceToken'));
             if (!deviceToken) {
                 deviceToken = 'device-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
                 if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
@@ -1410,6 +1412,27 @@
                     localStorage.setItem('deviceToken', deviceToken);
                 }
                 addImportLog('🔑 Generated new device token', 'info');
+            }
+
+            // ── License validation ──────────────────────────────────────────────
+            // The Tally license must match the logged-in user's license before we
+            // import anything. Mirrors the sync paths (company-sync.js / sync-scheduler.js)
+            // so a mismatch shows the same popup and blocks the very first import too.
+            if (window.LicenseValidator && typeof window.LicenseValidator.validateAndNotify === 'function') {
+                const tallyHost = appSettings.tallyHost || 'localhost';
+                const tallyPort = appSettings.tallyPort || 9000;
+                const userLicense = (currentUser && (currentUser.licenseNumber || currentUser.licenceNo))
+                    || localStorage.getItem('userLicenseNumber') || null;
+
+                addImportLog('🔐 Validating Tally license...', 'info');
+                const licenseValid = await window.LicenseValidator.validateAndNotify(userLicense, tallyHost, tallyPort);
+                if (!licenseValid) {
+                    addImportLog('❌ License validation failed - import aborted. Tally license does not match your account.', 'error');
+                    showStatus('License mismatch. Import blocked.', 'error');
+                    importBtn.disabled = false;
+                    return;
+                }
+                addImportLog('✅ License validated', 'success');
             }
 
             // Build headers manually

@@ -461,12 +461,12 @@
             width: 45%;
             height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
             padding: 40px 36px;
             background: var(--a-surface);
             position: relative;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .auth-panel::before {
@@ -480,7 +480,8 @@
 
         .auth-panel-inner {
             width: 100%;
-            max-width: 400px;
+            max-width: 440px;
+            margin: auto;
             position: relative;
             z-index: 1;
         }
@@ -671,6 +672,32 @@
             .auth-hero  { display: none; }
             .auth-panel { width: 100%; }
         }
+
+        /* Grid layout for form fields */
+        .auth-field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 600px) {
+            .auth-field-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Refresh License Button inside input */
+        .auth-refresh-btn {
+            background: var(--a-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(37,99,235,0.2);
+        }
+        .auth-refresh-btn:hover {
+            background: var(--a-indigo);
+            transform: scale(1.05);
+        }
     </style>
 `;
 
@@ -767,23 +794,46 @@
                   <i class="fas fa-check-circle"></i><span class="msg-text"></span>
                 </div>
 
-                <ul class="auth-benefit-list">
-                  <li><span class="benefit-icon"><i class="fas fa-check"></i></span> Single sign-on across all your devices</li>
-                  <li><span class="benefit-icon"><i class="fas fa-check"></i></span> Your session stays encrypted end-to-end</li>
-                  <li><span class="benefit-icon"><i class="fas fa-check"></i></span> No extra passwords to remember</li>
-                </ul>
+                <form id="loginForm" style="display:flex;flex-direction:column;gap:14px;">
+                  <div>
+                    <label style="display:block;font-size:0.78rem;font-weight:700;color:var(--a-ink-2);margin-bottom:6px;">Username or Email</label>
+                    <div style="position:relative;">
+                      <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--a-ink-4);"><i class="fas fa-user"></i></span>
+                      <input id="username" name="username" type="text" autocomplete="username" placeholder="Enter your username or email" required
+                        style="width:100%;padding:12px 14px 12px 40px;border:1px solid var(--a-border);border-radius:12px;background:var(--a-surface);font-size:0.9rem;color:var(--a-ink);outline:none;" />
+                    </div>
+                  </div>
 
-                <div class="auth-sso-box">
-                  <p>To ensure a secure and synchronized session,<br>please sign in using your web browser.</p>
-                  <button id="mainBrowserLoginBtn" class="auth-sso-btn" type="button">
-                    <i class="fas fa-arrow-up-right-from-square"></i>
-                    Sign In in Browser
+                  <div>
+                    <label style="display:block;font-size:0.78rem;font-weight:700;color:var(--a-ink-2);margin-bottom:6px;">Password</label>
+                    <div style="position:relative;">
+                      <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--a-ink-4);"><i class="fas fa-lock"></i></span>
+                      <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required
+                        style="width:100%;padding:12px 40px 12px 40px;border:1px solid var(--a-border);border-radius:12px;background:var(--a-surface);font-size:0.9rem;color:var(--a-ink);outline:none;" />
+                      <span id="toggleLoginPassword" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--a-ink-4);"><i class="fas fa-eye"></i></span>
+                    </div>
+                  </div>
+
+                  <label style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--a-ink-2);cursor:pointer;">
+                    <input type="checkbox" id="rememberMe" style="width:16px;height:16px;" /> Remember me on this device
+                  </label>
+
+                  <div id="loadingSpinner" class="hidden auth-loading" style="text-align:center;">Signing in…</div>
+
+                  <button id="loginBtn" type="submit" class="ds-btn-primary" style="width:100%;padding:13px 20px;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <i class="fas fa-right-to-bracket"></i> Sign In
                   </button>
+                </form>
+
+                <div class="auth-secure-note" style="margin-top:14px;">
+                  <i class="fas fa-lock"></i>
+                  Each device signs in independently &middot; Your session stays on this machine
                 </div>
 
-                <div class="auth-secure-note">
-                  <i class="fas fa-lock"></i>
-                  Secured with OAuth 2.0 &middot; We never see your password
+                <div style="margin-top:18px;text-align:center;padding-top:16px;border-top:1px solid var(--a-border);">
+                  <p style="font-size:0.83rem;color:var(--a-ink-3);">New to Talliffy?
+                    <a href="#" id="signupPromptBtn" class="auth-link-btn" style="margin-left:4px;">Create an account</a>
+                  </p>
                 </div>
 
               </div>
@@ -1283,13 +1333,25 @@
         target.innerHTML = getLoginTemplate();
         startParticles();
         setupLoginForm();
-        setupSSOCallback(); // Listen for SSO deep link callback
 
         // Populate signup form container from shared sub-template
         let signupFormContainer = document.getElementById('signupFormContainer');
         if (signupFormContainer) {
             signupFormContainer.innerHTML = getSignupFormContent();
             setupSignupForm(); // Consolidated setup
+
+            // Wire the embedded signup's "Sign In" link back to the credential form
+            const showLogin = document.getElementById('showLogin');
+            const signinFormEl = document.getElementById('signinForm');
+            if (showLogin && signinFormEl) {
+                showLogin.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    signupFormContainer.classList.add('hidden');
+                    signupFormContainer.style.display = 'none';
+                    signinFormEl.classList.remove('hidden');
+                    signinFormEl.style.display = 'block';
+                });
+            }
         }
 
         // Tab switching between Sign In and Sign Up
@@ -1643,86 +1705,43 @@
 
     // ============= DUAL-MODE LOGIN FORM SETUP =============
     function setupLoginForm() {
-        // ============= BROWSER LOGIN PRIMARY ACTION =============
-        // Set up SSO button BEFORE the legacy-form guard so it always fires
-        const mainBrowserLoginBtnEarly = document.getElementById('mainBrowserLoginBtn');
-        if (mainBrowserLoginBtnEarly) {
-            mainBrowserLoginBtnEarly.addEventListener('click', async (e) => {
-                e.preventDefault();
-                if (window.authService && typeof window.authService.ssoLoginWithBrowser === 'function') {
-                    mainBrowserLoginBtnEarly.disabled = true;
-                    const originalText = mainBrowserLoginBtnEarly.innerHTML;
-                    mainBrowserLoginBtnEarly.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening browser...';
-
-                    try {
-                        const result = await window.authService.ssoLoginWithBrowser();
-                        if (!result.success) throw new Error(result.message);
-
-                        const successMessage = document.getElementById('successMessage');
-                        if (successMessage) {
-                            successMessage.querySelector('.msg-text').textContent = 'Please complete login in your browser...';
-                            successMessage.classList.remove('hidden');
-                        }
-
-                        setTimeout(() => {
-                            mainBrowserLoginBtnEarly.disabled = false;
-                            mainBrowserLoginBtnEarly.innerHTML = originalText;
-                        }, 2000);
-                    } catch (error) {
-                        const errorMessage = document.getElementById('errorMessage');
-                        if (errorMessage) {
-                            errorMessage.querySelector('.msg-text').textContent = error.message || 'Failed to start login';
-                            errorMessage.classList.remove('hidden');
-                        }
-                        mainBrowserLoginBtnEarly.disabled = false;
-                        mainBrowserLoginBtnEarly.innerHTML = originalText;
-                    }
-                }
-            });
-        }
-
         const loginForm = document.getElementById('loginForm');
-        if (!loginForm) return;
-
-        const loginBtn = document.getElementById('loginBtn');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
         const loadingSpinner = document.getElementById('loadingSpinner');
-
-        // ============= AUTO-POPULATE REMEMBERED CREDENTIALS =============
-        const rememberMeCheckbox = document.getElementById('rememberMe');
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
+        const rememberMeCheckbox = document.getElementById('rememberMe');
 
-        // Load saved credentials if remember me was enabled
+        const showError = (msg) => {
+            if (!errorMessage) return;
+            const span = errorMessage.querySelector('.msg-text');
+            if (span) span.textContent = msg;
+            errorMessage.classList.remove('hidden');
+            if (successMessage) successMessage.classList.add('hidden');
+        };
+        const showSuccess = (msg) => {
+            if (!successMessage) return;
+            const span = successMessage.querySelector('.msg-text');
+            if (span) span.textContent = msg;
+            successMessage.classList.remove('hidden');
+            if (errorMessage) errorMessage.classList.add('hidden');
+        };
+
+        // Auto-populate remembered credentials
         if (localStorage.getItem('rememberMe') === 'true') {
             const savedUsername = localStorage.getItem('rememberedUsername');
-            const savedPasswordHash = localStorage.getItem('rememberedPasswordHash');
             const savedPasswordEncrypted = localStorage.getItem('rememberedPasswordEncrypted');
-
             if (savedUsername && usernameInput) {
                 usernameInput.value = savedUsername;
                 if (rememberMeCheckbox) rememberMeCheckbox.checked = true;
-                console.log('✅ Remembered username auto-populated');
             }
-
-            // Auto-populate password if encrypted version is available
             if (savedPasswordEncrypted && passwordInput) {
-                const decryptedPassword = decryptPassword(savedPasswordEncrypted);
-                if (decryptedPassword) {
-                    passwordInput.value = decryptedPassword;
-                    passwordInput.style.borderColor = '#10b981';
-                    console.log('✅ Remembered password auto-populated (decrypted)');
-                }
-            }
-
-            // Store hash for additional validation if needed
-            if (savedPasswordHash && passwordInput) {
-                passwordInput.dataset.savedHash = savedPasswordHash;
+                const decrypted = decryptPassword(savedPasswordEncrypted);
+                if (decrypted) passwordInput.value = decrypted;
             }
         }
 
-        // Clear saved credentials when remember me is unchecked
         if (rememberMeCheckbox) {
             rememberMeCheckbox.addEventListener('change', (e) => {
                 if (!e.target.checked) {
@@ -1730,77 +1749,110 @@
                     localStorage.removeItem('rememberedUsername');
                     localStorage.removeItem('rememberedPasswordHash');
                     localStorage.removeItem('rememberedPasswordEncrypted');
-                    console.log('🗑️ Remembered credentials cleared');
                 }
             });
         }
 
         // Show/Hide password toggle
         const toggleLoginPassword = document.getElementById('toggleLoginPassword');
-        if (toggleLoginPassword) {
+        if (toggleLoginPassword && passwordInput) {
             toggleLoginPassword.addEventListener('click', () => {
-                const pwd = document.getElementById('password');
-                if (!pwd) return;
-                const isText = pwd.type === 'text';
-                pwd.type = isText ? 'password' : 'text';
+                const isText = passwordInput.type === 'text';
+                passwordInput.type = isText ? 'password' : 'text';
                 toggleLoginPassword.innerHTML = isText ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
             });
         }
 
-                // ============= BROWSER LOGIN PRIMARY ACTION =============
-        const mainBrowserLoginBtn = document.getElementById('mainBrowserLoginBtn');
-        if (mainBrowserLoginBtn) {
-            mainBrowserLoginBtn.addEventListener('click', async (e) => {
+        // "Create an account" → reveal the embedded signup form
+        const signupPromptBtn = document.getElementById('signupPromptBtn');
+        const signinForm = document.getElementById('signinForm');
+        const signupFormContainer = document.getElementById('signupFormContainer');
+        if (signupPromptBtn && signinForm && signupFormContainer) {
+            signupPromptBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (window.authService && typeof window.authService.ssoLoginWithBrowser === 'function') {
-                    mainBrowserLoginBtn.disabled = true;
-                    const originalText = mainBrowserLoginBtn.innerHTML;
-                    mainBrowserLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening browser...';
-                    
-                    try {
-                        const result = await window.authService.ssoLoginWithBrowser();
-                        if (!result.success) throw new Error(result.message);
-                        
-                        const successMessage = document.getElementById('successMessage');
-                        if (successMessage) {
-                            successMessage.querySelector('span:last-child').textContent = 'Please complete login in your browser...';
-                            successMessage.classList.remove('hidden');
-                        }
-                        
-                        // Reset button after short delay so user can try again if needed
-                        setTimeout(() => {
-                            mainBrowserLoginBtn.disabled = false;
-                            mainBrowserLoginBtn.innerHTML = originalText;
-                        }, 2000);
-                    } catch (error) {
-                        const errorMessage = document.getElementById('errorMessage');
-                        if (errorMessage) {
-                            errorMessage.querySelector('span:last-child').textContent = error.message || 'Failed to start login';
-                            errorMessage.classList.remove('hidden');
-                        }
-                        mainBrowserLoginBtn.disabled = false;
-                        mainBrowserLoginBtn.innerHTML = originalText;
-                    }
-                }
+                signinForm.classList.add('hidden');
+                signinForm.style.display = 'none';
+                signupFormContainer.classList.remove('hidden');
+                signupFormContainer.style.display = 'block';
+                setTimeout(() => fetchAndPopulateLicenseNumber(), 100);
             });
         }
 
-        // ============= LEGACY LOGIN TOGGLE =============
-        const showLegacyLogin = document.getElementById('showLegacyLogin');
-        const loginFormEl = document.getElementById('loginForm');
-        if (showLegacyLogin && loginFormEl) {
-            showLegacyLogin.addEventListener('click', () => {
-                loginFormEl.classList.remove('hidden');
-                loginFormEl.style.display = 'flex';
-                showLegacyLogin.parentElement.classList.add('hidden');
-            });
-        }
-
-        // ── Real-time validation for legacy login fields ──
+        // Real-time validation
         if (typeof FormValidator !== 'undefined' && FormValidator.attach) {
             FormValidator.attach('username', 'required');
             FormValidator.attach('password', 'required');
         }
+
+        if (!loginForm) return;
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = (usernameInput && usernameInput.value || '').trim();
+            const password = (passwordInput && passwordInput.value) || '';
+
+            if (!username || !password) {
+                showError('Please enter your username and password.');
+                return;
+            }
+
+            const loginBtn = document.getElementById('loginBtn');
+            const originalBtnHtml = loginBtn ? loginBtn.innerHTML : '';
+            if (loginBtn) { loginBtn.disabled = true; loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...'; }
+            if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+            if (errorMessage) errorMessage.classList.add('hidden');
+
+            try {
+                const result = await window.authService.login(username, password);
+                if (!result || !result.success) {
+                    throw new Error((result && result.message) || 'Login failed');
+                }
+
+                // Persist credentials when "Remember me" is checked
+                if (rememberMeCheckbox && rememberMeCheckbox.checked) {
+                    localStorage.setItem('rememberMe', 'true');
+                    localStorage.setItem('rememberedUsername', username);
+                    const enc = encryptPassword(password);
+                    if (enc) localStorage.setItem('rememberedPasswordEncrypted', enc);
+                    const hash = await hashPassword(password);
+                    if (hash) localStorage.setItem('rememberedPasswordHash', hash);
+                } else {
+                    localStorage.removeItem('rememberMe');
+                    localStorage.removeItem('rememberedUsername');
+                    localStorage.removeItem('rememberedPasswordHash');
+                    localStorage.removeItem('rememberedPasswordEncrypted');
+                }
+
+                showSuccess('Login successful! Loading your workspace...');
+                if (window.notificationService) window.notificationService.success('Welcome back!', 'Logged in');
+
+                // The login screen renders standalone (no app shell / router yet).
+                // Boot the authenticated app in-place — mirror App.init()'s authed
+                // branch so the layout renders, the router is wired, and we land on
+                // the correct initial route (company-sync / import-company).
+                setTimeout(() => {
+                    try {
+                        if (window.app && typeof window.app.renderAppLayout === 'function') {
+                            window.location.hash = '';
+                            window.app.renderAppLayout();
+                            if (typeof window.app.initializeAutoUpdater === 'function') window.app.initializeAutoUpdater();
+                            if (typeof window.app.initializeTallyData === 'function') window.app.initializeTallyData();
+                        } else {
+                            // Fallback: reload so App.init() takes the authenticated branch.
+                            window.location.hash = '';
+                            window.location.reload();
+                        }
+                    } catch (err) {
+                        console.error('Post-login boot failed, reloading:', err);
+                        window.location.reload();
+                    }
+                }, 600);
+            } catch (error) {
+                showError(error.message || 'Login failed. Please check your credentials.');
+                if (loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = originalBtnHtml; }
+                if (loadingSpinner) loadingSpinner.classList.add('hidden');
+            }
+        });
     }
 
     // ============= REGISTRATION FORM SETUP (UPDATED) =============
@@ -2700,216 +2752,6 @@
 
         // Auto-focus first input
         otpInputs[0].focus();
-    }
-
-    // ============= SSO LOGIN (KEYCLOAK PKCE) =============
-
-    const SSO_CONFIG = {
-        keycloakUrl: 'http://35.175.182.24:8180',
-        realm: 'talliffy',
-        clientId: 'talliffy-electron',
-        redirectUri: 'talliffy://auth/callback',
-    };
-
-    function persistAuthenticatedSession(data) {
-        if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') {
-            window.electronAPI.secureStoreSet('authToken', data.token);
-            window.electronAPI.secureStoreSet('deviceToken', data.deviceToken);
-            if (data.csrfToken) {
-                window.electronAPI.secureStoreSet('csrfToken', data.csrfToken);
-            }
-        } else {
-            localStorage.setItem('authToken', data.token);
-            localStorage.setItem('deviceToken', data.deviceToken);
-            if (data.csrfToken) {
-                localStorage.setItem('csrfToken', data.csrfToken);
-            }
-        }
-        localStorage.setItem('currentUser', JSON.stringify({
-            username: data.username,
-            userId: data.userId,
-            fullName: data.fullName,
-            email: data.email,
-            licenceNo: data.licenceNo,
-            role: data.role,
-            isSSO: !!data.isSso,
-        }));
-        localStorage.setItem('loginTime', new Date().toISOString());
-
-        const expiryTime = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
-        localStorage.setItem('sessionExpiry', expiryTime.toString());
-
-        if (data.licenceNo !== undefined && data.licenceNo !== null) {
-            localStorage.setItem('userLicenseNumber', String(data.licenceNo));
-        }
-
-        if (data.subscription) {
-            localStorage.setItem('subscription', JSON.stringify(data.subscription));
-        }
-    }
-
-    async function startSSOLogin() {
-        try {
-            // Generate PKCE pair
-            const codeVerifier = generateCodeVerifier();
-            const codeChallenge = await generateCodeChallenge(codeVerifier);
-            const state = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
-
-            sessionStorage.setItem('sso_code_verifier', codeVerifier);
-            sessionStorage.setItem('sso_state', state);
-
-            const params = new URLSearchParams({
-                response_type: 'code',
-                client_id: SSO_CONFIG.clientId,
-                redirect_uri: SSO_CONFIG.redirectUri,
-                scope: 'openid profile email',
-                state,
-                code_challenge: codeChallenge,
-                code_challenge_method: 'S256',
-            });
-
-            const authUrl = `${SSO_CONFIG.keycloakUrl}/realms/${SSO_CONFIG.realm}/protocol/openid-connect/auth?${params}`;
-
-            // Open Keycloak in the system browser (not inside Electron)
-            if (window.electronAPI && window.electronAPI.openExternalUrl) {
-                await window.electronAPI.openExternalUrl(authUrl);
-            } else {
-                window.open(authUrl, '_blank');
-            }
-        } catch (err) {
-            console.error('SSO login error:', err);
-        }
-    }
-
-    function generateCodeVerifier() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-        const arr = new Uint8Array(96);
-        crypto.getRandomValues(arr);
-        return Array.from(arr).map(b => chars[b % chars.length]).join('');
-    }
-
-    async function generateCodeChallenge(verifier) {
-        const data = new TextEncoder().encode(verifier);
-        const hash = await crypto.subtle.digest('SHA-256', data);
-        return btoa(String.fromCharCode(...new Uint8Array(hash)))
-            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    }
-
-    async function handleSSOCallback(callbackUrl) {
-        try {
-            const url = new URL(callbackUrl);
-            const code = url.searchParams.get('code');
-            const state = url.searchParams.get('state');
-            const error = url.searchParams.get('error');
-
-            if (error) throw new Error(url.searchParams.get('error_description') || 'SSO failed');
-            const token = url.searchParams.get('token'); const deviceToken = url.searchParams.get('deviceToken'); if (token && deviceToken) { if (window.electronAPI && typeof window.electronAPI.secureStoreSet === 'function') { window.electronAPI.secureStoreSet('authToken', token); window.electronAPI.secureStoreSet('deviceToken', deviceToken); } else { localStorage.setItem('authToken', token); localStorage.setItem('deviceToken', deviceToken); } window.location.hash = '#dashboard'; window.location.reload(); return; } if (!code) throw new Error('No authorization code received');
-
-            const storedState = sessionStorage.getItem('sso_state');
-            if (state !== storedState) throw new Error('Invalid state — possible CSRF');
-
-            const codeVerifier = sessionStorage.getItem('sso_code_verifier');
-            if (!codeVerifier) throw new Error('Code verifier missing');
-
-            // Exchange code for tokens
-            const tokenRes = await fetch(
-                `${SSO_CONFIG.keycloakUrl}/realms/${SSO_CONFIG.realm}/protocol/openid-connect/token`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        grant_type: 'authorization_code',
-                        client_id: SSO_CONFIG.clientId,
-                        code,
-                        redirect_uri: SSO_CONFIG.redirectUri,
-                        code_verifier: codeVerifier,
-                    }),
-                }
-            );
-
-            if (!tokenRes.ok) throw new Error('Token exchange failed');
-            const tokens = await tokenRes.json();
-
-            // Keep Keycloak tokens only for the external SSO session.
-            sessionStorage.setItem('sso_access_token', tokens.access_token);
-            sessionStorage.setItem('sso_refresh_token', tokens.refresh_token || '');
-            sessionStorage.setItem('sso_id_token', tokens.id_token || '');
-
-            // Exchange the validated Keycloak token for a Talliffy app session.
-            const backendUrl = window.AppConfig?.API_BASE_URL || window.apiConfig?.baseURL || 'http://35.175.182.24:8080';
-            const sessionRes = await fetch(`${backendUrl}/auth/sso/keycloak?deviceType=DESKTOP`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${tokens.access_token}`,
-                    'X-Device-Type': 'DESKTOP',
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const sessionResult = await sessionRes.json();
-            if (!sessionRes.ok || sessionResult.success === false) {
-                throw new Error(sessionResult.message || 'Failed to create Talliffy session');
-            }
-
-            const data = sessionResult.data || sessionResult;
-            if (!data.token || !data.deviceToken) {
-                throw new Error('SSO session response is incomplete');
-            }
-
-            persistAuthenticatedSession(data);
-
-            const store = getStore();
-            if (store && store.dispatch) {
-                store.dispatch({
-                    type: 'LOGIN_SUCCESS',
-                    payload: {
-                        user: data,
-                        token: data.token,
-                        isAuthenticated: true
-                    }
-                });
-            }
-
-            sessionStorage.removeItem('sso_code_verifier');
-            sessionStorage.removeItem('sso_state');
-
-            const successEl = document.getElementById('successMessage');
-            if (successEl) {
-                const span = successEl.querySelector('span:last-child');
-                if (span) span.textContent = 'SSO login successful! Redirecting...';
-                successEl.classList.remove('hidden');
-            }
-
-            setTimeout(() => {
-                if (window.syncScheduler) {
-                    window.syncScheduler.start();
-                }
-                window.location.href = 'index.html';
-            }, 1000);
-        } catch (err) {
-            console.error('SSO callback error:', err);
-            const errorEl = document.getElementById('errorMessage');
-            if (errorEl) {
-                const span = errorEl.querySelector('span:last-child');
-                if (span) span.textContent = `SSO failed: ${err.message}`;
-                errorEl.classList.remove('hidden');
-            }
-        }
-    }
-
-    function setupSSOCallback() {
-        // Wire SSO button
-        const ssoBtn = document.getElementById('ssoLoginBtn');
-        if (ssoBtn) {
-            ssoBtn.onclick = startSSOLogin;
-        }
-
-        // Listen for deep link callback from main process
-        if (window.electronAPI && window.electronAPI.onSSOCallback) {
-            window.electronAPI.onSSOCallback((url) => {
-                handleSSOCallback(url);
-            });
-        }
     }
 
 })();
