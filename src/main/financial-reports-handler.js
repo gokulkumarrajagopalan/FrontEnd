@@ -37,6 +37,7 @@ function registerFinancialReportsHandler(activeChildProcesses) {
             const {
                 companyName = '',
                 cmpId,
+                companyId: companyIdParam,
                 userId,
                 fromDate = 'None',
                 toDate = 'None',
@@ -56,7 +57,7 @@ function registerFinancialReportsHandler(activeChildProcesses) {
             if (useExe) {
                 args = [
                     companyName,
-                    (cmpId || 1).toString(),
+                    (cmpId || companyIdParam).toString(),
                     (userId || 1).toString(),
                     fromDate || 'None',
                     toDate || 'None',
@@ -74,7 +75,7 @@ function registerFinancialReportsHandler(activeChildProcesses) {
                 args = [
                     pythonScript,
                     companyName,
-                    (cmpId || 1).toString(),
+                    (cmpId || companyIdParam).toString(),
                     (userId || 1).toString(),
                     fromDate || 'None',
                     toDate || 'None',

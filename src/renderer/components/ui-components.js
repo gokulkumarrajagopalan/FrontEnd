@@ -437,7 +437,7 @@ const UIComponents = {
         } = options;
 
         return `
-            <div style="display: flex; flex-direction: column; items-center; justify-content: center; padding: var(--ds-space-12) var(--ds-space-6); text-align: center;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--ds-space-12) var(--ds-space-6); text-align: center;">
                 <div style="font-size: var(--ds-text-5xl); color: var(--ds-text-quaternary); margin-bottom: var(--ds-space-5);">${icon}</div>
                 <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2);">${title}</h3>
                 <p style="font-size: var(--ds-text-md); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-8); max-width: 400px; margin-left: auto; margin-right: auto;">${message}</p>

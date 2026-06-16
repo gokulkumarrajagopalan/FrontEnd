@@ -33,14 +33,14 @@
 
         const removeConfirmModal = window.UIComponents.modal({
             id: 'removeConfirmModal',
-            title: 'Remove Company',
+            title: 'Remove company',
             content: '<div id="removeConfirmContent"></div>',
             size: 'sm'
         });
 
         const connectWebBtn = window.UIComponents.button({
             id: 'connectWebBtn',
-            text: 'Connect Web',
+            text: 'Connect web',
             icon: '<i class="fas fa-globe"></i>',
             variant: 'secondary',
             className: 'connect-web-btn',
@@ -790,6 +790,7 @@
                 // Build sync params — add extra fields for Vouchers
                 const syncParams = {
                     companyId: company.id,
+                    cmpId: company.id,
                     userId: currentUser?.userId,
                     authToken: authToken,
                     deviceToken: deviceToken,
@@ -1252,10 +1253,44 @@
         });
 
         if (filtered.length === 0) {
-            container.innerHTML = window.UIComponents.emptyState({
-                title: 'No companies found',
-                message: 'Connect to Tally Prime to import your companies.'
-            });
+            const hasFilters = !!(searchTerm || syncFilter || statusFilter);
+            if (hasFilters) {
+                // The user has companies, but the current search/filter matched none.
+                container.innerHTML = window.UIComponents.emptyState({
+                    icon: '<i class="fas fa-search"></i>',
+                    title: 'No matching companies',
+                    message: 'No companies match your current search or filter. Try adjusting them.',
+                    action: window.UIComponents.button({
+                        id: 'clearCompanyFilters',
+                        text: 'Clear filters',
+                        icon: '<i class="fas fa-times"></i>',
+                        variant: 'secondary'
+                    })
+                });
+                const clearBtn = document.getElementById('clearCompanyFilters');
+                if (clearBtn) {
+                    clearBtn.onclick = () => {
+                        ['companySearch', 'syncStatusFilter', 'companyStatusFilter'].forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el) el.value = '';
+                        });
+                        renderTable();
+                    };
+                }
+            } else {
+                // No companies connected yet — guide the user to add their first.
+                container.innerHTML = window.UIComponents.emptyState({
+                    icon: '<i class="fas fa-building"></i>',
+                    title: 'No companies yet',
+                    message: 'Connect to Tally Prime and add your first company to start syncing.',
+                    action: window.UIComponents.button({
+                        text: 'Add company',
+                        icon: '<i class="fas fa-plus"></i>',
+                        variant: 'primary',
+                        onclick: "window.location.hash = '#import-company'"
+                    })
+                });
+            }
             return;
         }
 
@@ -1297,14 +1332,6 @@
                             id: `btn-sync-${company.id}`,
                             style: 'min-width: 160px; width: 160px; max-width: 160px; justify-content: center; overflow: hidden;'
                         })}
-                            ${window.UIComponents.button({
-                            text: 'Remove company',
-                            icon: '<i class="fas fa-trash-alt"></i>',
-                            variant: 'secondary',
-                            size: 'sm',
-                            className: 'view-details-btn',
-                            id: `btn-info-${company.id}`
-                        })}
                             <div class="company-actions-dropdown" style="position: relative; display: inline-block;">
                                 ${window.UIComponents.button({
                             text: '',
@@ -1316,14 +1343,18 @@
                             attributes: 'title="More options" aria-label="More options"',
                             style: 'min-width: 32px; width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; box-shadow: none; color: var(--ds-text-tertiary); border-radius: 6px;'
                         })}
-                                <div id="dropdown-${company.id}" class="ds-dropdown-menu" style="display: none; position: fixed; background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-xl); z-index: 9999; min-width: 160px; overflow: hidden; animation: slideUp 0.15s ease-out;">
+                                <div id="dropdown-${company.id}" class="ds-dropdown-menu" style="display: none; position: fixed; right: auto; background: var(--ds-bg-surface); border: 1px solid var(--ds-border-default); border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-xl); z-index: 9999; width: 190px; overflow: hidden; animation: slideUp 0.15s ease-out;">
                                     <div class="dropdown-item backup-btn" data-id="${company.id}" style="padding: 10px 16px; font-size: 13px; color: var(--ds-text-primary); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s;" onmouseover="this.style.background='var(--ds-bg-hover)'" onmouseout="this.style.background='transparent'">
                                         <i class="fas fa-file-archive" style="color: var(--ds-primary-500); width: 14px;"></i>
                                         <span>Backup</span>
                                     </div>
                                     <div class="dropdown-item cancel-sync-btn" data-id="${company.id}" style="padding: 10px 16px; font-size: 13px; color: var(--ds-text-danger, #dc2626); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; border-top: 1px solid var(--ds-border-default);" onmouseover="this.style.background='var(--ds-bg-hover)'" onmouseout="this.style.background='transparent'">
                                         <i class="fas fa-stop-circle" style="width: 14px;"></i>
-                                        <span>Cancel Sync</span>
+                                        <span>Cancel sync</span>
+                                    </div>
+                                    <div class="dropdown-item remove-company-item" data-id="${company.id}" style="padding: 10px 16px; font-size: 13px; color: var(--ds-text-danger, #dc2626); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; border-top: 1px solid var(--ds-border-default);" onmouseover="this.style.background='var(--ds-bg-hover)'" onmouseout="this.style.background='transparent'">
+                                        <i class="fas fa-trash-alt" style="width: 14px;"></i>
+                                        <span>Remove company</span>
                                     </div>
                                 </div>
                             </div>
@@ -1341,9 +1372,14 @@
             const btn = document.getElementById(`btn-sync-${company.id}`);
             if (btn) btn.setAttribute('data-id', company.id);
 
-            const infoBtn = document.getElementById(`btn-info-${company.id}`);
-            if (infoBtn) {
-                infoBtn.onclick = () => confirmRemoveCompany(company);
+            const removeItem = document.querySelector(`.remove-company-item[data-id="${company.id}"]`);
+            if (removeItem) {
+                removeItem.onclick = (e) => {
+                    e.stopPropagation();
+                    const dd = document.getElementById(`dropdown-${company.id}`);
+                    if (dd) dd.style.display = 'none';
+                    confirmRemoveCompany(company);
+                };
             }
 
             // Actions menu toggle
@@ -1359,11 +1395,39 @@
                     
                     const isVisible = dropdown.style.display === 'block';
                     if (!isVisible) {
-                        // Position the dropdown relative to the button
-                        const rect = actionsBtn.getBoundingClientRect();
-                        dropdown.style.top = `${rect.bottom + 5}px`;
-                        dropdown.style.left = `${rect.right - 160}px`; // Align right edge
+                        // Render hidden first so we can measure it.
+                        dropdown.style.visibility = 'hidden';
                         dropdown.style.display = 'block';
+
+                        const margin = 8;
+                        const menuW = 190; // matches the fixed width set on the dropdown
+                        const menuH = dropdown.offsetHeight || 0;
+
+                        // A transformed ancestor can make `position: fixed` resolve against
+                        // that ancestor instead of the viewport. Probe where left:0/top:0
+                        // actually lands, then offset our target by that origin so the menu
+                        // ends up at true viewport coordinates regardless.
+                        dropdown.style.left = '0px';
+                        dropdown.style.top = '0px';
+                        const probe = dropdown.getBoundingClientRect();
+                        const originX = probe.left;
+                        const originY = probe.top;
+
+                        const rect = actionsBtn.getBoundingClientRect();
+
+                        // Desired viewport position: right edge aligned to the button, clamped on-screen.
+                        let vpLeft = rect.right - menuW;
+                        vpLeft = Math.max(margin, Math.min(vpLeft, window.innerWidth - menuW - margin));
+
+                        // Open below the button; flip above if it would overflow the bottom edge.
+                        let vpTop = rect.bottom + 5;
+                        if (vpTop + menuH > window.innerHeight - margin) {
+                            vpTop = Math.max(margin, rect.top - menuH - 5);
+                        }
+
+                        dropdown.style.left = `${vpLeft - originX}px`;
+                        dropdown.style.top = `${vpTop - originY}px`;
+                        dropdown.style.visibility = 'visible';
                     } else {
                         dropdown.style.display = 'none';
                     }
@@ -1392,10 +1456,10 @@
                 const company = companies.find(c => String(c.id) === id);
                 
                 const confirmed = await window.Popup.confirm({
-                    title: 'Cancel Sync',
+                    title: 'Cancel sync',
                     message: `Are you sure you want to cancel the sync for "${company?.name || 'this company'}"? The process will stop and resume on the next scheduled interval.`,
-                    confirmText: 'Yes, Cancel Sync',
-                    cancelText: 'No, Keep Syncing',
+                    confirmText: 'Yes, cancel sync',
+                    cancelText: 'No, keep syncing',
                     confirmVariant: 'danger',
                     icon: '<i class="fas fa-exclamation-triangle"></i>'
                 });

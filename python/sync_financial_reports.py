@@ -256,7 +256,8 @@ class FinancialReportSync:
 
     def fetch_and_sync_balance_sheet(self):
         print(f"\n--- Syncing Balance Sheet ---")
-        tdl = TDL_BALANCE_SHEET.replace("{company_name}", self.company_name).replace("{from_date}", self.from_date).replace("{to_date}", self.to_date)
+        escaped = self.company_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        tdl = TDL_BALANCE_SHEET.replace("{escaped_company}", escaped).replace("{from_date}", self.from_date).replace("{to_date}", self.to_date)
         
         try:
             response = requests.post(self.tally_url, data=tdl.encode('utf-8'), timeout=60)
@@ -319,7 +320,8 @@ class FinancialReportSync:
 
     def fetch_and_sync_profit_loss(self):
         print(f"\n--- Syncing Profit and Loss ---")
-        tdl = TDL_PROFIT_LOSS.replace("{company_name}", self.company_name).replace("{from_date}", self.from_date).replace("{to_date}", self.to_date)
+        escaped = self.company_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        tdl = TDL_PROFIT_LOSS.replace("{escaped_company}", escaped).replace("{from_date}", self.from_date).replace("{to_date}", self.to_date)
         
         try:
             response = requests.post(self.tally_url, data=tdl.encode('utf-8'), timeout=60)
@@ -431,7 +433,8 @@ class FinancialReportSync:
 
     def fetch_and_sync_trial_balance(self):
         print(f"\n--- Syncing Trial Balance ---")
-        tdl = TDL_TRIAL_BALANCE.replace("{company_name}", self.company_name).replace("{from_date}", self.from_date).replace("{to_date}", self.to_date)
+        escaped = self.company_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        tdl = TDL_TRIAL_BALANCE.replace("{escaped_company}", escaped).replace("{from_date}", self.from_date).replace("{to_date}", self.to_date)
         
         try:
             response = requests.post(self.tally_url, data=tdl.encode('utf-8'), timeout=60)
