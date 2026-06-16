@@ -521,7 +521,7 @@
         }
         .auth-card-logo-name {
             font-weight: 800;
-            font-size: 1.05rem;
+            font-size: 0.95rem;
             letter-spacing: -0.02em;
             color: var(--a-ink);
         }
@@ -530,14 +530,14 @@
         /* Heading */
         .auth-heading { margin-bottom: 18px; }
         .auth-heading h2 {
-            font-size: 1.35rem;
+            font-size: 1.2rem;
             font-weight: 800;
             color: var(--a-ink);
             letter-spacing: -0.025em;
             margin-bottom: 4px;
         }
         .auth-heading p {
-            font-size: 0.83rem;
+            font-size: 0.78rem;
             color: var(--a-ink-3);
             line-height: 1.5;
         }
@@ -796,31 +796,34 @@
 
                 <form id="loginForm" style="display:flex;flex-direction:column;gap:14px;">
                   <div>
-                    <label style="display:block;font-size:0.78rem;font-weight:700;color:var(--a-ink-2);margin-bottom:6px;">Username or Email</label>
+                    <label style="display:block;font-size:0.74rem;font-weight:700;color:var(--a-ink-2);margin-bottom:6px;">Username or Email</label>
                     <div style="position:relative;">
                       <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--a-ink-4);"><i class="fas fa-user"></i></span>
                       <input id="username" name="username" type="text" autocomplete="username" placeholder="Enter your username or email" required
-                        style="width:100%;padding:12px 14px 12px 40px;border:1px solid var(--a-border);border-radius:12px;background:var(--a-surface);font-size:0.9rem;color:var(--a-ink);outline:none;" />
+                        style="width:100%;padding:12px 14px 12px 40px;border:1px solid var(--a-border);border-radius:12px;background:var(--a-surface);font-size:0.85rem;color:var(--a-ink);outline:none;" />
                     </div>
                   </div>
 
                   <div>
-                    <label style="display:block;font-size:0.78rem;font-weight:700;color:var(--a-ink-2);margin-bottom:6px;">Password</label>
+                    <label style="display:block;font-size:0.74rem;font-weight:700;color:var(--a-ink-2);margin-bottom:6px;">Password</label>
                     <div style="position:relative;">
                       <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--a-ink-4);"><i class="fas fa-lock"></i></span>
                       <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required
-                        style="width:100%;padding:12px 40px 12px 40px;border:1px solid var(--a-border);border-radius:12px;background:var(--a-surface);font-size:0.9rem;color:var(--a-ink);outline:none;" />
+                        style="width:100%;padding:12px 40px 12px 40px;border:1px solid var(--a-border);border-radius:12px;background:var(--a-surface);font-size:0.85rem;color:var(--a-ink);outline:none;" />
                       <span id="toggleLoginPassword" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--a-ink-4);"><i class="fas fa-eye"></i></span>
                     </div>
                   </div>
 
-                  <label style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--a-ink-2);cursor:pointer;">
-                    <input type="checkbox" id="rememberMe" style="width:16px;height:16px;" /> Remember me on this device
-                  </label>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:0.76rem;color:var(--a-ink-2);cursor:pointer;">
+                      <input type="checkbox" id="rememberMe" style="width:16px;height:16px;" /> Remember me on this device
+                    </label>
+                    <a href="#" id="forgotPasswordLink" class="auth-link-btn" style="font-size:0.76rem;">Forgot password?</a>
+                  </div>
 
                   <div id="loadingSpinner" class="hidden auth-loading" style="text-align:center;">Signing in…</div>
 
-                  <button id="loginBtn" type="submit" class="ds-btn-primary" style="width:100%;padding:13px 20px;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                  <button id="loginBtn" type="submit" class="ds-btn-primary" style="width:100%;padding:13px 20px;font-size:0.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
                     <i class="fas fa-right-to-bracket"></i> Sign In
                   </button>
                 </form>
@@ -831,7 +834,7 @@
                 </div>
 
                 <div style="margin-top:18px;text-align:center;padding-top:16px;border-top:1px solid var(--a-border);">
-                  <p style="font-size:0.83rem;color:var(--a-ink-3);">New to Talliffy?
+                  <p style="font-size:0.78rem;color:var(--a-ink-3);">New to Talliffy?
                     <a href="#" id="signupPromptBtn" class="auth-link-btn" style="margin-left:4px;">Create an account</a>
                   </p>
                 </div>
@@ -1319,6 +1322,8 @@
             } else {
                 window.initializeLogin();
             }
+        } else if (currentHash === 'forgot-password') {
+            window.initializeForgotPassword();
         } else {
             window.initializeLogin();
         }
@@ -1703,6 +1708,231 @@
         }
     };
 
+    // ============= FORGOT PASSWORD TEMPLATE =============
+    const getForgotPasswordTemplate = () => `
+    ${AUTH_SHARED_STYLES}
+    <div class="auth-background" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--ds-bg-app); padding: var(--ds-space-6);">
+        <div style="width: 100%; max-width: 440px; position: relative; z-index: 10;">
+            <div style="text-align: center; margin-bottom: var(--ds-space-8);">
+                <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--ds-radius-2xl); background: white; box-shadow: var(--ds-shadow-lg); margin-bottom: var(--ds-space-4);">
+                    <img src="assets/brand/talliffy-icon.png" style="width: 48px; height: 48px; border-radius: var(--ds-radius-lg);" />
+                </div>
+                <h1 style="font-size: var(--ds-text-3xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">
+                    Talli<span style="color: var(--ds-primary-600);">ffy</span>
+                </h1>
+                <p style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin-top: var(--ds-space-2);">Reset Your Password</p>
+            </div>
+
+            <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-3xl); border: 1px solid var(--ds-border-default); padding: var(--ds-space-10); box-shadow: var(--ds-shadow-xl);">
+                <div id="forgotIntro" style="text-align: center; margin-bottom: var(--ds-space-8);">
+                    <p id="forgotSubtitle" style="font-size: var(--ds-text-sm); color: var(--ds-text-tertiary); margin: 0;">Enter your registered email to receive a reset code.</p>
+                </div>
+
+                <div id="errorMessage" class="hidden" style="margin-bottom: var(--ds-space-6); padding: var(--ds-space-4); background: var(--ds-error-50); border: 1px solid var(--ds-error-200); border-radius: var(--ds-radius-xl); color: var(--ds-error-700); font-size: var(--ds-text-sm);">
+                    <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span class="msg-text"></span>
+                    </div>
+                </div>
+
+                <div id="successMessage" class="hidden" style="margin-bottom: var(--ds-space-6); padding: var(--ds-space-4); background: var(--ds-success-50); border: 1px solid var(--ds-success-200); border-radius: var(--ds-radius-xl); color: var(--ds-success-700); font-size: var(--ds-text-sm);">
+                    <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
+                        <i class="fas fa-check-circle"></i>
+                        <span class="msg-text"></span>
+                    </div>
+                </div>
+
+                <form id="forgotEmailForm" style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                    <div>
+                        <label style="display:block;font-size:0.8rem;font-weight:var(--ds-weight-bold);color:var(--ds-text-secondary);margin-bottom:6px;">Email Address</label>
+                        <input id="forgotEmail" name="email" type="email" autocomplete="email" placeholder="you@company.com" required
+                            style="width:100%;padding:12px 14px;font-size:0.9rem;border-radius:var(--ds-radius-xl);border:2px solid var(--ds-border-default);background:var(--ds-bg-surface);color:var(--ds-text-primary);" />
+                    </div>
+                    <div id="loadingSpinner" class="hidden" style="text-align:center;">${window.UIComponents.spinner({ size: 'md' })}</div>
+                    ${window.UIComponents.button({ id: 'sendCodeBtn', text: 'Send Reset Code', icon: '<i class="fas fa-paper-plane"></i>', variant: 'primary', fullWidth: true, size: 'lg', type: 'submit' })}
+                </form>
+
+                <form id="forgotResetForm" class="hidden" style="display: flex; flex-direction: column; gap: var(--ds-space-6);">
+                    <div>
+                        <label style="display:block;font-size:0.8rem;font-weight:var(--ds-weight-bold);color:var(--ds-text-secondary);margin-bottom:6px;">Reset Code</label>
+                        <input id="forgotOtp" name="otp" type="text" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit code" required
+                            style="width:100%;padding:12px 14px;font-size:0.9rem;letter-spacing:4px;border-radius:var(--ds-radius-xl);border:2px solid var(--ds-border-default);background:var(--ds-bg-surface);color:var(--ds-text-primary);" />
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.8rem;font-weight:var(--ds-weight-bold);color:var(--ds-text-secondary);margin-bottom:6px;">New Password</label>
+                        <div style="position:relative;">
+                            <input id="forgotNewPassword" name="newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters" required
+                                style="width:100%;padding:12px 40px 12px 14px;font-size:0.9rem;border-radius:var(--ds-radius-xl);border:2px solid var(--ds-border-default);background:var(--ds-bg-surface);color:var(--ds-text-primary);" />
+                            <span id="toggleForgotPassword" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--a-ink-4);"><i class="fas fa-eye"></i></span>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.8rem;font-weight:var(--ds-weight-bold);color:var(--ds-text-secondary);margin-bottom:6px;">Confirm Password</label>
+                        <input id="forgotConfirmPassword" name="confirmPassword" type="password" autocomplete="new-password" placeholder="Re-enter new password" required
+                            style="width:100%;padding:12px 14px;font-size:0.9rem;border-radius:var(--ds-radius-xl);border:2px solid var(--ds-border-default);background:var(--ds-bg-surface);color:var(--ds-text-primary);" />
+                    </div>
+                    <div id="loadingSpinnerReset" class="hidden" style="text-align:center;">${window.UIComponents.spinner({ size: 'md' })}</div>
+                    ${window.UIComponents.button({ id: 'resetBtn', text: 'Reset Password', icon: '<i class="fas fa-key"></i>', variant: 'primary', fullWidth: true, size: 'lg', type: 'submit' })}
+                    <div style="text-align:center;">
+                        <button type="button" id="resendResetCode" style="background:none;border:none;font-size:var(--ds-text-sm);font-weight:var(--ds-weight-bold);color:var(--ds-primary-600);cursor:pointer;padding:0;">Resend Code</button>
+                    </div>
+                </form>
+
+                <div style="margin-top: var(--ds-space-6); text-align: center;">
+                    <a href="#" id="backToLogin" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: var(--ds-text-secondary); text-decoration: none;">← Back to Sign In</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    window.initializeForgotPassword = function () {
+        console.log('Initializing Forgot Password Page...');
+        cleanupOtpTimers();
+        stopParticles();
+        const pageContent = document.getElementById('page-content');
+        const target = pageContent || document.body;
+        target.innerHTML = getForgotPasswordTemplate();
+
+        const emailForm = document.getElementById('forgotEmailForm');
+        const resetForm = document.getElementById('forgotResetForm');
+        const subtitle = document.getElementById('forgotSubtitle');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const emailInput = document.getElementById('forgotEmail');
+        let resetEmail = '';
+        let resendCooldown = 0;
+
+        const showError = (msg) => {
+            if (!errorMessage) return;
+            const span = errorMessage.querySelector('.msg-text');
+            if (span) span.textContent = msg;
+            errorMessage.classList.remove('hidden');
+            if (successMessage) successMessage.classList.add('hidden');
+        };
+        const showSuccess = (msg) => {
+            if (!successMessage) return;
+            const span = successMessage.querySelector('.msg-text');
+            if (span) span.textContent = msg;
+            successMessage.classList.remove('hidden');
+            if (errorMessage) errorMessage.classList.add('hidden');
+        };
+
+        const sendCode = async () => {
+            const email = (emailInput && emailInput.value || '').trim();
+            if (!email) { showError('Please enter your email address.'); return false; }
+            const sendBtn = document.getElementById('sendCodeBtn');
+            const spinner = document.getElementById('loadingSpinner');
+            if (sendBtn) sendBtn.disabled = true;
+            if (spinner) spinner.classList.remove('hidden');
+            try {
+                const res = await window.authService.forgotPassword(email);
+                if (res.success) {
+                    resetEmail = email;
+                    showSuccess(res.message || 'Reset code sent to your email.');
+                    if (window.notificationService) window.notificationService.success('Reset code sent to your email.');
+                    emailForm.classList.add('hidden');
+                    resetForm.classList.remove('hidden');
+                    if (subtitle) subtitle.textContent = 'We sent a code to ' + email + '. Enter it below with your new password.';
+                    return true;
+                }
+                showError(res.message || 'Failed to send reset code.');
+                return false;
+            } catch (err) {
+                showError(err.message || 'Failed to send reset code.');
+                return false;
+            } finally {
+                if (sendBtn) sendBtn.disabled = false;
+                if (spinner) spinner.classList.add('hidden');
+            }
+        };
+
+        if (emailForm) {
+            emailForm.addEventListener('submit', (e) => { e.preventDefault(); sendCode(); });
+        }
+
+        // Show/Hide new password
+        const togglePw = document.getElementById('toggleForgotPassword');
+        const newPwInput = document.getElementById('forgotNewPassword');
+        if (togglePw && newPwInput) {
+            togglePw.addEventListener('click', () => {
+                const isText = newPwInput.type === 'text';
+                newPwInput.type = isText ? 'password' : 'text';
+                togglePw.innerHTML = isText ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+            });
+        }
+
+        if (resetForm) {
+            resetForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const otp = (document.getElementById('forgotOtp').value || '').trim();
+                const newPassword = document.getElementById('forgotNewPassword').value || '';
+                const confirmPassword = document.getElementById('forgotConfirmPassword').value || '';
+
+                if (!otp) { showError('Please enter the reset code.'); return; }
+                if (newPassword.length < 8) { showError('Password must be at least 8 characters.'); return; }
+                if (newPassword !== confirmPassword) { showError('Passwords do not match.'); return; }
+
+                const resetBtn = document.getElementById('resetBtn');
+                const spinner = document.getElementById('loadingSpinnerReset');
+                if (resetBtn) resetBtn.disabled = true;
+                if (spinner) spinner.classList.remove('hidden');
+                try {
+                    const res = await window.authService.resetPassword(resetEmail, otp, newPassword);
+                    if (res.success) {
+                        showSuccess('Password reset successfully! Redirecting to login...');
+                        if (window.notificationService) window.notificationService.success('Password reset successfully! Please log in.');
+                        setTimeout(() => {
+                            window.location.hash = '#login';
+                            window.initializeLogin();
+                        }, 1500);
+                    } else {
+                        showError(res.message || 'Failed to reset password.');
+                    }
+                } catch (err) {
+                    showError(err.message || 'Failed to reset password.');
+                } finally {
+                    if (resetBtn) resetBtn.disabled = false;
+                    if (spinner) spinner.classList.add('hidden');
+                }
+            });
+        }
+
+        // Resend code with 60s cooldown
+        const resendBtn = document.getElementById('resendResetCode');
+        if (resendBtn) {
+            resendBtn.addEventListener('click', async () => {
+                if (resendCooldown > 0) return;
+                const ok = await sendCode();
+                if (ok) {
+                    resendCooldown = 60;
+                    const tick = () => {
+                        if (resendCooldown <= 0) {
+                            resendBtn.textContent = 'Resend Code';
+                            resendBtn.disabled = false;
+                            return;
+                        }
+                        resendBtn.disabled = true;
+                        resendBtn.textContent = 'Resend in ' + resendCooldown + 's';
+                        resendCooldown -= 1;
+                        setTimeout(tick, 1000);
+                    };
+                    tick();
+                }
+            });
+        }
+
+        // Back to login
+        const backToLogin = document.getElementById('backToLogin');
+        if (backToLogin) {
+            backToLogin.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.location.hash = '#login';
+                window.initializeLogin();
+            });
+        }
+    };
+
     // ============= DUAL-MODE LOGIN FORM SETUP =============
     function setupLoginForm() {
         const loginForm = document.getElementById('loginForm');
@@ -1775,6 +2005,16 @@
                 signupFormContainer.classList.remove('hidden');
                 signupFormContainer.style.display = 'block';
                 setTimeout(() => fetchAndPopulateLicenseNumber(), 100);
+            });
+        }
+
+        // "Forgot password?" → reset-password flow
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+        if (forgotPasswordLink) {
+            forgotPasswordLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.location.hash = '#forgot-password';
+                window.initializeForgotPassword();
             });
         }
 

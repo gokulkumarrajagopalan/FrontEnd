@@ -679,12 +679,11 @@ class App {
                     <!-- Brand Header -->
                     <div class="ds-sidebar-header" id="expandedHeader">
                         <div class="brand-icon-wrapper" aria-label="Talliffy" title="Talliffy">
-                            <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image" style="width: 52px; height: 52px;" />
+                            <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image" style="width: 36px; height: 36px;" />
                         </div>
                         <div class="ds-sidebar-brand-text">
-                            <span class="ds-sidebar-brand-title">Talliffy</span>
+                            <span class="ds-sidebar-brand-title">Talli<span style="color: var(--ds-primary-600);">ffy</span></span>
                             <span class="ds-sidebar-brand-subtitle">Modern Tally workspace</span>
-                            <span id="sidebarAppVersion" style="font-size: 10px; color: rgba(147,197,253,0.55); margin-top: 2px; font-family: var(--ds-font-mono);">v1.0.0</span>
                         </div>
                     </div>
 
@@ -797,14 +796,6 @@ class App {
 
             // Update user info
             this.updateUserInfo();
-
-            // Set sidebar app version dynamically
-            if (window.electronAPI && window.electronAPI.invoke) {
-                window.electronAPI.invoke('get-app-version').then(version => {
-                    const vEl = document.getElementById('sidebarAppVersion');
-                    if (vEl && version) vEl.textContent = `v${version}`;
-                }).catch(() => {});
-            }
 
             // Load companies for global selector (apiConfig should be available by now)
             setTimeout(() => {

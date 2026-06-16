@@ -83,7 +83,9 @@ const apiConfig = {
             register: '/auth/register',
             logout: '/auth/logout',
             refresh: '/auth/refresh',
-            validate: '/auth/validate'
+            validate: '/auth/validate',
+            forgotPassword: '/auth/forgot-password',
+            resetPassword: '/auth/reset-password'
         },
         companies: '/companies',
 

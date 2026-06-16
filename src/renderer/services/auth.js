@@ -261,6 +261,52 @@ class AuthService {
         }
     }
 
+    /**
+     * Forgot Password — Step 1: request a reset code to be emailed.
+     * @param {string} email
+     * @returns {Promise<{success: boolean, message: string}>}
+     */
+    async forgotPassword(email) {
+        try {
+            const response = await fetch(window.apiConfig.getNestedUrl('auth', 'forgotPassword'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                return { success: false, message: data.message || 'Failed to send reset code' };
+            }
+            return { success: true, message: data.message || 'Reset code sent' };
+        } catch (error) {
+            return { success: false, message: 'Connection error: ' + error.message };
+        }
+    }
+
+    /**
+     * Forgot Password — Step 2: verify the reset code and set a new password.
+     * @param {string} email
+     * @param {string} otp
+     * @param {string} newPassword
+     * @returns {Promise<{success: boolean, message: string}>}
+     */
+    async resetPassword(email, otp, newPassword) {
+        try {
+            const response = await fetch(window.apiConfig.getNestedUrl('auth', 'resetPassword'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp, newPassword })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                return { success: false, message: data.message || 'Failed to reset password' };
+            }
+            return { success: true, message: data.message || 'Password reset successfully' };
+        } catch (error) {
+            return { success: false, message: 'Connection error: ' + error.message };
+        }
+    }
+
     async logout(scope = 'CURRENT') {
         // Notify the backend, but never let a slow/hanging request block the UI logout.
         try {

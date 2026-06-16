@@ -98,8 +98,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 750,
-    minWidth: 900,
-    minHeight: 600,
+    minWidth: 480,
+    minHeight: 560,
     show: false,
     icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
     autoHideMenuBar: !isDev,  // Auto-hide menu bar in production
