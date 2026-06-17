@@ -77,7 +77,7 @@
                         </div>
                     </div>
  
-                    <!-- Send Message Form -->
+                    <!-- send Request Form -->
                     <div style="background: var(--ds-bg-surface-sunken); padding: var(--ds-space-6); border-radius: var(--ds-radius-lg); margin-bottom: var(--ds-space-6);">
                         <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-4);">Send us a message</h3>
                         <div id="supportFormStatus" style="display: none; padding: var(--ds-space-3) var(--ds-space-4); border-radius: var(--ds-radius-md); margin-bottom: var(--ds-space-4); font-size: var(--ds-text-sm);"></div>
@@ -93,7 +93,7 @@
                             </div>
                             
                             <button type="submit" id="supportSubmitBtn" class="ds-btn ds-btn-primary">
-                                <i class="fas fa-paper-plane"></i> Send Message
+                                <i class="fas fa-paper-plane"></i> send Request
                             </button>
                         </form>
                     </div>
@@ -268,7 +268,7 @@
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> send Request';
             }
         }
     }

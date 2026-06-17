@@ -394,6 +394,7 @@
 
         document.querySelectorAll('.sync-company-btn').forEach(btn => {
             const companyId = btn.getAttribute('data-id');
+            const progressContainer = document.getElementById(`sync-progress-container-${companyId}`);
 
             // Ensure button is visible by default
             btn.style.display = '';
@@ -406,12 +407,14 @@
                     btn.disabled = true;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btn.setAttribute('aria-busy', 'true');
+                    if (progressContainer) progressContainer.style.display = 'none';
                 } else {
                     // Other companies - still disabled while reconciliation runs
                     btn.innerHTML = getDefaultSyncButtonHTML();
                     btn.disabled = true;
                     btn.classList.add('opacity-50', 'cursor-not-allowed');
                     btn.removeAttribute('aria-busy');
+                    if (progressContainer) progressContainer.style.display = 'none';
                 }
             } else if (syncInProgress) {
                 if (String(companyId) === String(activeCompanyId)) {
@@ -432,13 +435,25 @@
                     btn.disabled = true;
                     btn.classList.add('opacity-50', 'cursor-not-allowed');
                     btn.removeAttribute('aria-busy');
+                    if (progressContainer) progressContainer.style.display = 'none';
                 }
             } else {
                 // No sync or reconciliation in progress - default state
-                btn.innerHTML = getDefaultSyncButtonHTML();
+                if (!btn.innerHTML.includes('fa-check-circle')) {
+                    btn.innerHTML = getDefaultSyncButtonHTML();
+                } else if (!window._syncTimeoutMap) {
+                    window._syncTimeoutMap = window._syncTimeoutMap || {};
+                    if (!window._syncTimeoutMap[companyId]) {
+                        window._syncTimeoutMap[companyId] = setTimeout(() => {
+                            btn.innerHTML = getDefaultSyncButtonHTML();
+                            delete window._syncTimeoutMap[companyId];
+                        }, 2000);
+                    }
+                }
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 btn.removeAttribute('aria-busy');
+                if (progressContainer) progressContainer.style.display = 'none';
             }
         });
     }
