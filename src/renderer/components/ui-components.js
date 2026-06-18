@@ -24,21 +24,22 @@ const UIComponents = {
         } = options;
 
         return `
-            ${label ? `<label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">
+            ${label ? `<label for="${id}" style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">
                 ${label} ${required ? '<span style="color: var(--ds-error-500);">*</span>' : ''}
             </label>` : ''}
             <div style="position: relative; width: ${width === 'w-full' ? '100%' : 'auto'};">
                 ${icon ? `<div style="position: absolute; left: var(--ds-space-4); top: 50%; transform: translateY(-50%); font-size: var(--ds-text-lg); color: var(--ds-text-tertiary); pointer-events: none; display: flex; align-items: center; justify-content: center; width: var(--ds-space-5); height: var(--ds-space-5);">
                     ${icon}
                 </div>` : ''}
-                <input 
-                    type="${type}" 
-                    id="${id}" 
+                <input
+                    type="${type}"
+                    id="${id}"
                     class="ds-input ${className}"
                     style="width: 100%; ${icon ? 'padding-left: var(--ds-space-12);' : ''} ${suffix ? 'padding-right: var(--ds-space-12);' : ''}"
-                    placeholder="${placeholder}" 
+                    placeholder="${placeholder}"
                     value="${value}"
-                    ${required ? 'required' : ''}
+                    ${!label && (placeholder || id) ? `aria-label="${placeholder || id}"` : ''}
+                    ${required ? `required aria-required="true"` : ''}
                     ${disabled ? 'disabled' : ''}
                 >
                 ${suffix ? `<div style="position: absolute; right: var(--ds-space-3); top: 50%; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; z-index: 10;">
@@ -116,14 +117,15 @@ const UIComponents = {
         } = options;
 
         return `
-            ${label ? `<label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">
+            ${label ? `<label for="${id}" style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">
                 ${label} ${required ? '<span style="color: var(--ds-error-500);">*</span>' : ''}
             </label>` : ''}
-            <select 
-                id="${id}" 
+            <select
+                id="${id}"
                 class="ds-input ${className}"
                 style="width: ${width === 'w-full' ? '100%' : 'auto'};"
-                ${required ? 'required' : ''}
+                ${!label && (placeholder || id) ? `aria-label="${placeholder || id}"` : ''}
+                ${required ? `required aria-required="true"` : ''}
                 ${disabled ? 'disabled' : ''}
             >
                 ${placeholder ? `<option value="">${placeholder}</option>` : ''}
@@ -153,7 +155,7 @@ const UIComponents = {
         } = options;
 
         return `
-            ${label ? `<label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">
+            ${label ? `<label for="${id}" style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-2); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">
                 ${label} ${required ? '<span style="color: var(--ds-error-500);">*</span>' : ''}
             </label>` : ''}
             <textarea 
@@ -220,12 +222,14 @@ const UIComponents = {
         };
 
         const style = typeMap[type] || typeMap.info;
+        // Errors/warnings interrupt (assertive); success/info are polite announcements.
+        const liveRole = (type === 'danger' || type === 'warning') ? 'alert' : 'status';
 
         return `
-            <div id="${id}" style="padding: var(--ds-space-4); border-radius: var(--ds-radius-xl); border: 1px solid ${style.border}; background: ${style.bg}; color: ${style.text}; font-size: var(--ds-text-sm); display: flex; align-items: flex-start; gap: var(--ds-space-3);">
-                <span style="font-size: var(--ds-text-lg); color: ${style.text}; line-height: 1;">${icon || style.icon}</span>
+            <div id="${id}" role="${liveRole}" style="padding: var(--ds-space-4); border-radius: var(--ds-radius-xl); border: 1px solid ${style.border}; background: ${style.bg}; color: ${style.text}; font-size: var(--ds-text-sm); display: flex; align-items: flex-start; gap: var(--ds-space-3);">
+                <span aria-hidden="true" style="font-size: var(--ds-text-lg); color: ${style.text}; line-height: 1;">${icon || style.icon}</span>
                 <span style="flex: 1;">${message}</span>
-                ${dismissible ? `<button onclick="this.parentElement.remove()" style="background: none; border: none; color: ${style.text}; cursor: pointer; font-size: var(--ds-text-xl); line-height: 1; padding: 0;">&times;</button>` : ''}
+                ${dismissible ? `<button type="button" aria-label="Dismiss" onclick="this.parentElement.remove()" style="background: none; border: none; color: ${style.text}; cursor: pointer; font-size: var(--ds-text-xl); line-height: 1; padding: 0;">&times;</button>` : ''}
             </div>
         `;
     },
@@ -269,7 +273,7 @@ const UIComponents = {
                     <thead style="background: var(--ds-bg-surface-sunken);">
                         <tr>
                             ${headers.map(header => `
-                                <th style="padding: var(--ds-space-4) var(--ds-space-6); text-align: left; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider); border-bottom: 1px solid var(--ds-border-default);">
+                                <th scope="col" style="padding: var(--ds-space-4) var(--ds-space-6); text-align: left; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider); border-bottom: 1px solid var(--ds-border-default);">
                                     ${header}
                                 </th>
                             `).join('')}
@@ -354,11 +358,11 @@ const UIComponents = {
 
         return `
             <div id="${id}" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; padding: var(--ds-space-4);">
-                <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-xl); width: 100%; max-width: ${maxWidth}; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; animation: dsModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;">
+                <div role="dialog" aria-modal="true" ${title ? `aria-labelledby="${id}-title"` : ''} style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-2xl); box-shadow: var(--ds-shadow-xl); width: 100%; max-width: ${maxWidth}; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; animation: dsModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;">
                     ${title ? `
                         <div style="padding: var(--ds-space-5) var(--ds-space-8); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; justify-content: space-between;">
-                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${title}</h3>
-                            ${closeable ? `<button onclick="document.getElementById('${id}').style.display='none'" style="background: none; border: none; color: var(--ds-text-tertiary); cursor: pointer; font-size: var(--ds-text-2xl); line-height: 1;">&times;</button>` : ''}
+                            <h3 id="${id}-title" style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin: 0;">${title}</h3>
+                            ${closeable ? `<button type="button" aria-label="Close dialog" onclick="document.getElementById('${id}').style.display='none'" style="background: none; border: none; color: var(--ds-text-tertiary); cursor: pointer; font-size: var(--ds-text-2xl); line-height: 1;">&times;</button>` : ''}
                         </div>
                     ` : ''}
                     <div style="padding: var(--ds-space-8); overflow-y: auto; flex: 1;">
@@ -391,12 +395,13 @@ const UIComponents = {
                 <div style="position: absolute; left: var(--ds-space-4); top: 50%; transform: translateY(-50%); color: var(--ds-text-tertiary); pointer-events: none;">
                     <i class="fas fa-search"></i>
                 </div>
-                <input 
-                    type="text" 
-                    id="${id}" 
+                <input
+                    type="search"
+                    id="${id}"
                     class="ds-input"
                     style="width: 100%; padding-left: var(--ds-space-12);"
                     placeholder="${placeholder}"
+                    aria-label="${placeholder || 'Search'}"
                 >
             </div>
         `;
