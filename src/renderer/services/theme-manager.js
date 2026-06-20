@@ -10,6 +10,10 @@ class ThemeManager {
     }
 
     init() {
+        if (window.electronAPI && window.electronAPI.setTheme) {
+            window.electronAPI.setTheme(this.currentTheme);
+        }
+
         // Apply saved theme on load
         if (this.currentTheme === 'auto') {
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -51,6 +55,10 @@ class ThemeManager {
 
         this.currentTheme = theme;
         this.saveTheme(theme);
+
+        if (window.electronAPI && window.electronAPI.setTheme) {
+            window.electronAPI.setTheme(theme);
+        }
 
         if (theme === 'auto') {
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;

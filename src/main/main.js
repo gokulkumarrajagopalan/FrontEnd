@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Notification, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Notification, Tray, nativeImage, shell, safeStorage, nativeTheme } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -16,9 +16,13 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
-    // Someone tried to run a second instance, we should focus our window.
-    if (mainWindow) {
+    // Someone tried to run a second instance — reveal/focus our (possibly
+    // hidden/tray) window instead of starting another copy.
+    if (typeof showMainWindow === 'function') {
+      showMainWindow();
+    } else if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
       mainWindow.focus();
     }
   });
@@ -59,8 +63,15 @@ if (isDev) {
 }
 
 let mainWindow;
+let tray = null;
 let syncWorker = null;
 let currentWorkerProcess = null;
+
+// True only once the user explicitly chose Quit; otherwise closing the window
+// just hides it so sync keeps running in the background (tray app behaviour).
+app.isQuitting = false;
+// Start hidden when launched at login (background process).
+const startHidden = process.argv.includes('--hidden');
 
 // Global registry of all active child processes (for cancel/kill)
 const activeChildProcesses = new Set();
@@ -111,7 +122,10 @@ function createWindow() {
       disableHtmlCache: true,
       sandbox: true,
       cache: false,
-      devTools: isDev  // Disable DevTools in production
+      devTools: isDev,  // Disable DevTools in production
+      // Keep timers (the background sync scheduler's setInterval) running at full
+      // rate even when the window is hidden/minimized to the tray.
+      backgroundThrottling: false
     }
   });
   if (isDev) console.log("🔥 BrowserWindow created");
@@ -120,12 +134,16 @@ function createWindow() {
   if (isDev) console.log("🔥 index.html loading...");
 
   mainWindow.once('ready-to-show', () => {
+    if (startHidden) {
+      if (isDev) console.log("🔥 Launched hidden (background) - staying in tray");
+      return;
+    }
     if (isDev) console.log("🔥 Window ready to show - displaying now");
     mainWindow.show();
   });
 
   setTimeout(() => {
-    if (mainWindow && !mainWindow.isVisible()) {
+    if (!startHidden && mainWindow && !mainWindow.isVisible()) {
       if (isDev) console.log("🔥 Timeout - forcing window.show()");
       mainWindow.show();
     }
@@ -177,10 +195,85 @@ function createWindow() {
     });
   }
 
+  // Close-to-tray: hide the window instead of quitting so background sync keeps
+  // running. The app only truly quits via the tray "Quit" item (app.isQuitting).
+  mainWindow.on("close", (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+      if (tray && !app._trayHintShown) {
+        app._trayHintShown = true;
+        try {
+          if (process.platform === 'win32' && typeof tray.displayBalloon === 'function') {
+            tray.displayBalloon({
+              title: 'Talliffy is still running',
+              content: 'Sync continues in the background. Right-click the tray icon to quit.'
+            });
+          }
+        } catch (_) { /* best effort */ }
+      }
+      return false;
+    }
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
     stopSyncWorker();
   });
+}
+
+// Bring the (possibly hidden) window to the foreground, recreating it if needed.
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+// System tray so the app behaves like other background apps (Slack/Spotify):
+// closing the window keeps it running; the tray gives Open / Sync Now / Quit.
+function createTray() {
+  if (tray) return;
+  try {
+    const iconPath = path.join(__dirname, '..', '..', 'assets', 'icon.png');
+    let trayImage = nativeImage.createFromPath(iconPath);
+    if (!trayImage.isEmpty()) {
+      trayImage = trayImage.resize({ width: 16, height: 16 });
+    }
+    tray = new Tray(trayImage.isEmpty() ? iconPath : trayImage);
+    tray.setToolTip('Talliffy');
+
+    const contextMenu = Menu.buildFromTemplate([
+      { label: 'Open Talliffy', click: () => showMainWindow() },
+      {
+        label: 'Sync Now',
+        click: () => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('trigger-background-sync');
+          } else {
+            // No window alive to run the renderer scheduler — open one.
+            showMainWindow();
+          }
+        }
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit Talliffy',
+        click: () => {
+          app.isQuitting = true;
+          app.quit();
+        }
+      }
+    ]);
+    tray.setContextMenu(contextMenu);
+    tray.on('double-click', () => showMainWindow());
+    if (isDev) console.log('🔔 System tray created');
+  } catch (e) {
+    if (isDev) console.error('Failed to create tray:', e);
+  }
 }
 
 // ========== AUTO UPDATER SETUP ==========
@@ -188,14 +281,26 @@ function createWindow() {
 autoUpdater.logger = require('electron-log');
 autoUpdater.logger.transports.file.level = 'info';
 
+// Download updates automatically once found, and install pending updates on quit.
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+// Background auto-check toggle (driven by the Update App page checkbox).
+let autoUpdateEnabled = true;
+
+// Safe send to the renderer (window may be hidden in the tray or gone).
+function sendToRenderer(channel, payload) {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+    mainWindow.webContents.send(channel, payload);
+  }
+}
+
 // Notify the frontend using IPC
 function sendUpdateStatusToWindow(text, progressObj = null) {
   if (isDev) {
     console.log(`[AutoUpdater] ${text}`);
   }
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('update-message', { text, progressObj });
-  }
+  sendToRenderer('update-message', { text, progressObj });
 }
 
 autoUpdater.on('checking-for-update', () => {
@@ -204,39 +309,65 @@ autoUpdater.on('checking-for-update', () => {
 
 autoUpdater.on('update-available', (info) => {
   sendUpdateStatusToWindow('Update available. Downloading...', null);
-  mainWindow.webContents.send('update-available', info);
+  sendToRenderer('update-available', info);
 });
 
 autoUpdater.on('update-not-available', (info) => {
   sendUpdateStatusToWindow('App is up to date.');
-  mainWindow.webContents.send('update-not-available', info);
+  sendToRenderer('update-not-available', info);
 });
 
 autoUpdater.on('error', (err) => {
   sendUpdateStatusToWindow('Error in auto-updater.');
-  mainWindow.webContents.send('update-error', err.toString());
+  sendToRenderer('update-error', err == null ? 'Unknown error' : err.toString());
 });
 
 autoUpdater.on('download-progress', (progressObj) => {
   // progressObj contains bytesPerSecond, percent, total, transferred
   sendUpdateStatusToWindow('Downloading update...', progressObj);
-  mainWindow.webContents.send('download-progress', progressObj);
+  sendToRenderer('download-progress', progressObj);
 });
 
 autoUpdater.on('update-downloaded', (info) => {
   sendUpdateStatusToWindow('Update downloaded. Ready to install.');
-  mainWindow.webContents.send('update-downloaded', info);
+  sendToRenderer('update-downloaded', info);
+  // Surface a native toast even if the user isn't on the Update page.
+  try {
+    if (Notification.isSupported()) {
+      const n = new Notification({
+        title: 'Talliffy — Update ready',
+        body: `Version ${info && info.version ? info.version : ''} downloaded. Restart to install.`
+      });
+      n.on('click', () => showMainWindow());
+      n.show();
+    }
+  } catch (_) { /* best effort */ }
 });
 
-ipcMain.on('check-for-updates', () => {
+// Run an update check now. Returns the electron-updater promise (or null in dev).
+function runUpdateCheck() {
   if (isDev) {
     sendUpdateStatusToWindow('Skipping auto-update check in development mode.');
-    return;
+    return null;
   }
-  autoUpdater.checkForUpdatesAndNotify();
+  try {
+    return autoUpdater.checkForUpdates();
+  } catch (e) {
+    sendToRenderer('update-error', e.message || 'Update check failed');
+    return null;
+  }
+}
+
+ipcMain.on('check-for-updates', () => {
+  runUpdateCheck();
+});
+
+ipcMain.on('set-auto-update', (event, payload) => {
+  autoUpdateEnabled = !!(payload && payload.enabled);
 });
 
 ipcMain.on('quit-and-install-update', () => {
+  app.isQuitting = true;       // allow the close-to-tray handler to actually exit
   autoUpdater.quitAndInstall();
 });
 
@@ -1070,11 +1201,30 @@ async function handleSync(config, scriptName, displayName, entityType) {
 app.whenReady().then(() => {
   if (isDev) console.log("🔥 app.whenReady() triggered");
   createWindow();
+  createTray();
   if (isDev) console.log("🔥 window creation complete");
+
+  // Auto-start on login (production), launching hidden into the tray so sync
+  // runs in the background like other apps.
+  if (!isDev) {
+    try {
+      app.setLoginItemSettings({ openAtLogin: true, args: ['--hidden'] });
+    } catch (e) {
+      if (isDev) console.error('setLoginItemSettings failed:', e);
+    }
+
+    // Check for updates shortly after launch, then every 4 hours, so a newly
+    // published version surfaces on the Update App page (and downloads) without
+    // the user clicking anything.
+    setTimeout(() => { if (autoUpdateEnabled) runUpdateCheck(); }, 15 * 1000);
+    setInterval(() => { if (autoUpdateEnabled) runUpdateCheck(); }, 4 * 60 * 60 * 1000);
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
+    } else {
+      showMainWindow();
     }
   });
 
@@ -1101,13 +1251,20 @@ function _logCrash(type, error) {
 }
 
 app.on("window-all-closed", () => {
-  stopSyncWorker();
-  if (process.platform !== "darwin") {
+  // Keep running in the background (tray) — only fully quit when the user chose
+  // "Quit" from the tray (app.isQuitting). Closing the window just hides it.
+  if (app.isQuitting && process.platform !== "darwin") {
+    stopSyncWorker();
     app.quit();
   }
 });
 
 app.on("before-quit", () => {
+  app.isQuitting = true;
+  if (tray) {
+    try { tray.destroy(); } catch (_) { /* ignore */ }
+    tray = null;
+  }
   stopSyncWorker();
   // Clean up temp files
   try {

@@ -377,6 +377,7 @@ body {
     width: 100%;
     height: 100%;
     display: block;
+    border-radius: 10px;
     object-fit: cover;
     /* The source PNG has a ~8% white margin around the blue squircle; scaling up
        inside the overflow-hidden wrapper crops it to a clean full-bleed icon. */
@@ -390,11 +391,24 @@ body {
 }
 
 .ds-sidebar-brand-title {
-    font-size: var(--ds-text-xl);
-    font-weight: var(--ds-weight-bold);
-    color: var(--ds-sidebar-text);
-    letter-spacing: 0;
-    line-height: var(--ds-leading-tight);
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.ds-sidebar-brand-title .brand-accent {
+    color: #2563eb;
+}
+
+/* Dark theme sidebar brand title */
+.dark-theme .ds-sidebar-brand-title {
+    color: #ffffff;
+}
+
+.dark-theme .ds-sidebar-brand-title .brand-accent {
+    color: #3b82f6;
 }
 
 .ds-sidebar-brand-subtitle {
@@ -480,6 +494,23 @@ body {
     font-weight: var(--ds-weight-semibold);
     border-left-color: var(--ds-sidebar-nav-active-border);
     box-shadow: 0 18px 28px rgba(99, 102, 241, 0.22);
+}
+
+.ds-nav-link .brand-icon-wrapper {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.3);
+}
+
+.brand-icon-wrapper:hover {
+    transform: scale(1.05) rotate(-2deg);
 }
 
 .ds-nav-link .ds-nav-icon {

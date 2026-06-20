@@ -431,8 +431,16 @@ class BackgroundSyncScheduler {
                                 message: `✅ ${company.name} - Sync completed (${result.totalCount || 0} records)`,
                                 duration: 4000
                             });
+                            // Native OS notification (works while minimized to tray).
+                            const recs = result.totalCount || 0;
+                            window.notificationService.system(
+                                'Talliffy — Sync successful',
+                                recs > 0
+                                    ? `${company.name}: synced successfully (${recs} record${recs === 1 ? '' : 's'})`
+                                    : `${company.name}: synced successfully`
+                            );
                         }
-                        
+
                         // Update notification center status
                         if (window.notificationCenter) {
                             window.notificationCenter.updateCompanySyncStatus(
@@ -449,7 +457,15 @@ class BackgroundSyncScheduler {
                             error: result.message || 'Sync failed'
                         });
                         console.error(`❌ ${company.name}: Sync failed - ${result.message}`);
-                        
+
+                        // Native OS notification on failure.
+                        if (window.notificationService) {
+                            window.notificationService.system(
+                                'Talliffy — Sync failed',
+                                `${company.name}: ${result.message || 'sync failed'}`
+                            );
+                        }
+
                         // Update notification center status
                         if (window.notificationCenter) {
                             window.notificationCenter.updateCompanySyncStatus(
@@ -468,6 +484,13 @@ class BackgroundSyncScheduler {
                         success: false,
                         error: error.message
                     });
+                    // Native OS notification on hard error.
+                    if (window.notificationService) {
+                        window.notificationService.system(
+                            'Talliffy — Sync failed',
+                            `${company.name}: ${error.message || 'unexpected error'}`
+                        );
+                    }
                 }
             }
             
@@ -807,5 +830,14 @@ class BackgroundSyncScheduler {
 
 // Export as singleton
 window.backgroundSyncScheduler = new BackgroundSyncScheduler();
+
+// Allow the system-tray "Sync Now" item (main process) to trigger a sync even
+// while the window is hidden in the background.
+if (window.electronAPI && typeof window.electronAPI.onTriggerBackgroundSync === 'function') {
+    window.electronAPI.onTriggerBackgroundSync(() => {
+        console.log('🔔 Tray requested background sync');
+        window.backgroundSyncScheduler.triggerManualSync();
+    });
+}
 
 console.log('✅ Background Sync Scheduler loaded');

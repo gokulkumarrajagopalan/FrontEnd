@@ -1052,6 +1052,10 @@
             // Update UI and Status based on results
             if (companyAllSuccess) {
                 window.notificationService.success(`✅ Successfully synced all ${successCount} masters for ${company.name}! Reconciliation running in background...`);
+                // Native OS notification (shows even when minimized to the tray).
+                if (window.notificationService.system) {
+                    window.notificationService.system('Talliffy — Sync successful', `${company.name}: synced successfully`);
+                }
                 company.syncStatus = 'synced';
                 company.lastSyncDate = new Date().toISOString();
                 await updateCompanyStatus(company.id, 'synced', 'active');
@@ -1152,6 +1156,9 @@
                 })();
             } else if (successCount > 0) {
                 window.notificationService.warning(`⚠️ Partial sync for ${company.name}: ${successCount}/${syncSteps.length} masters succeeded.`);
+                if (window.notificationService.system) {
+                    window.notificationService.system('Talliffy — Sync partial', `${company.name}: ${successCount}/${syncSteps.length} masters synced`);
+                }
                 company.syncStatus = 'pending';
                 company.lastSyncDate = new Date().toISOString();
                 await updateCompanyStatus(company.id, 'pending', 'active');
@@ -1168,6 +1175,9 @@
                 }, 2000);
             } else {
                 window.notificationService.error(`❌ Failed to sync any masters for ${company.name}. Check logs for details.`);
+                if (window.notificationService.system) {
+                    window.notificationService.system('Talliffy — Sync failed', `${company.name}: failed to sync`);
+                }
                 company.syncStatus = 'error';
                 await updateCompanyStatus(company.id, 'error', 'active');
                 // Reset sync flags BEFORE endSync so sync-ended listener sees correct state
@@ -1186,6 +1196,9 @@
         } catch (error) {
             console.error('❌ Sync error:', error);
             window.notificationService.error(`Failed to sync ${company.name}: ${error.message || 'Unknown error'}`);
+            if (window.notificationService && window.notificationService.system) {
+                window.notificationService.system('Talliffy — Sync failed', `${company.name}: ${error.message || 'unexpected error'}`);
+            }
             // Reset sync flags BEFORE endSync so sync-ended listener sees correct state
             isSyncing = false;
             currentSyncingCompanyId = null;

@@ -11,7 +11,9 @@ const ALLOWED_SEND_CHANNELS = [
     'update-sync-settings',
     'check-for-updates',
     'quit-and-install-update',
-    'log-renderer'
+    'set-auto-update',
+    'log-renderer',
+    'set-theme'
 ];
 
 const ALLOWED_INVOKE_CHANNELS = [
@@ -58,7 +60,8 @@ const ALLOWED_RECEIVE_CHANNELS = [
     'update-not-available',
     'update-error',
     'download-progress',
-    'update-downloaded'
+    'update-downloaded',
+    'trigger-background-sync'
 ];
 
 let contextBridgeReady = false;
@@ -89,6 +92,7 @@ try {
         getBackendUrl: () => ipcRenderer.invoke('get-backend-url'),
         backendUrl: ipcRenderer.sendSync('get-backend-url-sync'),
         saveConfig: (config) => ipcRenderer.invoke('save-config', config),
+        setTheme: (theme) => ipcRenderer.send('set-theme', theme),
 
         // Sync API
         startSync: (config) => {
@@ -115,6 +119,13 @@ try {
             const listener = (event, data) => callback(data);
             ipcRenderer.on('sync-update', listener);
             return () => ipcRenderer.removeListener('sync-update', listener);
+        },
+
+        // Tray "Sync Now" → renderer scheduler.
+        onTriggerBackgroundSync: (callback) => {
+            const listener = () => callback();
+            ipcRenderer.on('trigger-background-sync', listener);
+            return () => ipcRenderer.removeListener('trigger-background-sync', listener);
         },
 
         onSyncError: (callback) => {

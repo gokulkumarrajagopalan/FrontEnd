@@ -93,10 +93,10 @@
       "installerIcon": "assets/icon.ico",
       "uninstallerIcon": "assets/icon.ico",
       "installerHeaderIcon": "assets/icon.ico",
-      "deleteAppDataOnUninstall": false,
-      "runAfterFinish": true,
       "installerSidebar": "assets/installer-sidebar.bmp",
-      "license": "assets/license.txt"
+      "installerHeader": "assets/installer-header.bmp",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
     },
     "protocols": {
       "name": "tallify-auth",

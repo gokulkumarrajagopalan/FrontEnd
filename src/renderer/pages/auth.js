@@ -1000,6 +1000,23 @@
                             </div>
                         </div>
 
+                        <div>
+                            <label style="display: block; font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-1-5);">Billing Country</label>
+                            <div style="position: relative;">
+                                <span style="position: absolute; left: var(--ds-space-4); top: 50%; transform: translateY(-50%); color: var(--ds-text-tertiary);"><i class="fas fa-money-bill-wave"></i></span>
+                                <select id="signupCountry" style="width: 100%; padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-3) var(--ds-space-10); border-radius: var(--ds-radius-xl); border: 2px solid var(--ds-border-default); background: var(--ds-bg-surface); font-size: var(--ds-text-sm); color: var(--ds-text-primary); transition: all var(--ds-duration-fast); appearance: none;">
+                                    <option value="IN" selected>India (₹ INR)</option>
+                                    <option value="AE">United Arab Emirates (د.إ AED)</option>
+                                    <option value="US">United States ($ USD)</option>
+                                    <option value="GB">United Kingdom ($ USD)</option>
+                                    <option value="SG">Singapore ($ USD)</option>
+                                    <option value="OT">Other ($ USD)</option>
+                                </select>
+                                <span style="position: absolute; right: var(--ds-space-4); top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--ds-text-tertiary);"><i class="fas fa-chevron-down" style="font-size: 10px;"></i></span>
+                            </div>
+                            <p style="font-size: var(--ds-text-2xs); color: var(--ds-text-tertiary); margin-top: 4px;">Sets your billing currency.</p>
+                        </div>
+
                         <div class="auth-field-grid">
                             <div>
                                 ${window.UIComponents.input({
@@ -1516,6 +1533,25 @@
             }
         } catch (error) {
             console.error('Error fetching license number:', error);
+        }
+    }
+
+    // Populate the billing-country <select> from the backend (DB-driven).
+    // Falls back silently to the static options already in the markup.
+    async function populateSignupCountries() {
+        try {
+            const sel = document.getElementById('signupCountry');
+            if (!sel || !window.publicApiService) return;
+            const resp = await window.publicApiService.get('/subscription/countries');
+            const list = (resp && resp.data && resp.data.data) || (resp && resp.data) || [];
+            if (!Array.isArray(list) || list.length === 0) return;
+            const current = sel.value;
+            sel.innerHTML = list.map(c =>
+                `<option value="${c.code}">${c.name} (${c.symbol} ${c.currency})</option>`
+            ).join('');
+            if (current && list.some(c => c.code === current)) sel.value = current;
+        } catch (e) {
+            // keep static fallback options
         }
     }
 
@@ -2105,6 +2141,9 @@
             fetchAndPopulateLicenseNumber();
         }, 200);
 
+        // Populate the billing-country dropdown from the backend (DB-driven).
+        populateSignupCountries();
+
         const signupBtn = document.getElementById('signupBtn');
         const errorMessage = document.getElementById('signupErrorMessage');
         const successMessage = document.getElementById('signupSuccessMessage');
@@ -2415,6 +2454,7 @@
 
             try {
                 // Ensure payload is complete and formatted correctly
+                const billingCountry = document.getElementById('signupCountry')?.value.trim() || 'IN';
                 const registrationPayload = {
                     username: username.toLowerCase(),
                     email: email.toLowerCase(),
@@ -2422,7 +2462,8 @@
                     password: password,
                     fullName: fullName,
                     countryCode: countryCode,
-                    mobile: mobile.replace(/\D/g, '')
+                    mobile: mobile.replace(/\D/g, ''),
+                    country: billingCountry // ISO2 billing country -> drives currency
                 };
 
                 const apiResult = await window.publicApiService.post('/auth/register', registrationPayload);

@@ -53,6 +53,21 @@
                                 <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Plan Expiry</label>
                                 <p id="detailEnabled" style="font-size: var(--ds-text-md); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); margin: 0;">&mdash;</p>
                             </div>
+                            <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
+                                <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Country / Billing Currency</label>
+                                <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
+                                    <select id="detailCountry" class="ds-input" style="flex: 1; padding: var(--ds-space-2) var(--ds-space-3);">
+                                        <option value="">Select country…</option>
+                                        <option value="IN">India</option>
+                                        <option value="AE">United Arab Emirates</option>
+                                        <option value="US">United States</option>
+                                        <option value="GB">United Kingdom</option>
+                                        <option value="SG">Singapore</option>
+                                        <option value="OT">Other</option>
+                                    </select>
+                                    <span id="detailCurrency" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); color: var(--ds-primary-600);">&mdash;</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -404,6 +419,44 @@
         setText('detailLicenceNo', user.licenceNo || '\u2014');
         setText('detailCreatedAt', formatDate(user.createdAt));
 
+        // Country / billing currency (editable; PUT /users/me/profile re-resolves currency)
+        const currencyLabel = { INR: '\u20b9 INR', AED: '\u062f.\u0625 AED', USD: '$ USD' };
+        const countrySel = document.getElementById('detailCountry');
+        const currencyEl = document.getElementById('detailCurrency');
+        if (countrySel) countrySel.value = user.country || '';
+        if (currencyEl) currencyEl.textContent = currencyLabel[user.currency] || user.currency || '\u2014';
+        // Rebuild the country options from the backend (DB-driven), keeping the
+        // user's current selection. Falls back to the static markup options.
+        populateProfileCountries(user.country);
+        if (countrySel && !countrySel._wired) {
+            countrySel._wired = true;
+            countrySel.addEventListener('change', async () => {
+                const newCountry = countrySel.value;
+                if (!newCountry) return;
+                countrySel.disabled = true;
+                try {
+                    const headers = (window.authService && window.authService.getHeaders)
+                        ? window.authService.getHeaders() : { 'Content-Type': 'application/json' };
+                    const res = await fetch(window.apiConfig.getUrl('/users/me/profile'), {
+                        method: 'PUT', headers, body: JSON.stringify({ country: newCountry })
+                    });
+                    const json = await res.json();
+                    if (res.ok && json.success) {
+                        if (currencyEl) currencyEl.textContent = currencyLabel[json.currency] || json.currency || '\u2014';
+                        if (window.notificationService) {
+                            window.notificationService.success(`Billing currency updated to ${json.currency}.`, 'Country updated', 4000);
+                        }
+                    } else if (window.notificationService) {
+                        window.notificationService.warning(json.message || 'Failed to update country.', 'Update failed', 4000);
+                    }
+                } catch (e) {
+                    if (window.notificationService) window.notificationService.warning('Failed to update country.', 'Update failed', 4000);
+                } finally {
+                    countrySel.disabled = false;
+                }
+            });
+        }
+
         const enabledEl = document.getElementById('detailEnabled');
         if (enabledEl) {
             const subscription = user.subscription;
@@ -740,6 +793,24 @@
     function setText(id, text) {
         const el = document.getElementById(id);
         if (el) el.textContent = text;
+    }
+
+    // Rebuild the billing-country <select> from the backend (DB-driven), keeping
+    // the user's current selection. Falls back to the static markup options.
+    async function populateProfileCountries(selectedCode) {
+        try {
+            const sel = document.getElementById('detailCountry');
+            if (!sel || !window.apiConfig) return;
+            const res = await fetch(window.apiConfig.getUrl('/subscription/countries'), { method: 'GET' });
+            const json = await res.json().catch(() => null);
+            const list = (json && json.data) || [];
+            if (!res.ok || !Array.isArray(list) || list.length === 0) return;
+            sel.innerHTML = '<option value="">Select country…</option>' +
+                list.map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+            if (selectedCode) sel.value = selectedCode;
+        } catch (e) {
+            // keep static fallback options
+        }
     }
 
     function show(id) {

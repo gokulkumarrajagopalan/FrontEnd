@@ -315,6 +315,25 @@ class NotificationService {
         return this.show(message, 'info', title, duration);
     }
 
+    /**
+     * Fire a native OS notification (Windows/macOS toast) via the main process.
+     * Works even when the app window is hidden in the background/tray.
+     * @param {string} title
+     * @param {string} body
+     * @param {string} [urgency='normal'] 'low' | 'normal' | 'critical'
+     */
+    system(title, body, urgency = 'normal') {
+        try {
+            if (window.electronAPI && typeof window.electronAPI.showSystemNotification === 'function') {
+                window.electronAPI.showSystemNotification({ title, body, urgency });
+                return true;
+            }
+        } catch (e) {
+            console.warn('System notification failed:', e?.message);
+        }
+        return false;
+    }
+
     remove(notification) {
         // Remove outside click listener if it exists
         if (notification._closeHandler) {

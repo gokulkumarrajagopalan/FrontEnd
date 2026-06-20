@@ -682,8 +682,7 @@ class App {
                             <img src="assets/brand/talliffy-icon.png" alt="Talliffy Icon" class="brand-icon-image" style="width: 36px; height: 36px;" />
                         </div>
                         <div class="ds-sidebar-brand-text">
-                            <span class="ds-sidebar-brand-title">Talli<span style="color: var(--ds-primary-600);">ffy</span></span>
-                            <span class="ds-sidebar-brand-subtitle">Modern Tally workspace</span>
+                            <span class="ds-sidebar-brand-title">Talli<span class="brand-accent">ffy</span></span>
                         </div>
                     </div>
 

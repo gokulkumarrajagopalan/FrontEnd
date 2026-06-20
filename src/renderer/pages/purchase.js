@@ -1,43 +1,171 @@
 (function () {
 
-    /**
-     * Auto-detect if user is in India based on timezone & locale.
-     * Returns true for India, false otherwise (GCC / international).
-     */
-    function isIndianUser() {
+    // UI duration token -> backend billing_period
+    const PERIOD = { '1yr': '1YR', '3yr': '3YR' };
+
+    // Normalized pricing loaded from the backend (subscription_plan/plan_price/
+    // plan_feature). Populated by loadPricing() before the page renders.
+    let PRICING = null;
+    let SUBSCRIPTION = null;
+
+    /** Best-effort locale guess used only when the backend can't resolve currency. */
+    function guessCountryFromLocale() {
         try {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-            if (tz.startsWith('Asia/Kolkata') || tz.startsWith('Asia/Calcutta')) return true;
+            if (tz.startsWith('Asia/Kolkata') || tz.startsWith('Asia/Calcutta')) return 'IN';
+            if (tz.startsWith('Asia/Dubai')) return 'AE';
             const locale = (navigator.language || navigator.userLanguage || '').toLowerCase();
-            if (locale.includes('hi') || locale.includes('in') || locale === 'en-in') return true;
-        } catch (e) { /* fallback to international */ }
-        return false;
+            if (locale.endsWith('-in')) return 'IN';
+            if (locale.endsWith('-ae')) return 'AE';
+        } catch (e) { /* ignore */ }
+        return null;
     }
 
-    /**
-     * Pricing data keyed by region
-     * India  : ₹ symbol, prices in INR + Tax
-     * Outside: $ symbol, prices in USD
-     */
-    function getPricing() {
-        const india = isIndianUser();
+    function symbolFor(currency) {
+        if (currency === 'INR') return '₹';
+        if (currency === 'AED') return 'د.إ';
+        return '$';
+    }
+
+    /** Static fallback so the page still renders if the API is unreachable. */
+    function fallbackPricing() {
+        const country = guessCountryFromLocale();
+        const india = country === 'IN';
+        const currency = india ? 'INR' : (country === 'AE' ? 'AED' : 'USD');
+        const mk = (amt, tax) => ({ amount: amt, taxNote: tax });
+        const tax = india ? '+ applicable taxes' : 'inclusive of all charges';
         return {
-            isIndia: india,
-            currency: india ? '₹' : '$',
-            taxNote: india ? ' + Tax' : '',
-            basic: {
-                '1yr': india ? '2,999' : '89',
-                '3yr': india ? '6,999' : '200',
-            },
-            professional: {
-                '1yr': india ? '4,999' : '149',
-                '3yr': india ? '11,999' : '350',
-            }
+            currency,
+            currencySymbol: symbolFor(currency),
+            currencyLocale: india ? 'en-IN' : (currency === 'AED' ? 'en-AE' : 'en-US'),
+            betaMode: false,
+            plans: [
+                {
+                    code: 'BASIC', name: 'Basic', description: 'Perfect for small businesses', popular: false,
+                    prices: india ? { '1YR': mk('2,999', tax), '3YR': mk('6,999', tax) }
+                                  : (currency === 'AED' ? { '1YR': mk('329', tax), '3YR': mk('735', tax) }
+                                                        : { '1YR': mk('89', tax), '3YR': mk('200', tax) }),
+                    features: [
+                        { key: 'companies', value: '1', label: '1 Company Portfolio' },
+                        { key: 'sync', value: 'STD', label: 'Standard Sync Frequency' },
+                        { key: 'support', value: 'EMAIL', label: 'Email Support' },
+                        { key: 'updates', value: '1', label: 'Automatic Updates' },
+                    ],
+                },
+                {
+                    code: 'PROFESSIONAL', name: 'Professional', description: 'For growing & multi-company setups', popular: true,
+                    prices: india ? { '1YR': mk('4,999', tax), '3YR': mk('11,999', tax) }
+                                  : (currency === 'AED' ? { '1YR': mk('549', tax), '3YR': mk('1,285', tax) }
+                                                        : { '1YR': mk('149', tax), '3YR': mk('350', tax) }),
+                    features: [
+                        { key: 'companies', value: 'UNLIMITED', label: 'Unlimited Companies' },
+                        { key: 'sync', value: 'ADV', label: 'Advanced Sync Management' },
+                        { key: 'support', value: 'PRIORITY', label: 'Priority 24/7 Support' },
+                        { key: 'realtime', value: '1', label: 'Real-time Data Fetching' },
+                        { key: 'api', value: '1', label: 'REST API Access' },
+                    ],
+                },
+            ],
         };
     }
 
+    async function apiGet(url) {
+        if (!window.apiConfig || typeof window.apiConfig.getUrl !== 'function') {
+            throw new Error('API configuration not loaded');
+        }
+        const headers = (window.authService && typeof window.authService.getHeaders === 'function')
+            ? window.authService.getHeaders()
+            : { 'Content-Type': 'application/json' };
+        const res = await fetch(window.apiConfig.getUrl(url), { method: 'GET', headers });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
+        return json; // backend ApiResponse { success, message, data }
+    }
+
+    /** Load subscription (for currency + trial banner) then dynamic pricing. */
+    async function loadPricing() {
+        // Current subscription: gives us the stored currency and trial state.
+        try {
+            const subResp = await apiGet('/subscription/me');
+            SUBSCRIPTION = subResp.data || subResp;
+        } catch (e) {
+            SUBSCRIPTION = null;
+        }
+        const qs = SUBSCRIPTION && SUBSCRIPTION.currency
+            ? `?currency=${encodeURIComponent(SUBSCRIPTION.currency)}`
+            : (guessCountryFromLocale() ? `?country=${guessCountryFromLocale()}` : '');
+        try {
+            const resp = await apiGet('/subscription/pricing' + qs);
+            PRICING = resp.data || resp;
+            if (!PRICING || !Array.isArray(PRICING.plans) || PRICING.plans.length === 0) {
+                PRICING = fallbackPricing();
+            }
+        } catch (e) {
+            console.warn('Pricing API failed, using fallback:', e.message);
+            PRICING = fallbackPricing();
+        }
+    }
+
+    function planByCode(code) {
+        return (PRICING && PRICING.plans || []).find(p => p.code === code) || null;
+    }
+
+    function formatAmount(price, currency) {
+        if (!price || price.amount == null) return '—';
+        const raw = price.amount;
+        // Backend sends numbers; the fallback sends pre-formatted strings.
+        if (typeof raw === 'string') return raw;
+        // Locale comes from the backend currency_config; fall back per-currency.
+        const locale = (PRICING && PRICING.currencyLocale) || (currency === 'INR' ? 'en-IN' : 'en-US');
+        const n = Number(raw);
+        return Number.isNaN(n) ? String(raw) : n.toLocaleString(locale);
+    }
+
+    /** Included features = those whose value isn't an explicit "off" flag. */
+    function featureListHtml(plan, light) {
+        const color = light ? 'rgba(255, 255, 255, 0.9)' : 'var(--ds-success-500)';
+        const textColor = light ? '' : 'color: var(--ds-text-secondary);';
+        return (plan.features || [])
+            .filter(f => f.value !== '0' && f.value !== 'false')
+            .map(f => `
+                <li style="padding: var(--ds-space-2) 0; ${textColor} display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
+                    <i class="fas fa-check-circle" style="color: ${color}; font-size: var(--ds-text-sm);"></i>
+                    <span>${f.label || f.key}</span>
+                </li>`)
+            .join('');
+    }
+
+    function trialBannerHtml() {
+        if (!SUBSCRIPTION || SUBSCRIPTION.status === 'NONE' || !SUBSCRIPTION.status) return '';
+        let text;
+        if (SUBSCRIPTION.betaMode) {
+            text = "You're on the Beta — all features unlocked, free, until launch.";
+        } else if (SUBSCRIPTION.status === 'TRIAL') {
+            const d = SUBSCRIPTION.daysRemaining;
+            text = `Free trial active${d != null ? ` — ${d} day${d === 1 ? '' : 's'} remaining` : ''}.`;
+        } else if (SUBSCRIPTION.status === 'ACTIVE') {
+            text = `Your ${SUBSCRIPTION.planName || SUBSCRIPTION.planCode || ''} plan is active.`;
+        } else if (SUBSCRIPTION.status === 'EXPIRED') {
+            text = 'Your trial has expired — choose a plan to continue.';
+        } else {
+            return '';
+        }
+        return `
+            <div style="text-align:center; padding: var(--ds-space-4) var(--ds-space-6) 0;">
+                <span style="display:inline-flex; align-items:center; gap:6px; background: var(--ds-primary-50); color: var(--ds-primary-600); border:1px solid var(--ds-primary-100); font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); padding: 4px 14px; border-radius: 999px;">
+                    <i class="fas fa-star" style="font-size: 9px;"></i> ${text}
+                </span>
+            </div>`;
+    }
+
     const getPurchaseTemplate = () => {
-        const p = getPricing();
+        const p = PRICING || fallbackPricing();
+        const isIndia = p.currency === 'INR';
+        const basic = planByCode('BASIC') || p.plans[0];
+        const pro = planByCode('PROFESSIONAL') || p.plans[1] || p.plans[0];
+        const basicPriceObj = basic && basic.prices ? basic.prices['1YR'] : null;
+        const proPriceObj = pro && pro.prices ? pro.prices['1YR'] : null;
+        const sym = p.currencySymbol || symbolFor(p.currency);
 
         return `
         <div style="padding: var(--ds-space-6); width: 100%; box-sizing: border-box;">
@@ -50,9 +178,11 @@
                     </div>
                     <div>
                         <h2 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-1);">Choose Your Plan</h2>
-                        <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm);">Simple, transparent pricing &mdash; ${p.isIndia ? 'prices shown in ₹ (INR)' : 'prices shown in $ (USD)'}</p>
+                        <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm);">Simple, transparent pricing &mdash; prices shown in ${sym} (${p.currency})</p>
                     </div>
                 </div>
+
+                ${trialBannerHtml()}
 
                 <!-- Duration Toggle -->
                 <div style="display: flex; justify-content: center; padding: var(--ds-space-6) var(--ds-space-6) 0;">
@@ -75,35 +205,20 @@
                             <div style="width: 40px; height: 40px; background: var(--ds-success-50); color: var(--ds-success-500); border-radius: var(--ds-radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: var(--ds-space-5); border: 1px solid var(--ds-success-100);">
                                 <i class="fas fa-seedling"></i>
                             </div>
-                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2);">Basic</h3>
-                            <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm); margin-bottom: var(--ds-space-5);">Perfect for small businesses</p>
+                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2);">${basic ? basic.name : 'Basic'}</h3>
+                            <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm); margin-bottom: var(--ds-space-5);">${basic ? basic.description : 'Perfect for small businesses'}</p>
 
                             <!-- Price display -->
                             <div style="margin-bottom: var(--ds-space-2);">
-                                <span style="font-size: var(--ds-text-4xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);" id="basicPrice">${p.currency}${p.basic['1yr']}</span>
+                                <span style="font-size: var(--ds-text-4xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);" id="basicPrice">${sym}${formatAmount(basicPriceObj, p.currency)}</span>
                                 <span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm);" id="basicPeriod"> / year</span>
                             </div>
                             <div style="margin-bottom: var(--ds-space-6);">
-                                <span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-xs);" id="basicTaxNote">${p.isIndia ? '+ applicable taxes' : 'inclusive of all charges'}</span>
+                                <span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-xs);" id="basicTaxNote">${(basicPriceObj && basicPriceObj.taxNote) || (isIndia ? '+ applicable taxes' : 'inclusive of all charges')}</span>
                             </div>
 
                             <ul style="list-style: none; padding: 0; margin: 0 0 var(--ds-space-8) 0; flex-grow: 1;">
-                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
-                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
-                                    <span>1 Company Portfolio</span>
-                                </li>
-                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
-                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
-                                    <span>Standard Sync Frequency</span>
-                                </li>
-                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
-                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
-                                    <span>Email Support</span>
-                                </li>
-                                <li style="padding: var(--ds-space-2) 0; color: var(--ds-text-secondary); display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
-                                    <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-sm);"></i>
-                                    <span>Automatic Updates</span>
-                                </li>
+                                ${featureListHtml(basic, false)}
                             </ul>
                             <button class="ds-btn ds-btn-secondary" style="width: 100%;" id="basicBtn">
                                 Get Started
@@ -118,39 +233,20 @@
                             <div style="width: 40px; height: 40px; background: rgba(255, 255, 255, 0.2); color: var(--ds-text-inverse); border-radius: var(--ds-radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: var(--ds-space-5);">
                                 <i class="fas fa-rocket"></i>
                             </div>
-                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-2);">Professional</h3>
-                            <p style="opacity: 0.85; font-size: var(--ds-text-sm); margin-bottom: var(--ds-space-5);">For growing & multi-company setups</p>
+                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-2);">${pro ? pro.name : 'Professional'}</h3>
+                            <p style="opacity: 0.85; font-size: var(--ds-text-sm); margin-bottom: var(--ds-space-5);">${pro ? pro.description : 'For growing & multi-company setups'}</p>
 
                             <!-- Price display -->
                             <div style="margin-bottom: var(--ds-space-2);">
-                                <span style="font-size: var(--ds-text-5xl); font-weight: var(--ds-weight-bold);" id="proPrice">${p.currency}${p.professional['1yr']}</span>
+                                <span style="font-size: var(--ds-text-5xl); font-weight: var(--ds-weight-bold);" id="proPrice">${sym}${formatAmount(proPriceObj, p.currency)}</span>
                                 <span style="opacity: 0.8; font-size: var(--ds-text-sm);" id="proPeriod"> / year</span>
                             </div>
                             <div style="margin-bottom: var(--ds-space-6);">
-                                <span style="opacity: 0.7; font-size: var(--ds-text-xs);" id="proTaxNote">${p.isIndia ? '+ applicable taxes' : 'inclusive of all charges'}</span>
+                                <span style="opacity: 0.7; font-size: var(--ds-text-xs);" id="proTaxNote">${(proPriceObj && proPriceObj.taxNote) || (isIndia ? '+ applicable taxes' : 'inclusive of all charges')}</span>
                             </div>
 
                             <ul style="list-style: none; padding: 0; margin: 0 0 var(--ds-space-8) 0; flex-grow: 1;">
-                                <li style="padding: var(--ds-space-2) 0; display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
-                                    <i class="fas fa-check-circle" style="color: rgba(255, 255, 255, 0.9); font-size: var(--ds-text-sm);"></i>
-                                    <span>Unlimited Companies</span>
-                                </li>
-                                <li style="padding: var(--ds-space-2) 0; display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
-                                    <i class="fas fa-check-circle" style="color: rgba(255, 255, 255, 0.9); font-size: var(--ds-text-sm);"></i>
-                                    <span>Advanced Sync Management</span>
-                                </li>
-                                <li style="padding: var(--ds-space-2) 0; display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
-                                    <i class="fas fa-check-circle" style="color: rgba(255, 255, 255, 0.9); font-size: var(--ds-text-sm);"></i>
-                                    <span>Priority 24/7 Support</span>
-                                </li>
-                                <li style="padding: var(--ds-space-2) 0; display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
-                                    <i class="fas fa-check-circle" style="color: rgba(255, 255, 255, 0.9); font-size: var(--ds-text-sm);"></i>
-                                    <span>Real-time Data Fetching</span>
-                                </li>
-                                <li style="padding: var(--ds-space-2) 0; display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm);">
-                                    <i class="fas fa-check-circle" style="color: rgba(255, 255, 255, 0.9); font-size: var(--ds-text-sm);"></i>
-                                    <span>REST API Access</span>
-                                </li>
+                                ${featureListHtml(pro, true)}
                             </ul>
                             <button class="ds-btn" style="width: 100%; background: var(--ds-text-inverse); color: var(--ds-primary-600); border: none; font-weight: var(--ds-weight-bold);" id="proBtn">
                                 Choose Professional
@@ -162,8 +258,8 @@
                     <div style="text-align: center; margin-top: var(--ds-space-6);">
                         <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-xs);">
                             <i class="fas fa-globe" style="margin-right: 4px;"></i>
-                            Pricing shown for <strong>${p.isIndia ? 'India (INR)' : 'International (USD)'}</strong>.
-                            ${p.isIndia ? 'Taxes applicable as per GST regulations.' : 'All prices inclusive.'}
+                            Pricing shown in <strong>${p.currency}</strong>.
+                            ${isIndia ? 'Taxes applicable as per GST regulations.' : 'All prices inclusive.'}
                         </p>
                     </div>
                 </div>
@@ -176,7 +272,10 @@
      * Wire up the 1-Year / 3-Year duration toggle and update prices dynamically.
      */
     function initDurationToggle() {
-        const p = getPricing();
+        const p = PRICING || fallbackPricing();
+        const sym = p.currencySymbol || symbolFor(p.currency);
+        const basic = planByCode('BASIC') || p.plans[0];
+        const pro = planByCode('PROFESSIONAL') || p.plans[1] || p.plans[0];
         const toggle = document.getElementById('durationToggle');
         if (!toggle) return;
 
@@ -185,6 +284,7 @@
             if (!btn) return;
 
             const duration = btn.dataset.duration; // '1yr' or '3yr'
+            const period = PERIOD[duration];
 
             // Update active styles
             toggle.querySelectorAll('.duration-btn').forEach(b => {
@@ -199,19 +299,20 @@
             // Update Basic price
             const basicPrice = document.getElementById('basicPrice');
             const basicPeriod = document.getElementById('basicPeriod');
-            if (basicPrice) basicPrice.textContent = p.currency + p.basic[duration];
+            if (basicPrice) basicPrice.textContent = sym + formatAmount(basic && basic.prices ? basic.prices[period] : null, p.currency);
             if (basicPeriod) basicPeriod.textContent = duration === '3yr' ? ' / 3 years' : ' / year';
 
             // Update Professional price
             const proPrice = document.getElementById('proPrice');
             const proPeriod = document.getElementById('proPeriod');
-            if (proPrice) proPrice.textContent = p.currency + p.professional[duration];
+            if (proPrice) proPrice.textContent = sym + formatAmount(pro && pro.prices ? pro.prices[period] : null, p.currency);
             if (proPeriod) proPeriod.textContent = duration === '3yr' ? ' / 3 years' : ' / year';
         });
     }
 
     function showBetaTrialPopup(planName) {
-        if (localStorage.getItem('betaTrialActivated') === 'true') return;
+        // Beta state is owned by the backend (app_config.feature.beta.mode); no
+        // client-side flag is persisted.
         const popupId = window.Popup.show({
             title: '',
             size: 'sm',
@@ -283,7 +384,6 @@
 
         setTimeout(() => {
             document.getElementById('betaActivateBtn')?.addEventListener('click', () => {
-                localStorage.setItem('betaTrialActivated', 'true');
                 window.Popup.close(popupId);
                 const successPopupId = window.Popup.show({
                     title: 'Beta Trial Activated!',
@@ -317,19 +417,29 @@
         }, 50);
     }
 
-    window.initializePurchase = function () {
+    window.initializePurchase = async function () {
         console.log('Initializing Purchase Page...');
         const content = document.getElementById('page-content');
-        if (content) {
-            content.innerHTML = getPurchaseTemplate();
-            initDurationToggle();
+        if (!content) return;
 
-            document.getElementById('basicBtn')?.addEventListener('click', () => {
-                showBetaTrialPopup('Basic');
-            });
-            document.getElementById('proBtn')?.addEventListener('click', () => {
-                showBetaTrialPopup('Professional');
-            });
-        }
+        // Lightweight loading state while dynamic pricing is fetched.
+        content.innerHTML = `
+            <div style="display:flex; align-items:center; justify-content:center; min-height:240px; color: var(--ds-text-tertiary); font-size: var(--ds-text-sm);">
+                <i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i> Loading plans…
+            </div>`;
+
+        await loadPricing();
+
+        content.innerHTML = getPurchaseTemplate();
+        initDurationToggle();
+
+        const basicName = (planByCode('BASIC') || {}).name || 'Basic';
+        const proName = (planByCode('PROFESSIONAL') || {}).name || 'Professional';
+        document.getElementById('basicBtn')?.addEventListener('click', () => {
+            showBetaTrialPopup(basicName);
+        });
+        document.getElementById('proBtn')?.addEventListener('click', () => {
+            showBetaTrialPopup(proName);
+        });
     };
 })();
