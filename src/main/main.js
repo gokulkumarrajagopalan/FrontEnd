@@ -1010,11 +1010,11 @@ if (isDev) console.log("🔧 About to register 'incremental-sync' handler...");
 ipcMain.handle("incremental-sync", async (event, config) => {
   if (isDev) console.log('📡 Received incremental-sync IPC call');
   try {
-    const { companyId, entityType, maxAlterID } = config;
+    const { companyId, entityType = 'all', maxAlterID } = config || {};
 
     if (isDev) {
       console.log(`\n${'='.repeat(60)}`);
-      console.log(`🔄 INCREMENTAL SYNC STARTED: ${entityType.toUpperCase()}`);
+      console.log(`🔄 INCREMENTAL SYNC STARTED: ${String(entityType).toUpperCase()}`);
       console.log(`   Company: ${companyId}`);
       if (maxAlterID !== undefined && maxAlterID !== null) {
         console.log(`   Max AlterID: ${maxAlterID}`);

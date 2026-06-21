@@ -651,11 +651,11 @@ body {
 .ds-logout-btn {
     width: 100%;
     padding: var(--ds-space-2) var(--ds-space-3);
-    background: rgba(248, 113, 113, 0.08);
-    color: #f87171;
+    background: linear-gradient(90deg, #eef2ff 0%, #eff6ff 100%);
+    color: #4338ca;
     font-size: var(--ds-text-sm);
     font-weight: var(--ds-weight-semibold);
-    border: var(--ds-border-width) solid rgba(248, 113, 113, 0.2);
+    border: var(--ds-border-width) solid rgba(199, 210, 254, 0.8);
     border-radius: var(--ds-radius-xl);
     cursor: pointer;
     transition: all var(--ds-duration-base) var(--ds-ease);
@@ -666,9 +666,9 @@ body {
 }
 
 .ds-logout-btn:hover {
-    background: rgba(239, 68, 68, 0.2);
-    color: #fca5a5;
-    border-color: rgba(255, 145, 122, 0.4);
+    background: linear-gradient(90deg, #e0e7ff 0%, #dbeafe 100%);
+    color: #3730a3;
+    border-color: rgba(165, 180, 252, 0.9);
     transform: translateY(-1px);
 }
 

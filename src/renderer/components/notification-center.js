@@ -168,7 +168,7 @@ class NotificationCenter {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                background: #1f2937;
+                background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
                 color: white;
             }
 

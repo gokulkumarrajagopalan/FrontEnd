@@ -488,6 +488,7 @@
             required: true
         })}
                 </div>
+                <div id="dateRangeError" style="display: none; color: var(--ds-danger-600); font-size: var(--ds-text-xs); margin-top: -8px; padding: 0 var(--ds-space-2);"></div>
                 
                 <div style="padding: var(--ds-space-3); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); font-size: var(--ds-text-xs); color: var(--ds-text-secondary); line-height: 1.5;">
                     <i class="fas fa-info-circle" style="color: var(--ds-primary-500); margin-right: 4px;"></i>
@@ -496,7 +497,8 @@
             </div>
         `;
 
-        window.Popup.show({
+        let popupId;
+        popupId = window.Popup.show({
             title: 'Set Sync Date Range',
             content: popupContent,
             size: 'sm',
@@ -515,33 +517,51 @@
                 {
                     text: 'Select Range',
                     variant: 'primary',
+                    dismissOnClick: false,
                     onClick: () => {
                         const newFrom = document.getElementById('popupSyncFrom').value;
                         const newTo = document.getElementById('popupSyncTo').value;
+                        const errorEl = document.getElementById('dateRangeError');
 
-                        if (newFrom && newTo) {
-                            if (fromEl) fromEl.value = newFrom;
-                            if (toEl) toEl.value = newTo;
+                        if (!newFrom || !newTo) {
+                            errorEl.textContent = 'Please select both from and to dates.';
+                            errorEl.style.display = 'block';
+                            return;
+                        }
 
-                            // Update range display on card
-                            if (rangeDisplay) {
-                                const fromParts = newFrom.split('-');
-                                const toParts = newTo.split('-');
-                                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                const fromStr = `${fromParts[2]} ${months[parseInt(fromParts[1]) - 1]} ${fromParts[0]}`;
-                                const toStr = `${toParts[2]} ${months[parseInt(toParts[1]) - 1]} ${toParts[0]}`;
-                                rangeDisplay.innerHTML = `
-                                    <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ds-primary-700); font-weight: 500;">
-                                        <i class="fas fa-calendar-check"></i>
-                                        <span>${fromStr} — ${toStr}</span>
-                                    </div>
-                                `;
-                                rangeDisplay.style.display = 'block';
-                            }
+                        if (new Date(newFrom) > new Date(newTo)) {
+                            errorEl.textContent = 'Sync From date cannot be later than Sync To date.';
+                            errorEl.style.display = 'block';
+                            return;
+                        }
 
-                            card.setAttribute('data-has-range', 'true');
-                            checkbox.checked = true;
-                            updateSelection();
+                        errorEl.style.display = 'none';
+
+                        if (fromEl) fromEl.value = newFrom;
+                        if (toEl) toEl.value = newTo;
+
+                        // Update range display on card
+                        if (rangeDisplay) {
+                            const fromParts = newFrom.split('-');
+                            const toParts = newTo.split('-');
+                            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            const fromStr = `${fromParts[2]} ${months[parseInt(fromParts[1]) - 1]} ${fromParts[0]}`;
+                            const toStr = `${toParts[2]} ${months[parseInt(toParts[1]) - 1]} ${toParts[0]}`;
+                            rangeDisplay.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ds-primary-700); font-weight: 500;">
+                                    <i class="fas fa-calendar-check"></i>
+                                    <span>${fromStr} — ${toStr}</span>
+                                </div>
+                            `;
+                            rangeDisplay.style.display = 'block';
+                        }
+
+                        card.setAttribute('data-has-range', 'true');
+                        checkbox.checked = true;
+                        updateSelection();
+
+                        if (popupId) {
+                            window.Popup.close(popupId);
                         }
                     }
                 }

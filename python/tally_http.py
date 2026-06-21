@@ -63,6 +63,9 @@ def post_xml_with_retry(host: str, port: int, xml: str, timeout: int = 30,
 
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             logger.warning(f"⚠️ Tally connection/timeout on attempt {attempt + 1}: {e}")
+            if "WinError 10061" in str(e) or "Connection refused" in str(e):
+                logger.error(f"❌ Target machine actively refused the connection. Tally is likely closed. Aborting retries.")
+                return None
             if attempt == max_retries:
                 logger.error(f"❌ Could not reach Tally after {max_retries} retries: {e}")
                 return None

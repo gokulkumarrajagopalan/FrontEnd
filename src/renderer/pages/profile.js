@@ -56,7 +56,7 @@
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
                                 <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Country / Billing Currency</label>
                                 <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
-                                    <select id="detailCountry" class="ds-input" style="flex: 1; padding: var(--ds-space-2) var(--ds-space-3);">
+                                    <select id="detailCountry" class="ds-input" style="flex: 1; padding: var(--ds-space-2) var(--ds-space-3);" disabled>
                                         <option value="">Select country…</option>
                                         <option value="IN">India</option>
                                         <option value="AE">United Arab Emirates</option>

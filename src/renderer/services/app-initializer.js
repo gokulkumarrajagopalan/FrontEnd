@@ -110,7 +110,9 @@ class AppInitializer {
                         backendUrl: window.apiConfig.baseURL,
                         authToken: authToken,
                         deviceToken: deviceToken,
-                        syncMode: 'all' // Sync all entity types
+                        syncMode: 'all', // Sync all entity types
+                        // Sync every master entity in ONE worker process (dependency order).
+                        entityType: 'all'
                     });
                     
                     if (result.success) {

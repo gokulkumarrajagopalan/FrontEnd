@@ -247,6 +247,9 @@ class TallyAPIClient:
                 
             except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
                 logger.warning(f"Tally connection/timeout error on attempt {attempt + 1}: {e}")
+                if "WinError 10061" in str(e) or "Connection refused" in str(e):
+                    logger.error(f"Target machine actively refused the connection. Tally is likely closed. Aborting retries.")
+                    return False, f"Connection refused: Tally may be closed or not listening on {self.base_url}"
                 if attempt == max_retries:
                     logger.error(f"Max retries reached. Tally request failed: {e}")
                     return False, {"error": "Connection failed", "details": str(e)}

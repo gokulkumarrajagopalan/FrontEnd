@@ -685,18 +685,19 @@
 
         /* Refresh License Button inside input */
         .auth-refresh-btn {
-            background: var(--a-blue);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            width: 32px; height: 32px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(37,99,235,0.2);
+            background: transparent !important;
+            color: var(--ds-text-tertiary) !important;
+            border: none !important;
+            border-radius: 8px !important;
+            width: 32px !important; height: 32px !important;
+            display: flex !important; align-items: center !important; justify-content: center !important;
+            cursor: pointer !important; transition: background 0.2s ease, color 0.2s ease !important;
+            box-shadow: none !important;
         }
         .auth-refresh-btn:hover {
-            background: var(--a-indigo);
-            transform: scale(1.05);
+            background: var(--ds-bg-surface-hover) !important;
+            color: var(--ds-primary-600) !important;
+            box-shadow: none !important;
         }
     </style>
 `;
@@ -1001,7 +1002,7 @@
                         </div>
 
                         <div>
-                            <label style="display: block; font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-1-5);">Billing Country</label>
+                            <label style="display: block; font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-secondary); margin-bottom: var(--ds-space-1-5);">Country</label>
                             <div style="position: relative;">
                                 <span style="position: absolute; left: var(--ds-space-4); top: 50%; transform: translateY(-50%); color: var(--ds-text-tertiary);"><i class="fas fa-money-bill-wave"></i></span>
                                 <select id="signupCountry" style="width: 100%; padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-3) var(--ds-space-10); border-radius: var(--ds-radius-xl); border: 2px solid var(--ds-border-default); background: var(--ds-bg-surface); font-size: var(--ds-text-sm); color: var(--ds-text-primary); transition: all var(--ds-duration-fast); appearance: none;">

@@ -11,6 +11,14 @@ class BackgroundSyncScheduler {
         this.lastSyncTime = null;
         this.isRunning = false;
 
+        // Internet-aware pause/resume. When the connection drops mid-cycle (or a
+        // cycle is skipped because we're offline) we set this flag; the 'online'
+        // event handler then resumes a sync immediately instead of waiting for
+        // the next 2-hour tick.
+        this.pausedForOffline = false;
+        this._onlineHandler = null;
+        this._offlineHandler = null;
+
         // Reconciliation cadence. Reconciliation does NOT run on every sync. It runs:
         //   • once right after a company's FIRST-TIME sync (case 1), and
         //   • at most once every 2 hours on the background cycle (case 2).
@@ -30,6 +38,23 @@ class BackgroundSyncScheduler {
         }
         
         console.log('🕒 Starting background sync scheduler (2-hour interval)');
+
+        // Pause/resume on internet connectivity changes.
+        this._offlineHandler = () => {
+            console.log('📴 Internet lost — sync is paused until the connection returns');
+            this.pausedForOffline = true;
+        };
+        this._onlineHandler = () => {
+            console.log('📶 Internet restored');
+            if (this.pausedForOffline) {
+                this.pausedForOffline = false;
+                console.log('▶️ Resuming background sync after reconnect...');
+                // Small grace delay so the network stack settles before we fire requests.
+                setTimeout(() => this.runBackgroundSync(), 3000);
+            }
+        };
+        window.addEventListener('offline', this._offlineHandler);
+        window.addEventListener('online', this._onlineHandler);
 
         // Run first sync after 5 minutes (to avoid collision with app-start sync)
         setTimeout(() => {
@@ -76,6 +101,40 @@ class BackgroundSyncScheduler {
             clearInterval(this.intervalId);
             this.intervalId = null;
         }
+        if (this._offlineHandler) {
+            window.removeEventListener('offline', this._offlineHandler);
+            this._offlineHandler = null;
+        }
+        if (this._onlineHandler) {
+            window.removeEventListener('online', this._onlineHandler);
+            this._onlineHandler = null;
+        }
+    }
+
+    /**
+     * True only when the device has a network AND the backend is actually
+     * reachable. navigator.onLine alone only reports a LAN/interface, so we also
+     * do a short, cache-busting ping to the backend to catch "connected to Wi-Fi
+     * but no real internet" cases.
+     */
+    async isInternetAvailable() {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            return false;
+        }
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            // Public liveness endpoint (permitAll in SecurityConfig) — no auth needed.
+            const url = window.apiConfig
+                ? window.apiConfig.getUrl('/actuator/health/live')
+                : `${window.apiConfig?.baseURL || ''}/actuator/health/live`;
+            await fetch(url, { method: 'GET', cache: 'no-store', signal: controller.signal });
+            clearTimeout(timeoutId);
+            // Any HTTP response (even 401/404) proves the backend was reached.
+            return true;
+        } catch (error) {
+            return false;
+        }
     }
     
     /**
@@ -99,14 +158,30 @@ class BackgroundSyncScheduler {
         this.lastSyncTime = new Date();
         
         try {
+            // Pause when there is no internet — the backend is unreachable, so
+            // syncing would only produce failures. Mark paused so the 'online'
+            // event resumes us immediately when the connection returns.
+            if (!(await this.isInternetAvailable())) {
+                console.log('📴 No internet connection — sync paused until it returns');
+                this.pausedForOffline = true;
+                if (window.notificationService) {
+                    window.notificationService.show({
+                        type: 'warning',
+                        message: '📴 No internet — sync paused, will resume automatically',
+                        duration: 4000
+                    });
+                }
+                return;
+            }
+
             // Check if Tally is running
             const tallyStatus = await this.checkTallyStatus();
-            
+
             if (!tallyStatus.running) {
                 console.log('ℹ️ Tally not running, skipping background sync');
                 return;
             }
-            
+
             // Get auth info
             const authToken = (window.electronAPI && typeof window.electronAPI.secureStoreGet === 'function')
                 ? window.electronAPI.secureStoreGet('authToken')
@@ -150,6 +225,14 @@ class BackgroundSyncScheduler {
 
             // Sync each company
             for (const company of companies) {
+                // Internet dropped mid-cycle → stop now and resume on reconnect
+                // rather than churning through guaranteed-to-fail uploads.
+                if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                    console.log('📴 Internet lost mid-sync — pausing remaining companies until reconnect');
+                    this.pausedForOffline = true;
+                    break;
+                }
+
                 try {
                     // Capture first-time state BEFORE syncing (the voucher step below flips
                     // firstTimeSyncDone=true on the backend once the first-time sync succeeds).

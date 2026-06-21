@@ -68,8 +68,51 @@ class SyncScheduler {
         this.start();
     }
 
+    async checkAndPauseForInternet() {
+        if (navigator.onLine) return;
+
+        console.log('⚠️ Internet disconnected. Pausing sync...');
+        
+        let popupId = null;
+        if (window.Popup) {
+            popupId = window.Popup.show({
+                title: '',
+                size: 'sm',
+                closeable: false,
+                content: `
+                    <div style="text-align: center; padding: var(--ds-space-4) 0;">
+                        <div style="width: 64px; height: 64px; background: rgba(239, 68, 68, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #ef4444; margin: 0 auto var(--ds-space-5);">
+                            <i class="fas fa-wifi"></i>
+                        </div>
+                        <h2 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-3);">Sync Paused</h2>
+                        <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-sm); line-height: 1.6; margin-bottom: var(--ds-space-6);">
+                            Waiting for internet connection to resume sync...
+                        </p>
+                        <div style="margin-top: 16px;">
+                            <i class="fas fa-circle-notch fa-spin" style="font-size: 24px; color: var(--ds-primary-500);"></i>
+                        </div>
+                    </div>
+                `
+            });
+        }
+
+        return new Promise(resolve => {
+            const onOnline = () => {
+                console.log('✅ Internet reconnected. Resuming sync...');
+                if (popupId && window.Popup) {
+                    window.Popup.close(popupId);
+                }
+                window.removeEventListener('online', onOnline);
+                resolve();
+            };
+            window.addEventListener('online', onOnline);
+        });
+    }
+
     async runSync() {
         try {
+            await this.checkAndPauseForInternet();
+
             console.log('\n' + '='.repeat(80));
             console.log(`🔄 STARTING AUTOMATIC SYNC - ${new Date().toLocaleTimeString()}`);
             console.log('='.repeat(80));
@@ -130,6 +173,8 @@ class SyncScheduler {
             const failedCompanies = [];
 
             for (let i = 0; i < companies.length; i++) {
+                await this.checkAndPauseForInternet();
+                
                 const company = companies[i];
                 console.log(`\n[${i + 1}/${companies.length}] 🏢 Syncing: ${company.name}...`);
 
@@ -311,6 +356,8 @@ class SyncScheduler {
 
     async fetchImportedCompanies(backendUrl, authToken, deviceToken) {
         try {
+            await this.checkAndPauseForInternet();
+            
             const companiesUrl = window.apiConfig
                 ? window.apiConfig.getUrl('/companies')
                 : `${backendUrl}/companies`;
@@ -391,6 +438,8 @@ class SyncScheduler {
             const totalSteps = entities.length + 5;
 
             for (let j = 0; j < entities.length; j++) {
+                await this.checkAndPauseForInternet();
+                
                 const entity = entities[j];
                 const entityPercentage = Math.round(((j + 1) / totalSteps) * 100);
 
@@ -430,6 +479,7 @@ class SyncScheduler {
             }
 
             // ============= VOUCHER SYNC =============
+            await this.checkAndPauseForInternet();
             const voucherStepIndex = entities.length + 1;
             const voucherPercentage = Math.round((voucherStepIndex / totalSteps) * 100);
             if (window.syncStateManager) {
@@ -587,6 +637,7 @@ class SyncScheduler {
             }
 
             // ============= BILLS OUTSTANDING SYNC =============
+            await this.checkAndPauseForInternet();
             const billsStepIndex = entities.length + 2;
             const billsPercentage = Math.round((billsStepIndex / totalSteps) * 100);
             if (window.syncStateManager) {
@@ -634,6 +685,8 @@ class SyncScheduler {
             ];
 
             for (let rIdx = 0; rIdx < reports.length; rIdx++) {
+                await this.checkAndPauseForInternet();
+                
                 const report = reports[rIdx];
                 const reportStepIndex = entities.length + 3 + rIdx;
                 const reportPercentage = Math.round((reportStepIndex / totalSteps) * 100);
@@ -800,6 +853,14 @@ class SyncScheduler {
                     return { success: true, message: `${result.count} records synced` };
                 } else {
                     lastError = result.message;
+
+                    // If offline or network error, pause and retry without counting attempt
+                    if (!navigator.onLine) {
+                        await this.checkAndPauseForInternet();
+                        attempt--;
+                        continue;
+                    }
+
                     // Don't retry on non-transient errors
                     if (result.message?.includes('mismatch') || result.message?.includes('not found')) {
                         console.warn(`  ⚠️ ${entityType}: ${result.message} (non-retryable)`);
@@ -813,6 +874,13 @@ class SyncScheduler {
                 }
             } catch (error) {
                 lastError = error.message || 'Unknown error';
+
+                if (!navigator.onLine) {
+                    await this.checkAndPauseForInternet();
+                    attempt--;
+                    continue;
+                }
+
                 if (attempt < MAX_RETRIES) {
                     const delay = attempt * 2000;
                     console.warn(`  ⚠️ ${entityType}: Error — retrying in ${delay / 1000}s...`, error.message);
@@ -827,6 +895,8 @@ class SyncScheduler {
 
     async getMasterMapping(companyId, backendUrl, authToken, deviceToken) {
         try {
+            await this.checkAndPauseForInternet();
+            
             console.log(`📊 Fetching master mapping for company ${companyId}...`);
 
             const url = window.apiConfig

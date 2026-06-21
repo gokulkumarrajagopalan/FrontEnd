@@ -311,6 +311,37 @@
     }
 
     function showBetaTrialPopup(planName) {
+        if (SUBSCRIPTION && SUBSCRIPTION.betaMode) {
+            const popupId = window.Popup.show({
+                title: '',
+                size: 'sm',
+                closeable: true,
+                content: `
+                    <div style="text-align: center; padding: var(--ds-space-2) 0;">
+                        <div style="width: 72px; height: 72px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #fff; margin: 0 auto var(--ds-space-5); box-shadow: 0 8px 24px rgba(16,185,129,0.35);">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2); font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 14px; border-radius: 999px; margin-bottom: var(--ds-space-4);">
+                            <i class="fas fa-star" style="font-size: 9px;"></i> Active
+                        </div>
+                        <h2 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-3);">Beta Trial Active!</h2>
+                        <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-sm); line-height: 1.6; margin-bottom: var(--ds-space-6);">
+                            You are already in the <strong>Beta Trial</strong>. All features are unlocked and completely <span style="color: #10b981; font-weight: 700;">free</span>.
+                        </p>
+                        <button id="betaGotItBtn" style="width: 100%; padding: 12px 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; border-radius: var(--ds-radius-lg); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-bold); cursor: pointer; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
+                            Okay, Got it!
+                        </button>
+                    </div>
+                `
+            });
+            setTimeout(() => {
+                document.getElementById('betaGotItBtn')?.addEventListener('click', () => {
+                    window.Popup.close(popupId);
+                });
+            }, 50);
+            return;
+        }
+
         // Beta state is owned by the backend (app_config.feature.beta.mode); no
         // client-side flag is persisted.
         const popupId = window.Popup.show({
@@ -334,7 +365,7 @@
 
                     <!-- Heading -->
                     <h2 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2);">
-                        You're on the Beta!
+                        Beta Trial Available
                     </h2>
                     <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-sm); margin-bottom: var(--ds-space-6); line-height: 1.6;">
                         Talliffy is currently in <strong>Beta</strong>. Enjoy all <strong>${planName}</strong> features completely
