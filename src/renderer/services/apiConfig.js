@@ -3,7 +3,7 @@
 // or the user's settings; these are only the last-resort fallbacks. Other renderer
 // files must read apiConfig.DEFAULT_BACKEND_URL / apiConfig.WEB_APP_URL — never hardcode.
 const DEFAULT_BACKEND_URL = 'http://35.175.182.24:8080/api';
-const WEB_APP_URL = 'http://localhost:3000';
+const WEB_APP_URL = 'http://35.175.182.24';
 
 const apiConfig = {
     DEFAULT_BACKEND_URL,
