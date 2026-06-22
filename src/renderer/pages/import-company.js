@@ -1495,6 +1495,7 @@
 
             let importedCount = 0;
             let skippedCount = 0;
+            let syncFailedCount = 0;
 
             for (const company of selectedCompanies) {
                 // Check if company already exists in database
@@ -1617,6 +1618,20 @@
                             }
 
                             const syncResult = await triggerFirstTimeSync(backendResponse.backendId, company);
+
+                            // triggerFirstTimeSync swallows per-step failures into syncResult.errors
+                            // and resolves normally even when nothing actually synced. Do NOT report
+                            // success blindly — if it failed, surface the real reason and treat the
+                            // import as a sync failure so we don't silently jump to the company with
+                            // empty data (e.g. Tally not running / not reachable on first launch).
+                            if (!syncResult || syncResult.success === false) {
+                                syncFailedCount++;
+                                const failDetail = (syncResult?.errors || [])
+                                    .map(e => `${e.entity}: ${e.message}`).join('; ')
+                                    || 'No data was synced — check that Tally is running and the company is open.';
+                                addImportLog(`First-time sync did NOT complete for ${company.name}: ${failDetail}`, 'error');
+                                throw new Error(failDetail);
+                            }
                             addImportLog(`First-time sync completed successfully`, 'success');
 
                             // Update as success in notification center
@@ -1723,9 +1738,13 @@
             }
 
             addImportLog(`Import Complete!`, 'success');
-            addImportLog(`Imported: ${importedCount} | Skipped: ${skippedCount}`, 'success');
+            addImportLog(`Imported: ${importedCount} | Skipped: ${skippedCount}${syncFailedCount ? ` | Sync failed: ${syncFailedCount}` : ''}`, syncFailedCount ? 'info' : 'success');
 
-            showStatus(`Successfully imported ${importedCount} company/companies with groups!`, 'success');
+            if (syncFailedCount > 0) {
+                showStatus(`Imported ${importedCount} company/companies, but first-time sync did not complete for ${syncFailedCount}. Make sure Tally is running with the company open, then retry sync.`, 'error');
+            } else {
+                showStatus(`Successfully imported ${importedCount} company/companies with groups!`, 'success');
+            }
 
             // Reset selection
             selectedCompanies = [];
@@ -1752,8 +1771,20 @@
                 }));
             }
 
-            // Show success message and navigate after 2 seconds
+            // Show message and navigate after 2 seconds.
+            // Only auto-jump to the company when the first-time sync actually completed —
+            // otherwise stay on the import page so the user can fix Tally and retry instead
+            // of landing on an empty company.
             setTimeout(() => {
+                if (syncFailedCount > 0) {
+                    if (window.notificationService) {
+                        window.notificationService.error(
+                            `Sync did not complete for ${syncFailedCount} company/companies. Open the company in Tally and retry sync.`
+                        );
+                    }
+                    return;
+                }
+
                 document.getElementById('importProgress').style.display = 'none';
 
                 // Show notification before navigation
