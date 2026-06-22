@@ -513,7 +513,11 @@ class VoucherSyncManager:
                         <TYPE>Voucher : AllInventoryEntries</TYPE>
                         <FETCH>STOCKITEMNAME, STOCKITEMGUID, ACTUALQTY, BILLEDQTY, RATE, AMOUNT,
                                UOM, ALTERNATEUOM, GODOWNNAME, DISCOUNT, TRACKINGNUMBER,
-                               ISDEEMEDPOSITIVE, BATCHALLOCATIONS.LIST</FETCH>
+                               ISDEEMEDPOSITIVE, ACCOUNTINGALLOCATIONS.LIST, BATCHALLOCATIONS.LIST</FETCH>
+                    </COLLECTION>
+                    <COLLECTION NAME="InvAccountingAllocations">
+                        <TYPE>Voucher : AllInventoryEntries : AccountingAllocations</TYPE>
+                        <FETCH>LEDGERNAME, AMOUNT, ISDEEMEDPOSITIVE, ISPARTYLEDGER</FETCH>
                     </COLLECTION>
                     <COLLECTION NAME="BatchAllocations">
                         <TYPE>Voucher : AllInventoryEntries : BatchAllocations</TYPE>
@@ -587,15 +591,31 @@ class VoucherSyncManager:
             # Parse all ledger entries
             ledger_entries = self._parse_ledger_entries(elem, guid, voucher_number, voucher_date, voucher_type)
             
-            # Calculate total amount = sum of all debit-side entries (Dr amounts)
-            # In Tally ALLLEDGERENTRIES: positive AMOUNT = Debit, negative = Credit
+            # In Tally ALLLEDGERENTRIES: negative AMOUNT = Debit, positive = Credit.
             total_debit = sum(le['debit_amount'] for le in ledger_entries)
             total_credit = sum(le['credit_amount'] for le in ledger_entries)
-            total_amount = total_debit  # Voucher total = debit side (equals credit side)
+            # Voucher net total. For item invoices the party ledger's balance IS the invoice total
+            # (receivable/payable). Summing every debit double-counts contra lines that sit on the
+            # items side (e.g. a refund/discount posted as a Debit), inflating the total — so for
+            # invoices use the party amount. Receipts/Payments/Journals have no such contra and use
+            # the debit side (= credit side). Falls back to total_debit when no party ledger.
+            is_invoice = self.get_bool(elem, 'ISINVOICE')
+            party_total = sum(abs(le['amount']) for le in ledger_entries if le.get('is_party_ledger'))
+            total_amount = party_total if (is_invoice and party_total) else total_debit
             
             # Parse all inventory entries
             inventory_entries = self._parse_inventory_entries(elem, guid, voucher_number, voucher_date, voucher_type)
-            
+
+            # Mark income/sales ledgers that stock items post into, so the display layer can
+            # distinguish them from tax/charge ledgers. Tally exposes this only inside each
+            # inventory entry's <ACCOUNTINGALLOCATIONS.LIST> — the top-level ledger entry's
+            # LEDGERFROMITEM is "No" for item invoices, which is why we cross-link here.
+            item_ledger_names = self._collect_inventory_accounting_ledgers(elem)
+            if item_ledger_names:
+                for le in ledger_entries:
+                    if le.get('ledger_name') in item_ledger_names:
+                        le['ledger_from_item'] = True
+
             return {
                 # Tally Identity
                 'guid': guid,
@@ -675,12 +695,13 @@ class VoucherSyncManager:
                 is_deemed_positive = self.get_bool(ledger_elem, 'ISDEEMEDPOSITIVE')
                 
                 # Tally ALLLEDGERENTRIES AMOUNT convention:
-                #   Positive amount = Debit (Dr) entry
-                #   Negative amount = Credit (Cr) entry
-                # ISDEEMEDPOSITIVE indicates the voucher type's default flow direction
-                dr_cr = 'DR' if amount > 0 else 'CR'
-                debit_amount = abs(amount) if amount > 0 else 0.0
-                credit_amount = abs(amount) if amount < 0 else 0.0
+                #   Negative amount = Debit (Dr) entry
+                #   Positive amount = Credit (Cr) entry
+                # (Verified against TallyPrime: Receipt Cash entry = -amount with
+                #  ISDEEMEDPOSITIVE=Yes is the debit side; Sales party = -amount = debit.)
+                dr_cr = 'DR' if amount < 0 else 'CR'
+                debit_amount = abs(amount) if amount < 0 else 0.0
+                credit_amount = abs(amount) if amount > 0 else 0.0
                 
                 # Parse nested bill allocations
                 bills = self._parse_bill_allocations(
@@ -763,7 +784,7 @@ class VoucherSyncManager:
                 categories.append({
                     'category_name': self.get_text(cat_elem, 'CATEGORY'),
                     'amount': abs(self.get_amount(cat_elem, 'AMOUNT')),
-                    'is_deemed_positive': self.get_bool(ledger_elem, 'ISDEEMEDPOSITIVE'),
+                    'is_deemed_positive': self.get_bool(cat_elem, 'ISDEEMEDPOSITIVE'),
                     'cost_centre_allocations': centres
                 })
             except Exception as e:
@@ -772,6 +793,22 @@ class VoucherSyncManager:
         
         return categories
     
+    def _collect_inventory_accounting_ledgers(self, voucher_elem) -> set:
+        """Return the set of ledger names that stock items post into.
+
+        In an item invoice Tally records the sales/purchase (income/expense) ledger inside each
+        inventory entry's <ACCOUNTINGALLOCATIONS.LIST>, NOT on the top-level ledger entry. We use
+        this to flag those ledger entries as ledger_from_item so the UI can avoid listing them a
+        second time as an "Add:/Less:" charge line.
+        """
+        names = set()
+        for inv_elem in voucher_elem.findall('.//ALLINVENTORYENTRIES.LIST'):
+            for acc_elem in inv_elem.findall('.//ACCOUNTINGALLOCATIONS.LIST'):
+                name = self.get_text(acc_elem, 'LEDGERNAME')
+                if name:
+                    names.add(name)
+        return names
+
     def _parse_inventory_entries(self, voucher_elem, guid, vch_num, vch_date, vch_type) -> List[Dict]:
         """Parse all inventory entries with nested batch allocations"""
         entries = []
@@ -785,9 +822,24 @@ class VoucherSyncManager:
                 actual_qty = self.get_qty(inv_elem, 'ACTUALQTY')
                 billed_qty = self.get_qty(inv_elem, 'BILLEDQTY')
                 rate = self.get_qty(inv_elem, 'RATE')
-                stock_amount = abs(self.get_amount(inv_elem, 'AMOUNT'))
+                # Keep the sign: refund/return lines carry a negative amount in Tally and must
+                # reduce the invoice (e.g. "Pro-rata Refund (-)125"). Reports use the voucher header
+                # amount, and stock movement abs()-es this, so a signed value is safe here.
+                stock_amount = self.get_amount(inv_elem, 'AMOUNT')
                 is_outward = actual_qty < 0
                 uom = self.get_text(inv_elem, 'UOM')
+
+                # Prefer Tally's own ISDEEMEDPOSITIVE; fall back to qty sign only when absent.
+                deemed_text = self.get_text(inv_elem, 'ISDEEMEDPOSITIVE', '')
+                is_deemed_positive = (deemed_text.lower() == 'yes') if deemed_text else (actual_qty >= 0)
+
+                # Rate is exported as e.g. "800.00/VCH" — capture the unit the rate is quoted in.
+                rate_text = self.get_text(inv_elem, 'RATE', '')
+                rate_uom = rate_text.split('/')[-1].strip() if '/' in rate_text else uom
+                # Tally often leaves the <UOM> tag empty and carries the unit only in the
+                # qty/rate strings. Fall back to the rate unit so the "per" / qty columns show.
+                if not uom:
+                    uom = rate_uom
                 
                 # Derive missing quantities
                 if billed_qty == 0 and rate != 0 and stock_amount != 0:
@@ -795,9 +847,9 @@ class VoucherSyncManager:
                 elif billed_qty == 0:
                     billed_qty = abs(actual_qty)
                 
-                # Derive missing rate
+                # Derive missing rate (keep rate positive; the sign lives on the amount)
                 if rate == 0 and abs(actual_qty) != 0 and stock_amount != 0:
-                    rate = stock_amount / abs(actual_qty)
+                    rate = abs(stock_amount) / abs(actual_qty)
                 
                 # Parse nested batch allocations
                 batches = self._parse_batch_allocations(
@@ -814,8 +866,8 @@ class VoucherSyncManager:
                     'discount': self.get_amount(inv_elem, 'DISCOUNT'),
                     'uom': uom,
                     'alternate_uom': self.get_text(inv_elem, 'ALTERNATEUOM'),
-                    'rate_uom': uom,
-                    'is_deemed_positive': actual_qty >= 0,
+                    'rate_uom': rate_uom,
+                    'is_deemed_positive': is_deemed_positive,
                     'is_outward': is_outward,
                     'godown_name': self.get_text(inv_elem, 'GODOWNNAME'),
                     'tracking_number': self.get_text(inv_elem, 'TRACKINGNUMBER'),

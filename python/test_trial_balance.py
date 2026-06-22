@@ -4,7 +4,7 @@ import sys
 import re
 
 TALLY_URL = "http://localhost:9000"
-BACKEND_URL = "http://localhost:8080/api"
+BACKEND_URL = "http:// 35.175.182.24:8080/api"
 
 TDL_REQUEST = """<ENVELOPE>
 	<HEADER>

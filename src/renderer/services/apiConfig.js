@@ -2,7 +2,7 @@
 // At runtime the real backend URL comes from the main process (get-backend-url IPC)
 // or the user's settings; these are only the last-resort fallbacks. Other renderer
 // files must read apiConfig.DEFAULT_BACKEND_URL / apiConfig.WEB_APP_URL — never hardcode.
-const DEFAULT_BACKEND_URL = 'http://localhost:8080/api';
+const DEFAULT_BACKEND_URL = 'http://35.175.182.24:8080/api';
 const WEB_APP_URL = 'http://localhost:3000';
 
 const apiConfig = {
@@ -39,15 +39,9 @@ const apiConfig = {
     },
 
     /**
-     * Enforce HTTPS for non-localhost URLs
+     * Enforce HTTPS for non-localhost URLs (Disabled to allow direct IP connections over HTTP)
      */
     _enforceHttps(url) {
-        if (!url) return url;
-        // Allow HTTP only for localhost/127.0.0.1
-        const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
-        if (!isLocal && url.startsWith('http://')) {
-            return url.replace('http://', 'https://');
-        }
         return url;
     },
 

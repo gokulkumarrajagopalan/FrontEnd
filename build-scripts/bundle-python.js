@@ -26,6 +26,14 @@ const DIST_UNIX = path.join(BUNDLE_DIR, 'dist', 'sync_worker');
 const BIN_EXE = path.join(RESOURCES_BIN, 'sync_worker.exe');
 const BIN_UNIX = path.join(RESOURCES_BIN, 'sync_worker');
 
+// Financial reports run from a SEPARATE standalone script/exe (the financial-reports IPC handler
+// spawns sync_financial_reports.exe in production). It must be bundled too, or Trial Balance /
+// P&L / Balance Sheet never sync in packaged builds.
+const FR_SOURCE = path.join(PYTHON_DIR, 'sync_financial_reports.py');
+const FR_EXE_NAME = process.platform === 'win32' ? 'sync_financial_reports.exe' : 'sync_financial_reports';
+const FR_DIST_EXE = path.join(BUNDLE_DIR, 'dist', FR_EXE_NAME);
+const FR_BIN_EXE = path.join(RESOURCES_BIN, FR_EXE_NAME);
+
 /**
  * Returns true when all Python source files are older than the existing exe.
  * Avoids unnecessary re-bundling when code hasn't changed.
@@ -87,10 +95,12 @@ if (FORCE_REBUILD) console.log('⚡ --force flag set: will always rebuild');
 console.log('\n📦 Step 0: Checking for existing bundled worker...');
 const existingExe = fs.existsSync(BIN_EXE) ? BIN_EXE : (fs.existsSync(BIN_UNIX) ? BIN_UNIX : null);
 
-if (!FORCE_REBUILD && existingExe && isExeUpToDate(existingExe)) {
-    console.log(`✅ Bundled worker is up-to-date: ${existingExe}`);
+if (!FORCE_REBUILD && existingExe && isExeUpToDate(existingExe) && fs.existsSync(FR_BIN_EXE)) {
+    console.log(`✅ Bundled workers are up-to-date: ${existingExe}, ${FR_BIN_EXE}`);
     console.log('   Use --force to rebuild anyway.');
     process.exit(0);
+} else if (!fs.existsSync(FR_BIN_EXE)) {
+    console.log('🆕 Financial-reports worker missing — building all workers...');
 } else if (existingExe && !FORCE_REBUILD) {
     console.log(`🔄 Python sources changed — rebuilding exe...`);
 } else if (!existingExe) {
@@ -223,6 +233,42 @@ try {
     process.exit(1);
 }
 
+// Step 8: Bundle sync_financial_reports.exe (separate script used by the financial-reports
+// handler in production). Without this, Trial Balance / P&L / Balance Sheet never sync in
+// packaged builds because the handler can't find its executable and falls back to a Python
+// interpreter that isn't present in a packaged app.
+console.log('\n⚙️  Step 8: Bundling sync_financial_reports...');
+if (!fs.existsSync(FR_SOURCE)) {
+    console.error(`❌ Source file not found: ${FR_SOURCE}`);
+    process.exit(1);
+}
+try {
+    const frCommand = [
+        `"${pythonCmd}" -m PyInstaller`,
+        `--onefile`,
+        `--name sync_financial_reports`,
+        `--distpath "${path.join(BUNDLE_DIR, 'dist')}"`,
+        `--workpath "${path.join(BUNDLE_DIR, 'build')}"`,
+        `--specpath "${PYTHON_DIR}"`,
+        `--noconfirm`,
+        `"${FR_SOURCE}"`
+    ].join(' ');
+    console.log(`Executing: ${frCommand}`);
+    execSync(frCommand, { stdio: 'inherit', cwd: PYTHON_DIR });
+
+    if (!fs.existsSync(FR_DIST_EXE)) {
+        console.error(`❌ Financial-reports executable not produced: ${FR_DIST_EXE}`);
+        process.exit(1);
+    }
+    fs.copyFileSync(FR_DIST_EXE, FR_BIN_EXE);
+    const frStats = fs.statSync(FR_DIST_EXE);
+    console.log(`✅ Copied to: ${FR_BIN_EXE} (${(frStats.size / 1024 / 1024).toFixed(2)} MB)`);
+} catch (e) {
+    console.error('❌ sync_financial_reports bundling failed');
+    console.error(e.message);
+    process.exit(1);
+}
+
 console.log('\n' + '='.repeat(50));
 console.log('✨ Python bundling completed successfully!');
-console.log('The executable is ready for distribution.');
+console.log('Both workers (sync_worker, sync_financial_reports) are ready for distribution.');

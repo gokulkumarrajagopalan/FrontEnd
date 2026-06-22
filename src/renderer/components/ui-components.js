@@ -65,6 +65,7 @@ const UIComponents = {
             type = 'button',
             className = '',
             style = '',
+            onclick = '',
             attributes = ''
         } = options;
 
@@ -90,6 +91,7 @@ const UIComponents = {
                 id="${id}" 
                 class="${btnClass}"
                 style="${style}"
+                ${onclick ? `onclick="${onclick}"` : ''}
                 ${disabled ? 'disabled' : ''}
                 ${attributes}
             >

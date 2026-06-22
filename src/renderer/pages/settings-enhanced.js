@@ -21,7 +21,7 @@
         [SETTINGS_KEYS.TALLY_HOST]: 'localhost',
         [SETTINGS_KEYS.TALLY_PORT]: 9000,
         [SETTINGS_KEYS.BACKEND_URL]: window.apiConfig?.DEFAULT_BACKEND_URL,
-        [SETTINGS_KEYS.SYNC_INTERVAL]: 30,
+        [SETTINGS_KEYS.SYNC_INTERVAL]: 10,
         [SETTINGS_KEYS.AUTO_SYNC_ON_STARTUP]: false,
         [SETTINGS_KEYS.THEME]: 'light',
         [SETTINGS_KEYS.NOTIFICATIONS_ENABLED]: true,
@@ -664,8 +664,14 @@
                     }
 
                     // Show success notification
-                    if (window.notificationService) {
+                    if (window.Toast) {
+                        window.Toast.success('All settings saved successfully!');
+                    } else if (window.notificationService) {
                         window.notificationService.success('All settings saved successfully!', 'Settings');
+                    } else if (window.NotificationService) {
+                        window.NotificationService.show('All settings saved successfully!', 'success');
+                    } else {
+                        alert('All settings saved successfully!');
                     }
 
                     // Play sound if enabled

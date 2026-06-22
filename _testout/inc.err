@@ -108,7 +108,7 @@
   }
 ]
 \u274c Database error: HTTP 401
-   URL: http://localhost:8080/api/ledgers/sync
+   URL: http:// 35.175.182.24:8080/api/ledgers/sync
    Response: {"success": false, "message": "Not Authorized User - Missing Authorization header"}
 \u274c Batch failed during fast sync: HTTP 401: {"success": false, "message": "Not Authorized User - Missing Authorization header"}
 \u26a0\ufe0f Failed to save AlterID: HTTP 401

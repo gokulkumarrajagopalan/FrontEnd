@@ -80,7 +80,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "signAndEditExecutable": true
     },
     "nsis": {
       "oneClick": false,

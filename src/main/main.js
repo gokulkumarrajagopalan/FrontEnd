@@ -405,7 +405,7 @@ function startSyncWorker(config = {}) {
     const settings = {
       tallyHost: config.tallyHost || 'localhost',
       tallyPort: config.tallyPort || 9000,
-      syncInterval: config.syncInterval || 30
+      syncInterval: config.syncInterval || 10
     };
 
     try {

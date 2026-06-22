@@ -797,10 +797,10 @@
 
                 <form id="loginForm" style="display:flex;flex-direction:column;gap:14px;">
                   <div>
-                    <label style="display:block;font-size:0.74rem;font-weight:700;color:var(--a-ink-2);margin-bottom:6px;">Username or Email</label>
+                    <label style="display:block;font-size:0.74rem;font-weight:700;color:var(--a-ink-2);margin-bottom:6px;">Username</label>
                     <div style="position:relative;">
                       <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--a-ink-4);"><i class="fas fa-user"></i></span>
-                      <input id="username" name="username" type="text" autocomplete="username" placeholder="Enter your username or email" required
+                      <input id="username" name="username" type="text" autocomplete="username" placeholder="Enter your Username" required
                         style="width:100%;padding:12px 14px 12px 40px;border:1px solid var(--a-border);border-radius:12px;background:var(--a-surface);font-size:0.85rem;color:var(--a-ink);outline:none;" />
                     </div>
                   </div>
@@ -831,7 +831,7 @@
 
                 <div class="auth-secure-note" style="margin-top:14px;">
                   <i class="fas fa-lock"></i>
-                  Each device signs in independently &middot; Your session stays on this machine
+                  Shared accounts &amp; data
                 </div>
 
                 <div style="margin-top:18px;text-align:center;padding-top:16px;border-top:1px solid var(--a-border);">
@@ -1505,12 +1505,7 @@
         if (showLogin) {
             showLogin.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (window.router) {
-                    window.router.navigate('login');
-                } else {
-                    window.location.hash = '#login';
-                    window.initializeLogin();
-                }
+                window.location.hash = '#login'; window.initializeLogin();
             });
         }
     };
@@ -1735,12 +1730,7 @@
                 localStorage.removeItem('pendingVerificationUsername');
                 localStorage.removeItem('pendingVerificationEmail');
                 localStorage.removeItem('pendingVerificationLicence');
-                if (window.router) {
-                    window.router.navigate('login');
-                } else {
-                    window.location.hash = '#login';
-                    window.initializeLogin();
-                }
+                window.location.hash = '#login'; window.initializeLogin();
             });
         }
     };
@@ -2502,12 +2492,7 @@
                 }
 
                 setTimeout(() => {
-                    if (window.router) {
-                        window.router.navigate('verify-otp');
-                    } else {
-                        window.location.hash = '#verify-otp';
-                        window.initializeOtpVerification(registrationPayload.username);
-                    }
+                    window.location.hash = '#verify-otp'; window.initializeOtpVerification(registrationPayload.username);
                 }, 1500);
 
             } catch (error) {
@@ -2669,12 +2654,7 @@
                     localStorage.removeItem('pendingVerificationUsername');
 
                     setTimeout(() => {
-                        if (window.router) {
-                            window.router.navigate('login');
-                        } else {
-                            window.location.hash = '#login';
-                            window.initializeLogin();
-                        }
+                        window.location.hash = '#login'; window.initializeLogin();
                     }, 2000);
                     return;
                 }
@@ -2695,12 +2675,7 @@
                     errorMessage.querySelector('span:last-child').textContent = 'Mobile number not found. Please try again.';
                     errorMessage.classList.remove('hidden');
                     setTimeout(() => {
-                        if (window.router) {
-                            window.router.navigate('login');
-                        } else {
-                            window.location.hash = '#login';
-                            window.initializeLogin();
-                        }
+                        window.location.hash = '#login'; window.initializeLogin();
                     }, 3000);
                     return;
                 }
@@ -2726,12 +2701,7 @@
                         successMessage.classList.add('hidden');
 
                         setTimeout(() => {
-                            if (window.router) {
-                                window.router.navigate('login');
-                            } else {
-                                window.location.hash = '#login';
-                                window.initializeLogin();
-                            }
+                            window.location.hash = '#login'; window.initializeLogin();
                         }, 3000);
                     }
                 }, 1500);
@@ -2966,12 +2936,7 @@
                 localStorage.removeItem('pendingVerificationUsername');
 
                 setTimeout(() => {
-                    if (window.router) {
-                        window.router.navigate('login');
-                    } else {
-                        window.location.hash = '#login';
-                        window.initializeLogin();
-                    }
+                    window.location.hash = '#login'; window.initializeLogin();
                 }, 2000);
 
             } catch (error) {
@@ -3037,3 +3002,6 @@
     }
 
 })();
+
+
+

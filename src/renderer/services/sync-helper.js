@@ -11,13 +11,13 @@ class SyncHelper {
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             return {
                 tallyPort: appSettings.tallyPort || 9000,
-                syncInterval: appSettings.syncInterval || 30
+                syncInterval: appSettings.syncInterval || 10
             };
         } catch (error) {
             console.error('Error reading settings:', error);
             return {
                 tallyPort: 9000,
-                syncInterval: 30
+                syncInterval: 10
             };
         }
     }
