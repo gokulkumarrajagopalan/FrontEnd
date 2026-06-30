@@ -724,6 +724,15 @@ class App {
                             <span class="ds-nav-text">Purchase</span>
                         </a>
 
+                        <!-- Admin Section (shown only to ADMIN / SUPER_ADMIN) -->
+                        <div id="adminNavSection" style="display:none;">
+                            <div class="ds-nav-section-label">Admin</div>
+                            <a class="ds-nav-link" id="adminNavLink" data-route="admin" role="link" tabindex="0" aria-label="Admin Panel">
+                                <span class="ds-nav-icon" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
+                                <span class="ds-nav-text">Admin Panel</span>
+                            </a>
+                        </div>
+
                         <!-- Help & System Section -->
                         <div class="ds-nav-section-label">Help &amp; System</div>
                         <a class="ds-nav-link" data-route="tutorial" role="link" tabindex="0" aria-label="Tutorial">
@@ -860,6 +869,13 @@ class App {
             if (roleEl) {
                 const role = user.role || user.planName || user.plan || 'User';
                 roleEl.textContent = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+            }
+
+            // Show admin nav section only for SUPER_ADMIN users
+            const adminSection = document.getElementById('adminNavSection');
+            if (adminSection) {
+                const isAdmin = ['SUPER_ADMIN'].includes((user.role || '').toUpperCase());
+                adminSection.style.display = isAdmin ? '' : 'none';
             }
 
             // Setup logout button

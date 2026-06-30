@@ -21,7 +21,8 @@ class PageLoader {
             'tutorial': 'initializeTutorial',
             'support': 'initializeSupport',
             'update-app': 'initializeUpdateApp',
-            'purchase': 'initializePurchase'
+            'purchase': 'initializePurchase',
+            'admin': 'initializeAdmin'
         };
 
         for (const [route, initName] of Object.entries(pageInitializers)) {

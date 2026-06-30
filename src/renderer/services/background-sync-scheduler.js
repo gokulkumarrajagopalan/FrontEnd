@@ -174,11 +174,22 @@ class BackgroundSyncScheduler {
                 return;
             }
 
-            // Check if Tally is running
+            // Guard: reject if another sync cycle is already in progress
+            if (window.syncStateManager && window.syncStateManager.isSyncing()) {
+                console.log('⏳ Sync already in progress — skipping this cycle');
+                return;
+            }
+
+            // Check if Tally is running AND has companies loaded
             const tallyStatus = await this.checkTallyStatus();
 
             if (!tallyStatus.running) {
                 console.log('ℹ️ Tally not running, skipping background sync');
+                return;
+            }
+
+            if (tallyStatus.loadedCompanies.length === 0) {
+                console.log('ℹ️ Tally is running but no companies are loaded — skipping sync to prevent MAV');
                 return;
             }
 
@@ -234,6 +245,19 @@ class BackgroundSyncScheduler {
                 }
 
                 try {
+                    // Per-company guard: only sync if this company is currently open in Tally.
+                    // A missing/mismatched company name causes Tally's MAV crash.
+                    // Use the robust normalizer (entity-decode + whitespace-collapse) so a
+                    // genuinely-open company isn't skipped over a formatting difference.
+                    const companyNameNorm = this.normalizeCompanyName(company.name);
+                    const isLoaded = tallyStatus.loadedCompanies.some(
+                        n => this.normalizeCompanyName(n) === companyNameNorm
+                    );
+                    if (!isLoaded) {
+                        console.log(`⏭️ Skipping "${company.name}" — not loaded in Tally`);
+                        continue;
+                    }
+
                     // Capture first-time state BEFORE syncing (the voucher step below flips
                     // firstTimeSyncDone=true on the backend once the first-time sync succeeds).
                     const companyIsFirstTime = !company.firstTimeSyncDone;
@@ -629,27 +653,70 @@ class BackgroundSyncScheduler {
     }
     
     /**
+     * Resolve the financial-year START month (0-indexed) for a company's country.
+     * GCC states run a calendar-year FY (Jan→Dec, month 0); India and others run
+     * April→March (month 3). Mirrors the web app's getFinancialYearStartMonth so
+     * the FY labels produced here match what the web app expects to display.
+     */
+    getFinancialYearStartMonth(company) {
+        const calendarYearCountries = [
+            'united arab emirates', 'uae', 'u.a.e', 'u.a.e.',
+            'saudi arabia', 'ksa', 'kingdom of saudi arabia',
+            'qatar', 'kuwait', 'bahrain', 'oman', 'sultanate of oman',
+        ];
+        const country = String(company?.country || '').trim().toLowerCase();
+        return calendarYearCountries.includes(country) ? 0 : 3; // 0=Jan (GCC), 3=Apr (India)
+    }
+
+    /**
      * Compute the list of financial years to sync reports for: the last 4 FYs
      * (current FY runs up to today) plus a "Full" span from books-start to today.
+     *
+     * FY boundaries are country-specific: India/default = April→March, GCC = Jan→Dec.
+     * Labels follow the span: a calendar-year FY → "2023"; a split FY → "23-24".
      */
     getReportFinancialYears(company) {
         const now = new Date();
-        const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-        const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        const fyStartMonth = this.getFinancialYearStartMonth(company); // 0=Jan, 3=Apr
+        const mm = String(fyStartMonth + 1).padStart(2, '0');
 
+        // The calendar year in which the CURRENT financial year started.
+        const currentYear = now.getMonth() >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1;
+        // Span every financial year to its FULL end boundary — including the
+        // current, still-open FY. Capping the current FY (and "Full") at *today*
+        // made Tally compute the Balance Sheet / P&L "as at today", silently
+        // dropping future-dated vouchers (e.g. a post-dated rent accrual). That
+        // is exactly how the synced BS/P&L diverged from Tally's period view —
+        // Tally reports over the whole period, so we must request the whole
+        // period. Future dates only ADD already-entered vouchers; if none exist
+        // beyond today the report is identical to the as-at-today result.
         const yearsToSync = [];
+        let currentFyEndStr = '';
         for (let i = 0; i < 4; i++) {
             const fyStart = currentYear - i;
-            const fromD = `${fyStart}0401`;
-            const toD = i === 0 ? today : `${fyStart + 1}0331`;
-            const shortStart = String(fyStart).substring(2, 4);
-            const shortEnd = String(fyStart + 1).substring(2, 4);
-            yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: `${shortStart}-${shortEnd}` });
+            // Last day before the next FY starts: new Date(fyStart+1, fyStartMonth, 0).
+            const endBoundary = new Date(fyStart + 1, fyStartMonth, 0);
+            const endYear = endBoundary.getFullYear();
+            const endMM = String(endBoundary.getMonth() + 1).padStart(2, '0');
+            const endDD = String(endBoundary.getDate()).padStart(2, '0');
+
+            const fromD = `${fyStart}${mm}01`;
+            const toD = `${endYear}${endMM}${endDD}`;
+            if (i === 0) currentFyEndStr = toD;
+
+            // Single-year (calendar) FY → "2023"; split FY → "23-24".
+            const financialYear = endYear === fyStart
+                ? `${fyStart}`
+                : `${String(fyStart).substring(2, 4)}-${String(fyStart + 1).substring(2, 4)}`;
+
+            yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear });
         }
 
+        // "Full" spans books-start through the END of the current FY, so open-year
+        // future-dated vouchers are captured for the same reason as above.
         const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
-        const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
-        yearsToSync.push({ fromDate: fullFromDate, toDate: today, financialYear: 'Full' });
+        const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : `2000${mm}01`;
+        yearsToSync.push({ fromDate: fullFromDate, toDate: currentFyEndStr, financialYear: 'Full' });
         return yearsToSync;
     }
 
@@ -691,26 +758,156 @@ class BackgroundSyncScheduler {
     }
 
     /**
-     * Check if Tally is running and accessible
+     * Check if Tally is running AND has at least one company loaded.
+     * Returns { running: false } if Tally is not reachable.
+     * Returns { running: true, loadedCompanies: string[] } with the list of
+     * company names currently open in Tally (may be empty if none are loaded).
      */
     async checkTallyStatus() {
+        const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        const tallyPort = appSettings.tallyPort || 9000;
+        const tallyHost = appSettings.tallyHost || 'localhost';
+        const tallyUrl = `http://${tallyHost}:${tallyPort}`;
+
+        // Step 1 — HTTP ping (quick, no body)
         try {
-            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-            const tallyPort = appSettings.tallyPort || 9000;
-            
-            // Simple ping to check Tally availability
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
-            
-            const response = await fetch(`http://localhost:${tallyPort}`, {
-                method: 'GET',
-                signal: controller.signal
+            const pingCtrl = new AbortController();
+            const pingTimeout = setTimeout(() => pingCtrl.abort(), 4000);
+            await fetch(tallyUrl, { method: 'GET', signal: pingCtrl.signal });
+            clearTimeout(pingTimeout);
+        } catch (_) {
+            return { running: false, loadedCompanies: [] };
+        }
+
+        // Step 2 - If sync is actively running, skip querying the list of companies
+        // to prevent unnecessary load and XML request spam to Tally.
+        if (window.syncStateManager && typeof window.syncStateManager.isSyncInProgress === 'function' && window.syncStateManager.isSyncInProgress()) {
+            return { running: true, loadedCompanies: null };
+        }
+
+        // Step 3 — Query Tally for the list of currently open companies.
+        // null means the XML call failed (Tally busy/not ready) → treat as no
+        // loaded companies so every company sync is safely skipped.
+        const rawList = await this.fetchTallyLoadedCompanies(tallyUrl);
+        const loadedCompanies = rawList ?? [];
+        return { running: true, loadedCompanies };
+    }
+
+    /**
+     * Decode the XML entities Tally emits so a parsed name matches the stored one.
+     * Handles named (&amp; &lt; &gt; &quot; &apos;) and numeric (&#NN; / &#xNN;)
+     * entities. Tally encodes '&' as &amp; and some control/special chars as
+     * numeric entities, so without this "A &amp; B Traders" never equals "A & B Traders".
+     */
+    decodeXmlEntities(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&amp;/gi, '&')
+            .replace(/&lt;/gi, '<')
+            .replace(/&gt;/gi, '>')
+            .replace(/&quot;/gi, '"')
+            .replace(/&apos;/gi, "'")
+            .replace(/&#x([0-9a-f]+);/gi, (_, h) => {
+                try { return String.fromCodePoint(parseInt(h, 16)); } catch (_) { return ' '; }
+            })
+            .replace(/&#(\d+);/g, (_, d) => {
+                try { return String.fromCodePoint(parseInt(d, 10)); } catch (_) { return ' '; }
             });
-            
-            clearTimeout(timeoutId);
-            return { running: true };
-        } catch (error) {
-            return { running: false };
+    }
+
+    /**
+     * Canonical form for comparing a Tally company name with a stored one:
+     * decode entities, collapse ALL whitespace runs to a single space, trim,
+     * lowercase. This absorbs the formatting differences (double spaces,
+     * non-breaking spaces, encoded chars) that caused open companies to be
+     * mis-reported as "not loaded".
+     */
+    normalizeCompanyName(name) {
+        return this.decodeXmlEntities(name)
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+    }
+
+    /**
+     * POST a Tally XML request and return the list of company names that are
+     * currently open (loaded) in the running Tally instance.
+     * Returns [] if the call fails or no companies are loaded.
+     *
+     * WHY COMPUTE instead of FILTER:
+     *   <TYPE>Company</TYPE> without a filter returns ALL companies on disk.
+     *   Tally's XML API does not reliably apply FILTER clauses, so we use a
+     *   COMPUTE field ($$IsOpen:$Name) on every row and filter client-side.
+     *   When Tally is at the "Select Company" screen (nothing loaded),
+     *   $$IsOpen is "No" for every company → result is [].
+     */
+    async fetchTallyLoadedCompanies(tallyUrl) {
+        const xmlBody = `<ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>Collection of Companies</ID></HEADER><BODY><DESC><STATICVARIABLES><SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE><SVTODATE TYPE="Date">01-Jan-1970</SVTODATE><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES><TDL><TDLMESSAGE><COLLECTION NAME="Collection of Companies" ISMODIFY="No"><TYPE>Company</TYPE><FETCH>GUID,ALTERID,MASTERID,NAME,STATE,STARTINGFROM,BOOKSFROM,ENDINGAT,LASTVOUCHERDATE,BASICCOMPANYFORMALNAME,EMAIL,WEBSITE,TELEPHONE,FAX,PHONENUMBER,_ADDRESS1,_ADDRESS2,_ADDRESS3,_ADDRESS4,_ADDRESS5,STATENAME,PINCODE,COUNTRYNAME,PANID,GSTREGISTRATIONTYPE,GSTAPPLICABLEDATE,GSTSTATE,GSTIN,GSTFREEZONE,GSTEINVOICEAPPLICABLE,GSTEWAYBILLAPPLICABLE,VATEMIRAATE,VATAPPLICABLEDATE,VATREGISTRATIONNUMBER,VATACCOUNTID,VATFREEZONE,BILLWISEENABLED,COSTCENTREENABLED,BATCHENABLED,USEDISCOUNTCOLUMN,USEACTUALCOLUMN,PAYROLLENABLED,DESTINATION</FETCH><FILTERS>GroupFilter</FILTERS></COLLECTION><SYSTEM TYPE="FORMULAE" NAME="GroupFilter">$isaggregate = "No"</SYSTEM></TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>`;
+
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 5000);
+            const response = await fetch(tallyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/xml' },
+                body: xmlBody,
+                signal: ctrl.signal
+            });
+            clearTimeout(tid);
+
+            // Non-OK HTTP response → Tally is running but not usable yet. Return null
+            // so callers can distinguish "XML call failed" from "nothing loaded".
+            if (!response.ok) return null;
+
+            const xml = await response.text();
+            console.log('🔍 Tally company status XML (first 600 chars):', xml.substring(0, 600));
+
+            // Parse each <COMPANY> block; only keep entries where <ISOPEN> = "Yes".
+            // Parse each <COMPANY> block
+            // IMPORTANT: collect BOTH the NAME="…" attribute AND the child <NAME> tag as
+            // name candidates. Tally often puts a re-encoded/internal form of the name in
+            // the attribute while the readable name (matching our stored company.name)
+            // lives in the child tag — relying on only one caused valid, open companies to
+            // be reported as "not loaded". Pushing both (decoded) lets the caller match on
+            // either form. Extra aliases belong to THIS open company, so they can't produce
+            // a false positive for a different company.
+            const names = [];
+            const companyBlockRe = /<COMPANY\b[^>]*>([\s\S]*?)<\/COMPANY>/gi;
+            let block;
+            while ((block = companyBlockRe.exec(xml)) !== null) {
+                const inner = block[1];
+
+                // Candidate 1 — child <NAME> tag (human-readable, usually matches our store)
+                const nameTag = inner.match(/<NAME>([\s\S]*?)<\/NAME>/i);
+                if (nameTag) {
+                    const v = this.decodeXmlEntities(nameTag[1]).trim();
+                    if (v) names.push(v);
+                }
+
+                // Candidate 2 — NAME="…" attribute on the <COMPANY> element
+                const nameAttr = block[0].match(/\bNAME="([^"]*)"/i);
+                if (nameAttr) {
+                    const v = this.decodeXmlEntities(nameAttr[1]).trim();
+                    if (v) names.push(v);
+                }
+            }
+
+            // De-duplicate (case-insensitive) for a clean list.
+            const seen = new Set();
+            const unique = [];
+            for (const n of names) {
+                const key = n.toLowerCase();
+                if (!seen.has(key)) { seen.add(key); unique.push(n); }
+            }
+
+            console.log(`🏢 Tally currently loaded companies: [${unique.join(', ') || 'none'}]`);
+            // [] here is valid: Tally responded but no company is open (Select Company screen)
+            return unique;
+        } catch (_) {
+            // Network/timeout error: Tally is unreachable or too busy. Return null so
+            // callers know the list could not be retrieved (distinct from "nothing loaded").
+            console.log('⚠️ Could not fetch Tally company list — Tally may be busy or not ready');
+            return null;
         }
     }
     
@@ -753,12 +950,41 @@ class BackgroundSyncScheduler {
             return;
         }
 
+        // Check if Tally is running and has companies loaded
+        let tallyStatus = { running: true, loadedCompanies: null };
+        try {
+            tallyStatus = await this.checkTallyStatus();
+        } catch (err) {
+            tallyStatus.running = false;
+            tallyStatus.loadedCompanies = [];
+        }
+
+        if (!tallyStatus.running) {
+            console.log('ℹ️ Tally not running, skipping background reconciliation');
+            return;
+        }
+
+        if (tallyStatus.loadedCompanies && tallyStatus.loadedCompanies.length === 0) {
+            console.log('ℹ️ Tally is running but no companies are loaded — skipping background reconciliation to prevent MAV');
+            return;
+        }
+
         let totalMissing = 0;
         let totalSynced = 0;
         
         for (const company of companies) {
             try {
                 console.log(`🔍 Reconciling: ${company.name}`);
+
+                // Check if this specific company is loaded
+                if (tallyStatus.loadedCompanies) {
+                    const companyNameNorm = this.normalizeCompanyName(company.name);
+                    const isLoaded = tallyStatus.loadedCompanies.some(n => this.normalizeCompanyName(n) === companyNameNorm);
+                    if (!isLoaded) {
+                        console.log(`⏭️ Skipping background reconciliation for "${company.name}" — not loaded in Tally`);
+                        continue;
+                    }
+                }
                 const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 const _now = new Date();
                 const _fyStart = _now.getMonth() >= 3 ? `01-Apr-${_now.getFullYear()}` : `01-Apr-${_now.getFullYear() - 1}`;

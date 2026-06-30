@@ -201,7 +201,10 @@ class AuthService {
                 message: 'Login successful',
                 token: payload.token,
                 deviceToken: payload.deviceToken,
-                user: this.user
+                user: this.user,
+                mobileVerified: payload.mobileVerified,
+                mobile: payload.mobile,
+                countryCode: payload.countryCode
             };
         } catch (error) {
             console.error('Login error:', error);

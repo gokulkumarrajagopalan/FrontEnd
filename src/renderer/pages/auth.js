@@ -1049,7 +1049,7 @@
                         <div class="auth-panel-note">
                             <label style="display: flex; align-items: flex-start; gap: var(--ds-space-3); cursor: pointer;">
                                 <input type="checkbox" id="signupAgreeTerms" style="width: 18px; height: 18px; border-radius: var(--ds-radius-sm); border: 2px solid var(--ds-border-default); margin-top: 2px;" required>
-                                <span style="font-size: var(--ds-text-xs); color: var(--ds-text-secondary); line-height: 1.6;">I agree to the <a href="#" class="auth-link-btn">Terms of Service</a> and <a href="#" class="auth-link-btn">Privacy Policy</a>.</span>
+                                <span style="font-size: var(--ds-text-xs); color: var(--ds-text-secondary); line-height: 1.6;">I agree to the <a href="#" id="signupTermsLink" class="auth-link-btn">Terms of Service</a> and <a href="#" id="signupPrivacyLink" class="auth-link-btn">Privacy Policy</a>.</span>
                             </label>
                         </div>
 
@@ -2075,6 +2075,31 @@
                     throw new Error((result && result.message) || 'Login failed');
                 }
 
+                // Check if mobile is verified
+                if (result.mobileVerified === false || result.mobileVerified === 'N') {
+                    showError('Mobile number not verified. Redirecting to verification...');
+                    if (loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = originalBtnHtml; }
+                    if (loadingSpinner) loadingSpinner.classList.add('hidden');
+                    
+                    localStorage.setItem('pendingVerificationUsername', username);
+                    localStorage.setItem('pendingVerificationMobile', result.mobile || '');
+                    localStorage.setItem('pendingVerificationCountryCode', result.countryCode || '');
+                    
+                    // Trigger mobile OTP
+                    try {
+                        await window.publicApiService.post('/sns/send-mobile-otp', { username });
+                    } catch (e) {
+                        console.error('Failed to send mobile OTP during login redirect:', e);
+                    }
+                    
+                    setTimeout(() => {
+                        window.location.hash = '#verify-mobile-otp';
+                        const fullMobile = result.mobile && result.mobile.startsWith('+') ? result.mobile : `${result.countryCode || '+91'}${result.mobile || ''}`;
+                        window.initializeMobileOtpVerification(fullMobile, username);
+                    }, 1500);
+                    return;
+                }
+
                 // Persist credentials when "Remember me" is checked
                 if (rememberMeCheckbox && rememberMeCheckbox.checked) {
                     localStorage.setItem('rememberMe', 'true');
@@ -2479,12 +2504,8 @@
                 localStorage.setItem('pendingVerificationMobile', registrationPayload.mobile);
                 localStorage.setItem('pendingVerificationCountryCode', registrationPayload.countryCode);
 
-                // Explicitly send email OTP using username
-                const emailOtpResult = await window.publicApiService.post('/auth/send-email-otp', { username: registrationPayload.username });
-
-                if (!emailOtpResult.success) {
-                    throw new Error(emailOtpResult.error || 'Failed to send email OTP');
-                }
+                // Backend automatically sends OTP during registration.
+                // We can just proceed to the verification screen.
 
                 if (successMessage) {
                     const msgText = successMessage.querySelector('.msg-text') || successMessage.querySelector('.msg-content');
@@ -2727,7 +2748,7 @@
             resendBtn.disabled = true;
 
             try {
-                const apiResult = await window.publicApiService.post('/auth/send-email-otp', { username });
+                const apiResult = await window.publicApiService.post('/auth/resend-otp', { username });
 
                 if (!apiResult.success) {
                     throw new Error(apiResult.error || 'Failed to resend OTP');
@@ -3000,6 +3021,34 @@
         // Auto-focus first input
         otpInputs[0].focus();
     }
+
+    // ============= GLOBAL EVENT DELEGATION FOR LEGAL LINKS =============
+    // Open the Terms of Service / Privacy Policy web pages in the user's
+    // default browser. Never hardcode the host - read apiConfig.WEB_APP_URL.
+    const openLegalPage = (path) => {
+        const base = (window.apiConfig && window.apiConfig.WEB_APP_URL) || '';
+        const url = `${base}${path}`;
+        if (window.electronAPI && window.electronAPI.openExternalUrl) {
+            window.electronAPI.openExternalUrl(url);
+        } else {
+            window.open(url, '_blank');
+        }
+    };
+
+    // Use event delegation on document body to catch clicks even if
+    // the signup form HTML is dynamically re-rendered by initializeSignup.
+    document.body.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (!link) return;
+
+        if (link.id === 'signupTermsLink') {
+            e.preventDefault();
+            openLegalPage('/terms');
+        } else if (link.id === 'signupPrivacyLink') {
+            e.preventDefault();
+            openLegalPage('/privacy');
+        }
+    });
 
 })();
 

@@ -11,13 +11,13 @@ class SyncScheduler {
         try {
             const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             // Settings stores interval in MINUTES, convert to milliseconds
-            const intervalMinutes = settings.syncInterval || 60; // Default 60 minutes
+            const intervalMinutes = settings.syncInterval || 5; // Default 5 minutes
             const intervalMs = intervalMinutes * 60 * 1000;
-            console.log(`📊 Sync interval: ${intervalMinutes} minutes (${intervalMs}ms)`);
+            console.log(`🔍 Sync interval: ${intervalMinutes} minutes (${intervalMs}ms)`);
             return intervalMs;
         } catch (error) {
             console.error('Error getting sync interval:', error);
-            return 3600000; // Default 1 hour in ms
+            return 300000; // Default 5 minutes in ms
         }
     }
 
@@ -110,11 +110,17 @@ class SyncScheduler {
     }
 
     async runSync() {
+        // Prevent parallel syncs
+        if (window.syncStateManager && typeof window.syncStateManager.isSyncInProgress === 'function' && window.syncStateManager.isSyncInProgress()) {
+            console.log('ℹ️ Sync is already in progress, skipping automatic scheduled sync.');
+            return;
+        }
+
         try {
             await this.checkAndPauseForInternet();
 
             console.log('\n' + '='.repeat(80));
-            console.log(`🔄 STARTING AUTOMATIC SYNC - ${new Date().toLocaleTimeString()}`);
+            console.log(`🚀 STARTING AUTOMATIC SYNC - ${new Date().toLocaleTimeString()}`);
             console.log('='.repeat(80));
             this.lastSyncTime = new Date();
 
@@ -133,6 +139,34 @@ class SyncScheduler {
 
             if (!authToken || !deviceToken) {
                 console.warn('⚠️ Not authenticated, skipping sync');
+                return;
+            }
+
+            // Check if Tally is running and has companies loaded
+            let tallyStatus = { running: true, loadedCompanies: null };
+            try {
+                if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.checkTallyStatus === 'function') {
+                    tallyStatus = await window.backgroundSyncScheduler.checkTallyStatus();
+                } else if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.fetchTallyLoadedCompanies === 'function') {
+                    const pingCtrl = new AbortController();
+                    const pingTimeout = setTimeout(() => pingCtrl.abort(), 4000);
+                    await fetch(`http://${tallyHost}:${tallyPort}`, { method: 'GET', signal: pingCtrl.signal });
+                    clearTimeout(pingTimeout);
+                    const rawList = await window.backgroundSyncScheduler.fetchTallyLoadedCompanies(`http://${tallyHost}:${tallyPort}`);
+                    tallyStatus.loadedCompanies = rawList ?? [];
+                }
+            } catch (err) {
+                tallyStatus.running = false;
+                tallyStatus.loadedCompanies = [];
+            }
+
+            if (!tallyStatus.running) {
+                console.log('ℹ️ Tally not running, skipping auto sync');
+                return;
+            }
+
+            if (tallyStatus.loadedCompanies && tallyStatus.loadedCompanies.length === 0) {
+                console.log('ℹ️ Tally is running but no companies are loaded — skipping sync to prevent MAV');
                 return;
             }
 
@@ -177,6 +211,23 @@ class SyncScheduler {
                 
                 const company = companies[i];
                 console.log(`\n[${i + 1}/${companies.length}] 🏢 Syncing: ${company.name}...`);
+
+                // Check if this specific company is loaded
+                if (tallyStatus.loadedCompanies) {
+                    const normalize = (name) => {
+                        if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.normalizeCompanyName === 'function') {
+                            return window.backgroundSyncScheduler.normalizeCompanyName(name);
+                        }
+                        return String(name || '').toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
+                    };
+                    const companyNameNorm = normalize(company.name);
+                    const isLoaded = tallyStatus.loadedCompanies.some(n => normalize(n) === companyNameNorm);
+                    if (!isLoaded) {
+                        console.log(`⏭️ Skipping "${company.name}" — not loaded in Tally`);
+                        successCount++; // Count as success so we don't report failure
+                        continue;
+                    }
+                }
 
                 if (window.syncStateManager) {
                     window.syncStateManager.updateProgress(i + 1, `Syncing ${company.name}...`);
@@ -273,12 +324,58 @@ class SyncScheduler {
         try {
             console.log(`🔍 Reconciling ${companies.length} companies...`);
 
+            // Check if Tally is running and has companies loaded
+            let tallyStatus = { running: true, loadedCompanies: null };
+            const tallyPort = appSettings.tallyPort || 9000;
+            const tallyHost = appSettings.tallyHost || 'localhost';
+            try {
+                if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.checkTallyStatus === 'function') {
+                    tallyStatus = await window.backgroundSyncScheduler.checkTallyStatus();
+                } else if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.fetchTallyLoadedCompanies === 'function') {
+                    const pingCtrl = new AbortController();
+                    const pingTimeout = setTimeout(() => pingCtrl.abort(), 4000);
+                    await fetch(`http://${tallyHost}:${tallyPort}`, { method: 'GET', signal: pingCtrl.signal });
+                    clearTimeout(pingTimeout);
+                    const rawList = await window.backgroundSyncScheduler.fetchTallyLoadedCompanies(`http://${tallyHost}:${tallyPort}`);
+                    tallyStatus.loadedCompanies = rawList ?? [];
+                }
+            } catch (err) {
+                tallyStatus.running = false;
+                tallyStatus.loadedCompanies = [];
+            }
+
+            if (!tallyStatus.running) {
+                console.log('ℹ️ Tally not running, skipping reconciliation');
+                return;
+            }
+
+            if (tallyStatus.loadedCompanies && tallyStatus.loadedCompanies.length === 0) {
+                console.log('ℹ️ Tally is running but no companies are loaded — skipping reconciliation to prevent MAV');
+                return;
+            }
+
             let totalMissing = 0;
             let totalUpdated = 0;
             let totalSynced = 0;
 
             for (const company of companies) {
                 try {
+                    // Check if this specific company is loaded
+                    if (tallyStatus.loadedCompanies) {
+                        const normalize = (name) => {
+                            if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.normalizeCompanyName === 'function') {
+                                return window.backgroundSyncScheduler.normalizeCompanyName(name);
+                            }
+                            return String(name || '').toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
+                        };
+                        const companyNameNorm = normalize(company.name);
+                        const isLoaded = tallyStatus.loadedCompanies.some(n => normalize(n) === companyNameNorm);
+                        if (!isLoaded) {
+                            console.log(`⏭️ Skipping reconciliation for "${company.name}" — not loaded in Tally`);
+                            continue;
+                        }
+                    }
+
                     const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                     const _now = new Date();
                     const _fyStart = _now.getMonth() >= 3 ? `01-Apr-${_now.getFullYear()}` : `01-Apr-${_now.getFullYear() - 1}`;
@@ -764,13 +861,14 @@ class SyncScheduler {
     getReportFinancialYears(company) {
         const now = new Date();
         const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-        const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 
         const yearsToSync = [];
         for (let i = 0; i < 4; i++) {
             const fyStart = currentYear - i;
             const fromD = `${fyStart}0401`;
-            const toD = i === 0 ? today : `${fyStart + 1}0331`;
+            // Span the whole FY incl. the open current FY — capping at "today"
+            // dropped future-dated vouchers from the synced BS/P&L.
+            const toD = `${fyStart + 1}0331`;
             const shortStart = String(fyStart).substring(2, 4);
             const shortEnd = String(fyStart + 1).substring(2, 4);
             yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: `${shortStart}-${shortEnd}` });
@@ -778,7 +876,7 @@ class SyncScheduler {
 
         const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
         const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
-        yearsToSync.push({ fromDate: fullFromDate, toDate: today, financialYear: 'Full' });
+        yearsToSync.push({ fromDate: fullFromDate, toDate: `${currentYear + 1}0331`, financialYear: 'Full' });
         return yearsToSync;
     }
 

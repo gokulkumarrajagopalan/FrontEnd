@@ -5,8 +5,7 @@
             text: 'Add company',
             icon: '<i class="fas fa-plus"></i>',
             variant: 'primary',
-            style: 'height: 38px; padding: 0 16px;',
-            onclick: "window.location.hash = '#import-company'"
+            style: 'height: 38px; padding: 0 16px;'
         });
 
         const searchInput = window.UIComponents.searchInput({
@@ -59,7 +58,7 @@
                             <div style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); text-transform: uppercase; margin-bottom: var(--ds-space-1);">Subscription Details</div>
                             <div style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); color: var(--ds-text-primary); display: flex; align-items: center; gap: 8px;">
                                 Tally License:
-                                <span id="subLicenseKey" data-full="" data-masked="*****2698" style="font-family: var(--ds-font-mono);">*****2698</span>
+                                <span id="subLicenseKey" data-full="" data-masked="" style="font-family: var(--ds-font-mono);">&mdash;</span>
                                 <button id="subLicenseToggle" title="Show / hide license number" style="background: none; border: none; cursor: pointer; padding: 0; color: var(--ds-text-tertiary); line-height: 1; display: inline-flex; align-items: center;" aria-label="Toggle license visibility">
                                     <i class="fas fa-eye" style="font-size: 13px;"></i>
                                 </button>
@@ -70,8 +69,12 @@
                             <div id="subPlanName" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">&mdash;</div>
                         </div>
                         <div>
-                            <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Expires</div>
+                            <div id="subExpiryLabel" style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Expires</div>
                             <div id="subExpiry" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">&mdash;</div>
+                        </div>
+                        <div>
+                            <div style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); margin-bottom: 2px;">Days Left</div>
+                            <div id="subDaysLeft" style="font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary);">&mdash;</div>
                         </div>
                         <div style="margin-left: auto; display: flex; align-items: center;">
                             <span id="subStatusBadge" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; background: rgba(16,185,129,0.15); color: #065f46; font-size: 12px; font-weight: 600;">
@@ -128,6 +131,16 @@
     let currentSyncingCompanyId = null;
     let isReconciling = false;
     let currentReconcilingCompanyId = null;
+
+    // Live "is this company currently loaded in Tally?" status, refreshed on a
+    // timer while the My Company screen is open. Shape:
+    //   { running: boolean|null, loadedCompanies: string[]|null }
+    //   running=null            → not checked yet (show "Checking…")
+    //   running=false           → Tally not running
+    //   loadedCompanies=null    → Tally running but the company list couldn't be read (busy)
+    //   loadedCompanies=[...]   → names of companies currently open in Tally
+    let tallyLoadStatus = { running: null, loadedCompanies: null };
+    let tallyStatusIntervalHandle = null;
 
     /**
      * Validate subscription status before allowing sync.
@@ -464,20 +477,27 @@
         const toggleBtn = document.getElementById('subLicenseToggle');
         const planEl = document.getElementById('subPlanName');
         const expiryEl = document.getElementById('subExpiry');
+        const expiryLabelEl = document.getElementById('subExpiryLabel');
+        const daysLeftEl = document.getElementById('subDaysLeft');
         const badgeEl = document.getElementById('subStatusBadge');
 
         // Field name variants from backend (camelCase or snake_case)
         const licNum = sub.licenseNumber || sub.license_number || sub.tallyLicense || sub.tally_license || sub.licenceNo || sub.licence_no || '';
         const planName = sub.planName || sub.plan_name || sub.plan || '';
-        const expiryRaw = sub.planExpiryDate || sub.plan_expiry_date || sub.expiryDate || sub.expiry_date || '';
-        const isExpired = sub.isExpired || sub.is_expired || false;
+        const status = (sub.status || '').toUpperCase();
+        // trialEndDate takes priority for trial users; planExpiryDate is the fallback for paid plans
+        const expiryRaw = sub.trialEndDate || sub.trial_end_date || sub.planExpiryDate || sub.plan_expiry_date || sub.expiryDate || sub.expiry_date || '';
+        const isExpired = sub.isExpired || sub.is_expired || status === 'EXPIRED';
+        // Backend sends trialRemainingDays or daysRemaining
+        const daysRemaining = (sub.trialRemainingDays != null) ? sub.trialRemainingDays
+                            : (sub.daysRemaining != null) ? sub.daysRemaining : null;
 
+        // License
         if (licenseEl && licNum) {
             const lic = String(licNum);
             const masked = '*'.repeat(Math.max(0, lic.length - 4)) + lic.slice(-4);
             licenseEl.dataset.full = lic;
             licenseEl.dataset.masked = masked;
-            
             const showing = licenseEl.dataset.showing === 'true';
             licenseEl.textContent = showing ? lic : masked;
         }
@@ -487,7 +507,7 @@
             toggleBtn.onclick = () => {
                 const showing = licenseEl.dataset.showing === 'true';
                 if (showing) {
-                    licenseEl.textContent = licenseEl.dataset.masked || licenseEl.textContent;
+                    licenseEl.textContent = licenseEl.dataset.masked || '\u2014';
                     licenseEl.dataset.showing = 'false';
                     toggleBtn.querySelector('i').className = 'fas fa-eye';
                 } else {
@@ -498,31 +518,59 @@
             };
         }
 
-        if (planEl) planEl.textContent = planName || '\u2014';
+        // Plan name \u2014 fall back to a friendly status label if planName is empty
+        const statusLabel = { TRIAL: 'Free Trial', ACTIVE: 'Active Plan', EXPIRED: 'Expired', CANCELLED: 'Cancelled' }[status] || status;
+        if (planEl) planEl.textContent = planName || statusLabel || '\u2014';
+
+        // Expiry label: "Trial Ends" for trial, "Expires" otherwise
+        if (expiryLabelEl) expiryLabelEl.textContent = status === 'TRIAL' ? 'Trial Ends' : 'Expires';
+
+        // Expiry date
+        const expiryDate = safeParseDate(expiryRaw);
         if (expiryEl) {
-            const d = safeParseDate(expiryRaw);
-            if (d) {
-                expiryEl.textContent = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            if (expiryDate) {
+                expiryEl.textContent = expiryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
             } else {
                 expiryEl.textContent = '\u2014';
             }
         }
 
+        // Days left \u2014 prefer backend-computed value, fall back to client calculation
+        let computedDaysLeft = daysRemaining;
+        if (computedDaysLeft == null && expiryDate) {
+            computedDaysLeft = Math.ceil((expiryDate - Date.now()) / 86400000);
+        }
+        if (daysLeftEl) {
+            if (isExpired || (computedDaysLeft !== null && computedDaysLeft <= 0)) {
+                daysLeftEl.textContent = 'Expired';
+                daysLeftEl.style.color = '#ef4444';
+            } else if (computedDaysLeft !== null) {
+                daysLeftEl.textContent = `${computedDaysLeft} day${computedDaysLeft !== 1 ? 's' : ''}`;
+                daysLeftEl.style.color = computedDaysLeft <= 3 ? '#ef4444' : computedDaysLeft <= 7 ? '#f59e0b' : 'var(--ds-text-primary)';
+            } else {
+                daysLeftEl.textContent = '\u2014';
+                daysLeftEl.style.color = 'var(--ds-text-primary)';
+            }
+        }
+
+        // Status badge
         if (badgeEl) {
-            const d = safeParseDate(expiryRaw);
-            const daysLeft = d ? Math.ceil((d - Date.now()) / 86400000) : null;
-            if (isExpired || (daysLeft !== null && daysLeft <= 0)) {
+            if (isExpired || (computedDaysLeft !== null && computedDaysLeft <= 0)) {
                 badgeEl.style.background = 'rgba(239,68,68,0.15)';
                 badgeEl.style.color = '#991b1b';
                 badgeEl.innerHTML = '<i class="fas fa-circle" style="font-size:7px;"></i> Expired';
-            } else if (daysLeft !== null && daysLeft <= 14) {
+            } else if (status === 'TRIAL') {
                 badgeEl.style.background = 'rgba(245,158,11,0.15)';
                 badgeEl.style.color = '#92400e';
-                badgeEl.innerHTML = `<i class="fas fa-circle" style="font-size:7px;"></i> Expiring soon`;
+                badgeEl.innerHTML = '<i class="fas fa-circle" style="font-size:7px;"></i> Trial';
+            } else if (computedDaysLeft !== null && computedDaysLeft <= 14) {
+                badgeEl.style.background = 'rgba(245,158,11,0.15)';
+                badgeEl.style.color = '#92400e';
+                badgeEl.innerHTML = '<i class="fas fa-circle" style="font-size:7px;"></i> Expiring soon';
             } else {
                 badgeEl.style.background = 'rgba(16,185,129,0.15)';
                 badgeEl.style.color = '#065f46';
-                badgeEl.innerHTML = '<i class="fas fa-circle" style="font-size: 7px;"></i> Active';
+                badgeEl.innerHTML = '<i class="fas fa-circle" style="font-size:7px;"></i> Active';
             }
         }
     }
@@ -745,6 +793,94 @@
             const tallyPort = appSettings.tallyPort || 9000;
             const backendUrl = window.apiConfig?.baseURL || window.AppConfig?.API_BASE_URL;
 
+            // Pre-sync safety checks —————————————————————————————————————
+            // 1. Confirm Tally is reachable
+            const tallyUrl = `http://${tallyHost}:${tallyPort}`;
+            let tallyReachable = false;
+            try {
+                const pingCtrl = new AbortController();
+                const pingTid = setTimeout(() => pingCtrl.abort(), 4000);
+                await fetch(tallyUrl, { method: 'GET', signal: pingCtrl.signal });
+                clearTimeout(pingTid);
+                tallyReachable = true;
+            } catch (_) {}
+
+            if (!tallyReachable) {
+                if (window.notificationService) {
+                    window.notificationService.error(`❌ Tally is not running at ${tallyUrl}. Please open Tally and try again.`);
+                }
+                resetButton();
+                if (window.syncStateManager) window.syncStateManager.endSync();
+                isSyncing = false;
+                updateSyncButtonStates();
+                return;
+            }
+
+            // 2. Confirm this company is open in Tally.
+            //    fetchTallyLoadedCompanies returns:
+            //      null  → XML call failed (Tally busy/not ready) — block sync
+            //      []    → Tally running but no company loaded     — block sync (prevents MAV)
+            //      [...]  → list of currently open company names  — only allow if ours is in the list
+            let tallyLoadedCompanies = null;
+            if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.fetchTallyLoadedCompanies === 'function') {
+                tallyLoadedCompanies = await window.backgroundSyncScheduler.fetchTallyLoadedCompanies(tallyUrl);
+            }
+
+            // Keep the on-screen status pills consistent with what this fresh
+            // pre-sync check just observed (Tally was reachable — we pinged it above).
+            tallyLoadStatus = { running: true, loadedCompanies: tallyLoadedCompanies };
+            companies.forEach(c => {
+                const el = document.getElementById(`tally-status-${c.id}`);
+                if (el) el.innerHTML = renderTallyStatusBadge(c, tallyLoadStatus);
+            });
+
+            if (tallyLoadedCompanies === null) {
+                // XML call failed — Tally responded to the HTTP ping but is not ready
+                // to serve company data yet. Attempting a sync would risk MAV.
+                if (window.notificationService) {
+                    window.notificationService.warning(
+                        `⚠️ Tally is not ready yet. Please wait a moment and try again.`
+                    );
+                }
+                resetButton();
+                if (window.syncStateManager) window.syncStateManager.endSync();
+                isSyncing = false;
+                updateSyncButtonStates();
+                return;
+            }
+
+            if (tallyLoadedCompanies.length === 0) {
+                // Tally responded but no company is loaded (Select Company screen).
+                // Sending sync requests here causes the Memory Access Violation crash.
+                if (window.notificationService) {
+                    window.notificationService.warning(
+                        `⚠️ No company is open in Tally. Please open "${company.name}" in Tally and try again.`
+                    );
+                }
+                resetButton();
+                if (window.syncStateManager) window.syncStateManager.endSync();
+                isSyncing = false;
+                updateSyncButtonStates();
+                return;
+            }
+
+            const companyNameNorm = normalizeCompanyName(company.name);
+            const isCompanyLoaded = tallyLoadedCompanies.some(n => normalizeCompanyName(n) === companyNameNorm);
+
+            if (!isCompanyLoaded) {
+                if (window.notificationService) {
+                    window.notificationService.warning(
+                        `⚠️ "${company.name}" is not open in Tally. Currently open: ${tallyLoadedCompanies.join(', ')}. Please switch company in Tally and try again.`
+                    );
+                }
+                resetButton();
+                if (window.syncStateManager) window.syncStateManager.endSync();
+                isSyncing = false;
+                updateSyncButtonStates();
+                return;
+            }
+            // ——————————————————————————————————————————————————————————————
+
             const syncSteps = [
                 { name: 'Units', api: window.electronAPI.syncUnits, entityType: 'Unit' },
                 { name: 'Stock Groups', api: window.electronAPI.syncStockGroups, entityType: 'StockGroup' },
@@ -824,11 +960,11 @@
                     for (let i = 0; i < 4; i++) {
                         const fyStart = currentYear - i;
                         const fromD = `${fyStart}0401`;
-                        // For the current year, toDate is today, for previous years, it's March 31st of next year
-                        const toD = i === 0 
-                            ? `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
-                            : `${fyStart + 1}0331`;
-                            
+                        // Span the whole FY incl. the open current FY. Capping the
+                        // current FY at today dropped future-dated vouchers from the
+                        // synced Balance Sheet / P&L, so they diverged from Tally.
+                        const toD = `${fyStart + 1}0331`;
+
                         const shortStart = String(fyStart).substring(2, 4);
                         const shortEnd = String(fyStart + 1).substring(2, 4);
                         const fyLabel = `${shortStart}-${shortEnd}`;
@@ -836,10 +972,11 @@
                         yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: fyLabel });
                     }
 
-                    // Also add "Full" sync option (from first year start to today date)
+                    // Also add "Full" sync option (books start → current FY end so
+                    // future-dated vouchers within the open FY are included)
                     const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
                     const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
-                    const fullToDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+                    const fullToDate = `${currentYear + 1}0331`;
                     yearsToSync.push({ fromDate: fullFromDate, toDate: fullToDate, financialYear: 'Full' });
 
                     let allYearsSuccess = true;
@@ -1263,6 +1400,141 @@
         }
     }
 
+    /**
+     * Resolve Tally host/port from settings, normalizing a misconfigured host
+     * (same rules used by the sync path) into a usable URL.
+     */
+    function getTallyUrlFromSettings() {
+        const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        let tallyHost = appSettings.tallyHost || 'localhost';
+        tallyHost = tallyHost.replace(/^https?:\/\//i, '');
+        if (/^\d+$/.test(tallyHost.trim())) tallyHost = 'localhost';
+        const tallyPort = appSettings.tallyPort || 9000;
+        return `http://${tallyHost}:${tallyPort}`;
+    }
+
+    /**
+     * Query Tally for the list of currently open companies, used to drive the
+     * per-company "loaded in Tally" status on the My Company screen. This is the
+     * SAME check the sync path runs, so the status the user sees matches whether
+     * a sync will actually be allowed to start.
+     *   returns { running, loadedCompanies } where
+     *     running=false          → Tally not reachable
+     *     loadedCompanies=null   → Tally running but list couldn't be read (busy)
+     *     loadedCompanies=[...]   → open company names (may be [] = none loaded)
+     */
+    async function fetchTallyLoadStatus() {
+        const tallyUrl = getTallyUrlFromSettings();
+
+        // Step 1 — quick HTTP ping to confirm Tally is up.
+        let running = false;
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 4000);
+            await fetch(tallyUrl, { method: 'GET', signal: ctrl.signal });
+            clearTimeout(tid);
+            running = true;
+        } catch (_) {
+            return { running: false, loadedCompanies: null };
+        }
+
+        // Step 2 — ask Tally which companies are open (null if it can't answer yet).
+        let loadedCompanies = null;
+        if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.fetchTallyLoadedCompanies === 'function') {
+            loadedCompanies = await window.backgroundSyncScheduler.fetchTallyLoadedCompanies(tallyUrl);
+        }
+        return { running, loadedCompanies };
+    }
+
+    /**
+     * Canonical company-name form for matching against Tally's reported names.
+     * Mirrors BackgroundSyncScheduler.normalizeCompanyName (entity-decode +
+     * whitespace-collapse + lowercase) so the status badge and the sync gate
+     * agree. Prefer the scheduler's implementation when available so there is a
+     * single source of truth.
+     */
+    function normalizeCompanyName(name) {
+        if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.normalizeCompanyName === 'function') {
+            return window.backgroundSyncScheduler.normalizeCompanyName(name);
+        }
+        return String(name || '')
+            .replace(/&amp;/gi, '&')
+            .replace(/&#x([0-9a-f]+);/gi, (_, h) => { try { return String.fromCodePoint(parseInt(h, 16)); } catch (_) { return ' '; } })
+            .replace(/&#(\d+);/g, (_, d) => { try { return String.fromCodePoint(parseInt(d, 10)); } catch (_) { return ' '; } })
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+    }
+
+    /** True when `company` is in the currently-open Tally company list. */
+    function isCompanyLoadedInTally(company, status) {
+        if (!status || !Array.isArray(status.loadedCompanies)) return false;
+        const norm = normalizeCompanyName(company.name);
+        return status.loadedCompanies.some(n => normalizeCompanyName(n) === norm);
+    }
+
+    /**
+     * Build the small status pill shown under each company name indicating
+     * whether it is currently loaded in Tally.
+     */
+    function renderTallyStatusBadge(company, status) {
+        let color, bg, icon, text, title;
+
+        if (!status || status.running === null) {
+            color = 'var(--ds-text-tertiary)'; bg = 'var(--ds-bg-subtle, #f1f5f9)';
+            icon = 'fa-circle-notch fa-spin'; text = 'Checking Tally…';
+            title = 'Checking whether this company is open in Tally';
+        } else if (status.running === false) {
+            color = '#6b7280'; bg = 'rgba(107,114,128,0.12)';
+            icon = 'fa-plug-circle-xmark'; text = 'Tally not running';
+            title = 'Tally is not running. Open Tally to enable sync.';
+        } else if (status.loadedCompanies === null) {
+            color = '#f59e0b'; bg = 'rgba(245,158,11,0.12)';
+            icon = 'fa-hourglass-half'; text = 'Tally busy — checking';
+            title = 'Tally is running but not ready to report open companies yet.';
+        } else if (isCompanyLoadedInTally(company, status)) {
+            color = '#10b981'; bg = 'rgba(16,185,129,0.12)';
+            icon = 'fa-circle-check'; text = 'Loaded in Tally';
+            title = 'This company is open in Tally. Sync can run.';
+        } else {
+            color = '#ef4444'; bg = 'rgba(239,68,68,0.12)';
+            icon = 'fa-circle-exclamation'; text = 'Company not loaded in Tally';
+            title = 'This company is not open in Tally. Open it in Tally to allow sync.';
+        }
+
+        return `<span class="tally-load-pill" title="${title}" style="display:inline-flex; align-items:center; gap:5px; margin-top:5px; padding:2px 8px; border-radius:999px; background:${bg}; color:${color}; font-size:var(--ds-text-2xs, 11px); font-weight:var(--ds-weight-semibold, 600); line-height:1.6; white-space:nowrap;">
+            <i class="fas ${icon}" style="font-size:10px;"></i>${text}
+        </span>`;
+    }
+
+    /**
+     * Re-query Tally and update every company's status pill in place (no full
+     * table re-render, so it won't disturb open dropdowns or sync progress bars).
+     */
+    async function refreshTallyLoadStatus() {
+        // Skip work (and the Tally ping) when the My Company screen isn't mounted —
+        // e.g. the user navigated away but the interval is still alive.
+        if (!document.getElementById('companySyncTableContainer')) return;
+
+        try {
+            tallyLoadStatus = await fetchTallyLoadStatus();
+        } catch (_) {
+            tallyLoadStatus = { running: false, loadedCompanies: null };
+        }
+        companies.forEach(company => {
+            const el = document.getElementById(`tally-status-${company.id}`);
+            if (el) el.innerHTML = renderTallyStatusBadge(company, tallyLoadStatus);
+        });
+    }
+
+    /** Start (or restart) the periodic Tally-load-status refresh while on this page. */
+    function startTallyStatusPolling() {
+        if (tallyStatusIntervalHandle) clearInterval(tallyStatusIntervalHandle);
+        // Immediate first check, then every 15s.
+        refreshTallyLoadStatus();
+        tallyStatusIntervalHandle = setInterval(refreshTallyLoadStatus, 15000);
+    }
+
     function renderTable() {
         const container = document.getElementById('companySyncTableContainer');
         if (!container) return;
@@ -1315,7 +1587,7 @@
                         text: 'Add company',
                         icon: '<i class="fas fa-plus"></i>',
                         variant: 'primary',
-                        onclick: "window.location.hash = '#import-company'"
+                        onclick: "window.router.navigate('import-company')"
                     })
                 });
             }
@@ -1335,7 +1607,8 @@
                 else badgeVariant = 'warning';
 
                 return [
-                    `<div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">${company.name}</div>`,
+                    `<div style="font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);">${company.name}</div>
+                     <div id="tally-status-${company.id}">${renderTallyStatusBadge(company, tallyLoadStatus)}</div>`,
                     `<span style="color: var(--ds-text-secondary); font-weight: var(--ds-weight-medium);">${company.state || '--'}</span>`,
                     window.UIComponents.badge({ text: syncStatus.toUpperCase(), variant: badgeVariant, size: 'sm' }),
                     (() => {
@@ -1899,6 +2172,11 @@
 
             await loadCompanies();
             populateSubscriptionCard();
+
+            // Live "loaded in Tally" status per company — checks Tally on open and
+            // every 15s so the user immediately sees "Company not loaded in Tally"
+            // and understands why a sync won't start.
+            startTallyStatusPolling();
 
             // Update sync health metrics
             updateCompanySyncHealthMetrics();

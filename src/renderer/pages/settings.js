@@ -160,7 +160,7 @@
 
             setVal('tallyHost', data.tallyHost || 'localhost');
             setVal('tallyPort', data.tallyPort || '9000');
-            setVal('syncInterval', data.syncInterval || '30');
+            setVal('syncInterval', data.syncInterval || '5');
         }
     }
 
@@ -270,7 +270,7 @@
                     let tallyHost = document.getElementById('tallyHost').value.trim() || 'localhost';
                     tallyHost = tallyHost.replace(/^https?:\/\//i, '');
                     const tallyPort = parseInt(document.getElementById('tallyPort').value, 10);
-                    const syncInterval = parseInt(document.getElementById('syncInterval').value, 10) || 30;
+                    const syncInterval = parseInt(document.getElementById('syncInterval').value, 10) || 5;
 
                     validateSettings(tallyHost, tallyPort, syncInterval);
 

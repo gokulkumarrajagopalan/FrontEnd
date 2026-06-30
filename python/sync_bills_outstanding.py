@@ -40,27 +40,17 @@ if not logger.handlers:
     logger.handlers.extend(global_logger.handlers)
 
 
-def verify_tally_company(tally_url, expected_company_name):
+def verify_tally_company(tally_url: str, expected_company_name: str) -> tuple:
     """Verify that the expected company is loaded/open in Tally Prime.
     
-    Tally's XML API silently returns data from the currently active company
-    if the requested company (via SVCOMPANY/SVCURRENTCOMPANY) is not loaded.
-    This pre-flight check prevents syncing wrong data with wrong company IDs.
-    
     Returns: (is_loaded: bool, matched_name: str|None, active_companies: list[str])
-        matched_name is Tally's EXACT company name on an exact match; the caller
+        matched_name is Tally's EXACT company name on an exact match; callers
         should use it for SVCURRENTCOMPANY so Tally targets the right company.
     """
     xml_req = """<ENVELOPE>
-<HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
-<BODY><EXPORTDATA>
-<REQUESTDESC>
-    <REPORTNAME>List of Companies</REPORTNAME>
-    <STATICVARIABLES>
-        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-    </STATICVARIABLES>
-</REQUESTDESC>
-</EXPORTDATA></BODY></ENVELOPE>"""
+<HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>Collection of Companies</ID></HEADER>
+<BODY><DESC><STATICVARIABLES><SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE><SVTODATE TYPE="Date">01-Jan-1970</SVTODATE><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES>
+<TDL><TDLMESSAGE><COLLECTION NAME="Collection of Companies" ISMODIFY="No"><TYPE>Company</TYPE><FETCH>NAME</FETCH><FILTERS>GroupFilter</FILTERS></COLLECTION><SYSTEM TYPE="FORMULAE" NAME="GroupFilter">$isaggregate = "No"</SYSTEM></TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>"""
 
     try:
         resp = requests.post(tally_url, data=xml_req.encode('utf-8'),
@@ -68,19 +58,17 @@ def verify_tally_company(tally_url, expected_company_name):
                              timeout=10)
         if resp.status_code != 200:
             logger.warning(f"⚠️ Could not verify Tally companies (HTTP {resp.status_code})")
-            return True, None, []  # Fail-open: cannot determine, don't block
+            return False, None, []
 
         text = clean_xml(resp.text)
         root = ET.fromstring(text)
         
-        # Extract all company names from Tally's response
         companies = []
         for elem in root.iter('COMPANY'):
             name = elem.findtext('NAME') or elem.get('NAME', '')
             if name:
                 companies.append(name.strip())
         
-        # Also check SVCURRENTCOMPANY in TALLYMESSAGE
         for elem in root.iter('TALLYMESSAGE'):
             for child in elem:
                 if child.tag == 'COMPANY':
@@ -90,7 +78,7 @@ def verify_tally_company(tally_url, expected_company_name):
 
         if not companies:
             logger.warning(f"⚠️ Could not parse company list from Tally (empty)")
-            return True, None, []  # Fail-open: cannot read the list
+            return False, None, []
 
         # STRICT exact match only. A partial/substring match is NOT acceptable:
         # Tally would silently fall back to the active company and we'd persist the

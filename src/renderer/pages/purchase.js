@@ -7,6 +7,9 @@
     // plan_feature). Populated by loadPricing() before the page renders.
     let PRICING = null;
     let SUBSCRIPTION = null;
+    // True when the API responded successfully but returned zero plans — meaning
+    // no plans have been configured in the DB yet (beta / pre-launch state).
+    let NO_PLANS_IN_DB = false;
 
     /** Best-effort locale guess used only when the backend can't resolve currency. */
     function guessCountryFromLocale() {
@@ -98,6 +101,8 @@
             const resp = await apiGet('/subscription/pricing' + qs);
             PRICING = resp.data || resp;
             if (!PRICING || !Array.isArray(PRICING.plans) || PRICING.plans.length === 0) {
+                // API is reachable but no plans exist in the DB yet → beta/pre-launch
+                NO_PLANS_IN_DB = true;
                 PRICING = fallbackPricing();
             }
         } catch (e) {
@@ -184,84 +189,26 @@
 
                 ${trialBannerHtml()}
 
-                <!-- Duration Toggle -->
-                <div style="display: flex; justify-content: center; padding: var(--ds-space-6) var(--ds-space-6) 0;">
-                    <div id="durationToggle" style="display: inline-flex; background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-full); padding: 4px; gap: 4px; border: 1px solid var(--ds-border-default);">
-                        <button data-duration="1yr" class="duration-btn active" style="padding: var(--ds-space-2) var(--ds-space-5); border-radius: var(--ds-radius-full); border: none; cursor: pointer; font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); transition: all var(--ds-duration-base) var(--ds-ease); background: var(--ds-primary-600); color: var(--ds-text-inverse);">
-                            1 Year
-                        </button>
-                        <button data-duration="3yr" class="duration-btn" style="padding: var(--ds-space-2) var(--ds-space-5); border-radius: var(--ds-radius-full); border: none; cursor: pointer; font-size: var(--ds-text-sm); font-weight: var(--ds-weight-semibold); transition: all var(--ds-duration-base) var(--ds-ease); background: transparent; color: var(--ds-text-secondary);">
-                            3 Years <span style="font-size: var(--ds-text-2xs); background: var(--ds-success-100); color: var(--ds-success-700); padding: 2px 8px; border-radius: var(--ds-radius-full); margin-left: 4px; font-weight: var(--ds-weight-bold);">SAVE MORE</span>
-                        </button>
+                <!-- Plans Coming Soon -->
+                <div style="text-align: center; padding: var(--ds-space-12) var(--ds-space-6);">
+                    <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--ds-primary-50); padding: var(--ds-space-2) var(--ds-space-4); border-radius: var(--ds-radius-full); margin-bottom: var(--ds-space-6);">
+                        <i class="fas fa-shopping-cart" style="color: var(--ds-primary-500);"></i>
+                        <span style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: var(--ds-primary-600); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">PRICING</span>
+                    </div>
+
+                    <h2 style="font-size: var(--ds-text-3xl); font-weight: var(--ds-weight-extrabold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-4);">
+                        Plans &amp; Pricing <span style="color: var(--ds-primary-500);">Coming Soon</span>
+                    </h2>
+
+                    <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-base); margin-bottom: var(--ds-space-8); max-width: 32rem; margin-left: auto; margin-right: auto; line-height: 1.5;">
+                        We are finalising our plans. In the meantime, enjoy full access during the beta period &mdash; no credit card required.
+                    </p>
+
+                    <div style="display: inline-flex; align-items: center; gap: 12px; padding: var(--ds-space-3) var(--ds-space-6); background: var(--ds-success-50); border: 1px solid var(--ds-success-200); border-radius: var(--ds-radius-2xl); color: var(--ds-success-700); font-weight: var(--ds-weight-bold); font-size: var(--ds-text-sm);">
+                        <i class="fas fa-check-circle" style="color: var(--ds-success-500); font-size: var(--ds-text-lg);"></i>
+                        Free Beta Access &mdash; No Payment Required
                     </div>
                 </div>
-
-                <!-- Pricing Cards -->
-                <div style="padding: var(--ds-space-8) var(--ds-space-6) var(--ds-space-12);">
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--ds-space-6); align-items: stretch; width: 100%;">
-
-                        <!-- Basic Plan -->
-                        <div style="background: var(--ds-bg-surface); padding: var(--ds-space-8); border-radius: var(--ds-radius-2xl); border: 1px solid var(--ds-border-default); display: flex; flex-direction: column; transition: all var(--ds-duration-base) var(--ds-ease); height: 100%;" class="pricing-card">
-                            <div style="width: 40px; height: 40px; background: var(--ds-success-50); color: var(--ds-success-500); border-radius: var(--ds-radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: var(--ds-space-5); border: 1px solid var(--ds-success-100);">
-                                <i class="fas fa-seedling"></i>
-                            </div>
-                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-2);">${basic ? basic.name : 'Basic'}</h3>
-                            <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm); margin-bottom: var(--ds-space-5);">${basic ? basic.description : 'Perfect for small businesses'}</p>
-
-                            <!-- Price display -->
-                            <div style="margin-bottom: var(--ds-space-2);">
-                                <span style="font-size: var(--ds-text-4xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary);" id="basicPrice">${sym}${formatAmount(basicPriceObj, p.currency)}</span>
-                                <span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm);" id="basicPeriod"> / year</span>
-                            </div>
-                            <div style="margin-bottom: var(--ds-space-6);">
-                                <span style="color: var(--ds-text-tertiary); font-size: var(--ds-text-xs);" id="basicTaxNote">${(basicPriceObj && basicPriceObj.taxNote) || (isIndia ? '+ applicable taxes' : 'inclusive of all charges')}</span>
-                            </div>
-
-                            <ul style="list-style: none; padding: 0; margin: 0 0 var(--ds-space-8) 0; flex-grow: 1;">
-                                ${featureListHtml(basic, false)}
-                            </ul>
-                            <button class="ds-btn ds-btn-secondary" style="width: 100%;" id="basicBtn">
-                                Get Started
-                            </button>
-                        </div>
-
-                        <!-- Professional Plan -->
-                        <div style="background: linear-gradient(135deg, var(--ds-primary-600) 0%, var(--ds-primary-800) 100%); padding: var(--ds-space-10) var(--ds-space-8); border-radius: var(--ds-radius-2xl); border: none; position: relative; color: var(--ds-text-inverse); display: flex; flex-direction: column; box-shadow: var(--ds-shadow-lg); transform: scale(1.03); z-index: 10; height: 100%;" class="pricing-card professional">
-                            <div style="position: absolute; top: -14px; right: 24px; background: var(--ds-success-500); color: var(--ds-text-inverse); padding: var(--ds-space-1) var(--ds-space-4); border-radius: var(--ds-radius-full); font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); letter-spacing: var(--ds-tracking-wider); box-shadow: var(--ds-shadow-sm);">
-                                MOST POPULAR
-                            </div>
-                            <div style="width: 40px; height: 40px; background: rgba(255, 255, 255, 0.2); color: var(--ds-text-inverse); border-radius: var(--ds-radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: var(--ds-space-5);">
-                                <i class="fas fa-rocket"></i>
-                            </div>
-                            <h3 style="font-size: var(--ds-text-xl); font-weight: var(--ds-weight-bold); margin-bottom: var(--ds-space-2);">${pro ? pro.name : 'Professional'}</h3>
-                            <p style="opacity: 0.85; font-size: var(--ds-text-sm); margin-bottom: var(--ds-space-5);">${pro ? pro.description : 'For growing & multi-company setups'}</p>
-
-                            <!-- Price display -->
-                            <div style="margin-bottom: var(--ds-space-2);">
-                                <span style="font-size: var(--ds-text-5xl); font-weight: var(--ds-weight-bold);" id="proPrice">${sym}${formatAmount(proPriceObj, p.currency)}</span>
-                                <span style="opacity: 0.8; font-size: var(--ds-text-sm);" id="proPeriod"> / year</span>
-                            </div>
-                            <div style="margin-bottom: var(--ds-space-6);">
-                                <span style="opacity: 0.7; font-size: var(--ds-text-xs);" id="proTaxNote">${(proPriceObj && proPriceObj.taxNote) || (isIndia ? '+ applicable taxes' : 'inclusive of all charges')}</span>
-                            </div>
-
-                            <ul style="list-style: none; padding: 0; margin: 0 0 var(--ds-space-8) 0; flex-grow: 1;">
-                                ${featureListHtml(pro, true)}
-                            </ul>
-                            <button class="ds-btn" style="width: 100%; background: var(--ds-text-inverse); color: var(--ds-primary-600); border: none; font-weight: var(--ds-weight-bold);" id="proBtn">
-                                Choose Professional
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Region note -->
-                    <div style="text-align: center; margin-top: var(--ds-space-6);">
-                        <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-xs);">
-                            <i class="fas fa-globe" style="margin-right: 4px;"></i>
-                            Pricing shown in <strong>${p.currency}</strong>.
-                            ${isIndia ? 'Taxes applicable as per GST regulations.' : 'All prices inclusive.'}
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>
@@ -448,6 +395,81 @@
         }, 50);
     }
 
+    function getBetaVersionTemplate() {
+        const daysLeft = SUBSCRIPTION && SUBSCRIPTION.daysRemaining != null ? SUBSCRIPTION.daysRemaining : null;
+        const daysText = daysLeft != null
+            ? `<span style="color: var(--ds-primary-600); font-weight: var(--ds-weight-bold);">${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining</span> in your trial.`
+            : 'You have full access during the beta period.';
+
+        return `
+        <div style="padding: var(--ds-space-6); width: 100%; box-sizing: border-box;">
+            <div style="background: var(--ds-bg-surface); border-radius: var(--ds-radius-xl); box-shadow: var(--ds-shadow-sm); overflow: hidden; border: 1px solid var(--ds-border-default);">
+
+                <!-- Header -->
+                <div style="padding: var(--ds-space-5) var(--ds-space-6); border-bottom: 1px solid var(--ds-border-default); display: flex; align-items: center; gap: var(--ds-space-4); background: var(--ds-bg-surface-sunken);">
+                    <div style="width: 44px; height: 44px; background: var(--ds-primary-50); color: var(--ds-primary-500); border-radius: var(--ds-radius-lg); display: flex; align-items: center; justify-content: center; font-size: var(--ds-text-xl); border: 1px solid var(--ds-primary-100);">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div>
+                        <h2 style="font-size: var(--ds-text-2xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-1);">Purchase</h2>
+                        <p style="color: var(--ds-text-tertiary); font-size: var(--ds-text-sm);">Subscription &amp; plan details</p>
+                    </div>
+                </div>
+
+                <!-- Beta Banner -->
+                <div style="padding: var(--ds-space-10) var(--ds-space-8); display: flex; flex-direction: column; align-items: center; text-align: center;">
+
+                    <!-- Icon -->
+                    <div style="position: relative; display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; margin-bottom: var(--ds-space-6);">
+                        <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(79,70,229,0.15)); border-radius: 50%;"></div>
+                        <div style="width: 72px; height: 72px; background: linear-gradient(135deg, #7c3aed, #4f46e5); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #fff; box-shadow: 0 8px 28px rgba(99,70,229,0.35);">
+                            <i class="fas fa-flask"></i>
+                        </div>
+                    </div>
+
+                    <!-- Badge -->
+                    <div style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 5px 16px; border-radius: 999px; margin-bottom: var(--ds-space-5); box-shadow: 0 4px 12px rgba(99,70,229,0.3);">
+                        <i class="fas fa-star" style="font-size: 9px;"></i> Beta Version
+                    </div>
+
+                    <!-- Heading -->
+                    <h2 style="font-size: var(--ds-text-3xl); font-weight: var(--ds-weight-bold); color: var(--ds-text-primary); margin-bottom: var(--ds-space-3);">
+                        You're on the Beta!
+                    </h2>
+                    <p style="color: var(--ds-text-secondary); font-size: var(--ds-text-base); line-height: 1.7; max-width: 420px; margin-bottom: var(--ds-space-6);">
+                        Talliffy is currently in <strong>Beta</strong>. All features are
+                        <span style="color: #7c3aed; font-weight: 700;">completely free</span>
+                        during this period. ${daysText}
+                    </p>
+
+                    <!-- Feature list -->
+                    <div style="background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(79,70,229,0.04)); border: 1px solid rgba(139,92,246,0.2); border-radius: var(--ds-radius-xl); padding: var(--ds-space-5) var(--ds-space-6); margin-bottom: var(--ds-space-6); text-align: left; width: 100%; max-width: 400px;">
+                        <p style="font-size: var(--ds-text-xs); font-weight: var(--ds-weight-bold); color: #7c3aed; text-transform: uppercase; letter-spacing: 1px; margin-bottom: var(--ds-space-4);">What's included</p>
+                        <div style="display: flex; flex-direction: column; gap: var(--ds-space-3);">
+                            ${[
+                                'All reports — Balance Sheet, P&amp;L, Ledger, Daybook',
+                                'Unlimited company sync',
+                                'Desktop, Web &amp; Mobile access',
+                                'No credit card required',
+                                'Full access until official launch',
+                            ].map(f => `
+                                <div style="display: flex; align-items: center; gap: var(--ds-space-3); font-size: var(--ds-text-sm); color: var(--ds-text-secondary);">
+                                    <i class="fas fa-check-circle" style="color: #7c3aed; font-size: 14px; flex-shrink: 0;"></i>
+                                    <span>${f}</span>
+                                </div>`).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Note -->
+                    <p style="font-size: var(--ds-text-xs); color: var(--ds-text-tertiary); line-height: 1.5; max-width: 380px;">
+                        <i class="fas fa-bell" style="margin-right: 4px; color: var(--ds-primary-400);"></i>
+                        Paid plans will be introduced when we officially launch. You'll be notified in advance.
+                    </p>
+                </div>
+            </div>
+        </div>`;
+    }
+
     window.initializePurchase = async function () {
         console.log('Initializing Purchase Page...');
         const content = document.getElementById('page-content');
@@ -460,6 +482,12 @@
             </div>`;
 
         await loadPricing();
+
+        // No plans in DB → still in beta / pre-launch; show beta screen instead of pricing.
+        if (NO_PLANS_IN_DB || (SUBSCRIPTION && SUBSCRIPTION.betaMode)) {
+            content.innerHTML = getBetaVersionTemplate();
+            return;
+        }
 
         content.innerHTML = getPurchaseTemplate();
         initDurationToggle();

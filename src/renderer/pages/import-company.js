@@ -1223,20 +1223,21 @@
 
                     const now = new Date();
                     const currentFy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-                    const todayStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 
                     const yearsToSync = [];
                     for (let i = 0; i < 4; i++) {
                         const fyStart = currentFy - i;
                         const fromD = `${fyStart}0401`;
-                        const toD = i === 0 ? todayStamp : `${fyStart + 1}0331`;
+                        // Span the whole FY incl. the open current FY — capping at
+                        // today dropped future-dated vouchers from the BS/P&L.
+                        const toD = `${fyStart + 1}0331`;
                         const fyLabel = `${String(fyStart).substring(2, 4)}-${String(fyStart + 1).substring(2, 4)}`;
                         yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: fyLabel });
                     }
-                    // "Full" range from books start (or a safe floor) to today
+                    // "Full" range: books start → current FY end (include open-FY future-dated vouchers)
                     const fromISO = companyData.syncFromDate || companyData.booksStart || companyData.financialYearStart || '';
                     const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
-                    yearsToSync.push({ fromDate: fullFromDate, toDate: todayStamp, financialYear: 'Full' });
+                    yearsToSync.push({ fromDate: fullFromDate, toDate: `${currentFy + 1}0331`, financialYear: 'Full' });
 
                     for (const report of reports) {
                         addImportLog(`   🔄 Syncing ${report.name}...`, 'info');

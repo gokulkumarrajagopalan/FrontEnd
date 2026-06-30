@@ -553,15 +553,9 @@ class FinancialReportSync:
         Returns: (is_loaded: bool, companies: list[str])
         """
         xml_req = """<ENVELOPE>
-<HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
-<BODY><EXPORTDATA>
-<REQUESTDESC>
-    <REPORTNAME>List of Companies</REPORTNAME>
-    <STATICVARIABLES>
-        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-    </STATICVARIABLES>
-</REQUESTDESC>
-</EXPORTDATA></BODY></ENVELOPE>"""
+  <HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>Collection of Companies</ID></HEADER>
+  <BODY><DESC><STATICVARIABLES><SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE><SVTODATE TYPE="Date">01-Jan-1970</SVTODATE><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES>
+  <TDL><TDLMESSAGE><COLLECTION NAME="Collection of Companies" ISMODIFY="No"><TYPE>Company</TYPE><FETCH>NAME</FETCH><FILTERS>GroupFilter</FILTERS></COLLECTION><SYSTEM TYPE="FORMULAE" NAME="GroupFilter">$isaggregate = "No"</SYSTEM></TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>"""
         try:
             resp = requests.post(self.tally_url, data=xml_req.encode('utf-8'),
                                  headers={'Content-Type': 'application/xml'}, timeout=10)

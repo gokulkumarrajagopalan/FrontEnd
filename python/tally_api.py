@@ -830,8 +830,8 @@ class TallyAPIClient:
                 logger.info(f"Successfully extracted {len(companies)} companies")
                 return True, companies
             else:
-                logger.warning("Could not extract companies from response, returning mock data")
-                return True, self._get_mock_companies()
+                logger.warning("No companies currently loaded in Tally. Returning empty list.")
+                return True, []
         except Exception as e:
             logger.error(f"Error extracting companies: {e}")
             import traceback
@@ -914,14 +914,14 @@ class TallyAPIClient:
                     logger.info(f"Extracted company: {company_info.get('name')} (GUID: {company_info.get('companyGuid')})")
             
             logger.info(f"Total extracted companies: {len(companies)}")
-            return companies if companies else self._get_mock_companies()
+            return companies
             
         except Exception as e:
             logger.error(f"Error in _extract_companies: {e}")
             import traceback
             traceback.print_exc()
-            # Return mock data if parsing fails
-            return self._get_mock_companies()
+            # Return empty list if parsing fails
+            return []
 
     def _parse_company_element(self, company: dict) -> Optional[dict]:
         """

@@ -56,7 +56,7 @@
                             <div style="padding: var(--ds-space-4); background: var(--ds-bg-surface-sunken); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-default);">
                                 <label style="display: block; font-size: var(--ds-text-2xs); font-weight: var(--ds-weight-bold); color: var(--ds-text-tertiary); margin-bottom: var(--ds-space-1); text-transform: uppercase; letter-spacing: var(--ds-tracking-wider);">Country / Billing Currency</label>
                                 <div style="display: flex; align-items: center; gap: var(--ds-space-2);">
-                                    <select id="detailCountry" class="ds-input" style="flex: 1; padding: var(--ds-space-2) var(--ds-space-3);" disabled>
+                                    <select id="detailCountry" class="ds-input" style="flex: 1; padding: var(--ds-space-2) var(--ds-space-3);">
                                         <option value="">Select country…</option>
                                         <option value="IN">India</option>
                                         <option value="AE">United Arab Emirates</option>
@@ -425,6 +425,31 @@
         const currencyEl = document.getElementById('detailCurrency');
         if (countrySel) countrySel.value = user.country || '';
         if (currencyEl) currencyEl.textContent = currencyLabel[user.currency] || user.currency || '\u2014';
+        
+        // Auto-detect country if not set
+        if (!user.country) {
+            fetch('https://ipapi.co/json/')
+                .then(res => res.json())
+                .then(async (ipData) => {
+                    if (ipData && ipData.country_code) {
+                        const newCountry = ipData.country_code;
+                        const headers = (window.authService && window.authService.getHeaders)
+                            ? window.authService.getHeaders() : { 'Content-Type': 'application/json' };
+                        const res = await fetch(window.apiConfig.getUrl('/users/me/profile'), {
+                            method: 'PUT', headers, body: JSON.stringify({ country: newCountry })
+                        });
+                        const json = await res.json();
+                        if (res.ok && json.success) {
+                            if (countrySel) countrySel.value = newCountry;
+                            if (currencyEl) currencyEl.textContent = currencyLabel[json.currency] || json.currency || '\u2014';
+                            user.country = newCountry;
+                            user.currency = json.currency;
+                        }
+                    }
+                })
+                .catch(e => console.warn('Failed to detect country', e));
+        }
+
         // Rebuild the country options from the backend (DB-driven), keeping the
         // user's current selection. Falls back to the static markup options.
         populateProfileCountries(user.country);

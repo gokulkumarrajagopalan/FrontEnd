@@ -78,15 +78,9 @@ class IncrementalSyncManager:
             casing/whitespace mismatch and would silently serve the active one).
         """
         xml_req = """<ENVELOPE>
-<HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
-<BODY><EXPORTDATA>
-<REQUESTDESC>
-    <REPORTNAME>List of Companies</REPORTNAME>
-    <STATICVARIABLES>
-        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-    </STATICVARIABLES>
-</REQUESTDESC>
-</EXPORTDATA></BODY></ENVELOPE>"""
+<HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>Collection of Companies</ID></HEADER>
+<BODY><DESC><STATICVARIABLES><SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE><SVTODATE TYPE="Date">01-Jan-1970</SVTODATE><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES>
+<TDL><TDLMESSAGE><COLLECTION NAME="Collection of Companies" ISMODIFY="No"><TYPE>Company</TYPE><FETCH>NAME</FETCH><FILTERS>GroupFilter</FILTERS></COLLECTION><SYSTEM TYPE="FORMULAE" NAME="GroupFilter">$isaggregate = "No"</SYSTEM></TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>"""
 
         tally_url = f"http://{tally_host}:{tally_port}"
         try:
@@ -95,7 +89,7 @@ class IncrementalSyncManager:
                                  timeout=10)
             if resp.status_code != 200:
                 logger.warning(f"⚠️ Could not verify Tally companies (HTTP {resp.status_code})")
-                return True, None, []  # Fail-open: cannot determine, don't block
+                return False, None, []  # Fail-closed
 
             text = re.sub(r'[^\x09\x0A\x0D\x20-\x7E\x80-\xFF\u0100-\uFFFF]', '', resp.text)
             root = ET.fromstring(text)
@@ -114,10 +108,8 @@ class IncrementalSyncManager:
                             companies.append(name.strip())
 
             if not companies:
-                # We genuinely couldn't read the company list — fail-open so a
-                # parser quirk doesn't block legitimate syncs.
                 logger.warning(f"⚠️ Could not parse company list from Tally (empty)")
-                return True, None, []
+                return False, None, []  # Fail-closed
 
             expected_lower = expected_company_name.strip().lower()
 

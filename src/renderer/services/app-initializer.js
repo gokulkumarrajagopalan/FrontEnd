@@ -66,7 +66,7 @@ class AppInitializer {
 
             // Check if auth service is available and user is authenticated
             if (!window.authService || !window.authService.isAuthenticated()) {
-                console.log('⚠️ Auth service not ready or user not authenticated');
+                console.log('ℹ️ Auth service not ready or user not authenticated');
                 return;
             }
 
@@ -74,6 +74,36 @@ class AppInitializer {
             const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             if (appSettings.syncOnAppStart === false) {
                 console.log('ℹ️ App-start sync disabled in settings');
+                return;
+            }
+
+            // Check if Tally is running and has companies loaded
+            let tallyStatus = { running: true, loadedCompanies: null };
+            const tallyPort = appSettings.tallyPort || 9000;
+            const tallyHost = appSettings.tallyHost || 'localhost';
+            try {
+                if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.checkTallyStatus === 'function') {
+                    tallyStatus = await window.backgroundSyncScheduler.checkTallyStatus();
+                } else if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.fetchTallyLoadedCompanies === 'function') {
+                    const pingCtrl = new AbortController();
+                    const pingTimeout = setTimeout(() => pingCtrl.abort(), 4000);
+                    await fetch(`http://${tallyHost}:${tallyPort}`, { method: 'GET', signal: pingCtrl.signal });
+                    clearTimeout(pingTimeout);
+                    const rawList = await window.backgroundSyncScheduler.fetchTallyLoadedCompanies(`http://${tallyHost}:${tallyPort}`);
+                    tallyStatus.loadedCompanies = rawList ?? [];
+                }
+            } catch (err) {
+                tallyStatus.running = false;
+                tallyStatus.loadedCompanies = [];
+            }
+
+            if (!tallyStatus.running) {
+                console.log('ℹ️ Tally not running, skipping app-start sync');
+                return;
+            }
+
+            if (tallyStatus.loadedCompanies && tallyStatus.loadedCompanies.length === 0) {
+                console.log('ℹ️ Tally is running but no companies are loaded — skipping sync to prevent MAV');
                 return;
             }
 
@@ -92,6 +122,22 @@ class AppInitializer {
             for (const company of companies) {
                 try {
                     console.log(`🔄 Syncing: ${company.name}`);
+
+                    // Check if this specific company is loaded
+                    if (tallyStatus.loadedCompanies) {
+                        const normalize = (name) => {
+                            if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.normalizeCompanyName === 'function') {
+                                return window.backgroundSyncScheduler.normalizeCompanyName(name);
+                            }
+                            return String(name || '').toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
+                        };
+                        const companyNameNorm = normalize(company.name);
+                        const isLoaded = tallyStatus.loadedCompanies.some(n => normalize(n) === companyNameNorm);
+                        if (!isLoaded) {
+                            console.log(`⏭️ Skipping "${company.name}" — not loaded in Tally`);
+                            continue;
+                        }
+                    }
                     
                     // Show sync started notification
                     if (window.notificationService) {
@@ -382,6 +428,36 @@ class AppInitializer {
         try {
             console.log(`🔍 Reconciling ${companies.length} companies...`);
             
+            // Check if Tally is running and has companies loaded
+            let tallyStatus = { running: true, loadedCompanies: null };
+            const tallyPort = appSettings.tallyPort || 9000;
+            const tallyHost = appSettings.tallyHost || 'localhost';
+            try {
+                if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.checkTallyStatus === 'function') {
+                    tallyStatus = await window.backgroundSyncScheduler.checkTallyStatus();
+                } else if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.fetchTallyLoadedCompanies === 'function') {
+                    const pingCtrl = new AbortController();
+                    const pingTimeout = setTimeout(() => pingCtrl.abort(), 4000);
+                    await fetch(`http://${tallyHost}:${tallyPort}`, { method: 'GET', signal: pingCtrl.signal });
+                    clearTimeout(pingTimeout);
+                    const rawList = await window.backgroundSyncScheduler.fetchTallyLoadedCompanies(`http://${tallyHost}:${tallyPort}`);
+                    tallyStatus.loadedCompanies = rawList ?? [];
+                }
+            } catch (err) {
+                tallyStatus.running = false;
+                tallyStatus.loadedCompanies = [];
+            }
+
+            if (!tallyStatus.running) {
+                console.log('ℹ️ Tally not running, skipping reconciliation');
+                return;
+            }
+
+            if (tallyStatus.loadedCompanies && tallyStatus.loadedCompanies.length === 0) {
+                console.log('ℹ️ Tally is running but no companies are loaded — skipping reconciliation to prevent MAV');
+                return;
+            }
+
             let totalMissing = 0;
             let totalUpdated = 0;
             let totalSynced = 0;
@@ -389,6 +465,22 @@ class AppInitializer {
             for (const company of companies) {
                 try {
                     console.log(`🔍 Reconciling: ${company.name}`);
+
+                    // Check if this specific company is loaded
+                    if (tallyStatus.loadedCompanies) {
+                        const normalize = (name) => {
+                            if (window.backgroundSyncScheduler && typeof window.backgroundSyncScheduler.normalizeCompanyName === 'function') {
+                                return window.backgroundSyncScheduler.normalizeCompanyName(name);
+                            }
+                            return String(name || '').toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
+                        };
+                        const companyNameNorm = normalize(company.name);
+                        const isLoaded = tallyStatus.loadedCompanies.some(n => normalize(n) === companyNameNorm);
+                        if (!isLoaded) {
+                            console.log(`⏭️ Skipping reconciliation for "${company.name}" — not loaded in Tally`);
+                            continue;
+                        }
+                    }
                     
                     const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                     const _now = new Date();
@@ -475,13 +567,15 @@ class AppInitializer {
     static getReportFinancialYears(company) {
         const now = new Date();
         const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-        const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 
         const yearsToSync = [];
         for (let i = 0; i < 4; i++) {
             const fyStart = currentYear - i;
             const fromD = `${fyStart}0401`;
-            const toD = i === 0 ? today : `${fyStart + 1}0331`;
+            // Span the whole FY incl. the open current FY — capping at "today"
+            // dropped future-dated vouchers from the synced BS/P&L (see
+            // background-sync-scheduler.getReportFinancialYears).
+            const toD = `${fyStart + 1}0331`;
             const shortStart = String(fyStart).substring(2, 4);
             const shortEnd = String(fyStart + 1).substring(2, 4);
             yearsToSync.push({ fromDate: fromD, toDate: toD, financialYear: `${shortStart}-${shortEnd}` });
@@ -489,7 +583,7 @@ class AppInitializer {
 
         const fromISO = company.syncFromDate || company.booksStart || company.financialYearStart || '';
         const fullFromDate = fromISO ? fromISO.replace(/-/g, '') : '20000401';
-        yearsToSync.push({ fromDate: fullFromDate, toDate: today, financialYear: 'Full' });
+        yearsToSync.push({ fromDate: fullFromDate, toDate: `${currentYear + 1}0331`, financialYear: 'Full' });
         return yearsToSync;
     }
 

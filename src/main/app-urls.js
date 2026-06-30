@@ -6,14 +6,15 @@
  * in the project .env or the settings page. Everything in the main process (and the
  * renderer, via the get-backend-url IPC) should reference these — never hardcode a URL.
  */
-const DEFAULT_BACKEND_URL = 'http://35.175.182.24:8080/api';
-const DEFAULT_WEB_URL = 'http://35.175.182.24';
+const DEFAULT_BACKEND_URL = 'http://localhost:8080/api';
+const DEFAULT_WEB_URL = 'http://localhost:3000';
 
 // Origins the app is allowed to open externally / connect to (origin-level prefixes).
 const ALLOWED_EXTERNAL_ORIGINS = [
   DEFAULT_WEB_URL,
   'http://35.175.182.24:8080',
   'http://localhost:8080',
+  'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:8080',
   'https://',

@@ -72,15 +72,9 @@ class VoucherSyncManager:
             should use it for SVCURRENTCOMPANY so Tally targets the right company.
         """
         xml_req = """<ENVELOPE>
-<HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
-<BODY><EXPORTDATA>
-<REQUESTDESC>
-    <REPORTNAME>List of Companies</REPORTNAME>
-    <STATICVARIABLES>
-        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-    </STATICVARIABLES>
-</REQUESTDESC>
-</EXPORTDATA></BODY></ENVELOPE>"""
+<HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>Collection of Companies</ID></HEADER>
+<BODY><DESC><STATICVARIABLES><SVFROMDATE TYPE="Date">01-Jan-1970</SVFROMDATE><SVTODATE TYPE="Date">01-Jan-1970</SVTODATE><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES>
+<TDL><TDLMESSAGE><COLLECTION NAME="Collection of Companies" ISMODIFY="No"><TYPE>Company</TYPE><FETCH>NAME</FETCH><FILTERS>GroupFilter</FILTERS></COLLECTION><SYSTEM TYPE="FORMULAE" NAME="GroupFilter">$isaggregate = "No"</SYSTEM></TDLMESSAGE></TDL></DESC></BODY></ENVELOPE>"""
 
         tally_url = f"http://{tally_host}:{tally_port}"
         try:
@@ -89,7 +83,7 @@ class VoucherSyncManager:
                                  timeout=10)
             if resp.status_code != 200:
                 logger.warning(f"⚠️ Could not verify Tally companies (HTTP {resp.status_code})")
-                return True, None, []
+                return False, None, []
 
             text = self.clean_xml(resp.text)
             root = ET.fromstring(text)
@@ -109,7 +103,7 @@ class VoucherSyncManager:
 
             if not companies:
                 logger.warning(f"⚠️ Could not parse company list from Tally (empty)")
-                return True, None, []
+                return False, None, []
 
             expected_lower = expected_company_name.strip().lower()
 
