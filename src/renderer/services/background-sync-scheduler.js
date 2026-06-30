@@ -642,6 +642,14 @@ class BackgroundSyncScheduler {
                 console.error('❌ Post-sync reconciliation error:', reconErr);
             }
 
+            // Sync successfully completed, show tray balloon notification
+            if (window.electronAPI && typeof window.electronAPI.showTrayBalloon === 'function') {
+                window.electronAPI.showTrayBalloon({
+                    title: 'Sync Completed',
+                    content: 'Data has been successfully synced with Tally.'
+                });
+            }
+
         } catch (error) {
             console.error('❌ Background sync error:', error);
             if (window.syncStateManager) {

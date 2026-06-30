@@ -207,7 +207,9 @@ function createWindow() {
           if (process.platform === 'win32' && typeof tray.displayBalloon === 'function') {
             tray.displayBalloon({
               title: 'Talliffy is still running',
-              content: 'Sync continues in the background. Right-click the tray icon to quit.'
+              content: 'Sync continues in the background. Right-click the tray icon to quit.',
+              icon: require('path').join(__dirname, '..', '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
+              iconType: 'custom'
             });
           }
         } catch (_) { /* best effort */ }
@@ -238,12 +240,13 @@ function showMainWindow() {
 function createTray() {
   if (tray) return;
   try {
-    const iconPath = path.join(__dirname, '..', '..', 'assets', 'icon.png');
-    let trayImage = nativeImage.createFromPath(iconPath);
-    if (!trayImage.isEmpty()) {
-      trayImage = trayImage.resize({ width: 16, height: 16 });
-    }
-    tray = new Tray(trayImage.isEmpty() ? iconPath : trayImage);
+    // Use .ico on Windows for best tray icon quality (multiple resolutions), otherwise .png
+    const iconExt = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+    const iconPath = path.join(__dirname, '..', '..', 'assets', iconExt);
+    
+    // Pass the icon path directly to Tray to allow the OS to handle DPI scaling natively.
+    // Avoid manual nativeImage.resize({width: 16, height: 16}) as it causes blurriness on high-DPI screens.
+    tray = new Tray(iconPath);
     tray.setToolTip('Talliffy');
 
     const contextMenu = Menu.buildFromTemplate([
@@ -439,9 +442,21 @@ function startSyncWorker(config = {}) {
               console.log(`\n📤 [${timestamp}] SYNC STARTED`);
               console.log(`   Port: ${result.data?.tally_port || 'N/A'}`);
             } else if (type === 'sync_completed') {
-              console.log(`✅ [${timestamp}] SYNC COMPLETED`);
-              console.log(`   Last Sync: ${result.data?.last_sync_time || 'N/A'}`);
-              console.log(`   Next Sync: ${new Date(result.data?.next_sync_time * 1000).toLocaleTimeString() || 'N/A'}\n`);
+              if (isDev) {
+                console.log(`✅ [${timestamp}] SYNC COMPLETED`);
+                console.log(`   Last Sync: ${result.data?.last_sync_time || 'N/A'}`);
+                console.log(`   Next Sync: ${new Date(result.data?.next_sync_time * 1000).toLocaleTimeString() || 'N/A'}\n`);
+              }
+              if (tray && typeof tray.displayBalloon === 'function') {
+                try {
+                  tray.displayBalloon({
+                    title: 'Sync Completed',
+                    content: 'Data has been successfully synced with Tally.',
+                    icon: require('path').join(__dirname, '..', '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
+                    iconType: 'custom'
+                  });
+                } catch (_) {}
+              }
             } else if (type === 'sync_error') {
               console.error(`\n❌ [${timestamp}] SYNC ERROR`);
               console.error(`   Error: ${result.data?.error || 'Unknown error'}\n`);
@@ -537,6 +552,25 @@ ipcMain.handle("get-sync-status", async () => {
     running: syncWorker !== null,
     timestamp: new Date().toISOString()
   };
+});
+
+// ========== TRAY BALLOON HANDLER ==========
+ipcMain.handle("show-tray-balloon", async (event, { title, content }) => {
+  if (tray && typeof tray.displayBalloon === 'function') {
+    try {
+      tray.displayBalloon({
+        title: title || 'Talliffy',
+        content: content || '',
+        icon: path.join(__dirname, '..', '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
+        iconType: 'custom'
+      });
+      return { success: true };
+    } catch (e) {
+      console.error('Failed to display tray balloon:', e);
+      return { success: false, error: e.message };
+    }
+  }
+  return { success: false, error: 'Tray not available' };
 });
 
 // ========== SYSTEM NOTIFICATION HANDLER ==========

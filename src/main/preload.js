@@ -44,6 +44,7 @@ const ALLOWED_INVOKE_CHANNELS = [
     'fetch-master-data',
     'sync-financial-reports',
     'show-system-notification',
+    'show-tray-balloon',
     'open-external-url',
     'show-session-conflict'
 ];
@@ -223,6 +224,11 @@ try {
         // System Notification (OS-level toast)
         showSystemNotification: (options) => {
             return ipcRenderer.invoke('show-system-notification', options);
+        },
+
+        // Tray Balloon Notification
+        showTrayBalloon: (options) => {
+            return ipcRenderer.invoke('show-tray-balloon', options);
         },
 
         openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),

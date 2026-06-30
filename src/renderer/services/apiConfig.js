@@ -2,13 +2,13 @@
 // At runtime the real backend URL comes from the main process (get-backend-url IPC)
 // or the user's settings; these are only the last-resort fallbacks. Other renderer
 // files must read apiConfig.DEFAULT_BACKEND_URL / apiConfig.WEB_APP_URL — never hardcode.
-const DEFAULT_BACKEND_URL = 'http://localhost:8080/api';
+const DEFAULT_BACKEND_URL = 'https://api.talliffy.com/api';
 // Canonical hosted web app — used to open the web app from the desktop (legal
 // pages, "open web app" login). Must be the real, always-reachable host, NOT a
 // dev localhost (which isn't running on an end user's machine, so the link dies).
 // Mirrors DEFAULT_WEB_URL in main/app-urls.js. For local web-app dev, override via
 // the settings page / appSettings.webAppUrl.
-const DEFAULT_WEB_APP_URL = 'http://localhost:3000';
+const DEFAULT_WEB_APP_URL = 'https://talliffy.com';
 
 const apiConfig = {
     DEFAULT_BACKEND_URL,
